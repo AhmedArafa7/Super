@@ -1,11 +1,13 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Sparkles, Paperclip, Mic, MoreHorizontal, Clock, Check, CheckCheck, Loader2 } from "lucide-react";
+import { Send, Bot, User, Sparkles, Paperclip, Mic, MoreHorizontal, Clock, Check, CheckCheck, Loader2, Edit3, MessageCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getStoredMessages, addWizardMessage, updateMessageStatus, WizardMessage } from "@/lib/chat-store";
+import { Badge } from "@/components/ui/badge";
+import { getStoredMessages, addWizardMessage, updateMessageStatus, markUpdateAsRead, clearAllUnreadUpdates, WizardMessage } from "@/lib/chat-store";
 import { cn } from "@/lib/utils";
 
 export function AIChat() {
@@ -23,6 +25,9 @@ export function AIChat() {
     window.addEventListener('storage-update', loadMessages);
     window.addEventListener('storage', loadMessages);
     
+    // Clear all unread updates when the user opens the chat
+    clearAllUnreadUpdates();
+
     return () => {
       window.removeEventListener('storage-update', loadMessages);
       window.removeEventListener('storage', loadMessages);
@@ -37,10 +42,8 @@ export function AIChat() {
 
       setIsProcessingQueue(true);
       
-      // Process one by one with a delay to simulate network latency
       const msgToProcess = queuedMessages[0];
-      
-      await new Promise(resolve => setTimeout(resolve, 800)); // Simulate "Uploading..."
+      await new Promise(resolve => setTimeout(resolve, 800)); 
       updateMessageStatus(msgToProcess.id, 'sent');
       
       setIsProcessingQueue(false);
@@ -104,7 +107,7 @@ export function AIChat() {
             {messages.map((msg) => (
               <React.Fragment key={msg.id}>
                 {/* User Message */}
-                <div className="flex justify-end items-start gap-3">
+                <div className="flex justify-end items-start gap-3 group">
                   <div className="max-w-[80%] message-bubble-user p-4 relative">
                     <p className="text-sm leading-relaxed whitespace-pre-wrap pr-4">{msg.text}</p>
                     <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
@@ -133,12 +136,36 @@ export function AIChat() {
                 )}
 
                 {msg.status === 'replied' && msg.response && (
-                  <div className="flex justify-start items-start gap-3">
+                  <div className="flex justify-start items-start gap-3 group">
                     <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
                       <Bot className="size-4 text-indigo-400" />
                     </div>
-                    <div className="max-w-[80%] message-bubble-ai p-4">
+                    <div className={cn(
+                      "max-w-[80%] message-bubble-ai p-4 relative border transition-colors duration-500",
+                      msg.isEdited ? "border-amber-500/40 bg-amber-500/5" : "border-white/5",
+                      msg.hasUnreadUpdate && "ring-2 ring-indigo-500 ring-offset-4 ring-offset-slate-900 animate-pulse"
+                    )}>
+                      {msg.isEdited && (
+                        <div className="flex items-center gap-1.5 mb-2 text-[10px] font-bold text-amber-500 uppercase tracking-widest">
+                          <Edit3 className="size-3" />
+                          ✍️ Edited Response
+                        </div>
+                      )}
+                      
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.response}</p>
+                      
+                      {msg.isEdited && msg.editReason && (
+                        <div className="mt-4 pt-3 border-t border-white/10">
+                          <div className="flex items-start gap-2 p-2 rounded-lg bg-black/20">
+                            <MessageCircle className="size-3 text-indigo-400 mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-tighter">Neural Update Note</p>
+                              <p className="text-[11px] text-white/60 italic">{msg.editReason}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="mt-2 text-right">
                          <span className="text-[10px] opacity-40 italic">Verified Nexus Stream</span>
                       </div>
@@ -190,7 +217,7 @@ export function AIChat() {
               </Button>
             </div>
           </div>
-          <p className="text-[10px] text-center text-muted-foreground mt-3">Queue System Active: Messages are processed as single check (✓) and replied as double blue check (✓✓).</p>
+          <p className="text-[10px] text-center text-muted-foreground mt-3 uppercase tracking-widest font-bold">Neural Synchrony: Operational</p>
         </div>
       </div>
     </div>

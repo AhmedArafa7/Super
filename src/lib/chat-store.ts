@@ -1,3 +1,4 @@
+
 'use client';
 
 export type MessageStatus = 'queued' | 'sent' | 'processing' | 'replied' | 'rejected';
@@ -8,6 +9,11 @@ export interface WizardMessage {
   response: string | null;
   status: MessageStatus;
   timestamp: string;
+  // New notification & editing fields
+  isEdited?: boolean;
+  editReason?: string;
+  editedAt?: string;
+  hasUnreadUpdate?: boolean;
 }
 
 const STORAGE_KEY = 'nexus_wizard_messages';
@@ -31,7 +37,7 @@ export const addWizardMessage = (text: string): WizardMessage => {
     id: Math.random().toString(36).substring(2, 15),
     text,
     response: null,
-    status: 'queued', // Starts in the local queue
+    status: 'queued',
     timestamp: new Date().toISOString(),
   };
   saveMessages([...messages, newMessage]);
@@ -51,6 +57,35 @@ export const approveMessage = (id: string, response: string) => {
   const updated = messages.map((m) =>
     m.id === id ? { ...m, response, status: 'replied' as const } : m
   );
+  saveMessages(updated);
+};
+
+export const editMessage = (id: string, newResponse: string, reason: string) => {
+  const messages = getStoredMessages();
+  const updated = messages.map((m) =>
+    m.id === id ? { 
+      ...m, 
+      response: newResponse, 
+      isEdited: true, 
+      editReason: reason, 
+      editedAt: new Date().toISOString(),
+      hasUnreadUpdate: true 
+    } : m
+  );
+  saveMessages(updated);
+};
+
+export const markUpdateAsRead = (id: string) => {
+  const messages = getStoredMessages();
+  const updated = messages.map((m) =>
+    m.id === id ? { ...m, hasUnreadUpdate: false } : m
+  );
+  saveMessages(updated);
+};
+
+export const clearAllUnreadUpdates = () => {
+  const messages = getStoredMessages();
+  const updated = messages.map((m) => ({ ...m, hasUnreadUpdate: false }));
   saveMessages(updated);
 };
 

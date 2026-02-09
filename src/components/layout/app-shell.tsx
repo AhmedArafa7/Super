@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
 import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShoppingCart, User, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -12,12 +12,32 @@ import { StreamHub } from "@/components/features/stream-hub";
 import { TechMarket } from "@/components/features/tech-market";
 import { Capabilities } from "@/components/features/capabilities";
 import { AdminPanel } from "@/components/features/admin-panel";
+import { getStoredMessages } from "@/lib/chat-store";
+import { motion, AnimatePresence } from "framer-motion";
 
 type NavItem = "chat" | "stream" | "market" | "features" | "admin";
 
 export function AppShell() {
   const [activeTab, setActiveTab] = useState<NavItem>("chat");
   const [cartCount, setCartCount] = useState(0);
+  const [unreadUpdates, setUnreadUpdates] = useState(0);
+
+  useEffect(() => {
+    const updateNotificationCount = () => {
+      const messages = getStoredMessages();
+      const count = messages.filter(m => m.hasUnreadUpdate).length;
+      setUnreadUpdates(count);
+    };
+
+    updateNotificationCount();
+    window.addEventListener('storage-update', updateNotificationCount);
+    window.addEventListener('storage', updateNotificationCount);
+    
+    return () => {
+      window.removeEventListener('storage-update', updateNotificationCount);
+      window.removeEventListener('storage', updateNotificationCount);
+    };
+  }, []);
 
   const navItems = [
     { id: "chat", label: "AI Chat", icon: MessageSquare },
@@ -113,9 +133,30 @@ export function AppShell() {
             </div>
 
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white relative">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className={cn(
+                  "text-muted-foreground hover:text-white relative",
+                  unreadUpdates > 0 && "text-indigo-400"
+                )}
+                onClick={() => setActiveTab("chat")}
+              >
                 <Bell className="size-5" />
-                <span className="absolute top-2 right-2 size-2 bg-primary rounded-full border-2 border-slate-900" />
+                <AnimatePresence>
+                  {unreadUpdates > 0 && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                      className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center"
+                    >
+                       <Badge className="h-full w-full p-0 bg-red-500 text-[9px] font-bold flex items-center justify-center border border-slate-900">
+                        {unreadUpdates}
+                      </Badge>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </Button>
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white relative">
                 <ShoppingCart className="size-5" />
