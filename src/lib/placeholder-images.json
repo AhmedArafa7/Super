@@ -1,3 +1,88 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "vid-1",
+      "description": "Concept Art: Cyberpunk City",
+      "imageUrl": "https://images.unsplash.com/photo-1533577116850-9cc66cad8a9b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjeWJlcnB1bmslMjBjaXR5fGVufDB8fHx8MTc3MDUxNDg3MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cyberpunk city"
+    },
+    {
+      "id": "vid-2",
+      "description": "Coding Tutorial: React Mastery",
+      "imageUrl": "https://images.unsplash.com/photo-1656680632373-e2aec264296b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y29kaW5nJTIwY29tcHV0ZXJ8ZW58MHx8fHwxNzcwNTQyMjI3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "coding computer"
+    },
+    {
+      "id": "vid-3",
+      "description": "Gaming Highlight: Nexus Arena",
+      "imageUrl": "https://images.unsplash.com/photo-1511512578047-dfb367046420?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8dmlkZW8lMjBnYW1lfGVufDB8fHx8MTc3MDU3MDI2Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "video game"
+    },
+    {
+      "id": "vid-4",
+      "description": "AI Revolution: The Future",
+      "imageUrl": "https://images.unsplash.com/photo-1716637644831-e046c73be197?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxhcnRpZmljaWFsJTIwaW50ZWxsaWdlbmNlfGVufDB8fHx8MTc3MDUxNDQ3M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "artificial intelligence"
+    },
+    {
+      "id": "vid-5",
+      "description": "Deep Space Exploration",
+      "imageUrl": "https://images.unsplash.com/photo-1599625803125-6efff06c9c37?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxnYWxheHklMjBuZWJ1bGF8ZW58MHx8fHwxNzcwNTExNDAxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "galaxy nebula"
+    },
+    {
+      "id": "vid-6",
+      "description": "Hardware Review: Quantum CPU",
+      "imageUrl": "https://images.unsplash.com/photo-1749006590475-4592a5dbf99f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8bWljcm9jaGlwJTIwY2lyY3VpdHxlbnwwfHx8fDE3NzA2MjI5NTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "microchip circuit"
+    },
+    {
+      "id": "prod-1",
+      "description": "Quantum Headset",
+      "imageUrl": "https://images.unsplash.com/photo-1645191424225-102dfa9605bf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8aGVhZHBob25lcyUyMHRlY2hub2xvZ3l8ZW58MHx8fHwxNzcwNjIyOTUzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "headphones technology"
+    },
+    {
+      "id": "prod-2",
+      "description": "AI Processing Chip",
+      "imageUrl": "https://images.unsplash.com/photo-1760539165116-b714bc2c6544?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwcm9jZXNzb3IlMjBlbGVjdHJvbmljc3xlbnwwfHx8fDE3NzA2MjI5NTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "processor electronics"
+    },
+    {
+      "id": "prod-3",
+      "description": "Mechanical Dev Keyboard",
+      "imageUrl": "https://images.unsplash.com/photo-1713713717197-f0d65c4dabe6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxrZXlib2FyZCUyMG1lY2hhbmljYWx8ZW58MHx8fHwxNzcwNTUwMzY0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "keyboard mechanical"
+    },
+    {
+      "id": "prod-4",
+      "description": "Neural Link Interface",
+      "imageUrl": "https://images.unsplash.com/photo-1674027444636-ce7379d51252?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxicmFpbiUyMGNvbXB1dGVyfGVufDB8fHx8MTc3MDYyMjk1M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "brain computer"
+    },
+    {
+      "id": "prod-5",
+      "description": "Graphene Battery",
+      "imageUrl": "https://images.unsplash.com/photo-1685376594043-844022374fe6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxlbmVyZ3klMjBwb3dlcnxlbnwwfHx8fDE3NzA2MjI5NTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "energy power"
+    },
+    {
+      "id": "prod-6",
+      "description": "Holographic Projector",
+      "imageUrl": "https://images.unsplash.com/photo-1639152446002-ffd04bd3d529?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxob2xvZ3JhbSUyMHByb2plY3R8ZW58MHx8fHwxNzcwNjIyOTUzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "hologram project"
+    },
+    {
+      "id": "prod-7",
+      "description": "Bio-Metric Ring",
+      "imageUrl": "https://images.unsplash.com/photo-1689287428894-9b52d1534a25?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxzbWFydCUyMHJpbmd8ZW58MHx8fHwxNzcwNjIyOTUzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "smart ring"
+    },
+    {
+      "id": "prod-8",
+      "description": "Tactile VR Gloves",
+      "imageUrl": "https://images.unsplash.com/photo-1639174326326-6e2ef8d8ae39?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx2aXJ0dWFsJTIwcmVhbGl0eXxlbnwwfHx8fDE3NzA1ODA4Njl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "virtual reality"
+    }
+  ]
 }
