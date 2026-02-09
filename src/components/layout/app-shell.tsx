@@ -3,7 +3,7 @@
 
 import React, { useState } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
-import { MessageSquare, Video, ShoppingBag, Zap, Github, Twitter, Layers, LogOut, Search, Bell, ShoppingCart, User } from "lucide-react";
+import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShoppingCart, User, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,9 @@ import { AIChat } from "@/components/features/ai-chat";
 import { StreamHub } from "@/components/features/stream-hub";
 import { TechMarket } from "@/components/features/tech-market";
 import { Capabilities } from "@/components/features/capabilities";
+import { AdminPanel } from "@/components/features/admin-panel";
 
-type NavItem = "chat" | "stream" | "market" | "features";
+type NavItem = "chat" | "stream" | "market" | "features" | "admin";
 
 export function AppShell() {
   const [activeTab, setActiveTab] = useState<NavItem>("chat");
@@ -33,6 +34,7 @@ export function AppShell() {
       case "stream": return <StreamHub />;
       case "market": return <TechMarket onAddToCart={handleAddToCart} />;
       case "features": return <Capabilities />;
+      case "admin": return <AdminPanel />;
       default: return <AIChat />;
     }
   };
@@ -48,7 +50,7 @@ export function AppShell() {
               </div>
               <div>
                 <h1 className="font-headline font-bold text-xl tracking-tight text-white">NexusAI</h1>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Super App</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Wizard Edition</p>
               </div>
             </div>
           </SidebarHeader>
@@ -76,20 +78,21 @@ export function AppShell() {
           </SidebarContent>
 
           <SidebarFooter className="p-4 mt-auto">
-            <div className="p-4 rounded-2xl glass mb-4">
-              <p className="text-xs text-muted-foreground mb-2">Nexus Pro Plan</p>
-              <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden mb-3">
-                <div className="h-full w-2/3 bg-primary" />
-              </div>
-              <Button variant="outline" size="sm" className="w-full text-[10px] h-7 border-white/10 hover:bg-white/5">Upgrade Now</Button>
-            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => setActiveTab(activeTab === "admin" ? "chat" : "admin")}
+              className={`w-full mb-4 h-11 rounded-xl border-white/10 hover:bg-white/5 gap-2 text-xs font-bold ${activeTab === 'admin' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'text-muted-foreground'}`}
+            >
+              <ShieldCheck className="size-4" />
+              {activeTab === "admin" ? "Return to User View" : "Admin Neural Console"}
+            </Button>
             <div className="flex items-center gap-3 px-2">
               <div className="size-8 rounded-full bg-indigo-900/50 border border-white/10 overflow-hidden">
                 <img src="https://picsum.photos/seed/user1/32/32" alt="User" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">Alex Rivera</p>
-                <p className="text-[10px] text-muted-foreground truncate">alex@nexus.ai</p>
+                <p className="text-[10px] text-muted-foreground truncate">Console Admin</p>
               </div>
               <LogOut className="size-4 text-muted-foreground cursor-pointer hover:text-white" />
             </div>

@@ -2,82 +2,44 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Sparkles, Paperclip, Mic, MoreHorizontal } from "lucide-react";
+import { Send, Bot, User, Sparkles, Paperclip, Mic, MoreHorizontal, Clock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getWelcomeMessage } from "@/ai/flows/ai-chat-welcome-message";
-import { aiChatGenerateResponse } from "@/ai/flows/ai-chat-generate-response";
-
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-}
+import { getStoredMessages, addWizardMessage, WizardMessage } from "@/lib/chat-store";
 
 export function AIChat() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<WizardMessage[]>([]);
   const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    async function init() {
-      const welcome = await getWelcomeMessage();
-      setMessages([
-        {
-          id: "welcome",
-          role: "assistant",
-          content: welcome.message,
-          timestamp: new Date(),
-        },
-      ]);
-    }
-    init();
+    const loadMessages = () => {
+      setMessages(getStoredMessages());
+    };
+
+    loadMessages();
+
+    // Sync state across components/tabs
+    window.addEventListener('storage-update', loadMessages);
+    window.addEventListener('storage', loadMessages);
+    
+    return () => {
+      window.removeEventListener('storage-update', loadMessages);
+      window.removeEventListener('storage', loadMessages);
+    };
   }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
-  }, [messages, isTyping]);
+  }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
-
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: input,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
+  const handleSend = () => {
+    if (!input.trim()) return;
+    addWizardMessage(input);
     setInput("");
-    setIsTyping(true);
-
-    try {
-      const response = await aiChatGenerateResponse({
-        message: input,
-        history: messages.map(m => ({ role: m.role, content: m.content }))
-      });
-      
-      // Simulate backend latency
-      await new Promise(r => setTimeout(r, 1500));
-
-      const aiMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: response.response,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMsg]);
-    } catch (error) {
-      console.error("AI Error:", error);
-    } finally {
-      setIsTyping(false);
-    }
   };
 
   return (
@@ -89,10 +51,10 @@ export function AIChat() {
               <Bot className="size-5 text-indigo-400" />
             </div>
             <div>
-              <p className="font-bold text-sm">Nexus Neural v2.5</p>
-              <p className="text-[10px] text-green-400 flex items-center gap-1">
-                <span className="size-1.5 bg-green-400 rounded-full animate-pulse" />
-                Online & Ready
+              <p className="font-bold text-sm">Nexus Wizard v1.0</p>
+              <p className="text-[10px] text-indigo-400 flex items-center gap-1">
+                <span className="size-1.5 bg-indigo-400 rounded-full animate-pulse" />
+                Wizard of Oz Mode Active
               </p>
             </div>
           </div>
@@ -103,38 +65,63 @@ export function AIChat() {
 
         <ScrollArea className="flex-1 p-6" ref={scrollRef}>
           <div className="space-y-6">
+            {messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-40 text-center opacity-50">
+                <Sparkles className="size-12 mb-4 text-indigo-500" />
+                <p className="text-sm">Initiate a secure session with Nexus Neural.</p>
+              </div>
+            )}
+            
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} items-start gap-3`}>
-                {msg.role === "assistant" && (
-                  <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
-                    <Bot className="size-4 text-indigo-400" />
+              <React.Fragment key={msg.id}>
+                {/* User Message */}
+                <div className="flex justify-end items-start gap-3">
+                  <div className="max-w-[80%] message-bubble-user p-4">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    <p className="text-[10px] opacity-40 mt-2 text-right">
+                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
                   </div>
-                )}
-                <div className={`max-w-[80%] ${msg.role === "user" ? "message-bubble-user" : "message-bubble-ai"} p-4`}>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                  <p className="text-[10px] opacity-40 mt-2 text-right">
-                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-                {msg.role === "user" && (
                   <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
                     <User className="size-4 text-indigo-400" />
                   </div>
+                </div>
+
+                {/* AI Response or Loading */}
+                {msg.status === 'pending' ? (
+                  <div className="flex justify-start items-start gap-3">
+                    <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
+                      <Bot className="size-4 text-indigo-400" />
+                    </div>
+                    <div className="message-bubble-ai p-4 flex items-center gap-3 border border-indigo-500/20">
+                      <Loader2 className="size-4 text-indigo-400 animate-spin" />
+                      <p className="text-xs text-indigo-400/80 font-medium">Processing on secure server...</p>
+                    </div>
+                  </div>
+                ) : msg.status === 'approved' && msg.response ? (
+                  <div className="flex justify-start items-start gap-3">
+                    <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
+                      <Bot className="size-4 text-indigo-400" />
+                    </div>
+                    <div className="max-w-[80%] message-bubble-ai p-4">
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.response}</p>
+                      <p className="text-[10px] opacity-40 mt-2 text-right">
+                         Replied via Wizard Link
+                      </p>
+                    </div>
+                  </div>
+                ) : msg.status === 'rejected' && (
+                   <div className="flex justify-start items-start gap-3">
+                    <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
+                      <Bot className="size-4 text-red-400" />
+                    </div>
+                    <div className="message-bubble-ai p-4 border border-red-500/20 bg-red-500/5">
+                      <p className="text-xs text-red-400">Request declined by server protocol.</p>
+                    </div>
+                  </div>
                 )}
-              </div>
+              </React.Fragment>
             ))}
-            {isTyping && (
-              <div className="flex justify-start items-start gap-3">
-                <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
-                  <Bot className="size-4 text-indigo-400" />
-                </div>
-                <div className="message-bubble-ai p-4 flex gap-1 items-center h-10">
-                  <span className="size-1 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="size-1 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="size-1 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              </div>
-            )}
           </div>
         </ScrollArea>
 
@@ -159,7 +146,7 @@ export function AIChat() {
               </Button>
               <Button 
                 onClick={handleSend}
-                disabled={!input.trim() || isTyping}
+                disabled={!input.trim()}
                 size="icon" 
                 className="size-8 bg-primary text-white hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/20"
               >
@@ -167,7 +154,7 @@ export function AIChat() {
               </Button>
             </div>
           </div>
-          <p className="text-[10px] text-center text-muted-foreground mt-3">NexusAI can make mistakes. Verify important info.</p>
+          <p className="text-[10px] text-center text-muted-foreground mt-3">Prototype Mode: Messages are routed to the Admin Dashboard for manual response.</p>
         </div>
       </div>
     </div>

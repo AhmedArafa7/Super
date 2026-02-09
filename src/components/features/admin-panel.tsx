@@ -1,0 +1,139 @@
+
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { Check, X, Send, User, MessageSquare, History, ShieldAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { getStoredMessages, approveMessage, rejectMessage, WizardMessage } from "@/lib/chat-store";
+
+export function AdminPanel() {
+  const [messages, setMessages] = useState<WizardMessage[]>([]);
+  const [responses, setResponses] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const loadMessages = () => {
+      setMessages(getStoredMessages());
+    };
+    loadMessages();
+    window.addEventListener('storage-update', loadMessages);
+    return () => window.removeEventListener('storage-update', loadMessages);
+  }, []);
+
+  const pendingMessages = messages.filter(m => m.status === 'pending');
+  const historyMessages = messages.filter(m => m.status !== 'pending').reverse();
+
+  const handleApprove = (id: string) => {
+    const text = responses[id];
+    if (!text?.trim()) return;
+    approveMessage(id, text);
+    setResponses(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
+
+  const handleReject = (id: string) => {
+    rejectMessage(id);
+  };
+
+  return (
+    <div className="p-8 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-8rem)]">
+      <div className="lg:col-span-2 flex flex-col gap-6 overflow-hidden">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-headline font-bold text-white tracking-tight flex items-center gap-3">
+              <ShieldAlert className="text-indigo-400" />
+              Incoming Requests
+            </h2>
+            <p className="text-muted-foreground mt-1">Manual override for AI neural responses.</p>
+          </div>
+          <Badge variant="outline" className="border-indigo-500/30 text-indigo-400">
+            {pendingMessages.length} Pending
+          </Badge>
+        </div>
+
+        <ScrollArea className="flex-1 pr-4">
+          <div className="space-y-6">
+            {pendingMessages.length === 0 ? (
+              <div className="h-64 flex flex-col items-center justify-center glass rounded-3xl opacity-50 border-dashed border-2 border-white/10">
+                <MessageSquare className="size-12 mb-4" />
+                <p>All clear. No pending neural requests.</p>
+              </div>
+            ) : (
+              pendingMessages.map((msg) => (
+                <Card key={msg.id} className="glass border-white/10 rounded-3xl overflow-hidden shadow-xl hover:border-indigo-500/30 transition-colors">
+                  <CardHeader className="bg-white/5 pb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="size-8 rounded-full bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+                          <User className="size-4 text-indigo-400" />
+                        </div>
+                        <span className="text-sm font-bold text-white/90">User Terminal 01</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
+                        {new Date(msg.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5 mb-6 italic text-sm text-indigo-100/70">
+                      "{msg.text}"
+                    </div>
+                    <Textarea 
+                      placeholder="Craft a neural response..."
+                      className="bg-white/5 border-white/10 rounded-2xl h-32 focus-visible:ring-indigo-500 resize-none text-sm"
+                      value={responses[msg.id] || ""}
+                      onChange={(e) => setResponses({ ...responses, [msg.id]: e.target.value })}
+                    />
+                  </CardContent>
+                  <CardFooter className="bg-white/5 pt-4 flex justify-end gap-3">
+                    <Button variant="ghost" className="text-red-400 hover:bg-red-500/10 rounded-xl" onClick={() => handleReject(msg.id)}>
+                      <X className="mr-2 size-4" />
+                      Reject
+                    </Button>
+                    <Button 
+                      className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-500/20"
+                      onClick={() => handleApprove(msg.id)}
+                      disabled={!responses[msg.id]?.trim()}
+                    >
+                      <Check className="mr-2 size-4" />
+                      Approve & Transmit
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+
+      <div className="lg:col-span-1 flex flex-col gap-6 overflow-hidden border-l border-white/5 pl-8">
+        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+          <History className="size-5 text-muted-foreground" />
+          Transmission Log
+        </h3>
+        <ScrollArea className="flex-1">
+          <div className="space-y-4">
+            {historyMessages.map((msg) => (
+              <div key={msg.id} className="p-4 rounded-2xl bg-white/5 border border-white/5 text-xs">
+                <div className="flex justify-between mb-2">
+                  <Badge className={msg.status === 'approved' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}>
+                    {msg.status.toUpperCase()}
+                  </Badge>
+                  <span className="text-muted-foreground">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                </div>
+                <p className="text-white/60 line-clamp-1 mb-1">Q: {msg.text}</p>
+                {msg.response && <p className="text-indigo-400/80 line-clamp-2 italic">A: {msg.response}</p>}
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
+  );
+}
