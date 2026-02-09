@@ -1,8 +1,9 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
-import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShoppingCart, User, ShieldCheck, History } from "lucide-react";
+import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShoppingCart, User, ShieldCheck, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,35 +13,34 @@ import { TechMarket } from "@/components/features/tech-market";
 import { Capabilities } from "@/components/features/capabilities";
 import { AdminPanel } from "@/components/features/admin-panel";
 import { NotificationsView } from "@/components/features/notifications-view";
-import { getStoredMessages } from "@/lib/chat-store";
+import { KnowledgeHub } from "@/components/features/knowledge-hub";
+import { getNotifications, AppNotification, clearAllUnreadNotifications } from "@/lib/notification-store";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notifications";
+type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning";
 
 export function AppShell() {
   const [activeTab, setActiveTab] = useState<NavItem>("chat");
   const [cartCount, setCartCount] = useState(0);
-  const [unreadUpdates, setUnreadUpdates] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   
-  // Single vs Double click detector
   const clickTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const updateNotificationCount = () => {
-      const messages = getStoredMessages();
-      const count = messages.filter(m => m.hasUnreadUpdate).length;
-      setUnreadUpdates(count);
+    const updateCount = () => {
+      const all = getNotifications();
+      setUnreadCount(all.filter(n => !n.isRead).length);
     };
 
-    updateNotificationCount();
-    window.addEventListener('storage-update', updateNotificationCount);
-    window.addEventListener('storage', updateNotificationCount);
+    updateCount();
+    window.addEventListener('notifications-update', updateCount);
+    window.addEventListener('storage', updateCount);
     
     return () => {
-      window.removeEventListener('storage-update', updateNotificationCount);
-      window.removeEventListener('storage', updateNotificationCount);
+      window.removeEventListener('notifications-update', updateCount);
+      window.removeEventListener('storage', updateCount);
     };
   }, []);
 
@@ -48,20 +48,38 @@ export function AppShell() {
     { id: "chat", label: "AI Chat", icon: MessageSquare },
     { id: "stream", label: "StreamHub", icon: Video },
     { id: "market", label: "TechMarket", icon: ShoppingBag },
+    { id: "learning", label: "Knowledge Hub", icon: GraduationCap },
     { id: "features", label: "Capabilities", icon: Zap },
-    { id: "notifications", label: "Updates", icon: History },
+    { id: "notifications", label: "Notifications", icon: Bell },
   ];
 
   const handleAddToCart = () => setCartCount((prev) => prev + 1);
 
-  const handleViewInChat = (messageId: string) => {
-    setHighlightId(messageId);
-    setActiveTab("chat");
+  const handleSmartRoute = (n: AppNotification) => {
+    switch (n.type) {
+      case 'chat_correction':
+        if (n.metadata?.messageId) {
+          setHighlightId(n.metadata.messageId);
+          setActiveTab("chat");
+        }
+        break;
+      case 'content_new':
+        setActiveTab("stream");
+        break;
+      case 'learning_reminder':
+        setActiveTab("learning");
+        break;
+      case 'market_restock':
+        setActiveTab("market");
+        break;
+      case 'system_broadcast':
+        setActiveTab("notifications");
+        break;
+    }
   };
 
   const handleBellClick = () => {
     if (clickTimer.current) {
-      // Double Click Detected
       clearTimeout(clickTimer.current);
       clickTimer.current = null;
       setActiveTab("notifications");
@@ -69,19 +87,11 @@ export function AppShell() {
     }
 
     clickTimer.current = setTimeout(() => {
-      // Single Click Handler
       clickTimer.current = null;
+      const unread = getNotifications().filter(n => !n.isRead);
       
-      if (unreadUpdates > 1) {
-        setActiveTab("notifications");
-      } else if (unreadUpdates === 1) {
-        const messages = getStoredMessages();
-        const unread = messages.find(m => m.hasUnreadUpdate);
-        if (unread) {
-          handleViewInChat(unread.id);
-        } else {
-          setActiveTab("notifications");
-        }
+      if (unread.length === 1) {
+        handleSmartRoute(unread[0]);
       } else {
         setActiveTab("notifications");
       }
@@ -95,7 +105,8 @@ export function AppShell() {
       case "market": return <TechMarket onAddToCart={handleAddToCart} />;
       case "features": return <Capabilities />;
       case "admin": return <AdminPanel />;
-      case "notifications": return <NotificationsView onViewInChat={handleViewInChat} />;
+      case "learning": return <KnowledgeHub />;
+      case "notifications": return <NotificationsView onSmartRoute={handleSmartRoute} />;
       default: return <AIChat />;
     }
   };
@@ -125,6 +136,7 @@ export function AppShell() {
                     onClick={() => {
                       setActiveTab(item.id as NavItem);
                       if (item.id === 'chat') setHighlightId(null);
+                      if (item.id === 'notifications') clearAllUnreadNotifications();
                     }}
                     className={`h-12 gap-4 px-4 rounded-xl transition-all duration-300 ${
                       activeTab === item.id 
@@ -135,9 +147,9 @@ export function AppShell() {
                   >
                     <item.icon className="size-5 shrink-0" />
                     <span className="font-medium">{item.label}</span>
-                    {item.id === 'notifications' && unreadUpdates > 0 && (
+                    {item.id === 'notifications' && unreadCount > 0 && (
                        <Badge className="ml-auto bg-indigo-500 h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full border border-slate-900">
-                        {unreadUpdates}
+                        {unreadCount}
                       </Badge>
                     )}
                   </SidebarMenuButton>
@@ -153,7 +165,7 @@ export function AppShell() {
               className={`w-full mb-4 h-11 rounded-xl border-white/10 hover:bg-white/5 gap-2 text-xs font-bold ${activeTab === 'admin' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'text-muted-foreground'}`}
             >
               <ShieldCheck className="size-4" />
-              {activeTab === "admin" ? "Return to User View" : "Admin Neural Console"}
+              {activeTab === "admin" ? "Exit Console" : "Admin Neural Console"}
             </Button>
             <div className="flex items-center gap-3 px-2">
               <div className="size-8 rounded-full bg-indigo-900/50 border border-white/10 overflow-hidden">
@@ -187,13 +199,13 @@ export function AppShell() {
                 size="icon" 
                 className={cn(
                   "text-muted-foreground hover:text-white relative transition-colors",
-                  unreadUpdates > 0 && "text-indigo-400"
+                  unreadCount > 0 && "text-indigo-400"
                 )}
                 onClick={handleBellClick}
               >
                 <Bell className="size-5" />
                 <AnimatePresence>
-                  {unreadUpdates > 0 && (
+                  {unreadCount > 0 && (
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
@@ -201,7 +213,7 @@ export function AppShell() {
                       className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center"
                     >
                        <Badge className="h-full w-full p-0 bg-red-500 text-[9px] font-bold flex items-center justify-center border border-slate-900">
-                        {unreadUpdates}
+                        {unreadCount}
                       </Badge>
                     </motion.div>
                   )}

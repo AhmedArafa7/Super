@@ -1,6 +1,8 @@
 
 'use client';
 
+import { addNotification } from './notification-store';
+
 export type MessageStatus = 'queued' | 'sent' | 'processing' | 'replied' | 'rejected';
 
 export interface WizardMessage {
@@ -9,11 +11,9 @@ export interface WizardMessage {
   response: string | null;
   status: MessageStatus;
   timestamp: string;
-  // New notification & editing fields
   isEdited?: boolean;
   editReason?: string;
   editedAt?: string;
-  hasUnreadUpdate?: boolean;
 }
 
 const STORAGE_KEY = 'nexus_wizard_messages';
@@ -27,7 +27,6 @@ export const getStoredMessages = (): WizardMessage[] => {
 export const saveMessages = (messages: WizardMessage[]) => {
   if (typeof window === 'undefined') return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-  // Dispatch custom event for same-window updates
   window.dispatchEvent(new Event('storage-update'));
 };
 
@@ -68,25 +67,18 @@ export const editMessage = (id: string, newResponse: string, reason: string) => 
       response: newResponse, 
       isEdited: true, 
       editReason: reason, 
-      editedAt: new Date().toISOString(),
-      hasUnreadUpdate: true 
+      editedAt: new Date().toISOString()
     } : m
   );
   saveMessages(updated);
-};
 
-export const markUpdateAsRead = (id: string) => {
-  const messages = getStoredMessages();
-  const updated = messages.map((m) =>
-    m.id === id ? { ...m, hasUnreadUpdate: false } : m
-  );
-  saveMessages(updated);
-};
-
-export const clearAllUnreadUpdates = () => {
-  const messages = getStoredMessages();
-  const updated = messages.map((m) => ({ ...m, hasUnreadUpdate: false }));
-  saveMessages(updated);
+  // Trigger centralized notification
+  addNotification({
+    type: 'chat_correction',
+    title: 'Transmission Corrected',
+    message: `A message in your neural queue was adjusted: "${reason}"`,
+    metadata: { messageId: id, reason }
+  });
 };
 
 export const rejectMessage = (id: string) => {

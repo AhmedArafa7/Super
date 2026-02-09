@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -5,7 +6,8 @@ import { Send, Bot, User, Sparkles, Paperclip, Mic, MoreHorizontal, Clock, Check
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getStoredMessages, addWizardMessage, updateMessageStatus, clearAllUnreadUpdates, markUpdateAsRead, WizardMessage } from "@/lib/chat-store";
+import { getStoredMessages, addWizardMessage, updateMessageStatus, WizardMessage } from "@/lib/chat-store";
+import { clearAllUnreadNotifications, markNotificationByMessageIdAsRead } from "@/lib/notification-store";
 import { cn } from "@/lib/utils";
 
 interface AIChatProps {
@@ -29,8 +31,8 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     window.addEventListener('storage-update', loadMessages);
     window.addEventListener('storage', loadMessages);
     
-    // Clear unread updates when chat is active
-    clearAllUnreadUpdates();
+    // Clear unread notifications when chat is active
+    clearAllUnreadNotifications();
 
     return () => {
       window.removeEventListener('storage-update', loadMessages);
@@ -45,7 +47,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       
       // Mark as read specifically if it was deep linked
-      markUpdateAsRead(highlightId);
+      markNotificationByMessageIdAsRead(highlightId);
 
       // Flash logic is handled by CSS class if ID matches
       const timer = setTimeout(() => {
