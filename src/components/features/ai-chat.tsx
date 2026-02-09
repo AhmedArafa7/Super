@@ -1,20 +1,24 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Sparkles, Paperclip, Mic, MoreHorizontal, Clock, Check, CheckCheck, Loader2, Edit3, MessageCircle, AlertCircle } from "lucide-react";
+import { Send, Bot, User, Sparkles, Paperclip, Mic, MoreHorizontal, Clock, Check, CheckCheck, Loader2, Edit3, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { getStoredMessages, addWizardMessage, updateMessageStatus, markUpdateAsRead, clearAllUnreadUpdates, WizardMessage } from "@/lib/chat-store";
+import { getStoredMessages, addWizardMessage, updateMessageStatus, clearAllUnreadUpdates, markUpdateAsRead, WizardMessage } from "@/lib/chat-store";
 import { cn } from "@/lib/utils";
 
-export function AIChat() {
+interface AIChatProps {
+  highlightId?: string | null;
+  onHighlightComplete?: () => void;
+}
+
+export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const [messages, setMessages] = useState<WizardMessage[]>([]);
   const [input, setInput] = useState("");
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     const loadMessages = () => {
@@ -25,7 +29,7 @@ export function AIChat() {
     window.addEventListener('storage-update', loadMessages);
     window.addEventListener('storage', loadMessages);
     
-    // Clear all unread updates when the user opens the chat
+    // Clear unread updates when chat is active
     clearAllUnreadUpdates();
 
     return () => {
@@ -33,6 +37,24 @@ export function AIChat() {
       window.removeEventListener('storage', loadMessages);
     };
   }, []);
+
+  // Deep Linking & Highlighting Logic
+  useEffect(() => {
+    if (highlightId && messageRefs.current[highlightId]) {
+      const el = messageRefs.current[highlightId];
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Mark as read specifically if it was deep linked
+      markUpdateAsRead(highlightId);
+
+      // Flash logic is handled by CSS class if ID matches
+      const timer = setTimeout(() => {
+        onHighlightComplete?.();
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [highlightId, messages, onHighlightComplete]);
 
   // Background Queue Processor
   useEffect(() => {
@@ -53,10 +75,10 @@ export function AIChat() {
   }, [messages, isProcessingQueue]);
 
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && !highlightId) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
-  }, [messages]);
+  }, [messages, highlightId]);
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -136,14 +158,17 @@ export function AIChat() {
                 )}
 
                 {msg.status === 'replied' && msg.response && (
-                  <div className="flex justify-start items-start gap-3 group">
+                  <div 
+                    ref={el => { messageRefs.current[msg.id] = el }}
+                    className="flex justify-start items-start gap-3 group"
+                  >
                     <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
                       <Bot className="size-4 text-indigo-400" />
                     </div>
                     <div className={cn(
-                      "max-w-[80%] message-bubble-ai p-4 relative border transition-colors duration-500",
+                      "max-w-[80%] message-bubble-ai p-4 relative border transition-all duration-500",
                       msg.isEdited ? "border-amber-500/40 bg-amber-500/5" : "border-white/5",
-                      msg.hasUnreadUpdate && "ring-2 ring-indigo-500 ring-offset-4 ring-offset-slate-900 animate-pulse"
+                      highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500"
                     )}>
                       {msg.isEdited && (
                         <div className="flex items-center gap-1.5 mb-2 text-[10px] font-bold text-amber-500 uppercase tracking-widest">

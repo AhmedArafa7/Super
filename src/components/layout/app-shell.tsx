@@ -1,9 +1,8 @@
-
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
-import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShoppingCart, User, ShieldCheck } from "lucide-react";
+import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShoppingCart, User, ShieldCheck, History } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,16 +11,21 @@ import { StreamHub } from "@/components/features/stream-hub";
 import { TechMarket } from "@/components/features/tech-market";
 import { Capabilities } from "@/components/features/capabilities";
 import { AdminPanel } from "@/components/features/admin-panel";
+import { NotificationsView } from "@/components/features/notifications-view";
 import { getStoredMessages } from "@/lib/chat-store";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-type NavItem = "chat" | "stream" | "market" | "features" | "admin";
+type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notifications";
 
 export function AppShell() {
   const [activeTab, setActiveTab] = useState<NavItem>("chat");
   const [cartCount, setCartCount] = useState(0);
   const [unreadUpdates, setUnreadUpdates] = useState(0);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  
+  // Single vs Double click detector
+  const clickTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const updateNotificationCount = () => {
@@ -45,17 +49,53 @@ export function AppShell() {
     { id: "stream", label: "StreamHub", icon: Video },
     { id: "market", label: "TechMarket", icon: ShoppingBag },
     { id: "features", label: "Capabilities", icon: Zap },
+    { id: "notifications", label: "Updates", icon: History },
   ];
 
   const handleAddToCart = () => setCartCount((prev) => prev + 1);
 
+  const handleViewInChat = (messageId: string) => {
+    setHighlightId(messageId);
+    setActiveTab("chat");
+  };
+
+  const handleBellClick = () => {
+    if (clickTimer.current) {
+      // Double Click Detected
+      clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+      setActiveTab("notifications");
+      return;
+    }
+
+    clickTimer.current = setTimeout(() => {
+      // Single Click Handler
+      clickTimer.current = null;
+      
+      if (unreadUpdates > 1) {
+        setActiveTab("notifications");
+      } else if (unreadUpdates === 1) {
+        const messages = getStoredMessages();
+        const unread = messages.find(m => m.hasUnreadUpdate);
+        if (unread) {
+          handleViewInChat(unread.id);
+        } else {
+          setActiveTab("notifications");
+        }
+      } else {
+        setActiveTab("notifications");
+      }
+    }, 300);
+  };
+
   const renderContent = () => {
     switch (activeTab) {
-      case "chat": return <AIChat />;
+      case "chat": return <AIChat highlightId={highlightId} onHighlightComplete={() => setHighlightId(null)} />;
       case "stream": return <StreamHub />;
       case "market": return <TechMarket onAddToCart={handleAddToCart} />;
       case "features": return <Capabilities />;
       case "admin": return <AdminPanel />;
+      case "notifications": return <NotificationsView onViewInChat={handleViewInChat} />;
       default: return <AIChat />;
     }
   };
@@ -82,7 +122,10 @@ export function AppShell() {
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton
                     isActive={activeTab === item.id}
-                    onClick={() => setActiveTab(item.id as NavItem)}
+                    onClick={() => {
+                      setActiveTab(item.id as NavItem);
+                      if (item.id === 'chat') setHighlightId(null);
+                    }}
                     className={`h-12 gap-4 px-4 rounded-xl transition-all duration-300 ${
                       activeTab === item.id 
                       ? "bg-primary text-white shadow-lg shadow-primary/20 scale-[1.02]" 
@@ -92,6 +135,11 @@ export function AppShell() {
                   >
                     <item.icon className="size-5 shrink-0" />
                     <span className="font-medium">{item.label}</span>
+                    {item.id === 'notifications' && unreadUpdates > 0 && (
+                       <Badge className="ml-auto bg-indigo-500 h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full border border-slate-900">
+                        {unreadUpdates}
+                      </Badge>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -138,10 +186,10 @@ export function AppShell() {
                 variant="ghost" 
                 size="icon" 
                 className={cn(
-                  "text-muted-foreground hover:text-white relative",
+                  "text-muted-foreground hover:text-white relative transition-colors",
                   unreadUpdates > 0 && "text-indigo-400"
                 )}
-                onClick={() => setActiveTab("chat")}
+                onClick={handleBellClick}
               >
                 <Bell className="size-5" />
                 <AnimatePresence>
