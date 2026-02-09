@@ -1,16 +1,17 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Sparkles, Paperclip, Mic, MoreHorizontal, Clock, Loader2 } from "lucide-react";
+import { Send, Bot, User, Sparkles, Paperclip, Mic, MoreHorizontal, Clock, Check, CheckCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getStoredMessages, addWizardMessage, WizardMessage } from "@/lib/chat-store";
+import { getStoredMessages, addWizardMessage, updateMessageStatus, WizardMessage } from "@/lib/chat-store";
+import { cn } from "@/lib/utils";
 
 export function AIChat() {
   const [messages, setMessages] = useState<WizardMessage[]>([]);
   const [input, setInput] = useState("");
+  const [isProcessingQueue, setIsProcessingQueue] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -19,8 +20,6 @@ export function AIChat() {
     };
 
     loadMessages();
-
-    // Sync state across components/tabs
     window.addEventListener('storage-update', loadMessages);
     window.addEventListener('storage', loadMessages);
     
@@ -29,6 +28,26 @@ export function AIChat() {
       window.removeEventListener('storage', loadMessages);
     };
   }, []);
+
+  // Background Queue Processor
+  useEffect(() => {
+    const processQueue = async () => {
+      const queuedMessages = messages.filter(m => m.status === 'queued');
+      if (queuedMessages.length === 0 || isProcessingQueue) return;
+
+      setIsProcessingQueue(true);
+      
+      // Process one by one with a delay to simulate network latency
+      const msgToProcess = queuedMessages[0];
+      
+      await new Promise(resolve => setTimeout(resolve, 800)); // Simulate "Uploading..."
+      updateMessageStatus(msgToProcess.id, 'sent');
+      
+      setIsProcessingQueue(false);
+    };
+
+    processQueue();
+  }, [messages, isProcessingQueue]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -42,6 +61,16 @@ export function AIChat() {
     setInput("");
   };
 
+  const getStatusIcon = (status: WizardMessage['status']) => {
+    switch (status) {
+      case 'queued': return <Clock className="size-3 opacity-50" />;
+      case 'sent': return <Check className="size-3 opacity-50" />;
+      case 'processing': return <Check className="size-3 text-indigo-400" />;
+      case 'replied': return <CheckCheck className="size-3 text-indigo-400" />;
+      default: return null;
+    }
+  };
+
   return (
     <div className="flex flex-col h-full max-w-5xl mx-auto pt-8 pb-4 px-4 sm:px-6 lg:px-8">
       <div className="flex-1 overflow-hidden flex flex-col glass rounded-3xl mb-4 relative shadow-2xl">
@@ -51,10 +80,10 @@ export function AIChat() {
               <Bot className="size-5 text-indigo-400" />
             </div>
             <div>
-              <p className="font-bold text-sm">Nexus Wizard v1.0</p>
+              <p className="font-bold text-sm">Nexus Neural Queue</p>
               <p className="text-[10px] text-indigo-400 flex items-center gap-1">
-                <span className="size-1.5 bg-indigo-400 rounded-full animate-pulse" />
-                Wizard of Oz Mode Active
+                <span className={cn("size-1.5 rounded-full", isProcessingQueue ? "bg-amber-400 animate-pulse" : "bg-green-400")} />
+                {isProcessingQueue ? "Syncing Workspace..." : "System Synchronized"}
               </p>
             </div>
           </div>
@@ -76,41 +105,48 @@ export function AIChat() {
               <React.Fragment key={msg.id}>
                 {/* User Message */}
                 <div className="flex justify-end items-start gap-3">
-                  <div className="max-w-[80%] message-bubble-user p-4">
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                    <p className="text-[10px] opacity-40 mt-2 text-right">
-                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
+                  <div className="max-w-[80%] message-bubble-user p-4 relative">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap pr-4">{msg.text}</p>
+                    <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
+                      <span className="text-[10px]">
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      {getStatusIcon(msg.status)}
+                    </div>
                   </div>
                   <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
                     <User className="size-4 text-indigo-400" />
                   </div>
                 </div>
 
-                {/* AI Response or Loading */}
-                {msg.status === 'pending' ? (
+                {/* AI Response or Processing Indicators */}
+                {msg.status === 'processing' && (
                   <div className="flex justify-start items-start gap-3">
                     <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
                       <Bot className="size-4 text-indigo-400" />
                     </div>
                     <div className="message-bubble-ai p-4 flex items-center gap-3 border border-indigo-500/20">
                       <Loader2 className="size-4 text-indigo-400 animate-spin" />
-                      <p className="text-xs text-indigo-400/80 font-medium">Processing on secure server...</p>
+                      <p className="text-xs text-indigo-400/80 font-medium">Neural processing initiated...</p>
                     </div>
                   </div>
-                ) : msg.status === 'approved' && msg.response ? (
+                )}
+
+                {msg.status === 'replied' && msg.response && (
                   <div className="flex justify-start items-start gap-3">
                     <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
                       <Bot className="size-4 text-indigo-400" />
                     </div>
                     <div className="max-w-[80%] message-bubble-ai p-4">
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.response}</p>
-                      <p className="text-[10px] opacity-40 mt-2 text-right">
-                         Replied via Wizard Link
-                      </p>
+                      <div className="mt-2 text-right">
+                         <span className="text-[10px] opacity-40 italic">Verified Nexus Stream</span>
+                      </div>
                     </div>
                   </div>
-                ) : msg.status === 'rejected' && (
+                )}
+
+                {msg.status === 'rejected' && (
                    <div className="flex justify-start items-start gap-3">
                     <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
                       <Bot className="size-4 text-red-400" />
@@ -154,7 +190,7 @@ export function AIChat() {
               </Button>
             </div>
           </div>
-          <p className="text-[10px] text-center text-muted-foreground mt-3">Prototype Mode: Messages are routed to the Admin Dashboard for manual response.</p>
+          <p className="text-[10px] text-center text-muted-foreground mt-3">Queue System Active: Messages are processed as single check (✓) and replied as double blue check (✓✓).</p>
         </div>
       </div>
     </div>
