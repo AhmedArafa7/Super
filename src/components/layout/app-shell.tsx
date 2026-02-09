@@ -14,6 +14,7 @@ import { Capabilities } from "@/components/features/capabilities";
 import { AdminPanel } from "@/components/features/admin-panel";
 import { getStoredMessages } from "@/lib/chat-store";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 type NavItem = "chat" | "stream" | "market" | "features" | "admin";
 
