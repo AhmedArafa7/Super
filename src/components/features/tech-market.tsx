@@ -1,128 +1,475 @@
-
 "use client";
 
-import React from "react";
-import { ShoppingCart, Star, Zap, Cpu, ArrowRight, ShieldCheck, Heart } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { 
+  ShoppingCart, Star, Zap, Cpu, ArrowRight, ShieldCheck, Heart, 
+  Plus, Search, Filter, ArrowUpRight, ArrowDownLeft, Tag, 
+  DollarSign, CheckCircle2, XCircle, Clock, MessageSquare,
+  ChevronRight, Upload, Trash2, Package, History
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/components/auth/auth-provider";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  getMarketItems, addMarketItem, addOffer, updateOfferStatus, deleteMarketItem,
+  MarketItem, MarketOffer, PricingMode, ListingType 
+} from "@/lib/market-store";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
-interface Product {
-  id: string;
-  name: string;
-  price: string;
-  rating: number;
-  category: string;
-  image: string;
-  tag?: string;
-}
+const CURRENCIES = ["EGP", "USD", "EUR", "Nexus Points"];
 
-const PRODUCTS: Product[] = [
-  { id: "1", name: "Nexus Quantum Pro Headset", price: "$299.00", rating: 4.9, category: "Audio", image: PlaceHolderImages[6].imageUrl, tag: "Best Seller" },
-  { id: "2", name: "AI Core Gen-X Processor", price: "$549.00", rating: 5.0, category: "Hardware", image: PlaceHolderImages[7].imageUrl, tag: "New" },
-  { id: "3", name: "Mechanical Neural Keyboard", price: "$189.00", rating: 4.8, category: "Peripherals", image: PlaceHolderImages[8].imageUrl },
-  { id: "4", name: "Neural Link Interface V2", price: "$1,299.00", rating: 4.7, category: "Futurism", image: PlaceHolderImages[9].imageUrl },
-  { id: "5", name: "Solid State Graphene Battery", price: "$120.00", rating: 4.6, category: "Energy", image: PlaceHolderImages[10].imageUrl },
-  { id: "6", name: "8K Holographic Projector", price: "$899.00", rating: 4.9, category: "Display", image: PlaceHolderImages[11].imageUrl, tag: "Popular" },
-  { id: "7", name: "Smart Bio-Metric Ring", price: "$249.00", rating: 4.5, category: "Wearables", image: PlaceHolderImages[12].imageUrl },
-  { id: "8", name: "Haptic VR Interaction Gloves", price: "$350.00", rating: 4.8, category: "Virtual Reality", image: PlaceHolderImages[13].imageUrl },
-];
+export function TechMarket() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [items, setItems] = useState<MarketItem[]>([]);
+  const [activeView, setActiveView] = useState<'buy' | 'sell' | 'mine'>('buy');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
 
-export function TechMarket({ onAddToCart }: { onAddToCart: () => void }) {
+  // Listing Wizard State
+  const [wizardStep, setWizardStep] = useState(1);
+  const [newListing, setNewListing] = useState({
+    title: "",
+    description: "",
+    listingType: "sell_offer" as ListingType,
+    pricingMode: "fixed" as PricingMode,
+    price: 0,
+    minPrice: 0,
+    maxPrice: 0,
+    currency: "EGP",
+    image: ""
+  });
+
+  // Offer State
+  const [offerAmount, setOfferAmount] = useState<number>(0);
+  const [offerMessage, setOfferMessage] = useState("");
+
+  useEffect(() => {
+    const load = () => setItems(getMarketItems());
+    load();
+    window.addEventListener('market-update', load);
+    return () => window.removeEventListener('market-update', load);
+  }, []);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1.5 * 1024 * 1024) {
+      return toast({ variant: "destructive", title: "Payload Overload", description: "Image exceeds 1.5MB limit." });
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => setNewListing(prev => ({ ...prev, image: reader.result as string }));
+    reader.readAsDataURL(file);
+  };
+
+  const handleCreateListing = () => {
+    if (!user) return;
+    addMarketItem({
+      ...newListing,
+      ownerId: user.id,
+      ownerName: user.name,
+      image: newListing.image || PlaceHolderImages[Math.floor(Math.random() * 8)].imageUrl
+    });
+    toast({ title: "Neural Listing Active", description: "Your asset is now visible on the network." });
+    setIsAddModalOpen(false);
+    resetWizard();
+  };
+
+  const handleMakeOffer = () => {
+    if (!user || !selectedItem) return;
+    addOffer(selectedItem.id, {
+      userId: user.id,
+      userName: user.name,
+      offerAmount,
+      message: offerMessage
+    });
+    toast({ title: "Offer Transmitted", description: "Seller has been notified of your proposal." });
+    setIsOfferModalOpen(false);
+    setOfferAmount(0);
+    setOfferMessage("");
+  };
+
+  const resetWizard = () => {
+    setWizardStep(1);
+    setNewListing({
+      title: "", description: "", listingType: "sell_offer", pricingMode: "fixed",
+      price: 0, minPrice: 0, maxPrice: 0, currency: "EGP", image: ""
+    });
+  };
+
+  const filteredItems = items.filter(item => {
+    if (activeView === 'mine') return item.ownerId === user?.id;
+    if (activeView === 'buy') return item.listingType === 'sell_offer' && item.ownerId !== user?.id;
+    if (activeView === 'sell') return item.listingType === 'buy_request' && item.ownerId !== user?.id;
+    return true;
+  });
+
+  const renderPricing = (item: MarketItem) => {
+    switch (item.pricingMode) {
+      case 'fixed': return `${item.price} ${item.currency}`;
+      case 'range': return `${item.minPrice} - ${item.maxPrice} ${item.currency}`;
+      case 'negotiable': return `Best Offer`;
+      default: return 'Contact Seller';
+    }
+  };
+
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-12 gap-6 bg-indigo-600/10 border border-indigo-500/20 p-8 rounded-[2rem] relative overflow-hidden">
-        <div className="relative z-10">
-          <Badge className="bg-indigo-500 mb-4 px-3 py-1 text-[10px] uppercase tracking-wider font-bold">Tech Deals of the Week</Badge>
-          <h2 className="text-4xl font-headline font-bold text-white tracking-tight mb-4">The Nexus Marketplace</h2>
-          <p className="text-indigo-200/70 max-w-md text-lg">Next-gen hardware, software, and biological interfaces at your fingertips.</p>
-          <div className="flex gap-4 mt-8">
-            <Button className="bg-white text-indigo-900 hover:bg-indigo-50 rounded-xl px-6 font-bold">Explore All</Button>
-            <Button variant="outline" className="border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 rounded-xl px-6">New Arrivals</Button>
-          </div>
+    <div className="p-8 max-w-7xl mx-auto flex flex-col h-[calc(100vh-8rem)]">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-6">
+        <div>
+          <h2 className="text-4xl font-headline font-bold text-white tracking-tight">TechMarket P2P</h2>
+          <p className="text-muted-foreground mt-1 text-lg">Decentralized neural commerce and asset negotiation.</p>
         </div>
-        <div className="relative size-48 sm:size-64 hidden lg:block">
-           <Cpu className="size-full text-indigo-500/20 absolute -right-10 -bottom-10" />
-           <Image 
-             src={PlaceHolderImages[6].imageUrl} 
-             alt="Featured" 
-             fill 
-             className="object-contain drop-shadow-[0_20px_50px_rgba(99,102,241,0.5)] transform rotate-12"
-           />
+
+        <div className="flex items-center gap-4">
+          <Tabs value={activeView} onValueChange={(v: any) => setActiveView(v)} className="bg-white/5 border border-white/10 rounded-xl p-1">
+            <TabsList className="bg-transparent h-10">
+              <TabsTrigger value="buy" className="rounded-lg px-6 data-[state=active]:bg-primary">
+                <ArrowDownLeft className="size-4 mr-2" />
+                Marketplace
+              </TabsTrigger>
+              <TabsTrigger value="sell" className="rounded-lg px-6 data-[state=active]:bg-primary">
+                <ArrowUpRight className="size-4 mr-2" />
+                Wanted
+              </TabsTrigger>
+              <TabsTrigger value="mine" className="rounded-lg px-6 data-[state=active]:bg-primary">
+                <Package className="size-4 mr-2" />
+                My Hub
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetWizard} className="bg-primary text-white hover:bg-primary/90 rounded-xl px-6 h-12 shadow-lg shadow-primary/20">
+                <Plus className="mr-2 size-5" />
+                Create Listing
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px] bg-slate-900 border-white/10 rounded-3xl overflow-hidden">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                  <Tag className="text-primary" />
+                  Listing Wizard: Step {wizardStep}/3
+                </DialogTitle>
+                <DialogDescription>
+                  Configure your neural asset for the marketplace.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="py-6 min-h-[300px]">
+                {wizardStep === 1 && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                    <Label className="text-lg">What is your objective?</Label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Button 
+                        variant={newListing.listingType === 'sell_offer' ? 'default' : 'outline'}
+                        className="h-24 rounded-2xl flex flex-col gap-2"
+                        onClick={() => setNewListing({...newListing, listingType: 'sell_offer'})}
+                      >
+                        <ArrowUpRight className="size-6" />
+                        <span>I want to SELL</span>
+                      </Button>
+                      <Button 
+                        variant={newListing.listingType === 'buy_request' ? 'default' : 'outline'}
+                        className="h-24 rounded-2xl flex flex-col gap-2"
+                        onClick={() => setNewListing({...newListing, listingType: 'buy_request'})}
+                      >
+                        <ArrowDownLeft className="size-6" />
+                        <span>I want to BUY</span>
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {wizardStep === 2 && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div className="grid gap-2">
+                      <Label>Title</Label>
+                      <Input 
+                        placeholder="e.g. Quantum Processor v2" 
+                        value={newListing.title}
+                        onChange={e => setNewListing({...newListing, title: e.target.value})}
+                        className="bg-white/5 border-white/10"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Description</Label>
+                      <Textarea 
+                        placeholder="Describe the condition, specs, etc." 
+                        value={newListing.description}
+                        onChange={e => setNewListing({...newListing, description: e.target.value})}
+                        className="bg-white/5 border-white/10 h-32"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Asset Preview (Optional)</Label>
+                      <div className="relative h-20 border-2 border-dashed border-white/10 rounded-xl flex items-center justify-center bg-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImageUpload} accept="image/*" />
+                        {newListing.image ? (
+                           <img src={newListing.image} className="h-full w-full object-cover rounded-xl" />
+                        ) : (
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                            <Upload className="size-4" />
+                            Upload Base64 Payload
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {wizardStep === 3 && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div className="grid gap-2">
+                      <Label>Currency</Label>
+                      <Select value={newListing.currency} onValueChange={v => setNewListing({...newListing, currency: v})}>
+                        <SelectTrigger className="bg-white/5 border-white/10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900">
+                          {CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Pricing Mode</Label>
+                      <Select value={newListing.pricingMode} onValueChange={(v: any) => setNewListing({...newListing, pricingMode: v})}>
+                        <SelectTrigger className="bg-white/5 border-white/10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900">
+                          <SelectItem value="fixed">Fixed Price</SelectItem>
+                          <SelectItem value="range">Price Range</SelectItem>
+                          <SelectItem value="negotiable">Negotiable / Best Offer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {newListing.pricingMode === 'fixed' && (
+                      <div className="grid gap-2">
+                        <Label>Exact Price</Label>
+                        <Input 
+                          type="number" 
+                          value={newListing.price}
+                          onChange={e => setNewListing({...newListing, price: Number(e.target.value)})}
+                          className="bg-white/5 border-white/10"
+                        />
+                      </div>
+                    )}
+
+                    {newListing.pricingMode === 'range' && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label>Min Price</Label>
+                          <Input 
+                            type="number" 
+                            value={newListing.minPrice}
+                            onChange={e => setNewListing({...newListing, minPrice: Number(e.target.value)})}
+                            className="bg-white/5 border-white/10"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label>Max Price</Label>
+                          <Input 
+                            type="number" 
+                            value={newListing.maxPrice}
+                            onChange={e => setNewListing({...newListing, maxPrice: Number(e.target.value)})}
+                            className="bg-white/5 border-white/10"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter className="bg-white/5 p-4 border-t border-white/5">
+                {wizardStep > 1 && (
+                  <Button variant="ghost" onClick={() => setWizardStep(prev => prev - 1)}>Back</Button>
+                )}
+                {wizardStep < 3 ? (
+                  <Button className="ml-auto bg-primary" onClick={() => setWizardStep(prev => prev + 1)}>
+                    Continue
+                    <ChevronRight className="size-4 ml-1" />
+                  </Button>
+                ) : (
+                  <Button className="ml-auto bg-green-600 hover:bg-green-500" onClick={handleCreateListing}>
+                    Authorize Listing
+                  </Button>
+                )}
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        {PRODUCTS.map((product) => (
-          <div key={product.id} className="group flex flex-col glass rounded-3xl overflow-hidden border-white/5 hover:border-indigo-500/40 transition-all duration-300 transform hover:-translate-y-2 relative shadow-xl">
-            {product.tag && (
-              <Badge className="absolute top-4 left-4 z-10 bg-indigo-500/80 backdrop-blur-md text-white border-none text-[10px] py-0.5 px-2">
-                {product.tag}
-              </Badge>
-            )}
-            <button className="absolute top-4 right-4 z-10 size-8 rounded-full glass flex items-center justify-center text-muted-foreground hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
-               <Heart className="size-4" />
-            </button>
+      <ScrollArea className="flex-1 -mx-4 px-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pb-10">
+          {filteredItems.map((item) => (
+            <Card key={item.id} className={cn(
+              "group glass rounded-[2.5rem] overflow-hidden border-white/5 hover:border-primary/40 transition-all duration-500 flex flex-col relative shadow-2xl",
+              item.status === 'sold' && "opacity-60 grayscale"
+            )}>
+              <div className="relative aspect-square overflow-hidden bg-white/5">
+                <Image src={item.image || ""} alt={item.title} fill className="object-contain p-8 group-hover:scale-110 transition-transform duration-700" />
+                <div className="absolute top-4 left-4 flex gap-2">
+                  <Badge className={cn(
+                    "backdrop-blur-md border-white/10",
+                    item.listingType === 'sell_offer' ? "bg-indigo-600/60" : "bg-amber-600/60"
+                  )}>
+                    {item.listingType === 'sell_offer' ? 'SALE' : 'WANTED'}
+                  </Badge>
+                  {item.status === 'sold' && <Badge className="bg-red-600">SOLD</Badge>}
+                </div>
+              </div>
 
-            <div className="relative aspect-square overflow-hidden p-4">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20 z-0" />
-              <Image 
-                src={product.image} 
-                alt={product.name} 
-                fill
-                className="object-contain p-8 group-hover:scale-110 transition-transform duration-500"
+              <CardContent className="p-6 flex flex-col flex-1">
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-[10px] font-bold text-primary uppercase tracking-widest">{item.ownerName}</span>
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Clock className="size-3" />
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">{item.title}</h3>
+                <p className="text-sm text-muted-foreground line-clamp-3 mb-6 flex-1 italic">"{item.description}"</p>
+
+                <div className="mt-auto">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground font-bold uppercase">Pricing Model</p>
+                      <p className="text-xl font-bold text-white tracking-tight">{renderPricing(item)}</p>
+                    </div>
+                    <div className="size-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
+                      <Zap className="size-5 text-primary" />
+                    </div>
+                  </div>
+
+                  {activeView === 'mine' ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs font-bold text-primary mb-2">
+                        <span>Offers Received</span>
+                        <Badge variant="outline">{item.offers.length}</Badge>
+                      </div>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button className="w-full bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl h-11 text-xs">
+                             Manage Listing & Offers
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[600px] bg-slate-900 border-white/10 rounded-3xl">
+                          <DialogHeader>
+                            <DialogTitle className="text-2xl font-bold">Neural Negotiations: {item.title}</DialogTitle>
+                            <DialogDescription>Review and manage incoming proposals for this asset.</DialogDescription>
+                          </DialogHeader>
+                          <ScrollArea className="h-[400px] pr-4 mt-6">
+                            <div className="space-y-4">
+                              {item.offers.length === 0 ? (
+                                <div className="p-12 text-center glass rounded-2xl opacity-50 border-dashed border-2">
+                                  <Clock className="size-12 mx-auto mb-4" />
+                                  <p>No offers transmitted yet.</p>
+                                </div>
+                              ) : (
+                                item.offers.map((offer) => (
+                                  <div key={offer.id} className="p-4 glass border border-white/5 rounded-2xl flex items-center justify-between group">
+                                    <div>
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <p className="font-bold text-sm">{offer.userName}</p>
+                                        <Badge variant="outline" className="text-[10px]">{offer.status.toUpperCase()}</Badge>
+                                      </div>
+                                      <p className="text-xl font-bold text-white">{offer.offerAmount} {item.currency}</p>
+                                      {offer.message && <p className="text-xs text-muted-foreground mt-1 italic">"{offer.message}"</p>}
+                                    </div>
+                                    <div className="flex gap-2">
+                                      {offer.status === 'pending' && (
+                                        <>
+                                          <Button size="icon" className="bg-red-500/10 text-red-400 hover:bg-red-500" onClick={() => updateOfferStatus(item.id, offer.id, 'rejected')}>
+                                            <XCircle className="size-4" />
+                                          </Button>
+                                          <Button size="icon" className="bg-green-600 hover:bg-green-500 text-white" onClick={() => updateOfferStatus(item.id, offer.id, 'accepted')}>
+                                            <CheckCircle2 className="size-4" />
+                                          </Button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </ScrollArea>
+                          <DialogFooter className="mt-6 border-t border-white/5 pt-4">
+                            <Button variant="ghost" className="text-red-400" onClick={() => deleteMarketItem(item.id)}>Delete Listing</Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  ) : (
+                    <Button 
+                      disabled={item.status === 'sold'}
+                      className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl h-11 shadow-lg shadow-primary/20"
+                      onClick={() => {
+                        setSelectedItem(item);
+                        setIsOfferModalOpen(true);
+                      }}
+                    >
+                      {item.listingType === 'sell_offer' ? 'Make an Offer' : 'Submit My Quote'}
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </ScrollArea>
+
+      {/* Offer Modal */}
+      <Dialog open={isOfferModalOpen} onOpenChange={setIsOfferModalOpen}>
+        <DialogContent className="sm:max-w-[400px] bg-slate-900 border-white/10 rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Transmit Offer</DialogTitle>
+            <DialogDescription>Submit your proposal to {selectedItem?.ownerName}.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Offer Amount ({selectedItem?.currency})</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input 
+                  type="number" 
+                  className="bg-white/5 pl-10 h-12 rounded-xl"
+                  value={offerAmount}
+                  onChange={e => setOfferAmount(Number(e.target.value))}
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Neural Note (Optional)</Label>
+              <Textarea 
+                placeholder="Message to seller..." 
+                className="bg-white/5 h-24 rounded-xl"
+                value={offerMessage}
+                onChange={e => setOfferMessage(e.target.value)}
               />
             </div>
-
-            <div className="p-5 flex flex-col flex-1 relative z-10">
-              <div className="flex items-center gap-2 mb-2">
-                <p className="text-[10px] uppercase tracking-widest text-indigo-400 font-bold">{product.category}</p>
-                <div className="flex items-center gap-0.5">
-                  <Star className="size-3 text-yellow-500 fill-yellow-500" />
-                  <p className="text-[10px] font-bold text-white/70">{product.rating}</p>
-                </div>
-              </div>
-              <h3 className="font-bold text-base text-white/90 group-hover:text-white transition-colors line-clamp-2 mb-4 h-12">{product.name}</h3>
-              
-              <div className="mt-auto flex items-center justify-between">
-                <div>
-                  <p className="text-xl font-bold text-white">{product.price}</p>
-                  <p className="text-[10px] text-green-400 flex items-center gap-1 font-medium mt-1">
-                    <ShieldCheck className="size-3" />
-                    In Stock
-                  </p>
-                </div>
-                <Button 
-                  onClick={onAddToCart}
-                  size="icon" 
-                  className="size-10 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-indigo-500 hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/20 transition-all group/btn"
-                >
-                  <ShoppingCart className="size-4 group-hover/btn:scale-110" />
-                </Button>
-              </div>
-            </div>
           </div>
-        ))}
-      </div>
-
-      <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[
-          { icon: Zap, title: "Next-Day Delivery", desc: "Available for all Pro members across 150 regions." },
-          { icon: ShieldCheck, title: "Secured Transactions", desc: "Blockchain-powered escrow for total peace of mind." },
-          { icon: Star, title: "Curated Excellence", desc: "Every product is vetted by the Nexus Hardware Committee." },
-        ].map((feat, i) => (
-          <div key={i} className="flex gap-4 p-6 glass rounded-2xl border-white/5">
-             <div className="size-12 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 shrink-0">
-                <feat.icon className="size-6 text-indigo-400" />
-             </div>
-             <div>
-                <h4 className="font-bold text-white mb-1">{feat.title}</h4>
-                <p className="text-sm text-muted-foreground">{feat.desc}</p>
-             </div>
-          </div>
-        ))}
-      </div>
+          <DialogFooter>
+            <Button className="w-full bg-primary h-12 rounded-xl" onClick={handleMakeOffer}>Send Neural Proposal</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
