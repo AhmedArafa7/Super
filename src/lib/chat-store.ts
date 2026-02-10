@@ -4,6 +4,15 @@ import { addNotification } from './notification-store';
 
 export type MessageStatus = 'queued' | 'sent' | 'processing' | 'replied' | 'rejected';
 
+export interface Attachment {
+  id: string;
+  type: 'image' | 'audio' | 'file';
+  name: string;
+  url: string; // Base64
+  size: string;
+  mimeType: string;
+}
+
 export interface WizardMessage {
   id: string;
   userId: string;
@@ -16,6 +25,7 @@ export interface WizardMessage {
   isUserEdited?: boolean;
   editReason?: string;
   editedAt?: string;
+  attachments?: Attachment[];
 }
 
 const STORAGE_KEY = 'nexus_wizard_messages';
@@ -36,7 +46,7 @@ export const saveMessages = (messages: WizardMessage[]) => {
   window.dispatchEvent(new Event('storage-update'));
 };
 
-export const addWizardMessage = (text: string, userId: string, userName: string): WizardMessage => {
+export const addWizardMessage = (text: string, userId: string, userName: string, attachments?: Attachment[]): WizardMessage => {
   const messages = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   const newMessage: WizardMessage = {
     id: Math.random().toString(36).substring(2, 15),
@@ -46,6 +56,7 @@ export const addWizardMessage = (text: string, userId: string, userName: string)
     response: null,
     status: 'queued',
     timestamp: new Date().toISOString(),
+    attachments,
   };
   saveMessages([...messages, newMessage]);
   return newMessage;

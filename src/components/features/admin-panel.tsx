@@ -1,8 +1,7 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus } from "lucide-react";
+import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getStoredMessages, approveMessage, rejectMessage, updateMessageStatus, editMessage, WizardMessage } from "@/lib/chat-store";
+import { getStoredMessages, approveMessage, rejectMessage, updateMessageStatus, editMessage, WizardMessage, Attachment } from "@/lib/chat-store";
 import { addNotification, Priority } from "@/lib/notification-store";
 import { getStoredUsers, addUser, deleteUser, User as AuthUser } from "@/lib/auth-store";
 import { cn } from "@/lib/utils";
@@ -87,6 +86,22 @@ export function AdminPanel() {
     toast({ title: "User Created", description: `Neural credentials for ${newUser.name} are active.` });
   };
 
+  const AttachmentList = ({ attachments }: { attachments: Attachment[] }) => (
+    <div className="flex flex-wrap gap-2 mb-4">
+      {attachments.map((att) => (
+        <div key={att.id} className="p-2 glass border border-white/5 rounded-xl flex items-center gap-2 max-w-[200px]">
+          {att.type === 'image' ? <ImageIcon className="size-4 text-indigo-400 shrink-0" /> : 
+           att.type === 'audio' ? <Music className="size-4 text-indigo-400 shrink-0" /> : 
+           <FileText className="size-4 text-indigo-400 shrink-0" />}
+          <span className="text-[10px] text-white truncate flex-1">{att.name}</span>
+          <a href={att.url} download={att.name} className="hover:text-indigo-400 transition-colors">
+            <Download className="size-3" />
+          </a>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <div className="p-8 max-w-7xl mx-auto flex flex-col h-[calc(100vh-8rem)]">
       <div className="mb-8">
@@ -142,8 +157,14 @@ export function AdminPanel() {
                       </div>
                     </CardHeader>
                     <CardContent className="pt-6">
-                      <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5 mb-6 italic text-sm text-indigo-100/70">
-                        "{msg.text}"
+                      <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5 mb-6 text-sm text-indigo-100/70">
+                        {msg.text && <p className="mb-4 italic">"{msg.text}"</p>}
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-[10px] font-bold uppercase mb-2 opacity-50">Payload Attachments:</p>
+                            <AttachmentList attachments={msg.attachments} />
+                          </div>
+                        )}
                       </div>
                       <Textarea 
                         placeholder="Neural response..."
@@ -346,7 +367,12 @@ export function AdminPanel() {
                     <div className="mb-3">
                        <span className="text-[10px] font-bold text-indigo-400 uppercase">From: {msg.userName}</span>
                     </div>
-                    <p className="text-white/80 font-medium mb-3 line-clamp-2">Q: {msg.text}</p>
+                    {msg.text && <p className="text-white/80 font-medium mb-3 line-clamp-2">Q: {msg.text}</p>}
+                    
+                    {msg.attachments && msg.attachments.length > 0 && (
+                      <AttachmentList attachments={msg.attachments} />
+                    )}
+
                     {msg.response && (
                       <div className="p-3 bg-black/20 rounded-xl border border-white/5 mb-3 italic text-indigo-100/60 line-clamp-3">
                         A: {msg.response}

@@ -1,33 +1,45 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Sparkles, Paperclip, Mic, MoreHorizontal, Clock, Check, CheckCheck, Loader2, Edit3, MessageCircle, MoreVertical, Pencil, Trash2, X, CheckCircle2 } from "lucide-react";
+import { Send, Bot, User, Sparkles, Paperclip, Mic, MoreHorizontal, Clock, Check, CheckCheck, Loader2, Edit3, MessageCircle, MoreVertical, Pencil, Trash2, X, CheckCircle2, FileText, File, Download, Square, Play, Pause, Image as ImageIcon, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { getStoredMessages, addWizardMessage, updateMessageStatus, updateMessageText, deleteMessage, WizardMessage } from "@/lib/chat-store";
+import { getStoredMessages, addWizardMessage, updateMessageStatus, updateMessageText, deleteMessage, WizardMessage, Attachment } from "@/lib/chat-store";
 import { clearAllUnreadNotifications, markNotificationByMessageIdAsRead } from "@/lib/notification-store";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
 import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
 
 interface AIChatProps {
   highlightId?: string | null;
   onHighlightComplete?: () => void;
 }
 
+const MAX_FILE_SIZE = 1.5 * 1024 * 1024; // 1.5MB limit for localStorage
+
 export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<WizardMessage[]>([]);
   const [input, setInput] = useState("");
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
+  const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  
   const scrollRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -87,9 +99,101 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   }, [messages, highlightId]);
 
   const handleSend = () => {
-    if (!input.trim() || !user) return;
-    addWizardMessage(input, user.id, user.name);
+    if ((!input.trim() && pendingAttachments.length === 0) || !user || isUploading) return;
+    addWizardMessage(input, user.id, user.name, pendingAttachments);
     setInput("");
+    setPendingAttachments([]);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setIsUploading(true);
+    const newAttachments: Attachment[] = [];
+
+    for (const file of files) {
+      if (file.size > MAX_FILE_SIZE) {
+        toast({
+          variant: "destructive",
+          title: "File too large",
+          description: `${file.name} exceeds the 1.5MB neural link limit.`,
+        });
+        continue;
+      }
+
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+
+      const base64 = await base64Promise;
+      let type: Attachment['type'] = 'file';
+      if (file.type.startsWith('image/')) type = 'image';
+      if (file.type.startsWith('audio/')) type = 'audio';
+
+      newAttachments.push({
+        id: Math.random().toString(36).substring(2, 9),
+        name: file.name,
+        type,
+        url: base64,
+        size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+        mimeType: file.type
+      });
+    }
+
+    setPendingAttachments([...pendingAttachments, ...newAttachments]);
+    setIsUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      
+      const chunks: Blob[] = [];
+      mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+      
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          setPendingAttachments(prev => [...prev, {
+            id: Math.random().toString(36).substring(2, 9),
+            name: `Voice Transmission ${new Date().toLocaleTimeString()}.webm`,
+            type: 'audio',
+            url: base64,
+            size: (blob.size / 1024 / 1024).toFixed(2) + ' MB',
+            mimeType: blob.type
+          }]);
+        };
+        reader.readAsDataURL(blob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Mic Access Denied",
+        description: "Please enable microphone permissions to send voice messages.",
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
   };
 
   const handleStartEdit = (msg: WizardMessage) => {
@@ -117,6 +221,41 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       default: return null;
     }
   };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const AttachmentPreview = ({ attachments }: { attachments: Attachment[] }) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+      {attachments.map((att) => (
+        <div key={att.id} className="glass border border-white/5 rounded-xl p-2 flex items-center gap-3 overflow-hidden">
+          {att.type === 'image' ? (
+            <div className="size-10 rounded-lg overflow-hidden bg-white/5 shrink-0 relative">
+              <img src={att.url} alt={att.name} className="size-full object-cover" />
+            </div>
+          ) : att.type === 'audio' ? (
+            <div className="size-10 rounded-lg bg-indigo-500/20 flex items-center justify-center shrink-0">
+              <Music className="size-5 text-indigo-400" />
+            </div>
+          ) : (
+            <div className="size-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+              <FileText className="size-5 text-indigo-400" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold text-white truncate">{att.name}</p>
+            <p className="text-[9px] text-muted-foreground">{att.size}</p>
+          </div>
+          <a href={att.url} download={att.name} className="p-1 hover:bg-white/5 rounded-lg transition-colors">
+            <Download className="size-3 text-muted-foreground" />
+          </a>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="flex flex-col h-full max-w-5xl mx-auto pt-8 pb-4 px-4 sm:px-6 lg:px-8">
@@ -232,7 +371,12 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                         </div>
                       ) : (
                         <>
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap pr-4">{msg.text}</p>
+                          {msg.text && <p className="text-sm leading-relaxed whitespace-pre-wrap pr-4">{msg.text}</p>}
+                          
+                          {msg.attachments && msg.attachments.length > 0 && (
+                            <AttachmentPreview attachments={msg.attachments} />
+                          )}
+
                           <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
                             {msg.isUserEdited && <span className="text-[9px] font-bold text-white/40 italic mr-1">(edited)</span>}
                             <span className="text-[10px]">
@@ -249,7 +393,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                   </div>
                 </div>
 
-                {/* AI Response or Processing Indicators */}
+                {/* AI Response Indicators */}
                 {msg.status === 'processing' && (
                   <div className="flex justify-start items-start gap-3">
                     <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
@@ -319,34 +463,98 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         </ScrollArea>
 
         <div className="p-4 bg-white/5 border-t border-white/5">
-          <div className="relative group">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Message NexusAI..."
-              className="w-full h-14 bg-white/5 border-white/10 focus-visible:ring-indigo-500 rounded-2xl pl-12 pr-24 text-sm"
-            />
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-              <Sparkles className="size-5 text-indigo-500" />
-            </div>
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-white hover:bg-white/10">
-                <Paperclip className="size-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-white hover:bg-white/10">
-                <Mic className="size-4" />
-              </Button>
-              <Button 
-                onClick={handleSend}
-                disabled={!input.trim()}
-                size="icon" 
-                className="size-8 bg-primary text-white hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/20"
+          {/* Pending Attachments Preview */}
+          <AnimatePresence>
+            {pendingAttachments.length > 0 && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="flex gap-2 mb-3 overflow-x-auto pb-2 scrollbar-hide"
               >
-                <Send className="size-4" />
-              </Button>
+                {pendingAttachments.map((att) => (
+                  <div key={att.id} className="relative group shrink-0">
+                    <div className="size-16 rounded-xl glass border border-white/10 flex flex-col items-center justify-center p-2 text-center">
+                      {att.type === 'image' ? (
+                        <img src={att.url} className="size-full object-cover rounded-lg" />
+                      ) : att.type === 'audio' ? (
+                        <Music className="size-6 text-indigo-400" />
+                      ) : (
+                        <FileText className="size-6 text-indigo-400" />
+                      )}
+                      <p className="text-[8px] truncate w-full mt-1 opacity-60">{att.name}</p>
+                    </div>
+                    <button 
+                      onClick={() => setPendingAttachments(prev => prev.filter(a => a.id !== att.id))}
+                      className="absolute -top-1.5 -right-1.5 size-5 bg-red-500 text-white rounded-full flex items-center justify-center border border-slate-900 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {isRecording ? (
+            <div className="h-14 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-between px-6">
+              <div className="flex items-center gap-3">
+                <div className="size-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-sm font-bold text-red-400 tabular-nums">Recording Transmission... {formatTime(recordingTime)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={() => { setIsRecording(false); if(timerRef.current) clearInterval(timerRef.current); }} className="text-red-400 hover:bg-red-500/10">
+                  <X className="size-5" />
+                </Button>
+                <Button onClick={stopRecording} size="icon" className="bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/20">
+                  <Square className="size-4" />
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="relative group">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                placeholder={isUploading ? "Uploading payload..." : "Message NexusAI..."}
+                disabled={isUploading}
+                className="w-full h-14 bg-white/5 border-white/10 focus-visible:ring-indigo-500 rounded-2xl pl-12 pr-28 text-sm"
+              />
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <Sparkles className="size-5 text-indigo-500" />
+              </div>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileSelect} />
+                <Button 
+                  onClick={() => fileInputRef.current?.click()}
+                  variant="ghost" 
+                  size="icon" 
+                  disabled={isUploading}
+                  className="size-8 text-muted-foreground hover:text-white hover:bg-white/10"
+                >
+                  {isUploading ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />}
+                </Button>
+                <Button 
+                  onClick={startRecording}
+                  variant="ghost" 
+                  size="icon" 
+                  disabled={isUploading}
+                  className="size-8 text-muted-foreground hover:text-white hover:bg-white/10"
+                >
+                  <Mic className="size-4" />
+                </Button>
+                <Button 
+                  onClick={handleSend}
+                  disabled={(!input.trim() && pendingAttachments.length === 0) || isUploading}
+                  size="icon" 
+                  className="size-8 bg-primary text-white hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/20"
+                >
+                  <Send className="size-4" />
+                </Button>
+              </div>
+            </div>
+          )}
           <p className="text-[10px] text-center text-muted-foreground mt-3 uppercase tracking-widest font-bold">Neural Synchrony: Operational</p>
         </div>
       </div>
