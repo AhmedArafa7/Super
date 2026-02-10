@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, Image as ImageIcon } from "lucide-react";
+import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, Image as ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getStoredMessages, approveMessage, rejectMessage, updateMessageStatus, editMessage, WizardMessage, Attachment } from "@/lib/chat-store";
 import { addNotification, Priority } from "@/lib/notification-store";
 import { getStoredUsers, addUser, deleteUser, User as AuthUser } from "@/lib/auth-store";
+import { getStoredVideos, updateVideoStatus, deleteVideo, Video } from "@/lib/video-store";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,6 +23,7 @@ export function AdminPanel() {
   const { toast } = useToast();
   const [messages, setMessages] = useState<WizardMessage[]>([]);
   const [users, setUsers] = useState<AuthUser[]>([]);
+  const [videos, setVideos] = useState<Video[]>([]);
   const [responses, setResponses] = useState<Record<string, string>>({});
   
   // Broadcast state
@@ -30,42 +32,23 @@ export function AdminPanel() {
   // User Mgmt state
   const [newUser, setNewUser] = useState({ name: "", username: "", password: "", role: "user" as any });
 
-  // Editing state
-  const [editingMessage, setEditingMessage] = useState<WizardMessage | null>(null);
-  const [editResponse, setEditResponse] = useState("");
-  const [editReason, setEditReason] = useState("");
+  // Video Feedback State
+  const [videoFeedback, setVideoFeedback] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const load = () => {
       setMessages(getStoredMessages(undefined, true));
       setUsers(getStoredUsers());
+      setVideos(getStoredVideos());
     };
     load();
-    window.addEventListener('storage-update', load);
-    window.addEventListener('auth-update', load);
-    return () => {
-      window.removeEventListener('storage-update', load);
-      window.removeEventListener('auth-update', load);
-    };
+    const handlers = ['storage-update', 'auth-update', 'videos-update'];
+    handlers.forEach(h => window.addEventListener(h, load));
+    return () => handlers.forEach(h => window.removeEventListener(h, load));
   }, []);
 
-  const pendingMessages = messages.filter(m => m.status === 'sent' || m.status === 'processing');
-  const historyMessages = messages.filter(m => m.status === 'replied' || m.status === 'rejected').reverse();
-
-  const handleFocus = (id: string) => {
-    updateMessageStatus(id, 'processing');
-  };
-
-  const handleApprove = (id: string) => {
-    const text = responses[id];
-    if (!text?.trim()) return;
-    approveMessage(id, text);
-    setResponses(prev => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
-  };
+  const pendingVideos = videos.filter(v => v.status === 'pending_review');
+  const publishedVideos = videos.filter(v => v.status === 'published');
 
   const handleSendBroadcast = () => {
     if (!broadcast.title.trim() || !broadcast.body.trim()) return;
@@ -77,13 +60,6 @@ export function AdminPanel() {
     });
     setBroadcast({ title: "", body: "", priority: "info" });
     toast({ title: "Broadcast Transmitted", description: "Global notification sent to all Nexus units." });
-  };
-
-  const handleCreateUser = () => {
-    if (!newUser.name || !newUser.username || !newUser.password) return;
-    addUser(newUser);
-    setNewUser({ name: "", username: "", password: "", role: "user" });
-    toast({ title: "User Created", description: `Neural credentials for ${newUser.name} are active.` });
   };
 
   const AttachmentList = ({ attachments }: { attachments: Attachment[] }) => (
@@ -116,7 +92,11 @@ export function AdminPanel() {
         <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 w-fit">
           <TabsTrigger value="stream" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">
             <Activity className="size-4 mr-2" />
-            Incoming Stream
+            Chat Stream
+          </TabsTrigger>
+          <TabsTrigger value="content" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">
+            <VideoIcon className="size-4 mr-2" />
+            Content CMS
           </TabsTrigger>
           <TabsTrigger value="users" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">
             <Users className="size-4 mr-2" />
@@ -126,21 +106,17 @@ export function AdminPanel() {
             <Radio className="size-4 mr-2" />
             Broadcast Console
           </TabsTrigger>
-          <TabsTrigger value="history" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">
-            <History className="size-4 mr-2" />
-            History Log
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="stream" className="flex-1 flex gap-8 overflow-hidden outline-none">
           <ScrollArea className="flex-1 pr-4">
             <div className="space-y-6">
-              {pendingMessages.length === 0 ? (
+              {messages.filter(m => m.status === 'sent' || m.status === 'processing').length === 0 ? (
                 <div className="h-64 flex flex-col items-center justify-center glass rounded-3xl opacity-50 border-dashed border-2 border-white/10">
                   <p>Queue is empty. Systems ready for signal.</p>
                 </div>
               ) : (
-                pendingMessages.map((msg) => (
+                messages.filter(m => m.status === 'sent' || m.status === 'processing').map((msg) => (
                   <Card key={msg.id} className={cn(
                     "glass border-white/10 rounded-3xl overflow-hidden shadow-xl transition-all duration-300",
                     msg.status === 'processing' ? "border-indigo-500/50 scale-[1.01] bg-indigo-500/5" : "hover:border-indigo-500/30"
@@ -149,7 +125,7 @@ export function AdminPanel() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <User className="size-4 text-indigo-400" />
-                          <span className="text-sm font-bold text-white/90">{msg.userName} (ID: {msg.userId.slice(0, 6)})</span>
+                          <span className="text-sm font-bold text-white/90">{msg.userName} (@{msg.userId.slice(0, 6)})</span>
                         </div>
                         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
                           {new Date(msg.timestamp).toLocaleTimeString()}
@@ -170,7 +146,7 @@ export function AdminPanel() {
                         placeholder="Neural response..."
                         className="bg-white/5 border-white/10 rounded-2xl h-32 focus-visible:ring-indigo-500 resize-none text-sm"
                         value={responses[msg.id] || ""}
-                        onFocus={() => handleFocus(msg.id)}
+                        onFocus={() => updateMessageStatus(msg.id, 'processing')}
                         onChange={(e) => setResponses({ ...responses, [msg.id]: e.target.value })}
                       />
                     </CardContent>
@@ -179,8 +155,11 @@ export function AdminPanel() {
                         Discard
                       </Button>
                       <Button 
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg px-6"
-                        onClick={() => handleApprove(msg.id)}
+                        className="bg-indigo-600 hover:bg-indigo-50 text-white rounded-xl shadow-lg px-6"
+                        onClick={() => {
+                          if (!responses[msg.id]?.trim()) return;
+                          approveMessage(msg.id, responses[msg.id]);
+                        }}
                         disabled={!responses[msg.id]?.trim()}
                       >
                         Transmit
@@ -191,6 +170,109 @@ export function AdminPanel() {
               )}
             </div>
           </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="content" className="flex-1 flex flex-col overflow-hidden outline-none">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+            <div className="flex flex-col gap-6 overflow-hidden">
+              <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                <Clock className="size-5 text-amber-400" />
+                Moderation Queue ({pendingVideos.length})
+              </h3>
+              <ScrollArea className="flex-1 pr-4">
+                <div className="space-y-4">
+                  {pendingVideos.map((video) => (
+                    <Card key={video.id} className="glass border-white/10 rounded-3xl overflow-hidden shadow-xl">
+                      <div className="flex h-32">
+                         <div className="w-40 relative">
+                            <img src={video.thumbnail} className="size-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                               <ImageIcon className="text-white size-6" />
+                            </div>
+                         </div>
+                         <div className="flex-1 p-4 flex flex-col">
+                            <h4 className="font-bold text-white line-clamp-1">{video.title}</h4>
+                            <p className="text-xs text-muted-foreground mt-1">Uploader: {video.author}</p>
+                            <Badge className="w-fit mt-2 bg-indigo-500/10 text-indigo-400 border-indigo-500/20">{video.visibility.toUpperCase()}</Badge>
+                         </div>
+                      </div>
+                      <div className="p-4 border-t border-white/5 space-y-4">
+                        <Input 
+                          placeholder="Feedback/Reason for action..."
+                          className="bg-white/5 border-white/10 h-10 rounded-xl text-xs"
+                          value={videoFeedback[video.id] || ""}
+                          onChange={(e) => setVideoFeedback({ ...videoFeedback, [video.id]: e.target.value })}
+                        />
+                        <div className="flex gap-2">
+                          <Button 
+                            className="flex-1 bg-green-600 hover:bg-green-500 rounded-xl h-10 text-xs"
+                            onClick={() => updateVideoStatus(video.id, 'published')}
+                          >
+                            <CheckCircle2 className="size-3.5 mr-2" /> Approve
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            className="flex-1 border border-white/10 hover:bg-white/5 rounded-xl h-10 text-xs text-indigo-400"
+                            onClick={() => {
+                              if (!videoFeedback[video.id]) return toast({ title: "Feedback Required", variant: "destructive" });
+                              updateVideoStatus(video.id, 'needs_action', videoFeedback[video.id]);
+                            }}
+                          >
+                            <AlertCircle className="size-3.5 mr-2" /> Needs Action
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            className="bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 rounded-xl h-10 text-xs"
+                            onClick={() => {
+                              if (!videoFeedback[video.id]) return toast({ title: "Feedback Required", variant: "destructive" });
+                              updateVideoStatus(video.id, 'rejected', videoFeedback[video.id]);
+                            }}
+                          >
+                            <XCircle className="size-3.5 mr-2" /> Reject
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                  {pendingVideos.length === 0 && (
+                    <div className="p-12 glass border-dashed border-2 border-white/10 rounded-3xl text-center opacity-50">
+                      <p className="text-sm">Neural queue is empty. Content synchronization perfect.</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+
+            <div className="flex flex-col gap-6 overflow-hidden">
+              <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                <CheckCircle2 className="size-5 text-green-400" />
+                Live Hub Content ({publishedVideos.length})
+              </h3>
+              <ScrollArea className="flex-1 pr-4">
+                <div className="grid grid-cols-1 gap-3">
+                  {publishedVideos.map((video) => (
+                    <div key={video.id} className="flex items-center justify-between p-4 glass border-white/5 rounded-2xl group">
+                      <div className="flex items-center gap-4">
+                        <img src={video.thumbnail} className="size-12 rounded-xl object-cover" />
+                        <div>
+                          <p className="font-bold text-white text-sm line-clamp-1">{video.title}</p>
+                          <p className="text-[10px] text-muted-foreground">by {video.author} • {video.visibility}</p>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => deleteVideo(video.id)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="users" className="flex-1 outline-none">
@@ -242,7 +324,11 @@ export function AdminPanel() {
                   </Select>
                 </div>
                 <Button 
-                  onClick={handleCreateUser}
+                  onClick={() => {
+                    addUser(newUser);
+                    setNewUser({ name: "", username: "", password: "", role: "user" });
+                    toast({ title: "User Registered", description: "Node activated." });
+                  }}
                   className="w-full mt-4 h-12 bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg"
                   disabled={!newUser.name || !newUser.username || !newUser.password}
                 >
@@ -279,10 +365,7 @@ export function AdminPanel() {
                         size="icon" 
                         className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                         disabled={u.id === 'admin-id'}
-                        onClick={() => {
-                          deleteUser(u.id);
-                          toast({ title: "User Removed", description: "Node deactivated successfully." });
-                        }}
+                        onClick={() => deleteUser(u.id)}
                       >
                         <Trash2 className="size-4" />
                       </Button>
@@ -342,7 +425,7 @@ export function AdminPanel() {
 
                 <Button 
                   onClick={handleSendBroadcast}
-                  className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg shadow-indigo-500/20"
+                  className="w-full h-12 bg-indigo-600 hover:bg-indigo-50 text-white rounded-xl shadow-lg shadow-indigo-500/20"
                   disabled={!broadcast.title || !broadcast.body}
                 >
                   <Send className="size-4 mr-2" />
@@ -352,109 +435,7 @@ export function AdminPanel() {
             </Card>
           </div>
         </TabsContent>
-
-        <TabsContent value="history" className="flex-1 outline-none">
-           <ScrollArea className="h-full pr-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {historyMessages.map((msg) => (
-                  <div key={msg.id} className="group p-5 rounded-3xl glass border-white/5 text-sm transition-all hover:border-indigo-500/30 relative">
-                    <div className="flex justify-between items-start mb-4">
-                      <Badge className={msg.status === 'replied' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}>
-                        {msg.status === 'replied' ? 'TRANSMITTED' : 'REJECTED'}
-                      </Badge>
-                      <span className="text-[10px] text-muted-foreground uppercase">{new Date(msg.timestamp).toLocaleDateString()}</span>
-                    </div>
-                    <div className="mb-3">
-                       <span className="text-[10px] font-bold text-indigo-400 uppercase">From: {msg.userName}</span>
-                    </div>
-                    {msg.text && <p className="text-white/80 font-medium mb-3 line-clamp-2">Q: {msg.text}</p>}
-                    
-                    {msg.attachments && msg.attachments.length > 0 && (
-                      <AttachmentList attachments={msg.attachments} />
-                    )}
-
-                    {msg.response && (
-                      <div className="p-3 bg-black/20 rounded-xl border border-white/5 mb-3 italic text-indigo-100/60 line-clamp-3">
-                        A: {msg.response}
-                      </div>
-                    )}
-                    {msg.status === 'replied' && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="w-full rounded-xl hover:bg-indigo-500/10 text-indigo-400 h-9"
-                        onClick={() => {
-                          setEditingMessage(msg);
-                          setEditResponse(msg.response || "");
-                          setEditReason("");
-                        }}
-                      >
-                        <Edit3 className="size-3.5 mr-2" />
-                        Correct Signal
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-           </ScrollArea>
-        </TabsContent>
       </Tabs>
-
-      {/* Edit Modal */}
-      <Dialog open={!!editingMessage} onOpenChange={() => setEditingMessage(null)}>
-        <DialogContent className="sm:max-w-[500px] bg-slate-900 border-white/10 rounded-3xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-2xl font-bold">
-              <Edit3 className="size-5 text-indigo-400" />
-              Correct Neural Response
-            </DialogTitle>
-            <DialogDescription className="text-indigo-200/50">
-              Modifying an already transmitted signal. The user will be notified of the adjustment.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-6 py-4">
-            <div className="grid gap-2">
-              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Original Request</Label>
-              <div className="p-3 bg-white/5 rounded-xl text-sm italic border border-white/5 text-indigo-100/60">
-                "{editingMessage?.text}"
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Updated Response</Label>
-              <Textarea 
-                className="bg-white/5 border-white/10 rounded-2xl h-32 focus-visible:ring-indigo-500 resize-none text-sm"
-                value={editResponse}
-                onChange={(e) => setEditResponse(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Reason for Correction</Label>
-              <Input 
-                placeholder="e.g., Better Explanation, Clarification..."
-                className="bg-white/5 border-white/10 rounded-xl text-sm h-11"
-                value={editReason}
-                onChange={(e) => setEditReason(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" className="rounded-xl" onClick={() => setEditingMessage(null)}>Cancel</Button>
-            <Button 
-              className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg px-8"
-              onClick={() => {
-                if (!editingMessage || !editResponse.trim() || !editReason.trim()) return;
-                editMessage(editingMessage.id, editResponse, editReason);
-                setEditingMessage(null);
-                toast({ title: "Correction Logged", description: "Signal updated and user notified." });
-              }}
-              disabled={!editResponse.trim() || !editReason.trim()}
-            >
-              <Save className="mr-2 size-4" />
-              Save & Notify
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
