@@ -1,84 +1,170 @@
-
 "use client";
 
 import React from "react";
-import { BookOpen, GraduationCap, Clock, ArrowRight, Brain, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { FileText, Calendar, MoreVertical, Circle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { addNotification } from "@/lib/notification-store";
-import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
-const COURSES = [
-  { id: "c1", title: "Neural Networks 101", level: "Beginner", time: "45m", icon: Brain },
-  { id: "c2", title: "Quantum Computing Basics", level: "Intermediate", time: "2h", icon: Zap },
-  { id: "c3", title: "AI Ethics & Protocol", level: "Advanced", time: "1h", icon: GraduationCap },
-  { id: "c4", title: "Next.js Hyper-Speed", level: "Intermediate", time: "1.5h", icon: BookOpen },
+interface WeekData {
+  id: number;
+  number: string;
+  date: string;
+  isActive: boolean;
+  lectureFile: string | null;
+  practicalFile: string | null;
+}
+
+const WEEKS: WeekData[] = [
+  {
+    id: 1,
+    number: "01",
+    date: "February 7, 2026",
+    isActive: true,
+    lectureFile: null,
+    practicalFile: "Practical_Manual_v1.pdf"
+  },
+  {
+    id: 2,
+    number: "02",
+    date: "February 14, 2026",
+    isActive: false,
+    lectureFile: "RTOS_Concepts_Lecture.pdf",
+    practicalFile: "Lab_Exercise_Scheduling.pdf"
+  },
+  {
+    id: 3,
+    number: "03",
+    date: "February 21, 2026",
+    isActive: false,
+    lectureFile: "Kernel_Architecture.pptx",
+    practicalFile: null
+  }
 ];
 
 export function KnowledgeHub() {
-  const { toast } = useToast();
-
-  const handleRemindMe = (courseTitle: string) => {
-    toast({
-      title: "Reminder Set",
-      description: `You will be notified about "${courseTitle}" in 5 seconds.`,
-    });
-
-    setTimeout(() => {
-      addNotification({
-        type: 'learning_reminder',
-        title: 'Neural Session Starting',
-        message: `⏰ Time to start your session: "${courseTitle}". The virtual classroom is ready.`,
-      });
-    }, 5000);
-  };
-
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="mb-12">
-        <h2 className="text-4xl font-headline font-bold text-white tracking-tight mb-2">Knowledge Hub</h2>
-        <p className="text-muted-foreground text-lg">Enhance your neural capabilities with modular learning paths.</p>
-      </div>
+    <div className="min-h-full bg-slate-50 text-slate-900 font-sans">
+      {/* LMS Header */}
+      <header className="bg-white border-b border-slate-200 px-8 py-6 sticky top-0 z-10 shadow-sm">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center gap-2 text-xs text-slate-500 mb-1 uppercase tracking-wider font-bold">
+            <span className="hover:text-teal-600 cursor-pointer">Courses</span>
+            <span>/</span>
+            <span className="text-slate-400">AI422</span>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
+            AI422 - Embedded and Real Time Operating Systems
+          </h1>
+        </div>
+      </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {COURSES.map((course) => (
-          <div key={course.id} className="group p-6 glass rounded-[2.5rem] border-white/5 hover:border-indigo-500/30 transition-all duration-300 flex flex-col">
-            <div className="size-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center border border-indigo-500/20 mb-6 group-hover:scale-110 transition-transform">
-              <course.icon className="size-7 text-indigo-400" />
+      {/* Main Content Area */}
+      <main className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
+        {WEEKS.map((week) => (
+          <div 
+            key={week.id} 
+            className="flex flex-col md:flex-row bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden"
+          >
+            {/* Left Column: Timeline / Date */}
+            <div className={cn(
+              "w-full md:w-64 p-6 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-r border-slate-100",
+              week.isActive ? "bg-amber-50/50" : "bg-white"
+            )}>
+              {week.isActive && (
+                <Badge className="bg-red-600 hover:bg-red-700 text-white rounded-sm text-[10px] px-2 py-0.5 mb-2 font-bold uppercase">
+                  Current Week
+                </Badge>
+              )}
+              <div className="text-5xl font-extrabold text-slate-800 leading-none">
+                {week.number}
+              </div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                Week Number
+              </div>
+              <div className="mt-4 flex items-center gap-1.5 text-teal-700 font-semibold text-sm">
+                <Calendar className="size-3.5" />
+                {week.date}
+              </div>
             </div>
-            <Badge variant="outline" className="w-fit mb-3 border-white/10 text-muted-foreground text-[10px] uppercase tracking-widest">{course.level}</Badge>
-            <h3 className="text-xl font-bold text-white mb-2">{course.title}</h3>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-8">
-              <Clock className="size-3" />
-              {course.time} estimated
-            </div>
-            <div className="mt-auto space-y-2">
-              <Button className="w-full bg-indigo-600 hover:bg-indigo-500 rounded-xl h-10">Start Learning</Button>
-              <Button 
-                variant="ghost" 
-                className="w-full rounded-xl text-xs text-muted-foreground hover:text-white"
-                onClick={() => handleRemindMe(course.title)}
-              >
-                Remind Me Later
-              </Button>
+
+            {/* Right Column: Weekly Content */}
+            <div className="flex-1 p-6 bg-slate-50/30 space-y-4">
+              {/* Lecture Block */}
+              <div className="bg-white rounded-md border-l-4 border-green-500 p-4 shadow-sm group hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Circle className="size-2.5 fill-green-500 text-green-500" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Lecture</span>
+                  </div>
+                  <MoreVertical className="size-4 text-slate-300 cursor-pointer" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="size-10 bg-slate-100 rounded flex items-center justify-center text-slate-400">
+                    <FileText className="size-5" />
+                  </div>
+                  <div className="flex-1">
+                    {week.lectureFile ? (
+                      <a href="#" className="text-sm font-semibold text-teal-700 hover:underline">
+                        {week.lectureFile}
+                      </a>
+                    ) : (
+                      <span className="text-sm text-slate-400 italic">No file in this week</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Practical Block */}
+              <div className="bg-white rounded-md border-l-4 border-amber-400 p-4 shadow-sm group hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Circle className="size-2.5 fill-amber-400 text-amber-400" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Practical</span>
+                  </div>
+                  <MoreVertical className="size-4 text-slate-300 cursor-pointer" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="size-10 bg-slate-100 rounded flex items-center justify-center text-slate-400">
+                    <FileText className="size-5" />
+                  </div>
+                  <div className="flex-1">
+                    {week.practicalFile ? (
+                      <a href="#" className="text-sm font-semibold text-teal-700 hover:underline">
+                        {week.practicalFile}
+                      </a>
+                    ) : (
+                      <span className="text-sm text-slate-400 italic">No file in this week</span>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         ))}
-      </div>
 
-      <div className="mt-16 glass rounded-[3rem] p-8 border-indigo-500/20 flex flex-col md:flex-row items-center gap-8">
-        <div className="size-20 bg-indigo-500 rounded-3xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-          <GraduationCap className="size-10 text-white" />
+        {/* Support Section */}
+        <div className="pt-8 border-t border-slate-200">
+          <div className="bg-white rounded-xl p-6 border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="size-12 bg-teal-100 rounded-full flex items-center justify-center">
+                <FileText className="size-6 text-teal-700" />
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-800">Need Course Assistance?</h4>
+                <p className="text-sm text-slate-500">The neural teaching assistants are available 24/7 for your questions.</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button className="px-5 py-2.5 bg-slate-800 text-white rounded-lg text-sm font-bold hover:bg-slate-700 transition-colors">
+                Contact Instructor
+              </button>
+              <button className="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-50 transition-colors">
+                Course Syllabus
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="flex-1">
-          <h3 className="text-2xl font-bold text-white mb-2">Master the Nexus Protocol</h3>
-          <p className="text-muted-foreground">Join 15,000+ users currently learning advanced prompt engineering and neural automation.</p>
-        </div>
-        <Button variant="outline" className="border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 rounded-xl px-8 h-12">
-          View Curriculum
-          <ArrowRight className="ml-2 size-4" />
-        </Button>
-      </div>
+      </main>
     </div>
   );
 }
