@@ -7,6 +7,8 @@ export type MessageStatus = 'queued' | 'sent' | 'processing' | 'replied' | 'reje
 
 export interface WizardMessage {
   id: string;
+  userId: string;
+  userName: string;
   text: string;
   response: string | null;
   status: MessageStatus;
@@ -18,10 +20,14 @@ export interface WizardMessage {
 
 const STORAGE_KEY = 'nexus_wizard_messages';
 
-export const getStoredMessages = (): WizardMessage[] => {
+export const getStoredMessages = (userId?: string, isAdmin?: boolean): WizardMessage[] => {
   if (typeof window === 'undefined') return [];
   const stored = localStorage.getItem(STORAGE_KEY);
-  return stored ? JSON.parse(stored) : [];
+  const allMessages: WizardMessage[] = stored ? JSON.parse(stored) : [];
+  
+  if (isAdmin) return allMessages;
+  if (userId) return allMessages.filter(m => m.userId === userId);
+  return [];
 };
 
 export const saveMessages = (messages: WizardMessage[]) => {
@@ -30,10 +36,12 @@ export const saveMessages = (messages: WizardMessage[]) => {
   window.dispatchEvent(new Event('storage-update'));
 };
 
-export const addWizardMessage = (text: string): WizardMessage => {
-  const messages = getStoredMessages();
+export const addWizardMessage = (text: string, userId: string, userName: string): WizardMessage => {
+  const messages = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   const newMessage: WizardMessage = {
     id: Math.random().toString(36).substring(2, 15),
+    userId,
+    userName,
     text,
     response: null,
     status: 'queued',
@@ -44,7 +52,8 @@ export const addWizardMessage = (text: string): WizardMessage => {
 };
 
 export const updateMessageStatus = (id: string, status: MessageStatus) => {
-  const messages = getStoredMessages();
+  const stored = localStorage.getItem(STORAGE_KEY);
+  const messages: WizardMessage[] = stored ? JSON.parse(stored) : [];
   const updated = messages.map((m) =>
     m.id === id ? { ...m, status } : m
   );
@@ -52,7 +61,8 @@ export const updateMessageStatus = (id: string, status: MessageStatus) => {
 };
 
 export const approveMessage = (id: string, response: string) => {
-  const messages = getStoredMessages();
+  const stored = localStorage.getItem(STORAGE_KEY);
+  const messages: WizardMessage[] = stored ? JSON.parse(stored) : [];
   const updated = messages.map((m) =>
     m.id === id ? { ...m, response, status: 'replied' as const } : m
   );
@@ -60,29 +70,39 @@ export const approveMessage = (id: string, response: string) => {
 };
 
 export const editMessage = (id: string, newResponse: string, reason: string) => {
-  const messages = getStoredMessages();
-  const updated = messages.map((m) =>
-    m.id === id ? { 
-      ...m, 
-      response: newResponse, 
-      isEdited: true, 
-      editReason: reason, 
-      editedAt: new Date().toISOString()
-    } : m
-  );
+  const stored = localStorage.getItem(STORAGE_KEY);
+  const messages: WizardMessage[] = stored ? JSON.parse(stored) : [];
+  let targetUserId = '';
+  
+  const updated = messages.map((m) => {
+    if (m.id === id) {
+      targetUserId = m.userId;
+      return { 
+        ...m, 
+        response: newResponse, 
+        isEdited: true, 
+        editReason: reason, 
+        editedAt: new Date().toISOString()
+      };
+    }
+    return m;
+  });
+  
   saveMessages(updated);
 
-  // Trigger centralized notification
+  // Trigger centralized notification for the specific user
   addNotification({
     type: 'chat_correction',
     title: 'Transmission Corrected',
     message: `A message in your neural queue was adjusted: "${reason}"`,
+    userId: targetUserId,
     metadata: { messageId: id, reason }
   });
 };
 
 export const rejectMessage = (id: string) => {
-  const messages = getStoredMessages();
+  const stored = localStorage.getItem(STORAGE_KEY);
+  const messages: WizardMessage[] = stored ? JSON.parse(stored) : [];
   const updated = messages.map((m) =>
     m.id === id ? { ...m, status: 'rejected' as const } : m
   );

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle } from "lucide-react";
+import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,16 +15,21 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getStoredMessages, approveMessage, rejectMessage, updateMessageStatus, editMessage, WizardMessage } from "@/lib/chat-store";
 import { addNotification, Priority } from "@/lib/notification-store";
+import { getStoredUsers, addUser, deleteUser, User as AuthUser } from "@/lib/auth-store";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 export function AdminPanel() {
   const { toast } = useToast();
   const [messages, setMessages] = useState<WizardMessage[]>([]);
+  const [users, setUsers] = useState<AuthUser[]>([]);
   const [responses, setResponses] = useState<Record<string, string>>({});
   
   // Broadcast state
   const [broadcast, setBroadcast] = useState({ title: "", body: "", priority: "info" as Priority });
+
+  // User Mgmt state
+  const [newUser, setNewUser] = useState({ name: "", username: "", password: "", role: "user" as any });
 
   // Editing state
   const [editingMessage, setEditingMessage] = useState<WizardMessage | null>(null);
@@ -32,12 +37,17 @@ export function AdminPanel() {
   const [editReason, setEditReason] = useState("");
 
   useEffect(() => {
-    const loadMessages = () => {
-      setMessages(getStoredMessages());
+    const load = () => {
+      setMessages(getStoredMessages(undefined, true));
+      setUsers(getStoredUsers());
     };
-    loadMessages();
-    window.addEventListener('storage-update', loadMessages);
-    return () => window.removeEventListener('storage-update', loadMessages);
+    load();
+    window.addEventListener('storage-update', load);
+    window.addEventListener('auth-update', load);
+    return () => {
+      window.removeEventListener('storage-update', load);
+      window.removeEventListener('auth-update', load);
+    };
   }, []);
 
   const pendingMessages = messages.filter(m => m.status === 'sent' || m.status === 'processing');
@@ -70,6 +80,13 @@ export function AdminPanel() {
     toast({ title: "Broadcast Transmitted", description: "Global notification sent to all Nexus units." });
   };
 
+  const handleCreateUser = () => {
+    if (!newUser.name || !newUser.username || !newUser.password) return;
+    addUser(newUser);
+    setNewUser({ name: "", username: "", password: "", role: "user" });
+    toast({ title: "User Created", description: `Neural credentials for ${newUser.name} are active.` });
+  };
+
   return (
     <div className="p-8 max-w-7xl mx-auto flex flex-col h-[calc(100vh-8rem)]">
       <div className="mb-8">
@@ -86,6 +103,10 @@ export function AdminPanel() {
             <Activity className="size-4 mr-2" />
             Incoming Stream
           </TabsTrigger>
+          <TabsTrigger value="users" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">
+            <Users className="size-4 mr-2" />
+            Users & Keys
+          </TabsTrigger>
           <TabsTrigger value="broadcast" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">
             <Radio className="size-4 mr-2" />
             Broadcast Console
@@ -101,7 +122,6 @@ export function AdminPanel() {
             <div className="space-y-6">
               {pendingMessages.length === 0 ? (
                 <div className="h-64 flex flex-col items-center justify-center glass rounded-3xl opacity-50 border-dashed border-2 border-white/10">
-                  <Cpu className="size-12 mb-4" />
                   <p>Queue is empty. Systems ready for signal.</p>
                 </div>
               ) : (
@@ -114,7 +134,7 @@ export function AdminPanel() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <User className="size-4 text-indigo-400" />
-                          <span className="text-sm font-bold text-white/90">User Interface Terminal</span>
+                          <span className="text-sm font-bold text-white/90">{msg.userName} (ID: {msg.userId.slice(0, 6)})</span>
                         </div>
                         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
                           {new Date(msg.timestamp).toLocaleTimeString()}
@@ -150,6 +170,107 @@ export function AdminPanel() {
               )}
             </div>
           </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="users" className="flex-1 outline-none">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
+            <Card className="glass border-white/10 rounded-[2.5rem] p-8 h-fit">
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                <Plus className="size-5 text-indigo-400" />
+                Register Neural ID
+              </h3>
+              <div className="space-y-4">
+                <div className="grid gap-1.5">
+                  <Label>Display Name</Label>
+                  <Input 
+                    placeholder="e.g., John Doe" 
+                    className="bg-white/5 border-white/10 rounded-xl h-11"
+                    value={newUser.name}
+                    onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Username</Label>
+                  <Input 
+                    placeholder="e.g., jdoe_nexus" 
+                    className="bg-white/5 border-white/10 rounded-xl h-11"
+                    value={newUser.username}
+                    onChange={(e) => setNewUser({...newUser, username: e.target.value})}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Security Code</Label>
+                  <Input 
+                    type="password"
+                    placeholder="••••••••" 
+                    className="bg-white/5 border-white/10 rounded-xl h-11"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Role</Label>
+                  <Select value={newUser.role} onValueChange={(v: any) => setNewUser({...newUser, role: v})}>
+                    <SelectTrigger className="bg-white/5 border-white/10 rounded-xl h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-white/10">
+                      <SelectItem value="user">Standard User</SelectItem>
+                      <SelectItem value="admin">Nexus Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button 
+                  onClick={handleCreateUser}
+                  className="w-full mt-4 h-12 bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg"
+                  disabled={!newUser.name || !newUser.username || !newUser.password}
+                >
+                  Confirm Registration
+                </Button>
+              </div>
+            </Card>
+
+            <Card className="lg:col-span-2 glass border-white/10 rounded-[2.5rem] p-8 flex flex-col">
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                <Key className="size-5 text-indigo-400" />
+                Active Neural Nodes
+              </h3>
+              <ScrollArea className="flex-1">
+                <div className="space-y-3">
+                  {users.map((u) => (
+                    <div key={u.id} className="flex items-center justify-between p-4 glass border-white/5 rounded-2xl group">
+                      <div className="flex items-center gap-4">
+                        <div className="size-10 bg-indigo-500/10 rounded-xl flex items-center justify-center border border-indigo-500/20">
+                          <User className="size-5 text-indigo-400" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-white">{u.name}</p>
+                          <div className="flex items-center gap-2">
+                             <span className="text-xs text-muted-foreground">@{u.username}</span>
+                             <Badge className={cn("text-[9px] h-4 py-0", u.role === 'admin' ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-indigo-500/20 text-indigo-400 border-indigo-500/30")}>
+                              {u.role.toUpperCase()}
+                             </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                        disabled={u.id === 'admin-id'}
+                        onClick={() => {
+                          deleteUser(u.id);
+                          toast({ title: "User Removed", description: "Node deactivated successfully." });
+                        }}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="broadcast" className="flex-1 outline-none">
@@ -222,6 +343,9 @@ export function AdminPanel() {
                       </Badge>
                       <span className="text-[10px] text-muted-foreground uppercase">{new Date(msg.timestamp).toLocaleDateString()}</span>
                     </div>
+                    <div className="mb-3">
+                       <span className="text-[10px] font-bold text-indigo-400 uppercase">From: {msg.userName}</span>
+                    </div>
                     <p className="text-white/80 font-medium mb-3 line-clamp-2">Q: {msg.text}</p>
                     {msg.response && (
                       <div className="p-3 bg-black/20 rounded-xl border border-white/5 mb-3 italic text-indigo-100/60 line-clamp-3">
@@ -250,7 +374,7 @@ export function AdminPanel() {
         </TabsContent>
       </Tabs>
 
-      {/* Edit Modal (shared from previous implementation) */}
+      {/* Edit Modal */}
       <Dialog open={!!editingMessage} onOpenChange={() => setEditingMessage(null)}>
         <DialogContent className="sm:max-w-[500px] bg-slate-900 border-white/10 rounded-3xl">
           <DialogHeader>

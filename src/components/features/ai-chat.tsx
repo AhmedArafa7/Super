@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { getStoredMessages, addWizardMessage, updateMessageStatus, WizardMessage } from "@/lib/chat-store";
 import { clearAllUnreadNotifications, markNotificationByMessageIdAsRead } from "@/lib/notification-store";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/auth/auth-provider";
 
 interface AIChatProps {
   highlightId?: string | null;
@@ -16,6 +17,7 @@ interface AIChatProps {
 }
 
 export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<WizardMessage[]>([]);
   const [input, setInput] = useState("");
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
@@ -23,8 +25,10 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
+    if (!user) return;
+    
     const loadMessages = () => {
-      setMessages(getStoredMessages());
+      setMessages(getStoredMessages(user.id, user.role === 'admin'));
     };
 
     loadMessages();
@@ -32,31 +36,30 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     window.addEventListener('storage', loadMessages);
     
     // Clear unread notifications when chat is active
-    clearAllUnreadNotifications();
+    clearAllUnreadNotifications(user.id);
 
     return () => {
       window.removeEventListener('storage-update', loadMessages);
       window.removeEventListener('storage', loadMessages);
     };
-  }, []);
+  }, [user]);
 
   // Deep Linking & Highlighting Logic
   useEffect(() => {
-    if (highlightId && messageRefs.current[highlightId]) {
+    if (user && highlightId && messageRefs.current[highlightId]) {
       const el = messageRefs.current[highlightId];
       el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       
       // Mark as read specifically if it was deep linked
-      markNotificationByMessageIdAsRead(highlightId);
+      markNotificationByMessageIdAsRead(highlightId, user.id);
 
-      // Flash logic is handled by CSS class if ID matches
       const timer = setTimeout(() => {
         onHighlightComplete?.();
       }, 3000);
       
       return () => clearTimeout(timer);
     }
-  }, [highlightId, messages, onHighlightComplete]);
+  }, [highlightId, messages, onHighlightComplete, user]);
 
   // Background Queue Processor
   useEffect(() => {
@@ -83,8 +86,8 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   }, [messages, highlightId]);
 
   const handleSend = () => {
-    if (!input.trim()) return;
-    addWizardMessage(input);
+    if (!input.trim() || !user) return;
+    addWizardMessage(input, user.id, user.name);
     setInput("");
   };
 
@@ -133,6 +136,9 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                 {/* User Message */}
                 <div className="flex justify-end items-start gap-3 group">
                   <div className="max-w-[80%] message-bubble-user p-4 relative">
+                    {user?.role === 'admin' && (
+                      <p className="text-[10px] font-bold text-white/50 uppercase mb-1">From: {msg.userName}</p>
+                    )}
                     <p className="text-sm leading-relaxed whitespace-pre-wrap pr-4">{msg.text}</p>
                     <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
                       <span className="text-[10px]">

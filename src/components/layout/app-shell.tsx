@@ -15,12 +15,15 @@ import { AdminPanel } from "@/components/features/admin-panel";
 import { NotificationsView } from "@/components/features/notifications-view";
 import { KnowledgeHub } from "@/components/features/knowledge-hub";
 import { getNotifications, AppNotification, clearAllUnreadNotifications } from "@/lib/notification-store";
+import { useAuth } from "@/components/auth/auth-provider";
+import { LoginView } from "@/components/auth/login-view";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning";
 
 export function AppShell() {
+  const { user, isAuthenticated, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<NavItem>("chat");
   const [cartCount, setCartCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -29,8 +32,10 @@ export function AppShell() {
   const clickTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
     const updateCount = () => {
-      const all = getNotifications();
+      const all = getNotifications(user.id);
       setUnreadCount(all.filter(n => !n.isRead).length);
     };
 
@@ -42,7 +47,20 @@ export function AppShell() {
       window.removeEventListener('notifications-update', updateCount);
       window.removeEventListener('storage', updateCount);
     };
-  }, []);
+  }, [isAuthenticated, user]);
+
+  // Initial tab logic based on role
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      setActiveTab("admin");
+    } else {
+      setActiveTab("chat");
+    }
+  }, [user]);
+
+  if (!isAuthenticated) {
+    return <LoginView />;
+  }
 
   const navItems = [
     { id: "chat", label: "AI Chat", icon: MessageSquare },
@@ -88,7 +106,8 @@ export function AppShell() {
 
     clickTimer.current = setTimeout(() => {
       clickTimer.current = null;
-      const unread = getNotifications().filter(n => !n.isRead);
+      if (!user) return;
+      const unread = getNotifications(user.id).filter(n => !n.isRead);
       
       if (unread.length === 1) {
         handleSmartRoute(unread[0]);
@@ -104,7 +123,7 @@ export function AppShell() {
       case "stream": return <StreamHub />;
       case "market": return <TechMarket onAddToCart={handleAddToCart} />;
       case "features": return <Capabilities />;
-      case "admin": return <AdminPanel />;
+      case "admin": return user?.role === 'admin' ? <AdminPanel /> : <AIChat />;
       case "learning": return <KnowledgeHub />;
       case "notifications": return <NotificationsView onSmartRoute={handleSmartRoute} />;
       default: return <AIChat />;
@@ -136,7 +155,7 @@ export function AppShell() {
                     onClick={() => {
                       setActiveTab(item.id as NavItem);
                       if (item.id === 'chat') setHighlightId(null);
-                      if (item.id === 'notifications') clearAllUnreadNotifications();
+                      if (item.id === 'notifications' && user) clearAllUnreadNotifications(user.id);
                     }}
                     className={`h-12 gap-4 px-4 rounded-xl transition-all duration-300 ${
                       activeTab === item.id 
@@ -159,23 +178,28 @@ export function AppShell() {
           </SidebarContent>
 
           <SidebarFooter className="p-4 mt-auto">
-            <Button 
-              variant="outline" 
-              onClick={() => setActiveTab(activeTab === "admin" ? "chat" : "admin")}
-              className={`w-full mb-4 h-11 rounded-xl border-white/10 hover:bg-white/5 gap-2 text-xs font-bold ${activeTab === 'admin' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'text-muted-foreground'}`}
-            >
-              <ShieldCheck className="size-4" />
-              {activeTab === "admin" ? "Exit Console" : "Admin Neural Console"}
-            </Button>
+            {user?.role === 'admin' && (
+              <Button 
+                variant="outline" 
+                onClick={() => setActiveTab(activeTab === "admin" ? "chat" : "admin")}
+                className={`w-full mb-4 h-11 rounded-xl border-white/10 hover:bg-white/5 gap-2 text-xs font-bold ${activeTab === 'admin' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'text-muted-foreground'}`}
+              >
+                <ShieldCheck className="size-4" />
+                {activeTab === "admin" ? "Exit Console" : "Admin Neural Console"}
+              </Button>
+            )}
             <div className="flex items-center gap-3 px-2">
               <div className="size-8 rounded-full bg-indigo-900/50 border border-white/10 overflow-hidden">
-                <img src="https://picsum.photos/seed/user1/32/32" alt="User" />
+                <img src={`https://picsum.photos/seed/${user?.username}/32/32`} alt="User" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">Alex Rivera</p>
-                <p className="text-[10px] text-muted-foreground truncate">Console Admin</p>
+                <p className="text-sm font-medium truncate">{user?.name}</p>
+                <p className="text-[10px] text-muted-foreground truncate capitalize">{user?.role} Node</p>
               </div>
-              <LogOut className="size-4 text-muted-foreground cursor-pointer hover:text-white" />
+              <LogOut 
+                className="size-4 text-muted-foreground cursor-pointer hover:text-white" 
+                onClick={logout}
+              />
             </div>
           </SidebarFooter>
         </Sidebar>

@@ -10,23 +10,26 @@ import { getNotifications, AppNotification, markNotificationAsRead } from "@/lib
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useAuth } from "@/components/auth/auth-provider";
 
 interface NotificationsViewProps {
   onSmartRoute: (notification: AppNotification) => void;
 }
 
 export function NotificationsView({ onSmartRoute }: NotificationsViewProps) {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [selectedBroadcast, setSelectedBroadcast] = useState<AppNotification | null>(null);
 
   useEffect(() => {
+    if (!user) return;
     const load = () => {
-      setNotifications(getNotifications());
+      setNotifications(getNotifications(user.id));
     };
     load();
     window.addEventListener('notifications-update', load);
     return () => window.removeEventListener('notifications-update', load);
-  }, []);
+  }, [user]);
 
   const getTypeIcon = (type: AppNotification['type']) => {
     switch (type) {
