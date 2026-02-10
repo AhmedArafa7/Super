@@ -1,4 +1,3 @@
-
 'use client';
 
 import { addNotification } from './notification-store';
@@ -14,6 +13,7 @@ export interface WizardMessage {
   status: MessageStatus;
   timestamp: string;
   isEdited?: boolean;
+  isUserEdited?: boolean;
   editReason?: string;
   editedAt?: string;
 }
@@ -60,6 +60,22 @@ export const updateMessageStatus = (id: string, status: MessageStatus) => {
   saveMessages(updated);
 };
 
+export const updateMessageText = (id: string, text: string) => {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  const messages: WizardMessage[] = stored ? JSON.parse(stored) : [];
+  const updated = messages.map((m) =>
+    m.id === id ? { ...m, text, isUserEdited: true } : m
+  );
+  saveMessages(updated);
+};
+
+export const deleteMessage = (id: string) => {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  const messages: WizardMessage[] = stored ? JSON.parse(stored) : [];
+  const filtered = messages.filter(m => m.id !== id);
+  saveMessages(filtered);
+};
+
 export const approveMessage = (id: string, response: string) => {
   const stored = localStorage.getItem(STORAGE_KEY);
   const messages: WizardMessage[] = stored ? JSON.parse(stored) : [];
@@ -90,7 +106,6 @@ export const editMessage = (id: string, newResponse: string, reason: string) => 
   
   saveMessages(updated);
 
-  // Trigger centralized notification for the specific user
   addNotification({
     type: 'chat_correction',
     title: 'Transmission Corrected',

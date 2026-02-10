@@ -1,15 +1,18 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Sparkles, Paperclip, Mic, MoreHorizontal, Clock, Check, CheckCheck, Loader2, Edit3, MessageCircle } from "lucide-react";
+import { Send, Bot, User, Sparkles, Paperclip, Mic, MoreHorizontal, Clock, Check, CheckCheck, Loader2, Edit3, MessageCircle, MoreVertical, Pencil, Trash2, X, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getStoredMessages, addWizardMessage, updateMessageStatus, WizardMessage } from "@/lib/chat-store";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { getStoredMessages, addWizardMessage, updateMessageStatus, updateMessageText, deleteMessage, WizardMessage } from "@/lib/chat-store";
 import { clearAllUnreadNotifications, markNotificationByMessageIdAsRead } from "@/lib/notification-store";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface AIChatProps {
   highlightId?: string | null;
@@ -21,6 +24,8 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const [messages, setMessages] = useState<WizardMessage[]>([]);
   const [input, setInput] = useState("");
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -35,8 +40,9 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     window.addEventListener('storage-update', loadMessages);
     window.addEventListener('storage', loadMessages);
     
-    // Clear unread notifications when chat is active
-    clearAllUnreadNotifications(user.id);
+    if (user.id) {
+      clearAllUnreadNotifications(user.id);
+    }
 
     return () => {
       window.removeEventListener('storage-update', loadMessages);
@@ -44,13 +50,11 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     };
   }, [user]);
 
-  // Deep Linking & Highlighting Logic
   useEffect(() => {
     if (user && highlightId && messageRefs.current[highlightId]) {
       const el = messageRefs.current[highlightId];
       el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       
-      // Mark as read specifically if it was deep linked
       markNotificationByMessageIdAsRead(highlightId, user.id);
 
       const timer = setTimeout(() => {
@@ -61,18 +65,15 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     }
   }, [highlightId, messages, onHighlightComplete, user]);
 
-  // Background Queue Processor
   useEffect(() => {
     const processQueue = async () => {
       const queuedMessages = messages.filter(m => m.status === 'queued');
       if (queuedMessages.length === 0 || isProcessingQueue) return;
 
       setIsProcessingQueue(true);
-      
       const msgToProcess = queuedMessages[0];
       await new Promise(resolve => setTimeout(resolve, 800)); 
       updateMessageStatus(msgToProcess.id, 'sent');
-      
       setIsProcessingQueue(false);
     };
 
@@ -89,6 +90,22 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     if (!input.trim() || !user) return;
     addWizardMessage(input, user.id, user.name);
     setInput("");
+  };
+
+  const handleStartEdit = (msg: WizardMessage) => {
+    setEditingId(msg.id);
+    setEditingText(msg.text);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingId && editingText.trim()) {
+      updateMessageText(editingId, editingText);
+      setEditingId(null);
+    }
+  };
+
+  const handleDelete = (id: string) => {
+    deleteMessage(id);
   };
 
   const getStatusIcon = (status: WizardMessage['status']) => {
@@ -134,17 +151,97 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
             {messages.map((msg) => (
               <React.Fragment key={msg.id}>
                 {/* User Message */}
-                <div className="flex justify-end items-start gap-3 group">
-                  <div className="max-w-[80%] message-bubble-user p-4 relative">
-                    {user?.role === 'admin' && (
-                      <p className="text-[10px] font-bold text-white/50 uppercase mb-1">From: {msg.userName}</p>
-                    )}
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap pr-4">{msg.text}</p>
-                    <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
-                      <span className="text-[10px]">
-                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                      {getStatusIcon(msg.status)}
+                <div className="flex justify-end items-start gap-3 group relative">
+                  <div className="flex items-start gap-2 max-w-[85%]">
+                    {/* Actions Dropdown */}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="size-8 text-muted-foreground rounded-lg">
+                            <MoreVertical className="size-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-slate-900 border-white/10 rounded-xl">
+                          {msg.status !== 'replied' && (
+                            <DropdownMenuItem 
+                              onClick={() => handleStartEdit(msg)}
+                              className="gap-2 text-indigo-100 focus:bg-indigo-500/20 rounded-lg cursor-pointer"
+                            >
+                              <Pencil className="size-4" />
+                              Edit Request
+                            </DropdownMenuItem>
+                          )}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem 
+                                onSelect={(e) => e.preventDefault()}
+                                className="gap-2 text-red-400 focus:bg-red-500/10 rounded-lg cursor-pointer"
+                              >
+                                <Trash2 className="size-4" />
+                                Delete Request
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="bg-slate-900 border-white/10 rounded-2xl">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle className="text-xl">Retract Neural Request?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-muted-foreground">
+                                  Are you sure you want to retract this request? This will remove all associated transmission data from the neural stack.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="rounded-xl border-white/10 bg-white/5">Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => handleDelete(msg.id)}
+                                  className="bg-red-600 hover:bg-red-500 text-white rounded-xl"
+                                >
+                                  Retract Request
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    <div className={cn(
+                      "flex-1 p-4 relative transition-all duration-300",
+                      editingId === msg.id ? "bg-indigo-500/10 border border-indigo-500/30 rounded-2xl" : "message-bubble-user"
+                    )}>
+                      {user?.role === 'admin' && (
+                        <p className="text-[10px] font-bold text-white/50 uppercase mb-1">From: {msg.userName}</p>
+                      )}
+                      
+                      {editingId === msg.id ? (
+                        <div className="space-y-3">
+                          <Textarea
+                            autoFocus
+                            value={editingText}
+                            onChange={(e) => setEditingText(e.target.value)}
+                            className="bg-white/5 border-white/10 focus-visible:ring-white/20 resize-none min-h-[60px] text-sm"
+                          />
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => setEditingId(null)} className="h-8 rounded-lg text-white/60">
+                              <X className="size-3 mr-1" />
+                              Cancel
+                            </Button>
+                            <Button size="sm" onClick={handleSaveEdit} className="h-8 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white">
+                              <CheckCircle2 className="size-3 mr-1" />
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap pr-4">{msg.text}</p>
+                          <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
+                            {msg.isUserEdited && <span className="text-[9px] font-bold text-white/40 italic mr-1">(edited)</span>}
+                            <span className="text-[10px]">
+                              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {getStatusIcon(msg.status)}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
