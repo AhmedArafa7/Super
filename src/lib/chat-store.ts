@@ -1,5 +1,7 @@
+
 'use client';
 
+import { supabase } from './supabaseClient';
 import { addNotification } from './notification-store';
 
 export type MessageStatus = 'queued' | 'sent' | 'processing' | 'replied' | 'rejected';
@@ -8,7 +10,7 @@ export interface Attachment {
   id: string;
   type: 'image' | 'audio' | 'file';
   name: string;
-  url: string; // Base64
+  url: string; // Base64 or CDN URL
   size: string;
   mimeType: string;
 }
@@ -28,109 +30,98 @@ export interface WizardMessage {
   attachments?: Attachment[];
 }
 
-const STORAGE_KEY = 'nexus_wizard_messages';
-
-export const getStoredMessages = (userId?: string, isAdmin?: boolean): WizardMessage[] => {
-  if (typeof window === 'undefined') return [];
-  const stored = localStorage.getItem(STORAGE_KEY);
-  const allMessages: WizardMessage[] = stored ? JSON.parse(stored) : [];
+export const getStoredMessages = async (userId?: string, isAdmin?: boolean): Promise<WizardMessage[]> => {
+  let query = supabase.from('messages').select('*').order('timestamp', { ascending: true });
   
-  if (isAdmin) return allMessages;
-  if (userId) return allMessages.filter(m => m.userId === userId);
-  return [];
+  if (!isAdmin && userId) {
+    query = query.eq('userId', userId);
+  } else if (!isAdmin && !userId) {
+    return [];
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error('Error fetching messages:', error);
+    return [];
+  }
+  return data as WizardMessage[];
 };
 
-export const saveMessages = (messages: WizardMessage[]) => {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-  window.dispatchEvent(new Event('storage-update'));
-};
-
-export const addWizardMessage = (text: string, userId: string, userName: string, attachments?: Attachment[]): WizardMessage => {
-  const messages = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  const newMessage: WizardMessage = {
-    id: Math.random().toString(36).substring(2, 15),
+export const addWizardMessage = async (text: string, userId: string, userName: string, attachments?: Attachment[]): Promise<WizardMessage | null> => {
+  const newMessage: Omit<WizardMessage, 'id'> = {
     userId,
     userName,
     text,
     response: null,
-    status: 'queued',
+    status: 'sent', // Since we're going direct to Supabase now
     timestamp: new Date().toISOString(),
-    attachments,
+    attachments: attachments || [],
   };
-  saveMessages([...messages, newMessage]);
-  return newMessage;
-};
 
-export const updateMessageStatus = (id: string, status: MessageStatus) => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  const messages: WizardMessage[] = stored ? JSON.parse(stored) : [];
-  const updated = messages.map((m) =>
-    m.id === id ? { ...m, status } : m
-  );
-  saveMessages(updated);
-};
-
-export const updateMessageText = (id: string, text: string) => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  const messages: WizardMessage[] = stored ? JSON.parse(stored) : [];
-  const updated = messages.map((m) =>
-    m.id === id ? { ...m, text, isUserEdited: true } : m
-  );
-  saveMessages(updated);
-};
-
-export const deleteMessage = (id: string) => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  const messages: WizardMessage[] = stored ? JSON.parse(stored) : [];
-  const filtered = messages.filter(m => m.id !== id);
-  saveMessages(filtered);
-};
-
-export const approveMessage = (id: string, response: string) => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  const messages: WizardMessage[] = stored ? JSON.parse(stored) : [];
-  const updated = messages.map((m) =>
-    m.id === id ? { ...m, response, status: 'replied' as const } : m
-  );
-  saveMessages(updated);
-};
-
-export const editMessage = (id: string, newResponse: string, reason: string) => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  const messages: WizardMessage[] = stored ? JSON.parse(stored) : [];
-  let targetUserId = '';
+  const { data, error } = await supabase.from('messages').insert([newMessage]).select().single();
   
-  const updated = messages.map((m) => {
-    if (m.id === id) {
-      targetUserId = m.userId;
-      return { 
-        ...m, 
-        response: newResponse, 
-        isEdited: true, 
-        editReason: reason, 
-        editedAt: new Date().toISOString()
-      };
-    }
-    return m;
-  });
+  if (error) {
+    console.error('Error adding message:', error);
+    return null;
+  }
+  return data as WizardMessage;
+};
+
+export const updateMessageStatus = async (id: string, status: MessageStatus) => {
+  const { error } = await supabase.from('messages').update({ status }).eq('id', id);
+  if (error) console.error('Error updating status:', error);
+};
+
+export const updateMessageText = async (id: string, text: string) => {
+  const { error } = await supabase.from('messages').update({ text, isUserEdited: true }).eq('id', id);
+  if (error) console.error('Error updating text:', error);
+};
+
+export const deleteMessage = async (id: string) => {
+  const { error } = await supabase.from('messages').delete().eq('id', id);
+  if (error) console.error('Error deleting message:', error);
+};
+
+export const approveMessage = async (id: string, response: string) => {
+  const { error } = await supabase.from('messages').update({ 
+    response, 
+    status: 'replied' 
+  }).eq('id', id);
   
-  saveMessages(updated);
+  if (error) console.error('Error approving message:', error);
+};
+
+export const editMessage = async (id: string, newResponse: string, reason: string) => {
+  const { data: original, error: fetchError } = await supabase
+    .from('messages')
+    .select('userId')
+    .eq('id', id)
+    .single();
+
+  if (fetchError) return;
+
+  const { error: updateError } = await supabase.from('messages').update({
+    response: newResponse,
+    isEdited: true,
+    editReason: reason,
+    editedAt: new Date().toISOString()
+  }).eq('id', id);
+
+  if (updateError) {
+    console.error('Error editing response:', updateError);
+    return;
+  }
 
   addNotification({
     type: 'chat_correction',
     title: 'Transmission Corrected',
     message: `A message in your neural queue was adjusted: "${reason}"`,
-    userId: targetUserId,
+    userId: (original as any).userId,
     metadata: { messageId: id, reason }
   });
 };
 
-export const rejectMessage = (id: string) => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  const messages: WizardMessage[] = stored ? JSON.parse(stored) : [];
-  const updated = messages.map((m) =>
-    m.id === id ? { ...m, status: 'rejected' as const } : m
-  );
-  saveMessages(updated);
+export const rejectMessage = async (id: string) => {
+  const { error } = await supabase.from('messages').update({ status: 'rejected' }).eq('id', id);
+  if (error) console.error('Error rejecting message:', error);
 };

@@ -2,7 +2,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, getSession, setSession, getStoredUsers } from '@/lib/auth-store';
+import { User, getSession, setSession } from '@/lib/auth-store';
+import { supabase } from '@/lib/supabaseClient';
 
 interface AuthContextType {
   user: User | null;
@@ -29,15 +30,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    const users = getStoredUsers();
-    const foundUser = users.find(u => u.username === username && u.password === password);
-    
-    if (foundUser) {
-      setSession(foundUser);
-      setUser(foundUser);
-      return true;
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', username)
+        .eq('password', password)
+        .single();
+      
+      if (data && !error) {
+        setSession(data as User);
+        setUser(data as User);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Login error:', err);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {

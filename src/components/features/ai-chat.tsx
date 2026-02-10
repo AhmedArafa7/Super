@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Sparkles, Paperclip, Mic, MoreHorizontal, Clock, Check, CheckCheck, Loader2, Edit3, MessageCircle, MoreVertical, Pencil, Trash2, X, CheckCircle2, FileText, File, Download, Square, Play, Pause, Image as ImageIcon, Music } from "lucide-react";
+import { Send, Bot, User, Sparkles, Paperclip, Mic, MoreHorizontal, Clock, Check, CheckCheck, Loader2, Edit3, MessageCircle, MoreVertical, Pencil, Trash2, X, CheckCircle2, FileText, Download, Square, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,20 +15,20 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabaseClient";
 
 interface AIChatProps {
   highlightId?: string | null;
   onHighlightComplete?: () => void;
 }
 
-const MAX_FILE_SIZE = 1.5 * 1024 * 1024; // 1.5MB limit for localStorage
+const MAX_FILE_SIZE = 1.5 * 1024 * 1024;
 
 export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<WizardMessage[]>([]);
   const [input, setInput] = useState("");
-  const [isProcessingQueue, setIsProcessingQueue] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
@@ -44,21 +45,37 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   useEffect(() => {
     if (!user) return;
     
-    const loadMessages = () => {
-      setMessages(getStoredMessages(user.id, user.role === 'admin'));
+    const loadMessages = async () => {
+      const initialMessages = await getStoredMessages(user.id, user.role === 'admin');
+      setMessages(initialMessages);
     };
 
     loadMessages();
-    window.addEventListener('storage-update', loadMessages);
-    window.addEventListener('storage', loadMessages);
+
+    // Set up Realtime Subscription
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+        },
+        async (payload) => {
+          // Refresh list on any change to the messages table
+          const updatedMessages = await getStoredMessages(user.id, user.role === 'admin');
+          setMessages(updatedMessages);
+        }
+      )
+      .subscribe();
     
     if (user.id) {
       clearAllUnreadNotifications(user.id);
     }
 
     return () => {
-      window.removeEventListener('storage-update', loadMessages);
-      window.removeEventListener('storage', loadMessages);
+      supabase.removeChannel(channel);
     };
   }, [user]);
 
@@ -78,29 +95,14 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   }, [highlightId, messages, onHighlightComplete, user]);
 
   useEffect(() => {
-    const processQueue = async () => {
-      const queuedMessages = messages.filter(m => m.status === 'queued');
-      if (queuedMessages.length === 0 || isProcessingQueue) return;
-
-      setIsProcessingQueue(true);
-      const msgToProcess = queuedMessages[0];
-      await new Promise(resolve => setTimeout(resolve, 800)); 
-      updateMessageStatus(msgToProcess.id, 'sent');
-      setIsProcessingQueue(false);
-    };
-
-    processQueue();
-  }, [messages, isProcessingQueue]);
-
-  useEffect(() => {
     if (scrollRef.current && !highlightId) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
   }, [messages, highlightId]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if ((!input.trim() && pendingAttachments.length === 0) || !user || isUploading) return;
-    addWizardMessage(input, user.id, user.name, pendingAttachments);
+    await addWizardMessage(input, user.id, user.name, pendingAttachments);
     setInput("");
     setPendingAttachments([]);
   };
@@ -201,15 +203,15 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     setEditingText(msg.text);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (editingId && editingText.trim()) {
-      updateMessageText(editingId, editingText);
+      await updateMessageText(editingId, editingText);
       setEditingId(null);
     }
   };
 
-  const handleDelete = (id: string) => {
-    deleteMessage(id);
+  const handleDelete = async (id: string) => {
+    await deleteMessage(id);
   };
 
   const getStatusIcon = (status: WizardMessage['status']) => {
@@ -266,16 +268,13 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
               <Bot className="size-5 text-indigo-400" />
             </div>
             <div>
-              <p className="font-bold text-sm">Nexus Neural Queue</p>
+              <p className="font-bold text-sm">Nexus Realtime Stream</p>
               <p className="text-[10px] text-indigo-400 flex items-center gap-1">
-                <span className={cn("size-1.5 rounded-full", isProcessingQueue ? "bg-amber-400 animate-pulse" : "bg-green-400")} />
-                {isProcessingQueue ? "Syncing Workspace..." : "System Synchronized"}
+                <span className="size-1.5 rounded-full bg-green-400" />
+                Live Neural Sync
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="text-muted-foreground">
-            <MoreHorizontal className="size-5" />
-          </Button>
         </div>
 
         <ScrollArea className="flex-1 p-6" ref={scrollRef}>
@@ -283,16 +282,14 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-40 text-center opacity-50">
                 <Sparkles className="size-12 mb-4 text-indigo-500" />
-                <p className="text-sm">Initiate a secure session with Nexus Neural.</p>
+                <p className="text-sm">Initiate a live secure session with Nexus Neural.</p>
               </div>
             )}
             
             {messages.map((msg) => (
               <React.Fragment key={msg.id}>
-                {/* User Message */}
                 <div className="flex justify-end items-start gap-3 group relative">
                   <div className="flex items-start gap-2 max-w-[85%]">
-                    {/* Actions Dropdown */}
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -324,7 +321,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                               <AlertDialogHeader>
                                 <AlertDialogTitle className="text-xl">Retract Neural Request?</AlertDialogTitle>
                                 <AlertDialogDescription className="text-muted-foreground">
-                                  Are you sure you want to retract this request? This will remove all associated transmission data from the neural stack.
+                                  This will remove all associated transmission data from the live neural stack.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -372,11 +369,9 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                       ) : (
                         <>
                           {msg.text && <p className="text-sm leading-relaxed whitespace-pre-wrap pr-4">{msg.text}</p>}
-                          
                           {msg.attachments && msg.attachments.length > 0 && (
                             <AttachmentPreview attachments={msg.attachments} />
                           )}
-
                           <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
                             {msg.isUserEdited && <span className="text-[9px] font-bold text-white/40 italic mr-1">(edited)</span>}
                             <span className="text-[10px]">
@@ -393,7 +388,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                   </div>
                 </div>
 
-                {/* AI Response Indicators */}
                 {msg.status === 'processing' && (
                   <div className="flex justify-start items-start gap-3">
                     <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
@@ -425,9 +419,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                           ✍️ Edited Response
                         </div>
                       )}
-                      
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.response}</p>
-                      
                       {msg.isEdited && msg.editReason && (
                         <div className="mt-4 pt-3 border-t border-white/10">
                           <div className="flex items-start gap-2 p-2 rounded-lg bg-black/20">
@@ -439,21 +431,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                           </div>
                         </div>
                       )}
-
-                      <div className="mt-2 text-right">
-                         <span className="text-[10px] opacity-40 italic">Verified Nexus Stream</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {msg.status === 'rejected' && (
-                   <div className="flex justify-start items-start gap-3">
-                    <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
-                      <Bot className="size-4 text-red-400" />
-                    </div>
-                    <div className="message-bubble-ai p-4 border border-red-500/20 bg-red-500/5">
-                      <p className="text-xs text-red-400">Request declined by server protocol.</p>
                     </div>
                   </div>
                 )}
@@ -463,7 +440,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         </ScrollArea>
 
         <div className="p-4 bg-white/5 border-t border-white/5">
-          {/* Pending Attachments Preview */}
           <AnimatePresence>
             {pendingAttachments.length > 0 && (
               <motion.div 
@@ -477,8 +453,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                     <div className="size-16 rounded-xl glass border border-white/10 flex flex-col items-center justify-center p-2 text-center">
                       {att.type === 'image' ? (
                         <img src={att.url} className="size-full object-cover rounded-lg" />
-                      ) : att.type === 'audio' ? (
-                        <Music className="size-6 text-indigo-400" />
                       ) : (
                         <FileText className="size-6 text-indigo-400" />
                       )}
@@ -526,36 +500,18 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
               </div>
               <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
                 <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileSelect} />
-                <Button 
-                  onClick={() => fileInputRef.current?.click()}
-                  variant="ghost" 
-                  size="icon" 
-                  disabled={isUploading}
-                  className="size-8 text-muted-foreground hover:text-white hover:bg-white/10"
-                >
+                <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="icon" disabled={isUploading} className="size-8 text-muted-foreground hover:text-white hover:bg-white/10">
                   {isUploading ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />}
                 </Button>
-                <Button 
-                  onClick={startRecording}
-                  variant="ghost" 
-                  size="icon" 
-                  disabled={isUploading}
-                  className="size-8 text-muted-foreground hover:text-white hover:bg-white/10"
-                >
+                <Button onClick={startRecording} variant="ghost" size="icon" disabled={isUploading} className="size-8 text-muted-foreground hover:text-white hover:bg-white/10">
                   <Mic className="size-4" />
                 </Button>
-                <Button 
-                  onClick={handleSend}
-                  disabled={(!input.trim() && pendingAttachments.length === 0) || isUploading}
-                  size="icon" 
-                  className="size-8 bg-primary text-white hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/20"
-                >
+                <Button onClick={handleSend} disabled={(!input.trim() && pendingAttachments.length === 0) || isUploading} size="icon" className="size-8 bg-primary text-white hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/20">
                   <Send className="size-4" />
                 </Button>
               </div>
             </div>
           )}
-          <p className="text-[10px] text-center text-muted-foreground mt-3 uppercase tracking-widest font-bold">Neural Synchrony: Operational</p>
         </div>
       </div>
     </div>
