@@ -30,35 +30,35 @@ export interface WizardMessage {
   attachments?: Attachment[];
 }
 
-// Helper to map DB snake_case to UI camelCase
+// Helper to map DB columns to UI interface
 const mapMessageFromDB = (m: any): WizardMessage => ({
   id: m.id,
-  userId: m.user_id,
-  userName: m.user_name,
+  userId: m.userId,
+  userName: m.userName,
   text: m.text,
   response: m.response,
   status: m.status,
-  timestamp: m.created_at,
-  isEdited: m.is_edited,
-  isUserEdited: m.is_user_edited,
-  editReason: m.edit_reason,
-  editedAt: m.edited_at,
+  timestamp: m.timestamp || m.created_at,
+  isEdited: m.isEdited,
+  isUserEdited: m.isUserEdited,
+  editReason: m.editReason,
+  editedAt: m.editedAt,
   attachments: m.attachments || []
 });
 
 export const getStoredMessages = async (userId?: string, isAdmin?: boolean): Promise<WizardMessage[]> => {
-  // Ordering by created_at as requested for Supabase compatibility
-  let query = supabase.from('messages').select('*').order('created_at', { ascending: true });
+  // Select all columns and order by timestamp
+  let query = supabase.from('messages').select('*').order('timestamp', { ascending: true });
   
   if (!isAdmin && userId) {
-    query = query.eq('user_id', userId);
+    // Corrected to use camelCase 'userId' to match typical JS-to-Supabase migrations
+    query = query.eq('userId', userId);
   } else if (!isAdmin && !userId) {
     return [];
   }
 
   const { data, error } = await query;
   if (error) {
-    // Better error logging for debugging schema issues
     console.error('Error fetching messages:', error.message, error.details);
     return [];
   }
@@ -67,12 +67,13 @@ export const getStoredMessages = async (userId?: string, isAdmin?: boolean): Pro
 
 export const addWizardMessage = async (text: string, userId: string, userName: string, attachments?: Attachment[]): Promise<WizardMessage | null> => {
   const newMessage = {
-    user_id: userId,
-    user_name: userName,
+    userId,
+    userName,
     text,
     response: null,
     status: 'sent',
     attachments: attachments || [],
+    timestamp: new Date().toISOString()
   };
 
   const { data, error } = await supabase.from('messages').insert([newMessage]).select().single();
@@ -92,7 +93,7 @@ export const updateMessageStatus = async (id: string, status: MessageStatus) => 
 export const updateMessageText = async (id: string, text: string) => {
   const { error } = await supabase.from('messages').update({ 
     text, 
-    is_user_edited: true 
+    isUserEdited: true 
   }).eq('id', id);
   if (error) console.error('Error updating text:', error.message);
 };
@@ -114,7 +115,7 @@ export const approveMessage = async (id: string, response: string) => {
 export const editMessage = async (id: string, newResponse: string, reason: string) => {
   const { data: original, error: fetchError } = await supabase
     .from('messages')
-    .select('user_id')
+    .select('userId')
     .eq('id', id)
     .single();
 
@@ -122,9 +123,9 @@ export const editMessage = async (id: string, newResponse: string, reason: strin
 
   const { error: updateError } = await supabase.from('messages').update({
     response: newResponse,
-    is_edited: true,
-    edit_reason: reason,
-    edited_at: new Date().toISOString()
+    isEdited: true,
+    editReason: reason,
+    editedAt: new Date().toISOString()
   }).eq('id', id);
 
   if (updateError) {
@@ -136,7 +137,7 @@ export const editMessage = async (id: string, newResponse: string, reason: strin
     type: 'chat_correction',
     title: 'Transmission Corrected',
     message: `A message in your neural queue was adjusted: "${reason}"`,
-    userId: (original as any).user_id,
+    userId: (original as any).userId,
     metadata: { messageId: id, reason }
   });
 };
