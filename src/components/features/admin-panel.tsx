@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, Image as ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, Image as ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -37,9 +37,13 @@ export function AdminPanel() {
 
   useEffect(() => {
     const load = () => {
-      setMessages(getStoredMessages(undefined, true));
-      setUsers(getStoredUsers());
-      setVideos(getStoredVideos());
+      const loadData = async () => {
+        const msgs = await getStoredMessages(undefined, true);
+        setMessages(msgs);
+        setUsers(getStoredUsers());
+        setVideos(getStoredVideos());
+      };
+      loadData();
     };
     load();
     const handlers = ['storage-update', 'auth-update', 'videos-update'];
