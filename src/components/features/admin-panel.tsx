@@ -1,13 +1,14 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, Image as ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle, Clock } from "lucide-react";
+import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, Image as ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle, Clock, GraduationCap, BookOpen, Lock, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -16,6 +17,7 @@ import { getStoredMessages, approveMessage, rejectMessage, updateMessageStatus, 
 import { addNotification, Priority } from "@/lib/notification-store";
 import { getStoredUsers, addUser, deleteUser, User as AuthUser } from "@/lib/auth-store";
 import { getStoredVideos, updateVideoStatus, deleteVideo, Video } from "@/lib/video-store";
+import { getSubjects, addSubject, deleteSubject, Subject } from "@/lib/learning-store";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,6 +26,7 @@ export function AdminPanel() {
   const [messages, setMessages] = useState<WizardMessage[]>([]);
   const [users, setUsers] = useState<AuthUser[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [responses, setResponses] = useState<Record<string, string>>({});
   
   // Broadcast state
@@ -35,24 +38,23 @@ export function AdminPanel() {
   // Video Feedback State
   const [videoFeedback, setVideoFeedback] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    const load = () => {
-      const loadData = async () => {
-        const msgs = await getStoredMessages(undefined, true);
-        setMessages(msgs);
-        setUsers(getStoredUsers());
-        setVideos(getStoredVideos());
-      };
-      loadData();
-    };
-    load();
-    const handlers = ['storage-update', 'auth-update', 'videos-update'];
-    handlers.forEach(h => window.addEventListener(h, load));
-    return () => handlers.forEach(h => window.removeEventListener(h, load));
-  }, []);
+  // Learning State
+  const [newSubject, setNewSubject] = useState({ name: "", description: "", allowedUserIds: "" });
 
-  const pendingVideos = videos.filter(v => v.status === 'pending_review');
-  const publishedVideos = videos.filter(v => v.status === 'published');
+  useEffect(() => {
+    const loadData = async () => {
+      const msgs = await getStoredMessages(undefined, true);
+      setMessages(msgs);
+      setUsers(getStoredUsers());
+      setVideos(getStoredVideos());
+      const subs = await getSubjects();
+      setSubjects(subs);
+    };
+    loadData();
+    
+    const interval = setInterval(loadData, 30000); // Periodic refresh
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSendBroadcast = () => {
     if (!broadcast.title.trim() || !broadcast.body.trim()) return;
@@ -66,34 +68,30 @@ export function AdminPanel() {
     toast({ title: "Broadcast Transmitted", description: "Global notification sent to all Nexus units." });
   };
 
-  const AttachmentList = ({ attachments }: { attachments: Attachment[] }) => (
-    <div className="flex flex-wrap gap-2 mb-4">
-      {attachments.map((att) => (
-        <div key={att.id} className="p-2 glass border border-white/5 rounded-xl flex items-center gap-2 max-w-[200px]">
-          {att.type === 'image' ? <ImageIcon className="size-4 text-indigo-400 shrink-0" /> : 
-           att.type === 'audio' ? <Music className="size-4 text-indigo-400 shrink-0" /> : 
-           <FileText className="size-4 text-indigo-400 shrink-0" />}
-          <span className="text-[10px] text-white truncate flex-1">{att.name}</span>
-          <a href={att.url} download={att.name} className="hover:text-indigo-400 transition-colors">
-            <Download className="size-3" />
-          </a>
-        </div>
-      ))}
-    </div>
-  );
+  const handleCreateSubject = async () => {
+    if (!newSubject.name) return;
+    const allowed = newSubject.allowedUserIds ? newSubject.allowedUserIds.split(',').map(s => s.trim()) : null;
+    await addSubject({ ...newSubject, allowedUserIds: allowed });
+    toast({ title: "Subject Registered", description: "Learning pathway activated." });
+    setNewSubject({ name: "", description: "", allowedUserIds: "" });
+    const subs = await getSubjects();
+    setSubjects(subs);
+  };
 
   return (
     <div className="p-8 max-w-7xl mx-auto flex flex-col h-[calc(100vh-8rem)]">
-      <div className="mb-8">
-        <h2 className="text-3xl font-headline font-bold text-white tracking-tight flex items-center gap-3">
-          <ShieldAlert className="text-indigo-400" />
-          Neural Console
-        </h2>
-        <p className="text-muted-foreground mt-1">Global administration and neural synchronization controls.</p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-headline font-bold text-white tracking-tight flex items-center gap-3">
+            <ShieldAlert className="text-indigo-400" />
+            Neural Console
+          </h2>
+          <p className="text-muted-foreground mt-1">Global administration and neural synchronization controls.</p>
+        </div>
       </div>
 
       <Tabs defaultValue="stream" className="flex-1 flex flex-col">
-        <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 w-fit">
+        <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 w-fit overflow-x-auto">
           <TabsTrigger value="stream" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">
             <Activity className="size-4 mr-2" />
             Chat Stream
@@ -101,6 +99,10 @@ export function AdminPanel() {
           <TabsTrigger value="content" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">
             <VideoIcon className="size-4 mr-2" />
             Content CMS
+          </TabsTrigger>
+          <TabsTrigger value="learning" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">
+            <GraduationCap className="size-4 mr-2" />
+            Learning LMS
           </TabsTrigger>
           <TabsTrigger value="users" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">
             <Users className="size-4 mr-2" />
@@ -139,12 +141,6 @@ export function AdminPanel() {
                     <CardContent className="pt-6">
                       <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5 mb-6 text-sm text-indigo-100/70">
                         {msg.text && <p className="mb-4 italic">"{msg.text}"</p>}
-                        {msg.attachments && msg.attachments.length > 0 && (
-                          <div className="mt-2">
-                            <p className="text-[10px] font-bold uppercase mb-2 opacity-50">Payload Attachments:</p>
-                            <AttachmentList attachments={msg.attachments} />
-                          </div>
-                        )}
                       </div>
                       <Textarea 
                         placeholder="Neural response..."
@@ -181,101 +177,83 @@ export function AdminPanel() {
             <div className="flex flex-col gap-6 overflow-hidden">
               <h3 className="text-xl font-bold text-white flex items-center gap-3">
                 <Clock className="size-5 text-amber-400" />
-                Moderation Queue ({pendingVideos.length})
+                Moderation Queue ({videos.filter(v => v.status === 'pending_review').length})
               </h3>
               <ScrollArea className="flex-1 pr-4">
                 <div className="space-y-4">
-                  {pendingVideos.map((video) => (
+                  {videos.filter(v => v.status === 'pending_review').map((video) => (
                     <Card key={video.id} className="glass border-white/10 rounded-3xl overflow-hidden shadow-xl">
                       <div className="flex h-32">
                          <div className="w-40 relative">
                             <img src={video.thumbnail} className="size-full object-cover" />
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                               <ImageIcon className="text-white size-6" />
-                            </div>
                          </div>
                          <div className="flex-1 p-4 flex flex-col">
                             <h4 className="font-bold text-white line-clamp-1">{video.title}</h4>
                             <p className="text-xs text-muted-foreground mt-1">Uploader: {video.author}</p>
-                            <Badge className="w-fit mt-2 bg-indigo-500/10 text-indigo-400 border-indigo-500/20">{video.visibility.toUpperCase()}</Badge>
                          </div>
                       </div>
-                      <div className="p-4 border-t border-white/5 space-y-4">
-                        <Input 
-                          placeholder="Feedback/Reason for action..."
-                          className="bg-white/5 border-white/10 h-10 rounded-xl text-xs"
-                          value={videoFeedback[video.id] || ""}
-                          onChange={(e) => setVideoFeedback({ ...videoFeedback, [video.id]: e.target.value })}
-                        />
-                        <div className="flex gap-2">
-                          <Button 
-                            className="flex-1 bg-green-600 hover:bg-green-500 rounded-xl h-10 text-xs"
-                            onClick={() => updateVideoStatus(video.id, 'published')}
-                          >
-                            <CheckCircle2 className="size-3.5 mr-2" /> Approve
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            className="flex-1 border border-white/10 hover:bg-white/5 rounded-xl h-10 text-xs text-indigo-400"
-                            onClick={() => {
-                              if (!videoFeedback[video.id]) return toast({ title: "Feedback Required", variant: "destructive" });
-                              updateVideoStatus(video.id, 'needs_action', videoFeedback[video.id]);
-                            }}
-                          >
-                            <AlertCircle className="size-3.5 mr-2" /> Needs Action
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            className="bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 rounded-xl h-10 text-xs"
-                            onClick={() => {
-                              if (!videoFeedback[video.id]) return toast({ title: "Feedback Required", variant: "destructive" });
-                              updateVideoStatus(video.id, 'rejected', videoFeedback[video.id]);
-                            }}
-                          >
-                            <XCircle className="size-3.5 mr-2" /> Reject
-                          </Button>
-                        </div>
+                      <div className="p-4 border-t border-white/5 flex gap-2">
+                        <Button className="flex-1 bg-green-600 hover:bg-green-500 rounded-xl" onClick={() => updateVideoStatus(video.id, 'published')}>Approve</Button>
+                        <Button variant="ghost" className="flex-1 bg-red-500/10 text-red-400 rounded-xl" onClick={() => updateVideoStatus(video.id, 'rejected', "Policy violation")}>Reject</Button>
                       </div>
                     </Card>
                   ))}
-                  {pendingVideos.length === 0 && (
-                    <div className="p-12 glass border-dashed border-2 border-white/10 rounded-3xl text-center opacity-50">
-                      <p className="text-sm">Neural queue is empty. Content synchronization perfect.</p>
-                    </div>
-                  )}
                 </div>
               </ScrollArea>
             </div>
+          </div>
+        </TabsContent>
 
-            <div className="flex flex-col gap-6 overflow-hidden">
-              <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                <CheckCircle2 className="size-5 text-green-400" />
-                Live Hub Content ({publishedVideos.length})
+        <TabsContent value="learning" className="flex-1 outline-none">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
+            <Card className="glass border-white/10 rounded-[2.5rem] p-8 h-fit">
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                <BookOpen className="size-5 text-indigo-400" />
+                New Subject
               </h3>
-              <ScrollArea className="flex-1 pr-4">
-                <div className="grid grid-cols-1 gap-3">
-                  {publishedVideos.map((video) => (
-                    <div key={video.id} className="flex items-center justify-between p-4 glass border-white/5 rounded-2xl group">
-                      <div className="flex items-center gap-4">
-                        <img src={video.thumbnail} className="size-12 rounded-xl object-cover" />
-                        <div>
-                          <p className="font-bold text-white text-sm line-clamp-1">{video.title}</p>
-                          <p className="text-[10px] text-muted-foreground">by {video.author} • {video.visibility}</p>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => deleteVideo(video.id)}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                  ))}
+              <div className="space-y-4">
+                <div className="grid gap-1.5">
+                  <Label>Name</Label>
+                  <Input className="bg-white/5 border-white/10 rounded-xl h-11" value={newSubject.name} onChange={e => setNewSubject({...newSubject, name: e.target.value})} />
                 </div>
-              </ScrollArea>
-            </div>
+                <div className="grid gap-1.5">
+                  <Label>Description</Label>
+                  <Textarea className="bg-white/5 border-white/10 rounded-xl" value={newSubject.description} onChange={e => setNewSubject({...newSubject, description: e.target.value})} />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>Allowed Node IDs (Empty for public)</Label>
+                  <Input placeholder="user1, user2" className="bg-white/5 border-white/10 rounded-xl h-11" value={newSubject.allowedUserIds} onChange={e => setNewSubject({...newSubject, allowedUserIds: e.target.value})} />
+                </div>
+                <Button onClick={handleCreateSubject} className="w-full mt-4 h-12 bg-indigo-600 rounded-xl">Register Subject</Button>
+              </div>
+            </Card>
+
+            <Card className="lg:col-span-2 glass border-white/10 rounded-[2.5rem] p-8">
+               <h3 className="text-xl font-bold text-white mb-6">Subject Inventory</h3>
+               <ScrollArea className="h-[400px]">
+                 <div className="space-y-3">
+                   {subjects.map(s => (
+                     <div key={s.id} className="p-4 glass border border-white/5 rounded-2xl flex items-center justify-between group">
+                       <div className="flex items-center gap-4">
+                         <div className="size-10 bg-indigo-500/10 rounded-xl flex items-center justify-center border border-indigo-500/20">
+                            {s.allowedUserIds ? <Lock className="size-4 text-amber-400" /> : <Globe className="size-4 text-green-400" />}
+                         </div>
+                         <div>
+                           <p className="font-bold text-white">{s.name}</p>
+                           <p className="text-[10px] text-muted-foreground">{s.description.slice(0, 60)}...</p>
+                         </div>
+                       </div>
+                       <Button variant="ghost" size="icon" className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => {
+                         deleteSubject(s.id);
+                         setSubjects(prev => prev.filter(x => x.id !== s.id));
+                       }}>
+                         <Trash2 className="size-4" />
+                       </Button>
+                     </div>
+                   ))}
+                 </div>
+               </ScrollArea>
+            </Card>
           </div>
         </TabsContent>
 
@@ -315,18 +293,6 @@ export function AdminPanel() {
                     onChange={(e) => setNewUser({...newUser, password: e.target.value})}
                   />
                 </div>
-                <div className="grid gap-1.5">
-                  <Label>Role</Label>
-                  <Select value={newUser.role} onValueChange={(v: any) => setNewUser({...newUser, role: v})}>
-                    <SelectTrigger className="bg-white/5 border-white/10 rounded-xl h-11">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-white/10">
-                      <SelectItem value="user">Standard User</SelectItem>
-                      <SelectItem value="admin">Nexus Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
                 <Button 
                   onClick={() => {
                     addUser(newUser);
@@ -358,9 +324,6 @@ export function AdminPanel() {
                           <p className="font-bold text-white">{u.name}</p>
                           <div className="flex items-center gap-2">
                              <span className="text-xs text-muted-foreground">@{u.username}</span>
-                             <Badge className={cn("text-[9px] h-4 py-0", u.role === 'admin' ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-indigo-500/20 text-indigo-400 border-indigo-500/30")}>
-                              {u.role.toUpperCase()}
-                             </Badge>
                           </div>
                         </div>
                       </div>
@@ -410,9 +373,9 @@ export function AdminPanel() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-900 border-white/10">
-                      <SelectItem value="info" className="text-blue-400"><div className="flex items-center gap-2"><Info className="size-4" /> Information</div></SelectItem>
-                      <SelectItem value="warning" className="text-amber-400"><div className="flex items-center gap-2"><AlertTriangle className="size-4" /> Warning</div></SelectItem>
-                      <SelectItem value="critical" className="text-red-400"><div className="flex items-center gap-2"><ShieldAlert className="size-4" /> Critical Alert</div></SelectItem>
+                      <SelectItem value="info">Information</SelectItem>
+                      <SelectItem value="warning">Warning</SelectItem>
+                      <SelectItem value="critical">Critical Alert</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

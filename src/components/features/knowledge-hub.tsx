@@ -1,170 +1,398 @@
+
 "use client";
 
-import React from "react";
-import { FileText, Calendar, MoreVertical, Circle } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { FileText, Calendar, MoreVertical, Circle, ChevronRight, BookOpen, Play, Music, Trophy, Lock, Plus, Trash2, ArrowUp, ArrowDown, Upload, Loader2, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/components/auth/auth-provider";
 import { cn } from "@/lib/utils";
-
-interface WeekData {
-  id: number;
-  number: string;
-  date: string;
-  isActive: boolean;
-  lectureFile: string | null;
-  practicalFile: string | null;
-}
-
-const WEEKS: WeekData[] = [
-  {
-    id: 1,
-    number: "01",
-    date: "February 7, 2026",
-    isActive: true,
-    lectureFile: null,
-    practicalFile: "Practical_Manual_v1.pdf"
-  },
-  {
-    id: 2,
-    number: "02",
-    date: "February 14, 2026",
-    isActive: false,
-    lectureFile: "RTOS_Concepts_Lecture.pdf",
-    practicalFile: "Lab_Exercise_Scheduling.pdf"
-  },
-  {
-    id: 3,
-    number: "03",
-    date: "February 21, 2026",
-    isActive: false,
-    lectureFile: "Kernel_Architecture.pptx",
-    practicalFile: null
-  }
-];
+import { getSubjects, getCollections, getLearningItems, Subject, Collection, LearningItem, addSubject, deleteSubject, addCollection, addLearningItem, uploadLearningFile, LearningItemType } from "@/lib/learning-store";
+import { useToast } from "@/hooks/use-toast";
 
 export function KnowledgeHub() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [itemsMap, setItemsMap] = useState<Record<string, LearningItem[]>>({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Admin Modals
+  const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
+  const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
+  const [isItemModalOpen, setIsItemModalOpen] = useState(false);
+  const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
+
+  // Form States
+  const [newSubject, setNewSubject] = useState({ name: "", description: "", allowedUserIds: "" });
+  const [newCollection, setNewCollection] = useState({ title: "", description: "" });
+  const [newItem, setNewItem] = useState<{title: string, type: LearningItemType, file: File | null}>({ title: "", type: "file", file: null });
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    loadSubjects();
+  }, [user]);
+
+  const loadSubjects = async () => {
+    setIsLoading(true);
+    const data = await getSubjects(user?.username);
+    setSubjects(data);
+    setIsLoading(false);
+  };
+
+  const handleSelectSubject = async (subject: Subject) => {
+    setSelectedSubject(subject);
+    const cols = await getCollections(subject.id);
+    setCollections(cols);
+    
+    const items: Record<string, LearningItem[]> = {};
+    for (const col of cols) {
+      items[col.id] = await getLearningItems(col.id);
+    }
+    setItemsMap(items);
+  };
+
+  const handleCreateSubject = async () => {
+    if (!newSubject.name) return;
+    const allowed = newSubject.allowedUserIds ? newSubject.allowedUserIds.split(',').map(s => s.trim()) : null;
+    await addSubject({ ...newSubject, allowedUserIds: allowed });
+    toast({ title: "Subject Created", description: "New neural pathway initialized." });
+    setIsSubjectModalOpen(false);
+    loadSubjects();
+  };
+
+  const handleCreateCollection = async () => {
+    if (!selectedSubject || !newCollection.title) return;
+    await addCollection({ 
+      subjectId: selectedSubject.id, 
+      title: newCollection.title, 
+      description: newCollection.description,
+      orderIndex: collections.length 
+    });
+    setIsCollectionModalOpen(false);
+    handleSelectSubject(selectedSubject);
+  };
+
+  const handleCreateItem = async () => {
+    if (!activeCollectionId || !newItem.title || !newItem.file) return;
+    setIsUploading(true);
+    
+    let url = "";
+    let quizData = null;
+
+    if (newItem.type === 'quiz_json') {
+      const reader = new FileReader();
+      const contentPromise = new Promise<string>((resolve) => {
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.readAsText(newItem.file!);
+      });
+      const content = await contentPromise;
+      try {
+        quizData = JSON.parse(content);
+      } catch (e) {
+        toast({ title: "Invalid JSON", variant: "destructive" });
+        setIsUploading(false);
+        return;
+      }
+    } else {
+      const uploadedUrl = await uploadLearningFile(newItem.file);
+      if (!uploadedUrl) {
+        toast({ title: "Upload Failed", variant: "destructive" });
+        setIsUploading(false);
+        return;
+      }
+      url = uploadedUrl;
+    }
+
+    await addLearningItem({
+      collectionId: activeCollectionId,
+      title: newItem.title,
+      type: newItem.type,
+      url,
+      quizData,
+      orderIndex: (itemsMap[activeCollectionId]?.length || 0)
+    });
+
+    setIsUploading(false);
+    setIsItemModalOpen(false);
+    handleSelectSubject(selectedSubject!);
+    setNewItem({ title: "", type: "file", file: null });
+  };
+
+  if (!selectedSubject) {
+    return (
+      <div className="p-8 max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-12">
+          <div>
+            <h1 className="text-4xl font-headline font-bold text-white tracking-tight">Knowledge Hub</h1>
+            <p className="text-muted-foreground mt-2">Neural learning pathways and institutional intelligence.</p>
+          </div>
+          {user?.role === 'admin' && (
+            <Dialog open={isSubjectModalOpen} onOpenChange={setIsSubjectModalOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary rounded-xl h-12 px-6 shadow-lg shadow-primary/20">
+                  <Plus className="mr-2 size-5" />
+                  Add New Subject
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-900 border-white/10 rounded-[2rem]">
+                <DialogHeader>
+                  <DialogTitle>Create Learning Subject</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="grid gap-2">
+                    <Label>Subject Name</Label>
+                    <Input className="bg-white/5 border-white/10 rounded-xl" value={newSubject.name} onChange={e => setNewSubject({...newSubject, name: e.target.value})} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Description</Label>
+                    <Textarea className="bg-white/5 border-white/10 rounded-xl" value={newSubject.description} onChange={e => setNewSubject({...newSubject, description: e.target.value})} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Allowed Usernames (Comma separated, empty for public)</Label>
+                    <Input className="bg-white/5 border-white/10 rounded-xl" placeholder="user1, user2" value={newSubject.allowedUserIds} onChange={e => setNewSubject({...newSubject, allowedUserIds: e.target.value})} />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleCreateSubject} className="w-full bg-primary rounded-xl h-11">Authorize Subject</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="size-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {subjects.map((subject) => (
+              <Card 
+                key={subject.id} 
+                className="group glass border-white/5 rounded-[2.5rem] overflow-hidden hover:border-primary/40 transition-all duration-500 cursor-pointer shadow-2xl"
+                onClick={() => handleSelectSubject(subject)}
+              >
+                <div className="p-8">
+                  <div className="size-14 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 mb-6 group-hover:bg-primary group-hover:text-white transition-all">
+                    <BookOpen className="size-7" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">{subject.name}</h3>
+                  <p className="text-muted-foreground text-sm line-clamp-2 mb-6">{subject.description}</p>
+                  <div className="flex items-center justify-between pt-6 border-t border-white/5">
+                    <div className="flex items-center gap-2">
+                       {subject.allowedUserIds ? <Lock className="size-3 text-amber-400" /> : <Globe className="size-3 text-green-400" />}
+                       <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
+                        {subject.allowedUserIds ? "Restricted" : "Public Access"}
+                       </span>
+                    </div>
+                    <ChevronRight className="size-4 text-primary group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-full bg-slate-50 text-slate-900 font-sans">
-      {/* LMS Header */}
       <header className="bg-white border-b border-slate-200 px-8 py-6 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center gap-2 text-xs text-slate-500 mb-1 uppercase tracking-wider font-bold">
-            <span className="hover:text-teal-600 cursor-pointer">Courses</span>
-            <span>/</span>
-            <span className="text-slate-400">AI422</span>
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-xs text-slate-500 mb-1 uppercase tracking-wider font-bold">
+              <span className="hover:text-teal-600 cursor-pointer" onClick={() => setSelectedSubject(null)}>Knowledge Hub</span>
+              <span>/</span>
+              <span className="text-slate-400">{selectedSubject.name}</span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
+              {selectedSubject.name}
+            </h1>
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
-            AI422 - Embedded and Real Time Operating Systems
-          </h1>
+          {user?.role === 'admin' && (
+            <div className="flex gap-3">
+              <Button variant="outline" className="rounded-lg border-slate-200 text-slate-600 hover:bg-slate-50" onClick={() => setIsCollectionModalOpen(true)}>
+                <Plus className="size-4 mr-2" />
+                Add Lesson
+              </Button>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* Main Content Area */}
       <main className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
-        {WEEKS.map((week) => (
+        {collections.map((col, index) => (
           <div 
-            key={week.id} 
+            key={col.id} 
             className="flex flex-col md:flex-row bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden"
           >
-            {/* Left Column: Timeline / Date */}
             <div className={cn(
               "w-full md:w-64 p-6 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-r border-slate-100",
-              week.isActive ? "bg-amber-50/50" : "bg-white"
+              index === 0 ? "bg-amber-50/50" : "bg-white"
             )}>
-              {week.isActive && (
+              {index === 0 && (
                 <Badge className="bg-red-600 hover:bg-red-700 text-white rounded-sm text-[10px] px-2 py-0.5 mb-2 font-bold uppercase">
-                  Current Week
+                  Lesson Start
                 </Badge>
               )}
               <div className="text-5xl font-extrabold text-slate-800 leading-none">
-                {week.number}
+                {(index + 1).toString().padStart(2, '0')}
               </div>
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                Week Number
+                Sequence
               </div>
               <div className="mt-4 flex items-center gap-1.5 text-teal-700 font-semibold text-sm">
-                <Calendar className="size-3.5" />
-                {week.date}
+                <BookOpen className="size-3.5" />
+                {col.title}
               </div>
             </div>
 
-            {/* Right Column: Weekly Content */}
             <div className="flex-1 p-6 bg-slate-50/30 space-y-4">
-              {/* Lecture Block */}
-              <div className="bg-white rounded-md border-l-4 border-green-500 p-4 shadow-sm group hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Circle className="size-2.5 fill-green-500 text-green-500" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Lecture</span>
+              {itemsMap[col.id]?.map((item) => (
+                <div 
+                  key={item.id} 
+                  className={cn(
+                    "bg-white rounded-md border-l-4 p-4 shadow-sm group hover:shadow-md transition-shadow",
+                    item.type === 'video' ? "border-blue-500" : 
+                    item.type === 'audio' ? "border-purple-500" : 
+                    item.type === 'quiz_json' ? "border-rose-500" : "border-green-500"
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Circle className={cn("size-2.5 fill-current", 
+                        item.type === 'video' ? "text-blue-500" : 
+                        item.type === 'audio' ? "text-purple-500" : 
+                        item.type === 'quiz_json' ? "text-rose-500" : "text-green-500"
+                      )} />
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-500">{item.type.replace('_', ' ')}</span>
+                    </div>
+                    {user?.role === 'admin' && <MoreVertical className="size-4 text-slate-300 cursor-pointer" />}
                   </div>
-                  <MoreVertical className="size-4 text-slate-300 cursor-pointer" />
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="size-10 bg-slate-100 rounded flex items-center justify-center text-slate-400">
-                    <FileText className="size-5" />
-                  </div>
-                  <div className="flex-1">
-                    {week.lectureFile ? (
-                      <a href="#" className="text-sm font-semibold text-teal-700 hover:underline">
-                        {week.lectureFile}
-                      </a>
-                    ) : (
-                      <span className="text-sm text-slate-400 italic">No file in this week</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Practical Block */}
-              <div className="bg-white rounded-md border-l-4 border-amber-400 p-4 shadow-sm group hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Circle className="size-2.5 fill-amber-400 text-amber-400" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Practical</span>
-                  </div>
-                  <MoreVertical className="size-4 text-slate-300 cursor-pointer" />
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="size-10 bg-slate-100 rounded flex items-center justify-center text-slate-400">
-                    <FileText className="size-5" />
-                  </div>
-                  <div className="flex-1">
-                    {week.practicalFile ? (
-                      <a href="#" className="text-sm font-semibold text-teal-700 hover:underline">
-                        {week.practicalFile}
-                      </a>
-                    ) : (
-                      <span className="text-sm text-slate-400 italic">No file in this week</span>
-                    )}
+                  <div className="flex items-center gap-3">
+                    <div className="size-10 bg-slate-100 rounded flex items-center justify-center text-slate-400">
+                      {item.type === 'video' ? <Play className="size-5" /> : 
+                       item.type === 'audio' ? <Music className="size-5" /> : 
+                       item.type === 'quiz_json' ? <Trophy className="size-5" /> : <FileText className="size-5" />}
+                    </div>
+                    <div className="flex-1 flex items-center justify-between">
+                      <p className="text-sm font-semibold text-slate-800">{item.title}</p>
+                      {item.type === 'quiz_json' ? (
+                        <Button size="sm" className="bg-rose-600 hover:bg-rose-500 text-white text-xs h-8 px-4">Start Quiz</Button>
+                      ) : (
+                        <a href={item.url} target="_blank" className="text-xs font-bold text-teal-700 hover:underline uppercase">View Content</a>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              ))}
+              
+              {user?.role === 'admin' && (
+                <Button 
+                  variant="ghost" 
+                  className="w-full border-dashed border-2 border-slate-200 h-12 text-slate-400 hover:bg-slate-50 hover:text-slate-600 rounded-lg text-xs font-bold"
+                  onClick={() => {
+                    setActiveCollectionId(col.id);
+                    setIsItemModalOpen(true);
+                  }}
+                >
+                  <Plus className="size-4 mr-2" />
+                  Add Learning Item to {col.title}
+                </Button>
+              )}
             </div>
           </div>
         ))}
+      </main>
 
-        {/* Support Section */}
-        <div className="pt-8 border-t border-slate-200">
-          <div className="bg-white rounded-xl p-6 border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="size-12 bg-teal-100 rounded-full flex items-center justify-center">
-                <FileText className="size-6 text-teal-700" />
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-800">Need Course Assistance?</h4>
-                <p className="text-sm text-slate-500">The neural teaching assistants are available 24/7 for your questions.</p>
-              </div>
+      {/* Admin Modals */}
+      <Dialog open={isCollectionModalOpen} onOpenChange={setIsCollectionModalOpen}>
+        <DialogContent className="bg-slate-900 border-white/10 text-white rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Add Collection / Lesson</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid gap-2">
+              <Label>Lesson Title</Label>
+              <Input className="bg-white/5 border-white/10 text-white" value={newCollection.title} onChange={e => setNewCollection({...newCollection, title: e.target.value})} />
             </div>
-            <div className="flex gap-3">
-              <button className="px-5 py-2.5 bg-slate-800 text-white rounded-lg text-sm font-bold hover:bg-slate-700 transition-colors">
-                Contact Instructor
-              </button>
-              <button className="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-50 transition-colors">
-                Course Syllabus
-              </button>
+            <div className="grid gap-2">
+              <Label>Brief Description</Label>
+              <Textarea className="bg-white/5 border-white/10 text-white" value={newCollection.description} onChange={e => setNewCollection({...newCollection, description: e.target.value})} />
             </div>
           </div>
-        </div>
-      </main>
+          <DialogFooter>
+            <Button onClick={handleCreateCollection} className="w-full bg-primary h-11">Append Lesson</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isItemModalOpen} onOpenChange={setIsItemModalOpen}>
+        <DialogContent className="bg-slate-900 border-white/10 text-white rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>New Learning Asset</DialogTitle>
+            <DialogDescription className="text-slate-400">Universal upload: Video, Audio, PDF, or Quiz JSON.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid gap-2">
+              <Label>Title</Label>
+              <Input className="bg-white/5 border-white/10 text-white" value={newItem.title} onChange={e => setNewItem({...newItem, title: e.target.value})} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Asset Type</Label>
+              <Select value={newItem.type} onValueChange={(v: any) => setNewItem({...newItem, type: v})}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10 text-white">
+                  <SelectItem value="video">Video</SelectItem>
+                  <SelectItem value="audio">Audio</SelectItem>
+                  <SelectItem value="file">File (PDF/DOC)</SelectItem>
+                  <SelectItem value="quiz_json">Quiz (JSON File)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>{newItem.type === 'quiz_json' ? 'Upload Quiz JSON' : 'Upload Asset'}</Label>
+              <div className="relative h-24 border-2 border-dashed border-white/10 rounded-xl flex items-center justify-center bg-white/5 group hover:bg-white/10 cursor-pointer">
+                <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setNewItem({...newItem, file: e.target.files?.[0] || null})} accept={newItem.type === 'quiz_json' ? '.json' : '*'} />
+                {newItem.file ? (
+                  <div className="flex flex-col items-center gap-1">
+                    <CheckCircle2 className="size-6 text-green-400" />
+                    <span className="text-[10px] text-slate-300 truncate w-40 text-center">{newItem.file.name}</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-slate-500">
+                    <Upload className="size-6" />
+                    <span className="text-[10px] uppercase font-bold tracking-widest">Select Payload</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleCreateItem} disabled={isUploading} className="w-full bg-primary h-11">
+              {isUploading ? <Loader2 className="size-4 animate-spin mr-2" /> : <Plus className="size-4 mr-2" />}
+              {isUploading ? "Transmitting..." : "Integrate Asset"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+const CheckCircle2 = ({ className }: { className?: string }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+);
