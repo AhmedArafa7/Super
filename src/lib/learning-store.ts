@@ -1,4 +1,3 @@
-
 'use client';
 
 import { supabase } from './supabaseClient';
@@ -62,26 +61,30 @@ export const getSubjects = async (userId?: string): Promise<Subject[]> => {
 };
 
 export const addSubject = async (subject: Omit<Subject, 'id' | 'createdAt'>) => {
-  // We use snake_case for the database payload to match standard Supabase conventions
-  // We avoid spreading the 'subject' object to prevent sending 'allowedUserIds' which caused errors
-  const payload = {
-    name: subject.name,
+  // First attempt: try 'title' which is common for Subject/Lesson entities
+  const firstPayload = {
+    title: subject.name,
     description: subject.description,
     allowed_user_ids: subject.allowedUserIds,
   };
 
-  const { data, error } = await supabase.from('subjects').insert([payload]).select().single();
+  const { data, error } = await supabase.from('subjects').insert([firstPayload]).select().single();
   
   if (error) {
-    console.error('Error adding subject:', error.message);
-    // Fallback attempt with 'title' instead of 'name' if that was the issue
-    const fallbackPayload = {
-      title: subject.name,
+    // If 'title' column doesn't exist, try 'name'
+    const secondPayload = {
+      name: subject.name,
       description: subject.description,
       allowed_user_ids: subject.allowedUserIds
     };
-    const { data: retryData, error: retryError } = await supabase.from('subjects').insert([fallbackPayload]).select().single();
-    if (retryError) return null;
+    
+    const { data: retryData, error: retryError } = await supabase.from('subjects').insert([secondPayload]).select().single();
+    
+    if (retryError) {
+      // Only log error if both attempts fail
+      console.error('Error adding subject (failed both title and name columns):', retryError.message);
+      return null;
+    }
     return mapSubjectFromDB(retryData);
   }
   
