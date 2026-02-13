@@ -39,12 +39,11 @@ const mapSubjectFromDB = (s: any): Subject => ({
   id: s.id,
   name: s.name || s.title || 'Untitled Subject',
   description: s.description || '',
-  allowedUserIds: s.allowedUserIds || s.allowed_user_ids || null,
-  createdAt: s.createdAt || s.created_at || new Date().toISOString()
+  allowedUserIds: s.allowed_user_ids || s.allowedUserIds || null,
+  createdAt: s.created_at || s.createdAt || new Date().toISOString()
 });
 
 export const getSubjects = async (userId?: string): Promise<Subject[]> => {
-  // Fetch without ordering to prevent "column does not exist" errors if schema differs
   const { data, error } = await supabase.from('subjects').select('*');
   
   if (error) {
@@ -54,26 +53,38 @@ export const getSubjects = async (userId?: string): Promise<Subject[]> => {
   
   let subjects = (data || []).map(mapSubjectFromDB);
   
-  // Filter in JS for security/RBAC
   const filtered = subjects.filter(s => {
     if (!s.allowedUserIds || s.allowedUserIds.length === 0) return true;
     return userId && s.allowedUserIds.includes(userId);
   });
 
-  // Sort in JS
   return filtered.sort((a, b) => a.name.localeCompare(b.name));
 };
 
 export const addSubject = async (subject: Omit<Subject, 'id' | 'createdAt'>) => {
-  // Support both common naming conventions
+  // We use snake_case for the database payload to match standard Supabase conventions
+  // We avoid spreading the 'subject' object to prevent sending 'allowedUserIds' which caused errors
   const payload = {
-    ...subject,
-    title: subject.name, // fallback
-    allowed_user_ids: subject.allowedUserIds, // fallback
+    name: subject.name,
+    description: subject.description,
+    allowed_user_ids: subject.allowedUserIds,
   };
 
   const { data, error } = await supabase.from('subjects').insert([payload]).select().single();
-  if (error) console.error('Error adding subject:', error.message);
+  
+  if (error) {
+    console.error('Error adding subject:', error.message);
+    // Fallback attempt with 'title' instead of 'name' if that was the issue
+    const fallbackPayload = {
+      title: subject.name,
+      description: subject.description,
+      allowed_user_ids: subject.allowedUserIds
+    };
+    const { data: retryData, error: retryError } = await supabase.from('subjects').insert([fallbackPayload]).select().single();
+    if (retryError) return null;
+    return mapSubjectFromDB(retryData);
+  }
+  
   return data ? mapSubjectFromDB(data) : null;
 };
 
@@ -83,7 +94,6 @@ export const deleteSubject = async (id: string) => {
 };
 
 export const getCollections = async (subjectId: string): Promise<Collection[]> => {
-  // Use a query that's resilient to subjectId vs subject_id
   const { data, error } = await supabase.from('collections').select('*');
   
   if (error) {
@@ -95,20 +105,21 @@ export const getCollections = async (subjectId: string): Promise<Collection[]> =
     .filter(c => (c.subjectId === subjectId || c.subject_id === subjectId))
     .map(c => ({
       id: c.id,
-      subjectId: c.subjectId || c.subject_id,
+      subjectId: c.subject_id || c.subjectId,
       title: c.title || 'Untitled Lesson',
       description: c.description || '',
-      orderIndex: c.orderIndex || c.order_index || 0,
-      createdAt: c.createdAt || c.created_at
+      orderIndex: c.order_index || c.orderIndex || 0,
+      createdAt: c.created_at || c.createdAt
     }))
     .sort((a, b) => a.orderIndex - b.orderIndex);
 };
 
 export const addCollection = async (collection: Omit<Collection, 'id' | 'createdAt'>) => {
   const payload = {
-    ...collection,
-    subject_id: collection.subjectId, // fallback
-    order_index: collection.orderIndex, // fallback
+    subject_id: collection.subjectId,
+    title: collection.title,
+    description: collection.description,
+    order_index: collection.orderIndex,
   };
   const { data, error } = await supabase.from('collections').insert([payload]).select().single();
   if (error) console.error('Error adding collection:', error.message);
@@ -127,23 +138,25 @@ export const getLearningItems = async (collectionId: string): Promise<LearningIt
     .filter(i => (i.collectionId === collectionId || i.collection_id === collectionId))
     .map(i => ({
       id: i.id,
-      collectionId: i.collectionId || i.collection_id,
+      collectionId: i.collection_id || i.collectionId,
       title: i.title || 'Untitled Asset',
       type: i.type,
       url: i.url,
-      quizData: i.quizData || i.quiz_data,
-      orderIndex: i.orderIndex || i.order_index || 0,
-      createdAt: i.createdAt || i.created_at
+      quizData: i.quiz_data || i.quizData,
+      orderIndex: i.order_index || i.orderIndex || 0,
+      createdAt: i.created_at || i.createdAt
     }))
     .sort((a, b) => a.orderIndex - b.orderIndex);
 };
 
 export const addLearningItem = async (item: Omit<LearningItem, 'id' | 'createdAt'>) => {
   const payload = {
-    ...item,
-    collection_id: item.collectionId, // fallback
-    quiz_data: item.quizData, // fallback
-    order_index: item.orderIndex, // fallback
+    collection_id: item.collectionId,
+    title: item.title,
+    type: item.type,
+    url: item.url,
+    quiz_data: item.quizData,
+    order_index: item.orderIndex,
   };
   const { data, error } = await supabase.from('learning_items').insert([payload]).select().single();
   if (error) console.error('Error adding learning item:', error.message);
