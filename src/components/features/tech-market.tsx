@@ -5,7 +5,7 @@ import {
   ShoppingCart, Star, Zap, Cpu, ArrowRight, ShieldCheck, Heart, 
   Plus, Search, Filter, ArrowUpRight, ArrowDownLeft, Tag, 
   DollarSign, CheckCircle2, XCircle, Clock, MessageSquare,
-  ChevronRight, Upload, Trash2, Package, History
+  ChevronRight, Upload, Trash2, Package, History, Wallet, Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,22 +21,24 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { 
   getMarketItems, addMarketItem, addOffer, updateOfferStatus, deleteMarketItem,
-  MarketItem, MarketOffer, PricingMode, ListingType 
+  MarketItem, MarketOffer, PricingMode, ListingType, updateItemStatus
 } from "@/lib/market-store";
+import { getWallet, initiateEscrow, releaseEscrow } from "@/lib/wallet-store";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-const CURRENCIES = ["EGP", "USD", "EUR", "Nexus Points"];
+const CURRENCIES = ["Credits", "EGP", "USD", "Nexus Points"];
 
 export function TechMarket() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [items, setItems] = useState<MarketItem[]>([]);
-  const [activeView, setActiveView] = useState<'buy' | 'sell' | 'mine'>('buy');
+  const [activeView, setActiveView] = useState<'buy' | 'sell' | 'mine' | 'orders'>('buy');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
+  const [userBalance, setUserBalance] = useState(0);
 
   // Listing Wizard State
   const [wizardStep, setWizardStep] = useState(1);
@@ -48,7 +50,7 @@ export function TechMarket() {
     price: 0,
     minPrice: 0,
     maxPrice: 0,
-    currency: "EGP",
+    currency: "Credits",
     image: ""
   });
 
@@ -57,11 +59,17 @@ export function TechMarket() {
   const [offerMessage, setOfferMessage] = useState("");
 
   useEffect(() => {
-    const load = () => setItems(getMarketItems());
+    const load = async () => {
+      setItems(getMarketItems());
+      if (user) {
+        const wallet = await getWallet(user.id);
+        setUserBalance(wallet?.balance || 0);
+      }
+    };
     load();
     window.addEventListener('market-update', load);
     return () => window.removeEventListener('market-update', load);
-  }, []);
+  }, [user]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -87,6 +95,40 @@ export function TechMarket() {
     resetWizard();
   };
 
+  const handleBuyNow = async (item: MarketItem) => {
+    if (!user) return;
+    if (item.ownerId === user.id) return toast({ variant: "destructive", title: "Self-Sync Error", description: "You cannot acquire your own assets." });
+    
+    const price = item.pricingMode === 'fixed' ? item.price || 0 : 0;
+    if (price === 0) return;
+
+    if (userBalance < price) {
+      return toast({ variant: "destructive", title: "Credit Shortage", description: "Insufficient balance for this acquisition." });
+    }
+
+    const res = await initiateEscrow(user.id, item.ownerId, price, item.id);
+    if (res.success) {
+      updateItemStatus(item.id, 'reserved', user.id);
+      toast({ title: "Acquisition Initialized", description: "Credits reserved in Escrow. Seller has been notified." });
+      setItems(getMarketItems());
+      const wallet = await getWallet(user.id);
+      setUserBalance(wallet?.balance || 0);
+    } else {
+      toast({ variant: "destructive", title: "Neural Link Error", description: res.error });
+    }
+  };
+
+  const handleConfirmReceipt = async (item: MarketItem) => {
+    if (!user) return;
+    const price = item.price || 0;
+    const success = await releaseEscrow(user.id, item.ownerId, price, item.id);
+    if (success) {
+      updateItemStatus(item.id, 'sold');
+      toast({ title: "Acquisition Complete", description: "Credits released to seller. Link closed." });
+      setItems(getMarketItems());
+    }
+  };
+
   const handleMakeOffer = () => {
     if (!user || !selectedItem) return;
     addOffer(selectedItem.id, {
@@ -105,14 +147,15 @@ export function TechMarket() {
     setWizardStep(1);
     setNewListing({
       title: "", description: "", listingType: "sell_offer", pricingMode: "fixed",
-      price: 0, minPrice: 0, maxPrice: 0, currency: "EGP", image: ""
+      price: 0, minPrice: 0, maxPrice: 0, currency: "Credits", image: ""
     });
   };
 
   const filteredItems = items.filter(item => {
     if (activeView === 'mine') return item.ownerId === user?.id;
-    if (activeView === 'buy') return item.listingType === 'sell_offer' && item.ownerId !== user?.id;
-    if (activeView === 'sell') return item.listingType === 'buy_request' && item.ownerId !== user?.id;
+    if (activeView === 'orders') return item.buyerId === user?.id;
+    if (activeView === 'buy') return item.listingType === 'sell_offer' && item.ownerId !== user?.id && item.status === 'active';
+    if (activeView === 'sell') return item.listingType === 'buy_request' && item.ownerId !== user?.id && item.status === 'active';
     return true;
   });
 
@@ -130,23 +173,23 @@ export function TechMarket() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-6">
         <div>
           <h2 className="text-4xl font-headline font-bold text-white tracking-tight">TechMarket P2P</h2>
-          <p className="text-muted-foreground mt-1 text-lg">Decentralized neural commerce and asset negotiation.</p>
+          <p className="text-muted-foreground mt-1 text-lg">Secure Escrow acquisitions and neural asset negotiation.</p>
         </div>
 
         <div className="flex items-center gap-4">
           <Tabs value={activeView} onValueChange={(v: any) => setActiveView(v)} className="bg-white/5 border border-white/10 rounded-xl p-1">
             <TabsList className="bg-transparent h-10">
               <TabsTrigger value="buy" className="rounded-lg px-6 data-[state=active]:bg-primary">
-                <ArrowDownLeft className="size-4 mr-2" />
                 Marketplace
               </TabsTrigger>
               <TabsTrigger value="sell" className="rounded-lg px-6 data-[state=active]:bg-primary">
-                <ArrowUpRight className="size-4 mr-2" />
                 Wanted
               </TabsTrigger>
               <TabsTrigger value="mine" className="rounded-lg px-6 data-[state=active]:bg-primary">
-                <Package className="size-4 mr-2" />
                 My Hub
+              </TabsTrigger>
+              <TabsTrigger value="orders" className="rounded-lg px-6 data-[state=active]:bg-primary">
+                My Orders
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -321,7 +364,8 @@ export function TechMarket() {
           {filteredItems.map((item) => (
             <Card key={item.id} className={cn(
               "group glass rounded-[2.5rem] overflow-hidden border-white/5 hover:border-primary/40 transition-all duration-500 flex flex-col relative shadow-2xl",
-              item.status === 'sold' && "opacity-60 grayscale"
+              item.status === 'sold' && "opacity-60 grayscale",
+              item.status === 'reserved' && "border-amber-500/30 bg-amber-500/5"
             )}>
               <div className="relative aspect-square overflow-hidden bg-white/5">
                 <Image src={item.image || ""} alt={item.title} fill className="object-contain p-8 group-hover:scale-110 transition-transform duration-700" />
@@ -333,6 +377,7 @@ export function TechMarket() {
                     {item.listingType === 'sell_offer' ? 'SALE' : 'WANTED'}
                   </Badge>
                   {item.status === 'sold' && <Badge className="bg-red-600">SOLD</Badge>}
+                  {item.status === 'reserved' && <Badge className="bg-amber-600">IN ESCROW</Badge>}
                 </div>
               </div>
 
@@ -416,17 +461,44 @@ export function TechMarket() {
                         </DialogContent>
                       </Dialog>
                     </div>
+                  ) : activeView === 'orders' ? (
+                    <div className="space-y-2">
+                       {item.status === 'reserved' ? (
+                         <Button 
+                           className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl h-11"
+                           onClick={() => handleConfirmReceipt(item)}
+                         >
+                            <ShieldCheck className="size-4 mr-2" />
+                            Confirm Receipt
+                         </Button>
+                       ) : (
+                         <Button disabled className="w-full bg-white/5 text-muted-foreground rounded-xl h-11">
+                            {item.status.toUpperCase()}
+                         </Button>
+                       )}
+                    </div>
                   ) : (
-                    <Button 
-                      disabled={item.status === 'sold'}
-                      className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl h-11 shadow-lg shadow-primary/20"
-                      onClick={() => {
-                        setSelectedItem(item);
-                        setIsOfferModalOpen(true);
-                      }}
-                    >
-                      {item.listingType === 'sell_offer' ? 'Make an Offer' : 'Submit My Quote'}
-                    </Button>
+                    <div className="flex gap-2">
+                      {item.pricingMode === 'fixed' && (
+                        <Button 
+                          className="flex-1 bg-green-600 hover:bg-green-500 text-white rounded-xl h-11"
+                          onClick={() => handleBuyNow(item)}
+                          disabled={item.status !== 'active'}
+                        >
+                          Buy Now
+                        </Button>
+                      )}
+                      <Button 
+                        disabled={item.status !== 'active'}
+                        className="flex-1 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-xl h-11"
+                        onClick={() => {
+                          setSelectedItem(item);
+                          setIsOfferModalOpen(true);
+                        }}
+                      >
+                        {item.listingType === 'sell_offer' ? 'Offer' : 'Quote'}
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardContent>

@@ -1,9 +1,8 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
-import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShoppingCart, User, ShieldCheck, GraduationCap } from "lucide-react";
+import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShoppingCart, User, ShieldCheck, GraduationCap, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,13 +13,14 @@ import { Capabilities } from "@/components/features/capabilities";
 import { AdminPanel } from "@/components/features/admin-panel";
 import { NotificationsView } from "@/components/features/notifications-view";
 import { KnowledgeHub } from "@/components/features/knowledge-hub";
+import { WalletView } from "@/components/features/wallet-view";
 import { getNotifications, AppNotification, clearAllUnreadNotifications } from "@/lib/notification-store";
 import { useAuth } from "@/components/auth/auth-provider";
 import { LoginView } from "@/components/auth/login-view";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning";
+type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet";
 
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -49,7 +49,6 @@ export function AppShell() {
     };
   }, [isAuthenticated, user]);
 
-  // Initial tab logic based on role
   useEffect(() => {
     if (user?.role === 'admin') {
       setActiveTab("admin");
@@ -66,12 +65,11 @@ export function AppShell() {
     { id: "chat", label: "AI Chat", icon: MessageSquare },
     { id: "stream", label: "StreamHub", icon: Video },
     { id: "market", label: "TechMarket", icon: ShoppingBag },
+    { id: "wallet", label: "Neural Wallet", icon: Wallet },
     { id: "learning", label: "Knowledge Hub", icon: GraduationCap },
     { id: "features", label: "Capabilities", icon: Zap },
     { id: "notifications", label: "Notifications", icon: Bell },
   ];
-
-  const handleAddToCart = () => setCartCount((prev) => prev + 1);
 
   const handleSmartRoute = (n: AppNotification) => {
     switch (n.type) {
@@ -96,32 +94,12 @@ export function AppShell() {
     }
   };
 
-  const handleBellClick = () => {
-    if (clickTimer.current) {
-      clearTimeout(clickTimer.current);
-      clickTimer.current = null;
-      setActiveTab("notifications");
-      return;
-    }
-
-    clickTimer.current = setTimeout(() => {
-      clickTimer.current = null;
-      if (!user) return;
-      const unread = getNotifications(user.id).filter(n => !n.isRead);
-      
-      if (unread.length === 1) {
-        handleSmartRoute(unread[0]);
-      } else {
-        setActiveTab("notifications");
-      }
-    }, 300);
-  };
-
   const renderContent = () => {
     switch (activeTab) {
       case "chat": return <AIChat highlightId={highlightId} onHighlightComplete={() => setHighlightId(null)} />;
       case "stream": return <StreamHub />;
-      case "market": return <TechMarket onAddToCart={handleAddToCart} />;
+      case "market": return <TechMarket />;
+      case "wallet": return <WalletView />;
       case "features": return <Capabilities />;
       case "admin": return user?.role === 'admin' ? <AdminPanel /> : <AIChat />;
       case "learning": return <KnowledgeHub />;
@@ -225,7 +203,7 @@ export function AppShell() {
                   "text-muted-foreground hover:text-white relative transition-colors",
                   unreadCount > 0 && "text-indigo-400"
                 )}
-                onClick={handleBellClick}
+                onClick={() => setActiveTab("notifications")}
               >
                 <Bell className="size-5" />
                 <AnimatePresence>

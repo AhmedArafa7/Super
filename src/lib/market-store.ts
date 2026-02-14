@@ -4,7 +4,7 @@ import { addNotification } from './notification-store';
 
 export type ListingType = 'sell_offer' | 'buy_request';
 export type PricingMode = 'fixed' | 'range' | 'negotiable';
-export type MarketItemStatus = 'active' | 'sold' | 'archived';
+export type MarketItemStatus = 'active' | 'sold' | 'reserved' | 'archived';
 export type OfferStatus = 'pending' | 'accepted' | 'rejected';
 
 export interface MarketOffer {
@@ -31,6 +31,7 @@ export interface MarketItem {
   offers: MarketOffer[];
   ownerId: string;
   ownerName: string;
+  buyerId?: string; // Set when status is 'reserved' or 'sold'
   image?: string;
   createdAt: string;
 }
@@ -68,6 +69,17 @@ export const addMarketItem = (item: Omit<MarketItem, 'id' | 'createdAt' | 'offer
   });
   
   return newItem;
+};
+
+export const updateItemStatus = (itemId: string, status: MarketItemStatus, buyerId?: string) => {
+  const items = getMarketItems();
+  const updated = items.map(item => {
+    if (item.id === itemId) {
+      return { ...item, status, buyerId: buyerId || item.buyerId };
+    }
+    return item;
+  });
+  saveMarketItems(updated);
 };
 
 export const addOffer = (itemId: string, offer: Omit<MarketOffer, 'id' | 'status' | 'timestamp'>) => {
@@ -124,7 +136,8 @@ export const updateOfferStatus = (itemId: string, offerId: string, status: Offer
       return { 
         ...item, 
         offers: updatedOffers,
-        status: status === 'accepted' ? 'sold' : item.status 
+        status: status === 'accepted' ? 'reserved' : item.status,
+        buyerId: status === 'accepted' ? targetUserId : item.buyerId
       };
     }
     return item;
