@@ -24,14 +24,22 @@ const DEFAULT_ADMIN: User = {
 
 export const getStoredUsers = (): User[] => {
   if (typeof window === 'undefined') return [];
-  const stored = localStorage.getItem(STORAGE_KEY);
-  const users = stored ? JSON.parse(stored) : [DEFAULT_ADMIN];
-  return users;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [DEFAULT_ADMIN];
+  } catch (e) {
+    console.error('Auth store corruption:', e);
+    return [DEFAULT_ADMIN];
+  }
 };
 
 export const saveUsers = (users: User[]) => {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(users ?? []));
+  } catch (e) {
+    console.error('Failed to save user registry:', e);
+  }
 };
 
 export const addUser = (user: Omit<User, 'id'>) => {
@@ -45,23 +53,32 @@ export const addUser = (user: Omit<User, 'id'>) => {
 };
 
 export const deleteUser = (id: string) => {
-  if (id === 'admin-id') return; // Protect master admin
+  if (id === 'admin-id') return;
   const users = getStoredUsers();
   saveUsers(users.filter(u => u.id !== id));
 };
 
 export const getSession = (): User | null => {
   if (typeof window === 'undefined') return null;
-  const stored = localStorage.getItem(SESSION_KEY);
-  return stored ? JSON.parse(stored) : null;
+  try {
+    const stored = localStorage.getItem(SESSION_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch (e) {
+    console.error('Session retrieval failure:', e);
+    return null;
+  }
 };
 
 export const setSession = (user: User | null) => {
   if (typeof window === 'undefined') return;
-  if (user) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-  } else {
-    localStorage.removeItem(SESSION_KEY);
+  try {
+    if (user) {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(SESSION_KEY);
+    }
+    window.dispatchEvent(new Event('auth-update'));
+  } catch (e) {
+    console.error('Session update failure:', e);
   }
-  window.dispatchEvent(new Event('auth-update'));
 };

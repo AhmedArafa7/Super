@@ -10,6 +10,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,46 +19,95 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const initAuth = () => {
-      setUser(getSession());
-      setLoading(false);
-    };
+  const verifySession = async () => {
+    try {
+      const session = getSession();
+      if (!session) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
 
-    initAuth();
-    window.addEventListener('auth-update', initAuth);
-    return () => window.removeEventListener('auth-update', initAuth);
+      // Hardening: Verify orphaned account status against real DB
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session.id)
+        .maybeSingle();
+
+      if (error || !data) {
+        console.warn('Orphaned session detected or DB error. Clearing node state.');
+        setSession(null);
+        setUser(null);
+      } else {
+        setUser(data as User);
+      }
+    } catch (err) {
+      console.error('Session verification critical failure:', err);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    verifySession();
+    
+    const handleAuthUpdate = () => verifySession();
+    window.addEventListener('auth-update', handleAuthUpdate);
+    return () => window.removeEventListener('auth-update', handleAuthUpdate);
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
+    if (!username || !password) return false;
+    
     try {
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('username', username)
         .eq('password', password)
-        .single();
+        .maybeSingle();
       
-      if (data && !error) {
+      if (error) throw error;
+
+      if (data) {
         setSession(data as User);
         setUser(data as User);
         return true;
       }
       return false;
     } catch (err) {
-      console.error('Login error:', err);
+      console.error('Login authorization process failed:', err);
       return false;
     }
   };
 
   const logout = () => {
-    setSession(null);
-    setUser(null);
+    try {
+      setSession(null);
+      setUser(null);
+    } catch (err) {
+      console.error('Logout state cleanup error:', err);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated: !!user, 
+      login, 
+      logout,
+      isLoading: loading 
+    }}>
+      {loading ? (
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest animate-pulse">Initializing Neural Link...</p>
+          </div>
+        </div>
+      ) : children}
     </AuthContext.Provider>
   );
 }

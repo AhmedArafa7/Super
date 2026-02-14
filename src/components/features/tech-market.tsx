@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -5,7 +6,8 @@ import {
   ShoppingCart, Star, Zap, Cpu, ArrowRight, ShieldCheck, Heart, 
   Plus, Search, Filter, ArrowUpRight, ArrowDownLeft, Tag, 
   DollarSign, CheckCircle2, XCircle, Clock, MessageSquare,
-  ChevronRight, Upload, Trash2, Package, History, Wallet, Lock
+  ChevronRight, Upload, Trash2, Package, History, Wallet, Lock,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +41,7 @@ export function TechMarket() {
   const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
   const [userBalance, setUserBalance] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Listing Wizard State
   const [wizardStep, setWizardStep] = useState(1);
@@ -58,17 +61,22 @@ export function TechMarket() {
   const [offerAmount, setOfferAmount] = useState<number>(0);
   const [offerMessage, setOfferMessage] = useState("");
 
-  useEffect(() => {
-    const load = async () => {
-      setItems(getMarketItems());
-      if (user) {
+  const loadData = async () => {
+    try {
+      setItems(getMarketItems() ?? []);
+      if (user?.id) {
         const wallet = await getWallet(user.id);
-        setUserBalance(wallet?.balance || 0);
+        setUserBalance(wallet?.balance ?? 0);
       }
-    };
-    load();
-    window.addEventListener('market-update', load);
-    return () => window.removeEventListener('market-update', load);
+    } catch (e) {
+      console.error('Market data load failure:', e);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+    window.addEventListener('market-update', loadData);
+    return () => window.removeEventListener('market-update', loadData);
   }, [user]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,64 +91,93 @@ export function TechMarket() {
   };
 
   const handleCreateListing = () => {
-    if (!user) return;
-    addMarketItem({
-      ...newListing,
-      ownerId: user.id,
-      ownerName: user.name,
-      image: newListing.image || PlaceHolderImages[Math.floor(Math.random() * 8)].imageUrl
-    });
-    toast({ title: "Neural Listing Active", description: "Your asset is now visible on the network." });
-    setIsAddModalOpen(false);
-    resetWizard();
+    if (!user?.id) return;
+    try {
+      addMarketItem({
+        ...newListing,
+        ownerId: user.id,
+        ownerName: user.name,
+        image: newListing.image || PlaceHolderImages[Math.floor(Math.random() * (PlaceHolderImages?.length ?? 1))].imageUrl
+      });
+      toast({ title: "Neural Listing Active", description: "Your asset is now visible on the network." });
+      setIsAddModalOpen(false);
+      resetWizard();
+    } catch (e) {
+      toast({ variant: "destructive", title: "Listing Failure", description: "Could not synchronize asset with marketplace." });
+    }
   };
 
   const handleBuyNow = async (item: MarketItem) => {
-    if (!user) return;
-    if (item.ownerId === user.id) return toast({ variant: "destructive", title: "Self-Sync Error", description: "You cannot acquire your own assets." });
-    
-    const price = item.pricingMode === 'fixed' ? item.price || 0 : 0;
-    if (price === 0) return;
-
-    if (userBalance < price) {
-      return toast({ variant: "destructive", title: "Credit Shortage", description: "Insufficient balance for this acquisition." });
+    if (!user?.id || isProcessing) return;
+    if (item?.ownerId === user?.id) {
+      return toast({ variant: "destructive", title: "Self-Sync Error", description: "You cannot acquire your own assets." });
     }
+    
+    const price = item?.pricingMode === 'fixed' ? item?.price ?? 0 : 0;
+    if (price <= 0) return;
 
-    const res = await initiateEscrow(user.id, item.ownerId, price, item.id);
-    if (res.success) {
-      updateItemStatus(item.id, 'reserved', user.id);
-      toast({ title: "Acquisition Initialized", description: "Credits reserved in Escrow. Seller has been notified." });
-      setItems(getMarketItems());
-      const wallet = await getWallet(user.id);
-      setUserBalance(wallet?.balance || 0);
-    } else {
-      toast({ variant: "destructive", title: "Neural Link Error", description: res.error });
+    setIsProcessing(true);
+    try {
+      // Hardening: Pre-flight liquidity check
+      const currentWallet = await getWallet(user.id);
+      const balance = currentWallet?.balance ?? 0;
+      
+      if (balance < price) {
+        setIsProcessing(false);
+        return toast({ variant: "destructive", title: "Credit Shortage", description: `Required: ${price}, Available: ${balance}` });
+      }
+
+      const res = await initiateEscrow(user.id, item.ownerId, price, item.id);
+      if (res.success) {
+        updateItemStatus(item.id, 'reserved', user.id);
+        toast({ title: "Acquisition Initialized", description: "Credits reserved in Escrow. Link open." });
+        loadData();
+      } else {
+        toast({ variant: "destructive", title: "Escrow Error", description: res.error ?? "Failed to reserve funds." });
+      }
+    } catch (err) {
+      toast({ variant: "destructive", title: "Neural Link Error", description: "Synchronous failure during fund reservation." });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleConfirmReceipt = async (item: MarketItem) => {
-    if (!user) return;
-    const price = item.price || 0;
-    const success = await releaseEscrow(user.id, item.ownerId, price, item.id);
-    if (success) {
-      updateItemStatus(item.id, 'sold');
-      toast({ title: "Acquisition Complete", description: "Credits released to seller. Link closed." });
-      setItems(getMarketItems());
+    if (!user?.id || isProcessing) return;
+    setIsProcessing(true);
+    try {
+      const price = item?.price ?? 0;
+      const success = await releaseEscrow(user.id, item.ownerId, price, item.id);
+      if (success) {
+        updateItemStatus(item.id, 'sold');
+        toast({ title: "Acquisition Complete", description: "Credits released. Secure link closed." });
+        loadData();
+      } else {
+        toast({ variant: "destructive", title: "Release Failure", description: "Could not finalize credit transfer." });
+      }
+    } catch (err) {
+      toast({ variant: "destructive", title: "Sync Error", description: "Failed to finalize escrow release." });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleMakeOffer = () => {
-    if (!user || !selectedItem) return;
-    addOffer(selectedItem.id, {
-      userId: user.id,
-      userName: user.name,
-      offerAmount,
-      message: offerMessage
-    });
-    toast({ title: "Offer Transmitted", description: "Seller has been notified of your proposal." });
-    setIsOfferModalOpen(false);
-    setOfferAmount(0);
-    setOfferMessage("");
+    if (!user?.id || !selectedItem) return;
+    try {
+      addOffer(selectedItem.id, {
+        userId: user.id,
+        userName: user.name,
+        offerAmount,
+        message: offerMessage
+      });
+      toast({ title: "Offer Transmitted", description: "Seller has been notified of your proposal." });
+      setIsOfferModalOpen(false);
+      setOfferAmount(0);
+      setOfferMessage("");
+    } catch (e) {
+      toast({ variant: "destructive", title: "Transmission Failed", description: "Could not send offer." });
+    }
   };
 
   const resetWizard = () => {
@@ -151,7 +188,7 @@ export function TechMarket() {
     });
   };
 
-  const filteredItems = items.filter(item => {
+  const filteredItems = (items ?? []).filter(item => {
     if (activeView === 'mine') return item.ownerId === user?.id;
     if (activeView === 'orders') return item.buyerId === user?.id;
     if (activeView === 'buy') return item.listingType === 'sell_offer' && item.ownerId !== user?.id && item.status === 'active';
@@ -160,9 +197,9 @@ export function TechMarket() {
   });
 
   const renderPricing = (item: MarketItem) => {
-    switch (item.pricingMode) {
-      case 'fixed': return `${item.price} ${item.currency}`;
-      case 'range': return `${item.minPrice} - ${item.maxPrice} ${item.currency}`;
+    switch (item?.pricingMode) {
+      case 'fixed': return `${item?.price ?? 0} ${item?.currency ?? 'Credits'}`;
+      case 'range': return `${item?.minPrice ?? 0} - ${item?.maxPrice ?? 0} ${item?.currency ?? 'Credits'}`;
       case 'negotiable': return `Best Offer`;
       default: return 'Contact Seller';
     }
@@ -179,18 +216,10 @@ export function TechMarket() {
         <div className="flex items-center gap-4">
           <Tabs value={activeView} onValueChange={(v: any) => setActiveView(v)} className="bg-white/5 border border-white/10 rounded-xl p-1">
             <TabsList className="bg-transparent h-10">
-              <TabsTrigger value="buy" className="rounded-lg px-6 data-[state=active]:bg-primary">
-                Marketplace
-              </TabsTrigger>
-              <TabsTrigger value="sell" className="rounded-lg px-6 data-[state=active]:bg-primary">
-                Wanted
-              </TabsTrigger>
-              <TabsTrigger value="mine" className="rounded-lg px-6 data-[state=active]:bg-primary">
-                My Hub
-              </TabsTrigger>
-              <TabsTrigger value="orders" className="rounded-lg px-6 data-[state=active]:bg-primary">
-                My Orders
-              </TabsTrigger>
+              <TabsTrigger value="buy" className="rounded-lg px-6 data-[state=active]:bg-primary">Marketplace</TabsTrigger>
+              <TabsTrigger value="sell" className="rounded-lg px-6 data-[state=active]:bg-primary">Wanted</TabsTrigger>
+              <TabsTrigger value="mine" className="rounded-lg px-6 data-[state=active]:bg-primary">My Hub</TabsTrigger>
+              <TabsTrigger value="orders" className="rounded-lg px-6 data-[state=active]:bg-primary">My Orders</TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -207,9 +236,7 @@ export function TechMarket() {
                   <Tag className="text-primary" />
                   Listing Wizard: Step {wizardStep}/3
                 </DialogTitle>
-                <DialogDescription>
-                  Configure your neural asset for the marketplace.
-                </DialogDescription>
+                <DialogDescription>Configure your neural asset for the marketplace.</DialogDescription>
               </DialogHeader>
 
               <div className="py-6 min-h-[300px]">
@@ -251,7 +278,7 @@ export function TechMarket() {
                     <div className="grid gap-2">
                       <Label>Description</Label>
                       <Textarea 
-                        placeholder="Describe the condition, specs, etc." 
+                        placeholder="Describe specs, etc." 
                         value={newListing.description}
                         onChange={e => setNewListing({...newListing, description: e.target.value})}
                         className="bg-white/5 border-white/10 h-32"
@@ -290,13 +317,11 @@ export function TechMarket() {
                     <div className="grid gap-2">
                       <Label>Pricing Mode</Label>
                       <Select value={newListing.pricingMode} onValueChange={(v: any) => setNewListing({...newListing, pricingMode: v})}>
-                        <SelectTrigger className="bg-white/5 border-white/10">
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger className="bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
                         <SelectContent className="bg-slate-900">
                           <SelectItem value="fixed">Fixed Price</SelectItem>
                           <SelectItem value="range">Price Range</SelectItem>
-                          <SelectItem value="negotiable">Negotiable / Best Offer</SelectItem>
+                          <SelectItem value="negotiable">Negotiable</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -312,46 +337,18 @@ export function TechMarket() {
                         />
                       </div>
                     )}
-
-                    {newListing.pricingMode === 'range' && (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                          <Label>Min Price</Label>
-                          <Input 
-                            type="number" 
-                            value={newListing.minPrice}
-                            onChange={e => setNewListing({...newListing, minPrice: Number(e.target.value)})}
-                            className="bg-white/5 border-white/10"
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label>Max Price</Label>
-                          <Input 
-                            type="number" 
-                            value={newListing.maxPrice}
-                            onChange={e => setNewListing({...newListing, maxPrice: Number(e.target.value)})}
-                            className="bg-white/5 border-white/10"
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
 
               <DialogFooter className="bg-white/5 p-4 border-t border-white/5">
-                {wizardStep > 1 && (
-                  <Button variant="ghost" onClick={() => setWizardStep(prev => prev - 1)}>Back</Button>
-                )}
+                {wizardStep > 1 && <Button variant="ghost" onClick={() => setWizardStep(prev => prev - 1)}>Back</Button>}
                 {wizardStep < 3 ? (
                   <Button className="ml-auto bg-primary" onClick={() => setWizardStep(prev => prev + 1)}>
-                    Continue
-                    <ChevronRight className="size-4 ml-1" />
+                    Continue <ChevronRight className="size-4 ml-1" />
                   </Button>
                 ) : (
-                  <Button className="ml-auto bg-green-600 hover:bg-green-500" onClick={handleCreateListing}>
-                    Authorize Listing
-                  </Button>
+                  <Button className="ml-auto bg-green-600 hover:bg-green-500" onClick={handleCreateListing}>Authorize Listing</Button>
                 )}
               </DialogFooter>
             </DialogContent>
@@ -362,40 +359,40 @@ export function TechMarket() {
       <ScrollArea className="flex-1 -mx-4 px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pb-10">
           {filteredItems.map((item) => (
-            <Card key={item.id} className={cn(
+            <Card key={item?.id ?? Math.random()} className={cn(
               "group glass rounded-[2.5rem] overflow-hidden border-white/5 hover:border-primary/40 transition-all duration-500 flex flex-col relative shadow-2xl",
-              item.status === 'sold' && "opacity-60 grayscale",
-              item.status === 'reserved' && "border-amber-500/30 bg-amber-500/5"
+              item?.status === 'sold' && "opacity-60 grayscale",
+              item?.status === 'reserved' && "border-amber-500/30 bg-amber-500/5"
             )}>
               <div className="relative aspect-square overflow-hidden bg-white/5">
-                <Image src={item.image || ""} alt={item.title} fill className="object-contain p-8 group-hover:scale-110 transition-transform duration-700" />
+                <Image src={item?.image || ""} alt={item?.title || "Asset"} fill className="object-contain p-8 group-hover:scale-110 transition-transform duration-700" />
                 <div className="absolute top-4 left-4 flex gap-2">
                   <Badge className={cn(
                     "backdrop-blur-md border-white/10",
-                    item.listingType === 'sell_offer' ? "bg-indigo-600/60" : "bg-amber-600/60"
+                    item?.listingType === 'sell_offer' ? "bg-indigo-600/60" : "bg-amber-600/60"
                   )}>
-                    {item.listingType === 'sell_offer' ? 'SALE' : 'WANTED'}
+                    {item?.listingType === 'sell_offer' ? 'SALE' : 'WANTED'}
                   </Badge>
-                  {item.status === 'sold' && <Badge className="bg-red-600">SOLD</Badge>}
-                  {item.status === 'reserved' && <Badge className="bg-amber-600">IN ESCROW</Badge>}
+                  {item?.status === 'sold' && <Badge className="bg-red-600">SOLD</Badge>}
+                  {item?.status === 'reserved' && <Badge className="bg-amber-600">IN ESCROW</Badge>}
                 </div>
               </div>
 
               <CardContent className="p-6 flex flex-col flex-1">
                 <div className="flex justify-between items-start mb-2">
-                  <span className="text-[10px] font-bold text-primary uppercase tracking-widest">{item.ownerName}</span>
+                  <span className="text-[10px] font-bold text-primary uppercase tracking-widest">{item?.ownerName ?? 'Unknown'}</span>
                   <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                     <Clock className="size-3" />
-                    {new Date(item.createdAt).toLocaleDateString()}
+                    {item?.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
                   </span>
                 </div>
-                <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">{item.title}</h3>
-                <p className="text-sm text-muted-foreground line-clamp-3 mb-6 flex-1 italic">"{item.description}"</p>
+                <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">{item?.title ?? 'Untitled Asset'}</h3>
+                <p className="text-sm text-muted-foreground line-clamp-3 mb-6 flex-1 italic">"{item?.description ?? 'No description.'}"</p>
 
                 <div className="mt-auto">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <p className="text-[10px] text-muted-foreground font-bold uppercase">Pricing Model</p>
+                      <p className="text-[10px] text-muted-foreground font-bold uppercase">Pricing</p>
                       <p className="text-xl font-bold text-white tracking-tight">{renderPricing(item)}</p>
                     </div>
                     <div className="size-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
@@ -407,7 +404,7 @@ export function TechMarket() {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-xs font-bold text-primary mb-2">
                         <span>Offers Received</span>
-                        <Badge variant="outline">{item.offers.length}</Badge>
+                        <Badge variant="outline">{(item?.offers ?? []).length}</Badge>
                       </div>
                       <Dialog>
                         <DialogTrigger asChild>
@@ -417,36 +414,27 @@ export function TechMarket() {
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[600px] bg-slate-900 border-white/10 rounded-3xl">
                           <DialogHeader>
-                            <DialogTitle className="text-2xl font-bold">Neural Negotiations: {item.title}</DialogTitle>
-                            <DialogDescription>Review and manage incoming proposals for this asset.</DialogDescription>
+                            <DialogTitle className="text-2xl font-bold">Neural Negotiations</DialogTitle>
                           </DialogHeader>
                           <ScrollArea className="h-[400px] pr-4 mt-6">
                             <div className="space-y-4">
-                              {item.offers.length === 0 ? (
-                                <div className="p-12 text-center glass rounded-2xl opacity-50 border-dashed border-2">
+                              {(item?.offers ?? []).length === 0 ? (
+                                <div className="p-12 text-center glass rounded-2xl opacity-50">
                                   <Clock className="size-12 mx-auto mb-4" />
-                                  <p>No offers transmitted yet.</p>
+                                  <p>No offers transmitted.</p>
                                 </div>
                               ) : (
-                                item.offers.map((offer) => (
-                                  <div key={offer.id} className="p-4 glass border border-white/5 rounded-2xl flex items-center justify-between group">
+                                (item?.offers ?? []).map((offer) => (
+                                  <div key={offer?.id} className="p-4 glass border border-white/5 rounded-2xl flex items-center justify-between">
                                     <div>
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <p className="font-bold text-sm">{offer.userName}</p>
-                                        <Badge variant="outline" className="text-[10px]">{offer.status.toUpperCase()}</Badge>
-                                      </div>
-                                      <p className="text-xl font-bold text-white">{offer.offerAmount} {item.currency}</p>
-                                      {offer.message && <p className="text-xs text-muted-foreground mt-1 italic">"{offer.message}"</p>}
+                                      <p className="font-bold text-sm">{offer?.userName}</p>
+                                      <p className="text-xl font-bold text-white">{offer?.offerAmount} {item?.currency}</p>
                                     </div>
                                     <div className="flex gap-2">
-                                      {offer.status === 'pending' && (
+                                      {offer?.status === 'pending' && (
                                         <>
-                                          <Button size="icon" className="bg-red-500/10 text-red-400 hover:bg-red-500" onClick={() => updateOfferStatus(item.id, offer.id, 'rejected')}>
-                                            <XCircle className="size-4" />
-                                          </Button>
-                                          <Button size="icon" className="bg-green-600 hover:bg-green-500 text-white" onClick={() => updateOfferStatus(item.id, offer.id, 'accepted')}>
-                                            <CheckCircle2 className="size-4" />
-                                          </Button>
+                                          <Button size="icon" variant="ghost" className="text-red-400" onClick={() => updateOfferStatus(item!.id, offer.id, 'rejected')}><XCircle className="size-4" /></Button>
+                                          <Button size="icon" className="bg-green-600" onClick={() => updateOfferStatus(item!.id, offer.id, 'accepted')}><CheckCircle2 className="size-4" /></Button>
                                         </>
                                       )}
                                     </div>
@@ -456,47 +444,45 @@ export function TechMarket() {
                             </div>
                           </ScrollArea>
                           <DialogFooter className="mt-6 border-t border-white/5 pt-4">
-                            <Button variant="ghost" className="text-red-400" onClick={() => deleteMarketItem(item.id)}>Delete Listing</Button>
+                            <Button variant="ghost" className="text-red-400" onClick={() => deleteMarketItem(item!.id)}>Delete Listing</Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>
                     </div>
                   ) : activeView === 'orders' ? (
                     <div className="space-y-2">
-                       {item.status === 'reserved' ? (
+                       {item?.status === 'reserved' ? (
                          <Button 
+                           disabled={isProcessing}
                            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl h-11"
-                           onClick={() => handleConfirmReceipt(item)}
+                           onClick={() => handleConfirmReceipt(item!)}
                          >
-                            <ShieldCheck className="size-4 mr-2" />
+                            {isProcessing ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4 mr-2" />}
                             Confirm Receipt
                          </Button>
                        ) : (
                          <Button disabled className="w-full bg-white/5 text-muted-foreground rounded-xl h-11">
-                            {item.status.toUpperCase()}
+                            {(item?.status ?? 'N/A').toUpperCase()}
                          </Button>
                        )}
                     </div>
                   ) : (
                     <div className="flex gap-2">
-                      {item.pricingMode === 'fixed' && (
+                      {item?.pricingMode === 'fixed' && (
                         <Button 
+                          disabled={item?.status !== 'active' || isProcessing}
                           className="flex-1 bg-green-600 hover:bg-green-500 text-white rounded-xl h-11"
-                          onClick={() => handleBuyNow(item)}
-                          disabled={item.status !== 'active'}
+                          onClick={() => handleBuyNow(item!)}
                         >
-                          Buy Now
+                          {isProcessing ? <Loader2 className="size-4 animate-spin" /> : 'Buy Now'}
                         </Button>
                       )}
                       <Button 
-                        disabled={item.status !== 'active'}
+                        disabled={item?.status !== 'active' || isProcessing}
                         className="flex-1 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-xl h-11"
-                        onClick={() => {
-                          setSelectedItem(item);
-                          setIsOfferModalOpen(true);
-                        }}
+                        onClick={() => { setSelectedItem(item); setIsOfferModalOpen(true); }}
                       >
-                        {item.listingType === 'sell_offer' ? 'Offer' : 'Quote'}
+                        {item?.listingType === 'sell_offer' ? 'Offer' : 'Quote'}
                       </Button>
                     </div>
                   )}
@@ -507,38 +493,23 @@ export function TechMarket() {
         </div>
       </ScrollArea>
 
-      {/* Offer Modal */}
       <Dialog open={isOfferModalOpen} onOpenChange={setIsOfferModalOpen}>
         <DialogContent className="sm:max-w-[400px] bg-slate-900 border-white/10 rounded-3xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Transmit Offer</DialogTitle>
-            <DialogDescription>Submit your proposal to {selectedItem?.ownerName}.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>Offer Amount ({selectedItem?.currency})</Label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                <Input 
-                  type="number" 
-                  className="bg-white/5 pl-10 h-12 rounded-xl"
-                  value={offerAmount}
-                  onChange={e => setOfferAmount(Number(e.target.value))}
-                />
-              </div>
+              <Label>Offer Amount ({selectedItem?.currency ?? 'Credits'})</Label>
+              <Input type="number" className="bg-white/5 h-12 rounded-xl" value={offerAmount} onChange={e => setOfferAmount(Number(e.target.value))} />
             </div>
             <div className="grid gap-2">
-              <Label>Neural Note (Optional)</Label>
-              <Textarea 
-                placeholder="Message to seller..." 
-                className="bg-white/5 h-24 rounded-xl"
-                value={offerMessage}
-                onChange={e => setOfferMessage(e.target.value)}
-              />
+              <Label>Note</Label>
+              <Textarea placeholder="Message..." className="bg-white/5 h-24 rounded-xl" value={offerMessage} onChange={e => setOfferMessage(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
-            <Button className="w-full bg-primary h-12 rounded-xl" onClick={handleMakeOffer}>Send Neural Proposal</Button>
+            <Button className="w-full bg-primary h-12 rounded-xl" onClick={handleMakeOffer}>Send Proposal</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

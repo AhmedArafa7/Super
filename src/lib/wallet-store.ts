@@ -1,3 +1,4 @@
+
 'use client';
 
 import { supabase } from './supabaseClient';
@@ -23,180 +24,203 @@ export interface Wallet {
 }
 
 const mapWalletFromDB = (w: any): Wallet => ({
-  userId: w.user_id || w.userId,
-  balance: w.balance || 0,
-  frozenBalance: w.frozen_balance || w.frozenBalance || 0
+  userId: w?.user_id ?? w?.userId ?? '',
+  balance: w?.balance ?? 0,
+  frozenBalance: w?.frozen_balance ?? w?.frozenBalance ?? 0
 });
 
 const mapTransactionFromDB = (t: any): Transaction => ({
-  id: t.id,
-  userId: t.user_id || t.userId,
-  amount: t.amount || 0,
-  type: t.type,
-  status: t.status,
-  description: t.description || '',
-  relatedId: t.related_id || t.relatedId,
-  timestamp: t.created_at || t.timestamp
+  id: t?.id ?? '',
+  userId: t?.user_id ?? t?.userId ?? '',
+  amount: t?.amount ?? 0,
+  type: (t?.type as TransactionType) ?? 'deposit',
+  status: (t?.status as 'pending' | 'completed' | 'failed') ?? 'failed',
+  description: t?.description ?? '',
+  relatedId: t?.related_id ?? t?.relatedId ?? undefined,
+  timestamp: t?.created_at ?? t?.timestamp ?? new Date().toISOString()
 });
 
 export const getWallet = async (userId: string): Promise<Wallet | null> => {
-  const { data, error } = await supabase
-    .from('wallets')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
+  if (!userId) return null;
+  try {
+    const { data, error } = await supabase
+      .from('wallets')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
 
-  if (error) {
-    console.error('Error fetching wallet:', error.message);
+    if (error) throw error;
+
+    if (!data) {
+      const { data: newData, error: createError } = await supabase
+        .from('wallets')
+        .insert([{ user_id: userId, balance: 0, frozen_balance: 0 }])
+        .select()
+        .single();
+      
+      if (createError) throw createError;
+      return mapWalletFromDB(newData);
+    }
+
+    return mapWalletFromDB(data);
+  } catch (err) {
+    console.error('Wallet fetch crashed:', err);
     return null;
   }
-
-  if (!data) {
-    // Auto-create wallet if doesn't exist
-    const { data: newData, error: createError } = await supabase
-      .from('wallets')
-      .insert([{ user_id: userId, balance: 0, frozen_balance: 0 }])
-      .select()
-      .single();
-    
-    if (createError) return null;
-    return mapWalletFromDB(newData);
-  }
-
-  return mapWalletFromDB(data);
 };
 
 export const getTransactions = async (userId: string): Promise<Transaction[]> => {
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+  if (!userId) return [];
+  try {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
 
-  if (error) {
-    console.error('Error fetching transactions:', error.message);
+    if (error) throw error;
+    return (data || []).map(mapTransactionFromDB);
+  } catch (err) {
+    console.error('Transaction log fetch failed:', err);
     return [];
   }
-
-  return (data || []).map(mapTransactionFromDB);
 };
 
 export const depositFunds = async (userId: string, amount: number) => {
-  const wallet = await getWallet(userId);
-  if (!wallet) return false;
+  if (!userId || amount <= 0) return false;
+  try {
+    const wallet = await getWallet(userId);
+    if (!wallet) return false;
 
-  const newBalance = wallet.balance + amount;
+    const newBalance = wallet.balance + amount;
 
-  const { error: walletError } = await supabase
-    .from('wallets')
-    .update({ balance: newBalance })
-    .eq('user_id', userId);
+    const { error: walletError } = await supabase
+      .from('wallets')
+      .update({ balance: newBalance })
+      .eq('user_id', userId);
 
-  if (walletError) return false;
+    if (walletError) throw walletError;
 
-  await supabase.from('transactions').insert([{
-    user_id: userId,
-    amount,
-    type: 'deposit',
-    status: 'completed',
-    description: `Manual Neural Deposit (+${amount})`
-  }]);
+    await supabase.from('transactions').insert([{
+      user_id: userId,
+      amount,
+      type: 'deposit',
+      status: 'completed',
+      description: `Manual Neural Deposit (+${amount})`
+    }]);
 
-  addNotification({
-    type: 'market_restock',
-    title: 'Credits Received',
-    message: `A neural deposit of ${amount} credits was synchronized to your node.`,
-    userId,
-    priority: 'info'
-  });
+    addNotification({
+      type: 'market_restock',
+      title: 'Credits Received',
+      message: `A neural deposit of ${amount} credits was synchronized to your node.`,
+      userId,
+      priority: 'info'
+    });
 
-  return true;
+    return true;
+  } catch (err) {
+    console.error('Deposit process failed:', err);
+    return false;
+  }
 };
 
 export const initiateEscrow = async (buyerId: string, sellerId: string, amount: number, itemId: string) => {
-  const buyerWallet = await getWallet(buyerId);
-  if (!buyerWallet || buyerWallet.balance < amount) return { success: false, error: 'Insufficient credits' };
+  if (!buyerId || !sellerId || !itemId) return { success: false, error: 'Invalid transaction parameters' };
+  
+  try {
+    const buyerWallet = await getWallet(buyerId);
+    if (!buyerWallet) return { success: false, error: 'Buyer wallet not found' };
+    if (buyerWallet.balance < amount) return { success: false, error: 'Insufficient credits in available balance' };
 
-  // 1. Deduct from buyer balance, add to buyer frozen
-  const { error: buyerUpdateError } = await supabase
-    .from('wallets')
-    .update({ 
-      balance: buyerWallet.balance - amount,
-      frozen_balance: buyerWallet.frozenBalance + amount 
-    })
-    .eq('user_id', buyerId);
+    // Atomicity check
+    const { error: buyerUpdateError } = await supabase
+      .from('wallets')
+      .update({ 
+        balance: buyerWallet.balance - amount,
+        frozen_balance: buyerWallet.frozenBalance + amount 
+      })
+      .eq('user_id', buyerId);
 
-  if (buyerUpdateError) return { success: false, error: 'Internal sync error' };
+    if (buyerUpdateError) throw buyerUpdateError;
 
-  // 2. Log transaction for buyer
-  await supabase.from('transactions').insert([{
-    user_id: buyerId,
-    amount: -amount,
-    type: 'purchase_hold',
-    status: 'completed',
-    related_id: itemId,
-    description: `Funds reserved for item acquisition (Escrow Hold)`
-  }]);
+    await supabase.from('transactions').insert([{
+      user_id: buyerId,
+      amount: -amount,
+      type: 'purchase_hold',
+      status: 'completed',
+      related_id: itemId,
+      description: `Funds reserved for item acquisition (Escrow Hold)`
+    }]);
 
-  addNotification({
-    type: 'market_restock',
-    title: 'Purchase Initialized',
-    message: `Escrow hold activated for ${amount} credits. Funds reserved until you confirm delivery.`,
-    userId: buyerId
-  });
+    addNotification({
+      type: 'market_restock',
+      title: 'Purchase Initialized',
+      message: `Escrow hold activated for ${amount} credits. Funds reserved until you confirm delivery.`,
+      userId: buyerId
+    });
 
-  return { success: true };
+    return { success: true };
+  } catch (err) {
+    console.error('Escrow initialization failed:', err);
+    return { success: false, error: 'Neural link synchronization failure' };
+  }
 };
 
 export const releaseEscrow = async (buyerId: string, sellerId: string, amount: number, itemId: string) => {
-  const buyerWallet = await getWallet(buyerId);
-  const sellerWallet = await getWallet(sellerId);
+  if (!buyerId || !sellerId || !itemId) return false;
+  
+  try {
+    const [buyerWallet, sellerWallet] = await Promise.all([
+      getWallet(buyerId),
+      getWallet(sellerId)
+    ]);
 
-  if (!buyerWallet || !sellerWallet) return false;
+    if (!buyerWallet || !sellerWallet) throw new Error('Wallet node missing');
 
-  // 1. Remove from buyer frozen
-  const { error: buyerError } = await supabase
-    .from('wallets')
-    .update({ frozen_balance: Math.max(0, buyerWallet.frozenBalance - amount) })
-    .eq('user_id', buyerId);
+    const { error: buyerError } = await supabase
+      .from('wallets')
+      .update({ frozen_balance: Math.max(0, (buyerWallet?.frozenBalance ?? 0) - amount) })
+      .eq('user_id', buyerId);
 
-  if (buyerError) return false;
+    if (buyerError) throw buyerError;
 
-  // 2. Add to seller available
-  const { error: sellerError } = await supabase
-    .from('wallets')
-    .update({ balance: sellerWallet.balance + amount })
-    .eq('user_id', sellerId);
+    const { error: sellerError } = await supabase
+      .from('wallets')
+      .update({ balance: (sellerWallet?.balance ?? 0) + amount })
+      .eq('user_id', sellerId);
 
-  if (sellerError) return false;
+    if (sellerError) throw sellerError;
 
-  // 3. Log transactions
-  await supabase.from('transactions').insert([
-    {
-      user_id: buyerId,
-      amount: 0,
-      type: 'purchase_release',
-      status: 'completed',
-      related_id: itemId,
-      description: `Payment released from Escrow`
-    },
-    {
-      user_id: sellerId,
-      amount: amount,
-      type: 'deposit',
-      status: 'completed',
-      related_id: itemId,
-      description: `Payment received for asset synchronization`
-    }
-  ]);
+    await supabase.from('transactions').insert([
+      {
+        user_id: buyerId,
+        amount: 0,
+        type: 'purchase_release',
+        status: 'completed',
+        related_id: itemId,
+        description: `Payment released from Escrow`
+      },
+      {
+        user_id: sellerId,
+        amount: amount,
+        type: 'deposit',
+        status: 'completed',
+        related_id: itemId,
+        description: `Payment received for asset synchronization`
+      }
+    ]);
 
-  addNotification({
-    type: 'market_restock',
-    title: 'Credits Transferred',
-    message: `You received ${amount} credits for the acquisition of your asset.`,
-    userId: sellerId,
-    priority: 'info'
-  });
+    addNotification({
+      type: 'market_restock',
+      title: 'Credits Transferred',
+      message: `You received ${amount} credits for the acquisition of your asset.`,
+      userId: sellerId,
+      priority: 'info'
+    });
 
-  return true;
+    return true;
+  } catch (err) {
+    console.error('Escrow release failed:', err);
+    return false;
+  }
 };
