@@ -30,11 +30,11 @@ export interface WizardMessage {
   attachments?: Attachment[];
 }
 
-// Helper to map DB columns to UI interface with fallbacks
+// Resilient mapping with universal fallbacks for inconsistent schemas
 const mapMessageFromDB = (m: any): WizardMessage => {
   try {
-    const userId = m?.userId ?? m?.user_id ?? m?.userid ?? '';
-    const userName = m?.userName ?? m?.user_name ?? m?.username ?? 'Unknown Node';
+    const userId = m?.userId ?? m?.user_id ?? m?.userid ?? 'unknown';
+    const userName = m?.userName ?? m?.user_name ?? m?.username ?? 'Anonymous Node';
     const timestamp = m?.timestamp ?? m?.created_at ?? m?.createdat ?? new Date().toISOString();
     const isEdited = m?.isEdited ?? m?.is_edited ?? m?.isedited ?? false;
     const isUserEdited = m?.isUserEdited ?? m?.is_user_edited ?? m?.isuseredited ?? false;
@@ -42,7 +42,7 @@ const mapMessageFromDB = (m: any): WizardMessage => {
     const editedAt = m?.editedAt ?? m?.edited_at ?? m?.editedat ?? null;
 
     return {
-      id: m?.id ?? '',
+      id: String(m?.id ?? Math.random()),
       userId,
       userName,
       text: m?.text ?? '',
@@ -56,12 +56,11 @@ const mapMessageFromDB = (m: any): WizardMessage => {
       attachments: m?.attachments ?? []
     };
   } catch (e) {
-    console.error('Fatal mapping error in chat-store:', e);
     return {
-      id: 'error',
-      userId: '',
-      userName: 'Error Node',
-      text: 'Malformed message data',
+      id: 'error-' + Math.random(),
+      userId: 'unknown',
+      userName: 'Corrupted Packet',
+      text: 'Message malformed',
       response: null,
       status: 'rejected',
       timestamp: new Date().toISOString()
@@ -71,25 +70,27 @@ const mapMessageFromDB = (m: any): WizardMessage => {
 
 export const getStoredMessages = async (userId?: string, isAdmin?: boolean): Promise<WizardMessage[]> => {
   try {
-    const query = supabase.from('messages').select('*');
-    const { data, error } = await query;
+    const { data, error } = await supabase.from('messages').select('*');
     
     if (error) {
-      console.error('Database error fetching messages:', error.message);
+      console.warn('Chat fetch warning:', error.message);
       return [];
     }
 
     let messages = (data || []).map(mapMessageFromDB);
 
-    if (!isAdmin && userId) {
-      messages = messages.filter(m => m.userId === userId);
-    } else if (!isAdmin && !userId) {
-      return [];
+    // Defensive Filtering
+    if (isAdmin) return messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    
+    if (userId) {
+      return messages
+        .filter(m => m.userId === userId)
+        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     }
 
-    return messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    return [];
   } catch (err) {
-    console.error('Unexpected crash in getStoredMessages:', err);
+    console.error('Chat history subsystem failed:', err);
     return [];
   }
 };
@@ -98,63 +99,68 @@ export const addWizardMessage = async (text: string, userId: string, userName: s
   if (!userId || !userName) return null;
 
   try {
-    const newMessage = {
+    // Payload with both camel and snake for maximum table compatibility
+    const payload = {
       userId,
       user_id: userId,
       userName,
       user_name: userName,
       text: text ?? '',
-      response: null,
       status: 'sent',
       attachments: attachments ?? [],
       timestamp: new Date().toISOString()
     };
 
-    const { data, error } = await supabase.from('messages').insert([newMessage]).select().single();
+    const { data, error } = await supabase.from('messages').insert([payload]).select().single();
     
     if (error) {
-      console.error('Insertion failed:', error.message);
+      console.error('Transmission failed:', error.message);
       throw error;
     }
     return mapMessageFromDB(data);
   } catch (err) {
-    console.error('Critical failure in addWizardMessage:', err);
-    throw err; // Re-throw to let component handle input persistence
+    console.error('Message insertion failure:', err);
+    throw err; // Let UI preserve input
   }
 };
 
 export const updateMessageStatus = async (id: string, status: MessageStatus) => {
+  if (!id) return;
   try {
     const { error } = await supabase.from('messages').update({ status }).eq('id', id);
-    if (error) throw error;
+    if (error) console.warn('Status update warning:', error.message);
   } catch (err) {
-    console.error('Status update failed:', err);
+    console.error('Status sync failure:', err);
   }
 };
 
 export const updateMessageText = async (id: string, text: string) => {
+  if (!id) return;
   try {
     const { error } = await supabase.from('messages').update({ 
       text: text ?? '', 
-      isUserEdited: true,
-      is_user_edited: true
+      is_user_edited: true,
+      isUserEdited: true
     }).eq('id', id);
     if (error) throw error;
   } catch (err) {
-    console.error('Text update failed:', err);
+    console.error('Message text sync failure:', err);
+    throw err;
   }
 };
 
 export const deleteMessage = async (id: string) => {
+  if (!id) return;
   try {
     const { error } = await supabase.from('messages').delete().eq('id', id);
-    if (error) throw error;
+    if (error) console.warn('Deletion warning:', error.message);
   } catch (err) {
-    console.error('Deletion failed:', err);
+    console.error('Message deletion failure:', err);
   }
 };
 
 export const approveMessage = async (id: string, response: string) => {
+  if (!id) return;
   try {
     const { error } = await supabase.from('messages').update({ 
       response: response ?? '', 
@@ -163,51 +169,35 @@ export const approveMessage = async (id: string, response: string) => {
     
     if (error) throw error;
   } catch (err) {
-    console.error('Approval failed:', err);
+    console.error('Message approval failure:', err);
   }
 };
 
 export const editMessage = async (id: string, newResponse: string, reason: string) => {
+  if (!id) return;
   try {
-    const { data: original, error: fetchError } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (fetchError || !original) throw new Error('Original message not found');
-
-    const mappedOriginal = mapMessageFromDB(original);
-
     const { error: updateError } = await supabase.from('messages').update({
       response: newResponse ?? '',
-      isEdited: true,
       is_edited: true,
-      editReason: reason ?? '',
+      isEdited: true,
       edit_reason: reason ?? '',
-      editedAt: new Date().toISOString(),
-      edited_at: new Date().toISOString()
+      editReason: reason ?? '',
+      edited_at: new Date().toISOString(),
+      editedAt: new Date().toISOString()
     }).eq('id', id);
 
     if (updateError) throw updateError;
-
-    addNotification({
-      type: 'chat_correction',
-      title: 'Transmission Corrected',
-      message: `A message in your neural queue was adjusted: "${reason}"`,
-      userId: mappedOriginal.userId,
-      metadata: { messageId: id, reason }
-    });
   } catch (err) {
-    console.error('Response edit failed:', err);
+    console.error('Moderation adjustment failure:', err);
   }
 };
 
 export const rejectMessage = async (id: string) => {
+  if (!id) return;
   try {
     const { error } = await supabase.from('messages').update({ status: 'rejected' }).eq('id', id);
-    if (error) throw error;
+    if (error) console.warn('Rejection warning:', error.message);
   } catch (err) {
-    console.error('Rejection failed:', err);
+    console.error('Rejection sync failure:', err);
   }
 };

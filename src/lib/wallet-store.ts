@@ -23,25 +23,27 @@ export interface Wallet {
   frozenBalance: number;
 }
 
+// Resilient mapper with defaults
 const mapWalletFromDB = (w: any): Wallet => ({
   userId: w?.user_id ?? w?.userId ?? '',
-  balance: w?.balance ?? 0,
-  frozenBalance: w?.frozen_balance ?? w?.frozenBalance ?? 0
+  balance: Number(w?.balance ?? 0),
+  frozenBalance: Number(w?.frozen_balance ?? w?.frozenBalance ?? 0)
 });
 
 const mapTransactionFromDB = (t: any): Transaction => ({
   id: t?.id ?? '',
   userId: t?.user_id ?? t?.userId ?? '',
-  amount: t?.amount ?? 0,
+  amount: Number(t?.amount ?? 0),
   type: (t?.type as TransactionType) ?? 'deposit',
   status: (t?.status as 'pending' | 'completed' | 'failed') ?? 'failed',
-  description: t?.description ?? '',
+  description: t?.description ?? 'Neural transaction',
   relatedId: t?.related_id ?? t?.relatedId ?? undefined,
   timestamp: t?.created_at ?? t?.timestamp ?? new Date().toISOString()
 });
 
 export const getWallet = async (userId: string): Promise<Wallet | null> => {
   if (!userId) return null;
+  
   try {
     const { data, error } = await supabase
       .from('wallets')
@@ -49,23 +51,31 @@ export const getWallet = async (userId: string): Promise<Wallet | null> => {
       .eq('user_id', userId)
       .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.warn('Wallet fetch warning:', error.message);
+      return { userId, balance: 0, frozenBalance: 0 }; // Defensive fallback
+    }
 
     if (!data) {
-      const { data: newData, error: createError } = await supabase
-        .from('wallets')
-        .insert([{ user_id: userId, balance: 0, frozen_balance: 0 }])
-        .select()
-        .single();
-      
-      if (createError) throw createError;
-      return mapWalletFromDB(newData);
+      // Attempt to auto-initialize if missing, but return default if insertion fails
+      try {
+        const { data: newData, error: createError } = await supabase
+          .from('wallets')
+          .insert([{ user_id: userId, balance: 0, frozen_balance: 0 }])
+          .select()
+          .single();
+        
+        if (createError) return { userId, balance: 0, frozenBalance: 0 };
+        return mapWalletFromDB(newData);
+      } catch {
+        return { userId, balance: 0, frozenBalance: 0 };
+      }
     }
 
     return mapWalletFromDB(data);
   } catch (err) {
-    console.error('Wallet fetch crashed:', err);
-    return null;
+    console.error('Wallet subsystem failure:', err);
+    return { userId, balance: 0, frozenBalance: 0 }; // Critical fallback
   }
 };
 
@@ -78,10 +88,13 @@ export const getTransactions = async (userId: string): Promise<Transaction[]> =>
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.warn('Transaction fetch warning:', error.message);
+      return [];
+    }
     return (data || []).map(mapTransactionFromDB);
   } catch (err) {
-    console.error('Transaction log fetch failed:', err);
+    console.error('Transaction log subsystem failure:', err);
     return [];
   }
 };
@@ -92,7 +105,7 @@ export const depositFunds = async (userId: string, amount: number) => {
     const wallet = await getWallet(userId);
     if (!wallet) return false;
 
-    const newBalance = wallet.balance + amount;
+    const newBalance = (wallet.balance || 0) + amount;
 
     const { error: walletError } = await supabase
       .from('wallets')
@@ -125,19 +138,18 @@ export const depositFunds = async (userId: string, amount: number) => {
 };
 
 export const initiateEscrow = async (buyerId: string, sellerId: string, amount: number, itemId: string) => {
-  if (!buyerId || !sellerId || !itemId) return { success: false, error: 'Invalid transaction parameters' };
+  if (!buyerId || !sellerId || !itemId) return { success: false, error: 'Invalid parameters' };
   
   try {
     const buyerWallet = await getWallet(buyerId);
-    if (!buyerWallet) return { success: false, error: 'Buyer wallet not found' };
-    if (buyerWallet.balance < amount) return { success: false, error: 'Insufficient credits in available balance' };
+    if (!buyerWallet) return { success: false, error: 'Wallet not initialized' };
+    if ((buyerWallet.balance || 0) < amount) return { success: false, error: 'Insufficient credits' };
 
-    // Atomicity check
     const { error: buyerUpdateError } = await supabase
       .from('wallets')
       .update({ 
         balance: buyerWallet.balance - amount,
-        frozen_balance: buyerWallet.frozenBalance + amount 
+        frozen_balance: (buyerWallet.frozenBalance || 0) + amount 
       })
       .eq('user_id', buyerId);
 
@@ -155,13 +167,13 @@ export const initiateEscrow = async (buyerId: string, sellerId: string, amount: 
     addNotification({
       type: 'market_restock',
       title: 'Purchase Initialized',
-      message: `Escrow hold activated for ${amount} credits. Funds reserved until you confirm delivery.`,
+      message: `Escrow hold activated for ${amount} credits. Reserved until delivery confirmation.`,
       userId: buyerId
     });
 
     return { success: true };
   } catch (err) {
-    console.error('Escrow initialization failed:', err);
+    console.error('Escrow hold failed:', err);
     return { success: false, error: 'Neural link synchronization failure' };
   }
 };
@@ -179,14 +191,14 @@ export const releaseEscrow = async (buyerId: string, sellerId: string, amount: n
 
     const { error: buyerError } = await supabase
       .from('wallets')
-      .update({ frozen_balance: Math.max(0, (buyerWallet?.frozenBalance ?? 0) - amount) })
+      .update({ frozen_balance: Math.max(0, (buyerWallet.frozenBalance || 0) - amount) })
       .eq('user_id', buyerId);
 
     if (buyerError) throw buyerError;
 
     const { error: sellerError } = await supabase
       .from('wallets')
-      .update({ balance: (sellerWallet?.balance ?? 0) + amount })
+      .update({ balance: (sellerWallet.balance || 0) + amount })
       .eq('user_id', sellerId);
 
     if (sellerError) throw sellerError;
@@ -220,7 +232,7 @@ export const releaseEscrow = async (buyerId: string, sellerId: string, amount: n
 
     return true;
   } catch (err) {
-    console.error('Escrow release failed:', err);
+    console.error('Escrow release process failure:', err);
     return false;
   }
 };

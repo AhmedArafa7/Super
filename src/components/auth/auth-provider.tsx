@@ -20,15 +20,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const verifySession = async () => {
+    setLoading(true);
     try {
       const session = getSession();
-      if (!session) {
+      if (!session || !session.id) {
         setUser(null);
-        setLoading(false);
         return;
       }
 
       // Hardening: Verify orphaned account status against real DB
+      // Use maybeSingle to prevent exceptions if row is missing
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -36,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (error || !data) {
-        console.warn('Orphaned session detected or DB error. Clearing node state.');
+        if (error) console.warn('Database connection warning during session check:', error.message);
         setSession(null);
         setUser(null);
       } else {
@@ -46,7 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Session verification critical failure:', err);
       setUser(null);
     } finally {
-      setLoading(false);
+      // Small delay to ensure state propagates before UI reveals
+      setTimeout(() => setLoading(false), 100);
     }
   };
 
@@ -69,16 +71,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('password', password)
         .maybeSingle();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Login database error:', error.message);
+        return false;
+      }
 
       if (data) {
-        setSession(data as User);
-        setUser(data as User);
+        const userData = data as User;
+        setSession(userData);
+        setUser(userData);
         return true;
       }
       return false;
     } catch (err) {
-      console.error('Login authorization process failed:', err);
+      console.error('Login process exception:', err);
       return false;
     }
   };
@@ -88,18 +94,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(null);
       setUser(null);
     } catch (err) {
-      console.error('Logout state cleanup error:', err);
+      console.error('Logout cleanup error:', err);
     }
   };
 
+  const contextValue = { 
+    user, 
+    isAuthenticated: !!user, 
+    login, 
+    logout,
+    isLoading: loading 
+  };
+
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated: !!user, 
-      login, 
-      logout,
-      isLoading: loading 
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {loading ? (
         <div className="min-h-screen bg-slate-950 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
