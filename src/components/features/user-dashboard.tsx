@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { User, Package, Shield, Upload, Loader2, CheckCircle2, ShoppingBag, History, CreditCard } from "lucide-react";
+import { User, Package, Shield, Upload, Loader2, CheckCircle2, ShoppingBag, History, CreditCard, MessageSquare, Briefcase } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,9 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { updateUserProfile, uploadAvatar } from "@/lib/auth-store";
 import { getTransactions, Transaction } from "@/lib/wallet-store";
+import { getReceivedOffers } from "@/lib/market-store";
 import { EmptyState } from "@/components/ui/empty-state";
+import { OffersReceived } from "./offers-received";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -26,10 +28,12 @@ export function UserDashboard() {
   const [isUploading, setIsUploading] = useState(false);
   const [orders, setOrders] = useState<Transaction[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  const [pendingOffersCount, setPendingOffersCount] = useState(0);
 
   useEffect(() => {
     if (user?.id) {
       loadOrders();
+      loadOffersCount();
     }
   }, [user?.id]);
 
@@ -37,7 +41,6 @@ export function UserDashboard() {
     setIsLoadingOrders(true);
     try {
       const allTx = await getTransactions(user!.id);
-      // Filter for purchase related activities
       const purchaseTxs = allTx.filter(tx => 
         tx.type === 'purchase_hold' || tx.type === 'purchase_release' || tx.type === 'purchase_refund'
       );
@@ -46,6 +49,16 @@ export function UserDashboard() {
       console.error("Failed to load orders", err);
     } finally {
       setIsLoadingOrders(false);
+    }
+  };
+
+  const loadOffersCount = async () => {
+    if (!user?.id) return;
+    try {
+      const offers = await getReceivedOffers(user.id);
+      setPendingOffersCount(offers.filter(o => o.status === 'pending').length);
+    } catch (err) {
+      console.error("Failed to load offers count", err);
     }
   };
 
@@ -86,23 +99,32 @@ export function UserDashboard() {
         <div>
           <h2 className="text-4xl font-headline font-bold text-white tracking-tight flex items-center gap-3">
             <User className="text-primary" />
-            User Dashboard
+            Node Dashboard
           </h2>
-          <p className="text-muted-foreground mt-1">Manage your neural identity and acquisition history.</p>
+          <p className="text-muted-foreground mt-1">Manage your neural identity, acquisitions, and business center.</p>
         </div>
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 w-fit">
-          <TabsTrigger value="profile" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-primary">
+        <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 flex flex-wrap h-auto gap-1">
+          <TabsTrigger value="profile" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary flex-1 sm:flex-none">
             <User className="size-4 mr-2" />
             Profile
           </TabsTrigger>
-          <TabsTrigger value="orders" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-primary">
+          <TabsTrigger value="business" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary flex-1 sm:flex-none relative">
+            <Briefcase className="size-4 mr-2" />
+            Business Center
+            {pendingOffersCount > 0 && (
+              <Badge className="ml-2 bg-red-500 h-4 w-4 p-0 flex items-center justify-center text-[8px] rounded-full">
+                {pendingOffersCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="orders" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary flex-1 sm:flex-none">
             <Package className="size-4 mr-2" />
             My Orders
           </TabsTrigger>
-          <TabsTrigger value="security" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-primary">
+          <TabsTrigger value="security" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary flex-1 sm:flex-none">
             <Shield className="size-4 mr-2" />
             Security
           </TabsTrigger>
@@ -167,6 +189,10 @@ export function UserDashboard() {
               </div>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="business" className="animate-in fade-in duration-500">
+           <OffersReceived />
         </TabsContent>
 
         <TabsContent value="orders">
