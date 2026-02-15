@@ -14,13 +14,16 @@ import {
   Zap, 
   Loader2,
   RefreshCcw,
-  AlertCircle
+  AlertCircle,
+  Clock,
+  ExternalLink
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '@/components/auth/auth-provider';
 import { useWalletStore, selectTotalPendingDebt } from '@/lib/wallet-store';
 import { formatDistanceToNow } from 'date-fns';
@@ -30,6 +33,7 @@ export function WalletView() {
   const { user } = useAuth();
   const wallet = useWalletStore(state => state.wallet);
   const transactions = useWalletStore(state => state.transactions);
+  const pendingTransactions = useWalletStore(state => state.pendingTransactions);
   const fetchWallet = useWalletStore(state => state.fetchWallet);
   const fetchTransactions = useWalletStore(state => state.fetchTransactions);
   const pendingDebt = useWalletStore(selectTotalPendingDebt);
@@ -82,10 +86,38 @@ export function WalletView() {
         </div>
         <div className="flex items-center gap-3">
           {pendingDebt > 0 && (
-            <Badge variant="destructive" className="h-10 px-4 rounded-xl gap-2 animate-pulse">
-              <AlertCircle className="size-4" />
-              -{pendingDebt.toLocaleString()} [Offline]
-            </Badge>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Badge variant="destructive" className="h-10 px-4 rounded-xl gap-2 animate-pulse cursor-pointer hover:bg-red-600 transition-colors">
+                  <AlertCircle className="size-4" />
+                  -{pendingDebt.toLocaleString()} [Sync Pending]
+                </Badge>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-900 border-white/10 text-white rounded-[2rem]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Clock className="text-red-400" />
+                    Offline Acquisition Queue
+                  </DialogTitle>
+                  <DialogDescription className="text-slate-400">
+                    These transactions were initialized while your neural link was offline. They will settle once connectivity returns.
+                  </DialogDescription>
+                </DialogHeader>
+                <ScrollArea className="max-h-[300px] mt-4">
+                  <div className="space-y-3">
+                    {pendingTransactions.map((tx) => (
+                      <div key={tx.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">
+                        <div>
+                          <p className="font-bold text-sm">{tx.title}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase">{formatDistanceToNow(new Date(tx.timestamp), { addSuffix: true })}</p>
+                        </div>
+                        <p className="font-bold text-red-400">-{tx.price.toLocaleString()} Credits</p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </DialogContent>
+            </Dialog>
           )}
           <Button variant="outline" className="rounded-xl border-white/10 hover:bg-white/5" onClick={loadData}>
             <RefreshCcw className="size-4 mr-2" />

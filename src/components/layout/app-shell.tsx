@@ -32,7 +32,7 @@ export function AppShell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   
-  const syncOfflineTransactions = useWalletStore(state => state.syncOfflineTransactions);
+  const processOfflineQueue = useWalletStore(state => state.processOfflineQueue);
 
   useEffect(() => {
     if (!isAuthenticated || !user) return;
@@ -46,13 +46,12 @@ export function AppShell() {
     window.addEventListener('notifications-update', updateCount);
     window.addEventListener('storage', updateCount);
     
-    // Sync logic for Offline-First Wallet
+    // PHASE 2: Neural Link Synchronization Logic
     const handleOnline = () => {
-      if (user?.id) syncOfflineTransactions(user.id);
+      if (user?.id) processOfflineQueue(user.id);
     };
     
     window.addEventListener('online', handleOnline);
-    // Try syncing immediately if already online
     if (navigator.onLine) handleOnline();
 
     return () => {
@@ -60,7 +59,7 @@ export function AppShell() {
       window.removeEventListener('storage', updateCount);
       window.removeEventListener('online', handleOnline);
     };
-  }, [isAuthenticated, user, syncOfflineTransactions]);
+  }, [isAuthenticated, user, processOfflineQueue]);
 
   useEffect(() => {
     if (user?.role === 'admin') {

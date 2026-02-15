@@ -20,13 +20,12 @@ export interface Transaction {
   timestamp: string;
 }
 
-export interface PendingOfflineTransaction {
+export interface PendingTransaction {
   id: string;
-  amount: number;
-  description: string;
+  productId: string;
+  price: number;
+  title: string;
   timestamp: string;
-  itemId?: string;
-  sellerId?: string;
 }
 
 export interface Wallet {
@@ -38,41 +37,23 @@ export interface Wallet {
 interface WalletState {
   wallet: Wallet | null;
   transactions: Transaction[];
-  pendingOfflineTransactions: PendingOfflineTransaction[];
+  pendingTransactions: PendingTransaction[];
   isLoading: boolean;
   
   // Actions
   fetchWallet: (userId: string) => Promise<void>;
   fetchTransactions: (userId: string) => Promise<void>;
-  processOfflinePurchase: (amount: number, description: string, itemId?: string, sellerId?: string) => void;
-  syncOfflineTransactions: (userId: string) => Promise<void>;
-  initiateEscrow: (buyerId: string, itemId: string, itemName: string) => Promise<{ success: boolean; newBalance?: number }>;
+  initiateEscrow: (buyerId: string, itemId: string, itemName: string, price: number) => Promise<{ success: boolean; newBalance?: number }>;
+  processOfflineQueue: (userId: string) => Promise<void>;
   depositFunds: (userId: string, amount: number) => Promise<boolean>;
 }
-
-const mapWalletFromDB = (w: any): Wallet => ({
-  userId: w?.user_id ?? w?.userId ?? '',
-  balance: Number(w?.balance ?? 0),
-  frozenBalance: Number(w?.frozen_balance ?? w?.frozenBalance ?? 0)
-});
-
-const mapTransactionFromDB = (t: any): Transaction => ({
-  id: String(t?.id ?? ''),
-  userId: t?.user_id ?? t?.userId ?? '',
-  amount: Number(t?.amount ?? 0),
-  type: (t?.type as TransactionType) ?? 'deposit',
-  status: (t?.status as 'pending' | 'completed' | 'failed') ?? 'failed',
-  description: t?.description ?? 'Neural transaction',
-  relatedId: t?.related_id ?? t?.relatedId ?? undefined,
-  timestamp: t?.created_at ?? t?.timestamp ?? new Date().toISOString()
-});
 
 export const useWalletStore = create<WalletState>()(
   persist(
     (set, get) => ({
       wallet: null,
       transactions: [],
-      pendingOfflineTransactions: [],
+      pendingTransactions: [],
       isLoading: false,
 
       fetchWallet: async (userId) => {
@@ -118,63 +99,29 @@ export const useWalletStore = create<WalletState>()(
         }
       },
 
-      processOfflinePurchase: (amount, description, itemId, sellerId) => {
-        const newPending = {
-          id: Math.random().toString(36).substring(2, 15),
-          amount,
-          description,
-          timestamp: new Date().toISOString(),
-          itemId,
-          sellerId
-        };
-        
-        set(state => ({
-          pendingOfflineTransactions: [...state.pendingOfflineTransactions, newPending]
-        }));
-        
-        toast({
-          title: "Node Offline",
-          description: "No neural link. Transaction queued for synchronization."
-        });
-      },
-
-      syncOfflineTransactions: async (userId) => {
-        const { pendingOfflineTransactions } = get();
-        if (pendingOfflineTransactions.length === 0) return;
-
-        toast({ title: "Syncing Ledger", description: "Transmitting offline payloads to Nexus." });
-
-        for (const tx of pendingOfflineTransactions) {
-          try {
-            // Re-use RPC for each queued item
-            const { data, error } = await supabase.rpc('secure_purchase_item', {
-              p_buyer_id: userId,
-              p_product_id: tx.itemId
-            });
-
-            if (error) throw error;
-            if (data.success) {
-              set(state => ({
-                pendingOfflineTransactions: state.pendingOfflineTransactions.filter(p => p.id !== tx.id)
-              }));
-            }
-          } catch (err) {
-            console.error('Failed to sync offline transaction:', err);
-          }
-        }
-        
-        await get().fetchWallet(userId);
-        await get().fetchTransactions(userId);
-      },
-
-      initiateEscrow: async (buyerId, itemId, itemName) => {
+      initiateEscrow: async (buyerId, itemId, itemName, price) => {
         set({ isLoading: true });
         
+        // DETECTION: Check for neural link (online status)
         if (!navigator.onLine) {
-          // Note: In a real app we'd need to fetch price before going offline or 
-          // allow the sync to fail later if balance is insufficient.
-          get().processOfflinePurchase(0, itemName, itemId); 
-          set({ isLoading: false });
+          const newPending: PendingTransaction = {
+            id: Math.random().toString(36).substring(2, 15),
+            productId: itemId,
+            price: price,
+            title: itemName,
+            timestamp: new Date().toISOString()
+          };
+          
+          set(state => ({
+            pendingTransactions: [...state.pendingTransactions, newPending],
+            isLoading: false
+          }));
+
+          toast({
+            title: "⚠️ Internet Lost",
+            description: "Neural link offline. Acquisition added to pending queue."
+          });
+          
           return { success: true };
         }
 
@@ -198,11 +145,9 @@ export const useWalletStore = create<WalletState>()(
           }
 
           // Update truth from server response
-          if (get().wallet) {
-            set(state => ({
-              wallet: state.wallet ? { ...state.wallet, balance: data.new_balance } : null
-            }));
-          }
+          set(state => ({
+            wallet: state.wallet ? { ...state.wallet, balance: data.new_balance } : null
+          }));
           
           await get().fetchTransactions(buyerId);
           
@@ -224,11 +169,45 @@ export const useWalletStore = create<WalletState>()(
         }
       },
 
+      processOfflineQueue: async (userId) => {
+        const { pendingTransactions } = get();
+        if (pendingTransactions.length === 0) return;
+
+        toast({ title: "Syncing Ledger", description: "Transmitting offline payloads to Nexus." });
+
+        for (const tx of [...pendingTransactions]) {
+          try {
+            const { data, error } = await supabase.rpc('secure_purchase_item', {
+              p_buyer_id: userId,
+              p_product_id: tx.productId
+            });
+
+            if (error) throw error;
+            if (data.success) {
+              set(state => ({
+                pendingTransactions: state.pendingTransactions.filter(p => p.id !== tx.id)
+              }));
+            } else {
+              // If sync fails (e.g., out of stock), notify user and keep/remove based on policy
+              // For simplicity, we remove but notify
+              toast({ variant: 'destructive', title: 'Sync Failed', description: `Could not process ${tx.title}: ${data.error}` });
+              set(state => ({
+                pendingTransactions: state.pendingTransactions.filter(p => p.id !== tx.id)
+              }));
+            }
+          } catch (err) {
+            console.error('Failed to sync offline transaction:', err);
+          }
+        }
+        
+        await get().fetchWallet(userId);
+        await get().fetchTransactions(userId);
+      },
+
       depositFunds: async (userId, amount) => {
         if (!userId || amount <= 0) return false;
         set({ isLoading: true });
         try {
-          // For deposits, we still update manually in this demo, but could also be RPC
           const { data: walletData } = await supabase.from('wallets').select('balance').eq('user_id', userId).single();
           const newBalance = (walletData?.balance || 0) + amount;
 
@@ -267,16 +246,31 @@ export const useWalletStore = create<WalletState>()(
     }),
     {
       name: 'nexus-wallet-storage',
-      partialize: (state) => ({ pendingOfflineTransactions: state.pendingOfflineTransactions }),
+      partialize: (state) => ({ pendingTransactions: state.pendingTransactions }),
     }
   )
 );
 
-// Derived helper
-export const selectTotalPendingDebt = (state: WalletState) => 
-  state.pendingOfflineTransactions.reduce((acc, tx) => acc + tx.amount, 0);
+const mapWalletFromDB = (w: any): Wallet => ({
+  userId: w?.user_id ?? w?.userId ?? '',
+  balance: Number(w?.balance ?? 0),
+  frozenBalance: Number(w?.frozen_balance ?? w?.frozenBalance ?? 0)
+});
 
-// Compatibility exports
+const mapTransactionFromDB = (t: any): Transaction => ({
+  id: String(t?.id ?? ''),
+  userId: t?.user_id ?? t?.userId ?? '',
+  amount: Number(t?.amount ?? 0),
+  type: (t?.type as TransactionType) ?? 'deposit',
+  status: (t?.status as 'pending' | 'completed' | 'failed') ?? 'failed',
+  description: t?.description ?? 'Neural transaction',
+  relatedId: t?.related_id ?? t?.relatedId ?? undefined,
+  timestamp: t?.created_at ?? t?.timestamp ?? new Date().toISOString()
+});
+
+export const selectTotalPendingDebt = (state: WalletState) => 
+  state.pendingTransactions.reduce((acc, tx) => acc + tx.price, 0);
+
 export const getWallet = async (userId: string) => {
   const store = useWalletStore.getState();
   await store.fetchWallet(userId);
@@ -286,41 +280,11 @@ export const getWallet = async (userId: string) => {
 export const getTransactions = async (userId: string) => {
   const store = useWalletStore.getState();
   await store.fetchTransactions(userId);
-  return store.transactions;
+  return useWalletStore.getState().transactions;
 };
 
-export const initiateEscrow = (buyerId: string, itemId: string, itemName: string) => 
-  useWalletStore.getState().initiateEscrow(buyerId, itemId, itemName);
+export const initiateEscrow = (buyerId: string, itemId: string, itemName: string, price: number) => 
+  useWalletStore.getState().initiateEscrow(buyerId, itemId, itemName, price);
 
 export const depositFunds = (userId: string, amount: number) => 
   useWalletStore.getState().depositFunds(userId, amount);
-
-export const releaseEscrow = async (buyerId: string, sellerId: string, amount: number, itemId: string) => {
-  try {
-    const { data: bWallet } = await supabase.from('wallets').select('frozen_balance').eq('user_id', buyerId).single();
-    const { data: sWallet } = await supabase.from('wallets').select('balance').eq('user_id', sellerId).single();
-
-    const { error: bError } = await supabase
-      .from('wallets')
-      .update({ frozen_balance: Math.max(0, (bWallet?.frozen_balance || 0) - amount) })
-      .eq('user_id', buyerId);
-    if (bError) throw bError;
-
-    const { error: sError } = await supabase
-      .from('wallets')
-      .update({ balance: (sWallet?.balance || 0) + amount })
-      .eq('user_id', sellerId);
-    if (sError) throw sError;
-
-    await supabase.from('transactions').insert([
-      { user_id: buyerId, amount: 0, type: 'purchase_release', status: 'completed', related_id: itemId, description: `Payment released from Escrow` },
-      { user_id: sellerId, amount: amount, type: 'deposit', status: 'completed', related_id: itemId, description: `Payment received for asset sync` }
-    ]);
-
-    await useWalletStore.getState().fetchWallet(buyerId);
-    return true;
-  } catch (err: any) {
-    toast({ variant: 'destructive', title: 'Sync Error', description: 'Failed to release funds.' });
-    return false;
-  }
-};

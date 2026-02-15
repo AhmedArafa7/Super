@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   getMarketItems, addMarketItem, MarketItem, PricingMode, ListingType, updateItemStatus, updateItemQuantity, MarketCategory
 } from "@/lib/market-store";
-import { getWallet, initiateEscrow } from "@/lib/wallet-store";
+import { useWalletStore, initiateEscrow } from "@/lib/wallet-store";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MakeOfferModal } from "./make-offer-modal";
 import Image from "next/image";
@@ -94,24 +94,31 @@ export function TechMarket() {
 
   const handleBuyNow = async (item: MarketItem) => {
     if (!user?.id || isProcessing) return;
-    if (item.quantity < 1) {
+    
+    // OFFLINE CHECK: If online, check stock. If offline, we queue regardless and handle stock fail during sync.
+    if (navigator.onLine && item.quantity < 1) {
       return toast({ variant: "destructive", title: "Out of Stock", description: "Asset synchronization failed: Node depleted." });
     }
     
     const price = item.price ?? 0;
     setIsProcessing(true);
     try {
-      const currentWallet = await getWallet(user.id);
-      if (currentWallet.balance < price) {
-        setIsProcessing(false);
-        return toast({ variant: "destructive", title: "Credit Shortage", description: "Insufficient balance." });
+      // PHASE 2: Check wallet balance ONLY if online. If offline, we queue debt.
+      if (navigator.onLine) {
+        const currentWallet = useWalletStore.getState().wallet;
+        if (currentWallet && currentWallet.balance < price) {
+          setIsProcessing(false);
+          return toast({ variant: "destructive", title: "Credit Shortage", description: "Insufficient balance for this acquisition." });
+        }
       }
 
-      const res = await initiateEscrow(user.id, item.ownerId, price, item.id, item.title);
+      const res = await initiateEscrow(user.id, item.id, item.title, price);
       if (res.success) {
-        await updateItemStatus(item.id, 'reserved', user.id);
-        await updateItemQuantity(item.id, item.quantity - 1);
-        toast({ title: "Acquisition Initialized", description: "Funds moved to Secure Escrow." });
+        // If we were online, optimistic UI update
+        if (navigator.onLine) {
+          await updateItemStatus(item.id, 'reserved', user.id);
+          await updateItemQuantity(item.id, item.quantity - 1);
+        }
         loadData();
       }
     } catch (err) {
@@ -194,7 +201,6 @@ export function TechMarket() {
         </div>
       </div>
 
-      {/* Discovery Tools */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="md:col-span-3 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
