@@ -26,7 +26,7 @@ export function KnowledgeHub() {
   const [itemsMap, setItemsMap] = useState<Record<string, LearningItem[]>>({});
   const [isLoading, setIsLoading] = useState(true);
 
-  // Admin Modals
+  // Modals
   const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
@@ -136,38 +136,37 @@ export function KnowledgeHub() {
             <h1 className="text-4xl font-headline font-bold text-white tracking-tight">Knowledge Hub</h1>
             <p className="text-muted-foreground mt-2">Neural learning pathways and institutional intelligence.</p>
           </div>
-          {user?.role === 'admin' && (
-            <Dialog open={isSubjectModalOpen} onOpenChange={setIsSubjectModalOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary rounded-xl h-12 px-6 shadow-lg shadow-primary/20">
-                  <Plus className="mr-2 size-5" />
-                  Add New Subject
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-slate-900 border-white/10 rounded-[2rem]">
-                <DialogHeader>
-                  <DialogTitle>Create Learning Subject</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="grid gap-2">
-                    <Label>Subject Name</Label>
-                    <Input className="bg-white/5 border-white/10 rounded-xl" value={newSubject.name} onChange={e => setNewSubject({...newSubject, name: e.target.value})} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Description</Label>
-                    <Textarea className="bg-white/5 border-white/10 rounded-xl" value={newSubject.description} onChange={e => setNewSubject({...newSubject, description: e.target.value})} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Allowed Usernames (Comma separated, empty for public)</Label>
-                    <Input className="bg-white/5 border-white/10 rounded-xl" placeholder="user1, user2" value={newSubject.allowedUserIds} onChange={e => setNewSubject({...newSubject, allowedUserIds: e.target.value})} />
-                  </div>
+          
+          <Dialog open={isSubjectModalOpen} onOpenChange={setIsSubjectModalOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary rounded-xl h-12 px-6 shadow-lg shadow-primary/20">
+                <Plus className="mr-2 size-5" />
+                Add New Subject
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-slate-900 border-white/10 rounded-[2rem]">
+              <DialogHeader>
+                <DialogTitle>Create Learning Subject</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="grid gap-2">
+                  <Label>Subject Name</Label>
+                  <Input className="bg-white/5 border-white/10 rounded-xl" value={newSubject.name} onChange={e => setNewSubject({...newSubject, name: e.target.value})} />
                 </div>
-                <DialogFooter>
-                  <Button onClick={handleCreateSubject} className="w-full bg-primary rounded-xl h-11">Authorize Subject</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
+                <div className="grid gap-2">
+                  <Label>Description</Label>
+                  <Textarea className="bg-white/5 border-white/10 rounded-xl" value={newSubject.description} onChange={e => setNewSubject({...newSubject, description: e.target.value})} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Allowed Usernames (Comma separated, empty for public)</Label>
+                  <Input className="bg-white/5 border-white/10 rounded-xl" placeholder="user1, user2" value={newSubject.allowedUserIds} onChange={e => setNewSubject({...newSubject, allowedUserIds: e.target.value})} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={handleCreateSubject} className="w-full bg-primary rounded-xl h-11">Authorize Subject</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {isLoading ? (
@@ -220,14 +219,12 @@ export function KnowledgeHub() {
               {selectedSubject.name}
             </h1>
           </div>
-          {user?.role === 'admin' && (
-            <div className="flex gap-3">
-              <Button variant="outline" className="rounded-lg border-slate-200 text-slate-600 hover:bg-slate-50" onClick={() => setIsCollectionModalOpen(true)}>
-                <Plus className="size-4 mr-2" />
-                Add Lesson
-              </Button>
-            </div>
-          )}
+          <div className="flex gap-3">
+            <Button variant="outline" className="rounded-lg border-slate-200 text-slate-600 hover:bg-slate-50" onClick={() => setIsCollectionModalOpen(true)}>
+              <Plus className="size-4 mr-2" />
+              Add Lesson
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -278,7 +275,7 @@ export function KnowledgeHub() {
                       )} />
                       <span className="text-xs font-bold uppercase tracking-wider text-slate-500">{item.type.replace('_', ' ')}</span>
                     </div>
-                    {user?.role === 'admin' && <MoreVertical className="size-4 text-slate-300 cursor-pointer" />}
+                    <MoreVertical className="size-4 text-slate-300 cursor-pointer" />
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="size-10 bg-slate-100 rounded flex items-center justify-center text-slate-400">
@@ -298,19 +295,17 @@ export function KnowledgeHub() {
                 </div>
               ))}
               
-              {user?.role === 'admin' && (
-                <Button 
-                  variant="ghost" 
-                  className="w-full border-dashed border-2 border-slate-200 h-12 text-slate-400 hover:bg-slate-50 hover:text-slate-600 rounded-lg text-xs font-bold"
-                  onClick={() => {
-                    setActiveCollectionId(col.id);
-                    setIsItemModalOpen(true);
-                  }}
-                >
-                  <Plus className="size-4 mr-2" />
-                  Add Learning Item to {col.title}
-                </Button>
-              )}
+              <Button 
+                variant="ghost" 
+                className="w-full border-dashed border-2 border-slate-200 h-12 text-slate-400 hover:bg-slate-50 hover:text-slate-600 rounded-lg text-xs font-bold"
+                onClick={() => {
+                  setActiveCollectionId(col.id);
+                  setIsItemModalOpen(true);
+                }}
+              >
+                <Plus className="size-4 mr-2" />
+                Add Learning Item to {col.title}
+              </Button>
             </div>
           </div>
         ))}
