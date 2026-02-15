@@ -1,5 +1,6 @@
 'use client';
 
+import { supabase } from './supabaseClient';
 import { addNotification } from './notification-store';
 
 export type ListingType = 'sell_offer' | 'buy_request';
@@ -31,121 +32,166 @@ export interface MarketItem {
   offers: MarketOffer[];
   ownerId: string;
   ownerName: string;
-  buyerId?: string; // Set when status is 'reserved' or 'sold'
+  buyerId?: string;
   image?: string;
+  quantity: number;
   createdAt: string;
 }
 
-const STORAGE_KEY = 'nexus_market_items';
+const mapItemFromDB = (m: any): MarketItem => ({
+  id: m.id,
+  title: m.title || 'Untitled',
+  description: m.description || '',
+  listingType: (m.listing_type || m.listingType || 'sell_offer') as ListingType,
+  pricingMode: (m.pricing_mode || m.pricingMode || 'fixed') as PricingMode,
+  price: m.price || 0,
+  minPrice: m.min_price || m.minPrice || 0,
+  maxPrice: m.max_price || m.maxPrice || 0,
+  currency: m.currency || 'Credits',
+  status: (m.status || 'active') as MarketItemStatus,
+  offers: m.offers || [],
+  ownerId: m.owner_id || m.ownerId || '',
+  ownerName: m.owner_name || m.ownerName || 'Unknown',
+  buyerId: m.buyer_id || m.buyerId || undefined,
+  image: m.image || '',
+  quantity: m.quantity ?? 1,
+  createdAt: m.created_at || m.createdAt || new Date().toISOString(),
+});
 
-export const getMarketItems = (): MarketItem[] => {
-  if (typeof window === 'undefined') return [];
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return stored ? JSON.parse(stored) : [];
+export const getMarketItems = async (from = 0, to = 11): Promise<{ items: MarketItem[], hasMore: boolean }> => {
+  try {
+    const { data, error, count } = await supabase
+      .from('market_items')
+      .select('*', { count: 'exact' })
+      .range(from, to)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    
+    const items = (data || []).map(mapItemFromDB);
+    const hasMore = count ? to < count - 1 : false;
+    
+    return { items, hasMore };
+  } catch (err) {
+    console.error('Market fetch failure:', err);
+    return { items: [], hasMore: false };
+  }
 };
 
-export const saveMarketItems = (items: MarketItem[]) => {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  window.dispatchEvent(new Event('market-update'));
+export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'createdAt' | 'offers' | 'status'>) => {
+  try {
+    const payload = {
+      title: item.title,
+      description: item.description,
+      listing_type: item.listingType,
+      pricing_mode: item.pricingMode,
+      price: item.price,
+      min_price: item.minPrice,
+      max_price: item.maxPrice,
+      currency: item.currency,
+      owner_id: item.ownerId,
+      owner_name: item.ownerName,
+      image: item.image,
+      quantity: item.quantity,
+      status: 'active'
+    };
+
+    const { data, error } = await supabase.from('market_items').insert([payload]).select().single();
+    if (error) throw error;
+
+    addNotification({
+      type: 'market_restock',
+      title: 'New Neural Asset',
+      message: `${item.ownerName} listed "${item.title}"`,
+      priority: 'info'
+    });
+
+    return mapItemFromDB(data);
+  } catch (err) {
+    console.error('Add item failure:', err);
+    throw err;
+  }
 };
 
-export const addMarketItem = (item: Omit<MarketItem, 'id' | 'createdAt' | 'offers' | 'status'>) => {
-  const items = getMarketItems();
-  const newItem: MarketItem = {
-    ...item,
-    id: Math.random().toString(36).substring(2, 15),
-    status: 'active',
-    offers: [],
-    createdAt: new Date().toISOString(),
-  };
-  saveMarketItems([newItem, ...items]);
-  
-  addNotification({
-    type: 'market_restock',
-    title: 'New Neural Asset',
-    message: `${item.ownerName} listed a new ${item.listingType === 'sell_offer' ? 'item' : 'request'}: "${item.title}"`,
-    priority: 'info'
-  });
-  
-  return newItem;
+export const updateItemStatus = async (itemId: string, status: MarketItemStatus, buyerId?: string) => {
+  try {
+    await supabase.from('market_items').update({ status, buyer_id: buyerId }).eq('id', itemId);
+  } catch (err) {
+    console.error('Update status failure:', err);
+  }
 };
 
-export const updateItemStatus = (itemId: string, status: MarketItemStatus, buyerId?: string) => {
-  const items = getMarketItems();
-  const updated = items.map(item => {
-    if (item.id === itemId) {
-      return { ...item, status, buyerId: buyerId || item.buyerId };
-    }
-    return item;
-  });
-  saveMarketItems(updated);
+export const addOffer = async (itemId: string, offer: Omit<MarketOffer, 'id' | 'status' | 'timestamp'>) => {
+  try {
+    const { data: itemData } = await supabase.from('market_items').select('offers, owner_id, title, currency').eq('id', itemId).single();
+    if (!itemData) return;
+
+    const newOffer: MarketOffer = {
+      ...offer,
+      id: Math.random().toString(36).substring(2, 9),
+      status: 'pending',
+      timestamp: new Date().toISOString(),
+    };
+
+    const updatedOffers = [...(itemData.offers || []), newOffer];
+    await supabase.from('market_items').update({ offers: updatedOffers }).eq('id', itemId);
+
+    addNotification({
+      type: 'market_restock',
+      title: 'New Offer Received',
+      message: `${offer.userName} offered ${offer.offerAmount} ${itemData.currency} for "${itemData.title}"`,
+      userId: itemData.owner_id,
+      priority: 'info'
+    });
+  } catch (err) {
+    console.error('Add offer failure:', err);
+  }
 };
 
-export const addOffer = (itemId: string, offer: Omit<MarketOffer, 'id' | 'status' | 'timestamp'>) => {
-  const items = getMarketItems();
-  const updated = items.map(item => {
-    if (item.id === itemId) {
-      const newOffer: MarketOffer = {
-        ...offer,
-        id: Math.random().toString(36).substring(2, 9),
-        status: 'pending',
-        timestamp: new Date().toISOString(),
-      };
-      
-      addNotification({
-        type: 'market_restock',
-        title: 'New Offer Received',
-        message: `${offer.userName} offered ${offer.offerAmount} ${item.currency} for your listing "${item.title}"`,
-        userId: item.ownerId,
-        priority: 'info',
-        metadata: { productId: item.id }
-      });
-      
-      return { ...item, offers: [...item.offers, newOffer] };
-    }
-    return item;
-  });
-  saveMarketItems(updated);
+export const updateOfferStatus = async (itemId: string, offerId: string, status: OfferStatus) => {
+  try {
+    const { data: itemData } = await supabase.from('market_items').select('*').eq('id', itemId).single();
+    if (!itemData) return;
+
+    let targetUserId = '';
+    const updatedOffers = (itemData.offers || []).map((o: any) => {
+      if (o.id === offerId) {
+        targetUserId = o.userId;
+        return { ...o, status };
+      }
+      return o;
+    });
+
+    await supabase.from('market_items').update({ 
+      offers: updatedOffers,
+      status: status === 'accepted' ? 'reserved' : itemData.status,
+      buyer_id: status === 'accepted' ? targetUserId : itemData.buyer_id
+    }).eq('id', itemId);
+
+    addNotification({
+      type: 'market_restock',
+      title: status === 'accepted' ? 'Offer Accepted!' : 'Offer Declined',
+      message: status === 'accepted' ? `Your offer for "${itemData.title}" was accepted.` : `Your offer was declined.`,
+      userId: targetUserId,
+      priority: status === 'accepted' ? 'info' : 'warning'
+    });
+  } catch (err) {
+    console.error('Update offer failure:', err);
+  }
 };
 
-export const updateOfferStatus = (itemId: string, offerId: string, status: OfferStatus) => {
-  const items = getMarketItems();
-  const updated = items.map(item => {
-    if (item.id === itemId) {
-      let targetUserId = '';
-      const updatedOffers = item.offers.map(offer => {
-        if (offer.id === offerId) {
-          targetUserId = offer.userId;
-          return { ...offer, status };
-        }
-        return offer;
-      });
-
-      addNotification({
-        type: 'market_restock',
-        title: status === 'accepted' ? 'Offer Accepted!' : 'Offer Declined',
-        message: status === 'accepted' 
-          ? `Your offer for "${item.title}" was accepted by ${item.ownerName}.` 
-          : `Your offer for "${item.title}" was declined.`,
-        userId: targetUserId,
-        priority: status === 'accepted' ? 'info' : 'warning',
-        metadata: { productId: item.id }
-      });
-
-      return { 
-        ...item, 
-        offers: updatedOffers,
-        status: status === 'accepted' ? 'reserved' : item.status,
-        buyerId: status === 'accepted' ? targetUserId : item.buyerId
-      };
-    }
-    return item;
-  });
-  saveMarketItems(updated);
+export const updateItemQuantity = async (itemId: string, quantity: number) => {
+  try {
+    await supabase.from('market_items').update({ quantity }).eq('id', itemId);
+  } catch (err) {
+    console.error('Update quantity failure:', err);
+  }
 };
 
-export const deleteMarketItem = (id: string) => {
-  const items = getMarketItems();
-  saveMarketItems(items.filter(i => i.id !== id));
+export const deleteMarketItem = async (id: string) => {
+  try {
+    await supabase.from('market_items').delete().eq('id', id);
+  } catch (err) {
+    console.error('Delete item failure:', err);
+  }
 };
