@@ -180,27 +180,38 @@ export const addLearningItem = async (item: Omit<LearningItem, 'id' | 'createdAt
 };
 
 export const uploadLearningFile = async (file: File): Promise<string | null> => {
-  try {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `learning-content/${fileName}`;
+  // Common bucket names to try for resilience
+  const bucketsToTry = ['learning', 'nexus-content', 'files', 'content', 'avatars', 'public'];
+  
+  for (const bucket of bucketsToTry) {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `learning-content/${fileName}`;
 
-    // Try multiple bucket names for resilience
-    let bucket = 'nexus-content';
-    
-    const { error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, file);
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file, { upsert: true });
 
-    if (uploadError) {
-      console.error(`Error uploading to ${bucket}:`, uploadError.message);
+      if (!uploadError) {
+        const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+        return data.publicUrl;
+      }
+
+      // If bucket is not found, continue to the next one
+      if (uploadError.message.includes('Bucket not found')) {
+        continue;
+      }
+
+      // For other errors (like policy restrictions), log and stop
+      console.error(`Upload error for bucket ${bucket}:`, uploadError.message);
       return null;
+    } catch (err) {
+      // In case of network errors or other exceptions, try next bucket
+      continue;
     }
-
-    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-    return data.publicUrl;
-  } catch (err) {
-    console.error('File upload exception:', err);
-    return null;
   }
+
+  console.error('Failed to upload file: No suitable storage bucket found.');
+  return null;
 };
