@@ -39,6 +39,7 @@ interface WalletState {
   transactions: Transaction[];
   pendingTransactions: PendingTransaction[];
   isLoading: boolean;
+  isSyncing: boolean;
   
   // Actions
   fetchWallet: (userId: string) => Promise<void>;
@@ -55,6 +56,7 @@ export const useWalletStore = create<WalletState>()(
       transactions: [],
       pendingTransactions: [],
       isLoading: false,
+      isSyncing: false,
 
       fetchWallet: async (userId) => {
         if (!userId) return;
@@ -107,7 +109,7 @@ export const useWalletStore = create<WalletState>()(
           const newPending: PendingTransaction = {
             id: Math.random().toString(36).substring(2, 15),
             productId: itemId,
-            price: price,
+            price: Number(price),
             title: itemName,
             timestamp: new Date().toISOString()
           };
@@ -146,7 +148,7 @@ export const useWalletStore = create<WalletState>()(
 
           // Update truth from server response
           set(state => ({
-            wallet: state.wallet ? { ...state.wallet, balance: data.new_balance } : null
+            wallet: state.wallet ? { ...state.wallet, balance: Number(data.new_balance) } : null
           }));
           
           await get().fetchTransactions(buyerId);
@@ -157,7 +159,7 @@ export const useWalletStore = create<WalletState>()(
           });
 
           set({ isLoading: false });
-          return { success: true, newBalance: data.new_balance };
+          return { success: true, newBalance: Number(data.new_balance) };
         } catch (err: any) {
           toast({ 
             variant: 'destructive', 
@@ -170,35 +172,47 @@ export const useWalletStore = create<WalletState>()(
       },
 
       processOfflineQueue: async (userId) => {
-        const { pendingTransactions } = get();
-        if (pendingTransactions.length === 0) return;
+        const { pendingTransactions, isSyncing } = get();
+        if (isSyncing || pendingTransactions.length === 0) return;
 
+        set({ isSyncing: true });
         toast({ title: "Syncing Ledger", description: "Transmitting offline payloads to Nexus." });
 
-        for (const tx of [...pendingTransactions]) {
+        const successIds: string[] = [];
+
+        // Sequential processing for atomic balance integrity
+        for (const tx of pendingTransactions) {
           try {
             const { data, error } = await supabase.rpc('secure_purchase_item', {
               p_buyer_id: userId,
               p_product_id: tx.productId
             });
 
-            if (error) throw error;
-            if (data.success) {
-              set(state => ({
-                pendingTransactions: state.pendingTransactions.filter(p => p.id !== tx.id)
-              }));
-            } else {
-              // If sync fails (e.g., out of stock), notify user and keep/remove based on policy
-              // For simplicity, we remove but notify
-              toast({ variant: 'destructive', title: 'Sync Failed', description: `Could not process ${tx.title}: ${data.error}` });
-              set(state => ({
-                pendingTransactions: state.pendingTransactions.filter(p => p.id !== tx.id)
-              }));
+            if (!error && data?.success) {
+              successIds.push(tx.id);
+            } else if (data?.success === false) {
+              // If server rejected (e.g. insufficient funds now), we still remove from queue 
+              // but notify the user of the final rejection
+              toast({ 
+                variant: 'destructive', 
+                title: 'Sync Rejection', 
+                description: `Could not process ${tx.title}: ${data.error}` 
+              });
+              successIds.push(tx.id); 
             }
           } catch (err) {
-            console.error('Failed to sync offline transaction:', err);
+            console.error(`Sync failed for item ${tx.id}:`, err);
+            // We keep it in the queue for retry if it's a network error during sync
           }
         }
+
+        // Atomically remove successful/processed items
+        set((state) => ({
+          pendingTransactions: state.pendingTransactions.filter(
+            (tx) => !successIds.includes(tx.id)
+          ),
+          isSyncing: false
+        }));
         
         await get().fetchWallet(userId);
         await get().fetchTransactions(userId);
@@ -209,7 +223,8 @@ export const useWalletStore = create<WalletState>()(
         set({ isLoading: true });
         try {
           const { data: walletData } = await supabase.from('wallets').select('balance').eq('user_id', userId).single();
-          const newBalance = (walletData?.balance || 0) + amount;
+          const currentBalance = Number(walletData?.balance || 0);
+          const newBalance = currentBalance + Number(amount);
 
           const { error: walletError } = await supabase
             .from('wallets')
@@ -220,7 +235,7 @@ export const useWalletStore = create<WalletState>()(
 
           await supabase.from('transactions').insert([{
             user_id: userId,
-            amount,
+            amount: Number(amount),
             type: 'deposit',
             status: 'completed',
             description: `Manual Neural Deposit (+${amount})`
@@ -269,7 +284,7 @@ const mapTransactionFromDB = (t: any): Transaction => ({
 });
 
 export const selectTotalPendingDebt = (state: WalletState) => 
-  state.pendingTransactions.reduce((acc, tx) => acc + tx.price, 0);
+  state.pendingTransactions.reduce((acc, tx) => acc + Number(tx.price), 0);
 
 export const getWallet = async (userId: string) => {
   const store = useWalletStore.getState();
