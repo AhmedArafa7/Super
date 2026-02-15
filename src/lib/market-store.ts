@@ -1,3 +1,4 @@
+
 'use client';
 
 import { supabase } from './supabaseClient';
@@ -7,6 +8,7 @@ export type ListingType = 'sell_offer' | 'buy_request';
 export type PricingMode = 'fixed' | 'range' | 'negotiable';
 export type MarketItemStatus = 'active' | 'sold' | 'reserved' | 'archived';
 export type OfferStatus = 'pending' | 'accepted' | 'rejected';
+export type MarketCategory = 'all' | 'ai_tools' | 'hardware' | 'services' | 'digital_assets';
 
 export interface MarketOffer {
   id: string;
@@ -35,6 +37,7 @@ export interface MarketItem {
   buyerId?: string;
   image?: string;
   quantity: number;
+  category: MarketCategory;
   createdAt: string;
 }
 
@@ -55,14 +58,30 @@ const mapItemFromDB = (m: any): MarketItem => ({
   buyerId: m.buyer_id || m.buyerId || undefined,
   image: m.image || '',
   quantity: m.quantity ?? 1,
+  category: (m.category || 'digital_assets') as MarketCategory,
   createdAt: m.created_at || m.createdAt || new Date().toISOString(),
 });
 
-export const getMarketItems = async (from = 0, to = 11): Promise<{ items: MarketItem[], hasMore: boolean }> => {
+export const getMarketItems = async (
+  from = 0, 
+  to = 11, 
+  search?: string, 
+  category?: MarketCategory
+): Promise<{ items: MarketItem[], hasMore: boolean }> => {
   try {
-    const { data, error, count } = await supabase
+    let query = supabase
       .from('market_items')
-      .select('*', { count: 'exact' })
+      .select('*', { count: 'exact' });
+
+    if (search) {
+      query = query.ilike('title', `%${search}%`);
+    }
+
+    if (category && category !== 'all') {
+      query = query.eq('category', category);
+    }
+
+    const { data, error, count } = await query
       .range(from, to)
       .order('created_at', { ascending: false });
 
@@ -93,6 +112,7 @@ export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'createdAt' | 
       owner_name: item.ownerName,
       image: item.image,
       quantity: item.quantity,
+      category: item.category,
       status: 'active'
     };
 
