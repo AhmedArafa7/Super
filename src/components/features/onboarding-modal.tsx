@@ -70,6 +70,13 @@ export function OnboardingModal() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-[500px] bg-slate-900 border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
+        <DialogHeader className="sr-only">
+          <DialogTitle>NexusAI Onboarding</DialogTitle>
+          <DialogDescription>
+            Synchronize with the Nexus ecosystem and configure your neural node for optimal intelligence.
+          </DialogDescription>
+        </DialogHeader>
+
         <div className="relative h-48 bg-primary/20 flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-900" />
           <div className="relative z-10 flex gap-4">
