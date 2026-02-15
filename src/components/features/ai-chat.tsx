@@ -1,19 +1,16 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Sparkles, Paperclip, Mic, MoreHorizontal, Clock, Check, CheckCheck, Loader2, Edit3, MessageCircle, MoreVertical, Pencil, Trash2, X, CheckCircle2, FileText, Download, Square, Music } from "lucide-react";
+import { Send, Bot, User, Sparkles, Paperclip, Mic, Loader2, Pencil, Trash2, X, FileText, Download, Square, Music, Globe, Wifi, WifiOff, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { getStoredMessages, addWizardMessage, updateMessageStatus, updateMessageText, deleteMessage, WizardMessage, Attachment } from "@/lib/chat-store";
+import { getStoredMessages, addWizardMessage, updateMessageText, deleteMessage, WizardMessage, Attachment } from "@/lib/chat-store";
 import { clearAllUnreadNotifications, markNotificationByMessageIdAsRead } from "@/lib/notification-store";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
-import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -33,9 +30,9 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const [editingText, setEditingText] = useState("");
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isConnected, setIsConnected] = useState(true);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -48,8 +45,8 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     try {
       const initialMessages = await getStoredMessages(user.id, user.role === 'admin');
       setMessages(initialMessages ?? []);
-    } catch (e) {
-      console.error('Initial load failure:', e);
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Sync Error', description: 'History could not be retrieved.' });
     }
   };
 
@@ -57,20 +54,23 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     if (!user?.id) return;
     loadMessages();
 
+    // REALTIME SUBSCRIPTION WITH CLEANUP
     const channel = supabase
-      .channel('schema-db-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'messages' },
-        async () => {
-          loadMessages();
-        }
-      )
-      .subscribe();
+      .channel('chat-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
+        loadMessages();
+      })
+      .subscribe((status) => {
+        setIsConnected(status === 'SUBSCRIBED');
+      });
     
     clearAllUnreadNotifications(user.id);
-    return () => { supabase.removeChannel(channel); };
-  }, [user]);
+
+    return () => {
+      supabase.removeChannel(channel);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     if (user?.id && highlightId && messageRefs.current[highlightId]) {
@@ -80,7 +80,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       const timer = setTimeout(() => { onHighlightComplete?.(); }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [highlightId, messages, onHighlightComplete, user]);
+  }, [highlightId, messages, user?.id]);
 
   useEffect(() => {
     if (scrollRef.current && !highlightId) {
@@ -99,13 +99,9 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         setInput("");
         setPendingAttachments([]);
       }
-    } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "Transmission Failed",
-        description: "Your neural request could not be synchronized. Please try again."
-      });
-      // Logic: Input stays in the field on failure
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Transmission Failed", description: err.message });
+      // Input is preserved for retry
     } finally {
       setIsSending(false);
     }
@@ -116,9 +112,8 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     if (files.length === 0) return;
 
     setIsUploading(true);
-    const newAttachments: Attachment[] = [];
-
     try {
+      const newAttachments: Attachment[] = [];
       for (const file of files) {
         if (file.size > MAX_FILE_SIZE) {
           toast({ variant: "destructive", title: "File too large", description: `${file.name} exceeds 1.5MB.` });
@@ -126,24 +121,23 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         }
 
         const reader = new FileReader();
-        const base64Promise = new Promise<string>((resolve) => {
+        const base64 = await new Promise<string>((resolve) => {
           reader.onload = () => resolve(reader.result as string);
           reader.readAsDataURL(file);
         });
 
-        const base64 = await base64Promise;
-        const type: Attachment['type'] = file.type.startsWith('image/') ? 'image' : file.type.startsWith('audio/') ? 'audio' : 'file';
-
         newAttachments.push({
           id: Math.random().toString(36).substring(2, 9),
           name: file.name,
-          type,
+          type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('audio/') ? 'audio' : 'file',
           url: base64,
           size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
           mimeType: file.type
         });
       }
-      setPendingAttachments([...pendingAttachments, ...newAttachments]);
+      setPendingAttachments(prev => [...prev, ...newAttachments]);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Upload Failed", description: err.message });
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -175,8 +169,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       };
       mediaRecorder.start();
       setIsRecording(true);
-      setRecordingTime(0);
-      timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
     } catch (err) {
       toast({ variant: "destructive", title: "Mic Access Denied", description: "Microphone permission required." });
     }
@@ -186,35 +178,18 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      if (timerRef.current) clearInterval(timerRef.current);
-    }
-  };
-
-  const handleStartEdit = (msg: WizardMessage) => {
-    setEditingId(msg.id);
-    setEditingText(msg?.text ?? "");
-  };
-
-  const handleSaveEdit = async () => {
-    if (editingId && editingText?.trim()) {
-      try {
-        await updateMessageText(editingId, editingText);
-        setEditingId(null);
-      } catch (e) {
-        toast({ variant: "destructive", title: "Edit Failed", description: "Failed to update neural transmission." });
-      }
     }
   };
 
   const AttachmentPreview = ({ attachments }: { attachments: Attachment[] }) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-      {(attachments ?? []).map((att) => (
-        <div key={att?.id ?? Math.random()} className="glass border border-white/5 rounded-xl p-2 flex items-center gap-3 overflow-hidden">
-          {att?.type === 'image' ? (
+      {attachments.map((att) => (
+        <div key={att.id} className="glass border border-white/5 rounded-xl p-2 flex items-center gap-3 overflow-hidden">
+          {att.type === 'image' ? (
             <div className="size-10 rounded-lg overflow-hidden bg-white/5 shrink-0 relative">
               <img src={att.url} alt={att.name} className="size-full object-cover" />
             </div>
-          ) : att?.type === 'audio' ? (
+          ) : att.type === 'audio' ? (
             <div className="size-10 rounded-lg bg-indigo-500/20 flex items-center justify-center shrink-0">
               <Music className="size-5 text-indigo-400" />
             </div>
@@ -224,10 +199,10 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold text-white truncate">{att?.name ?? 'File'}</p>
-            <p className="text-[9px] text-muted-foreground">{att?.size ?? '0MB'}</p>
+            <p className="text-[10px] font-bold text-white truncate">{att.name}</p>
+            <p className="text-[9px] text-muted-foreground">{att.size}</p>
           </div>
-          <a href={att?.url} download={att?.name} className="p-1 hover:bg-white/5 rounded-lg transition-colors">
+          <a href={att.url} download={att.name} className="p-1 hover:bg-white/5 rounded-lg transition-colors">
             <Download className="size-3 text-muted-foreground" />
           </a>
         </div>
@@ -245,62 +220,68 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
             </div>
             <div>
               <p className="font-bold text-sm">Nexus Realtime Stream</p>
-              <p className="text-[10px] text-indigo-400 flex items-center gap-1">
-                <span className="size-1.5 rounded-full bg-green-400" />
-                Live Neural Sync
-              </p>
+              <div className="flex items-center gap-2">
+                {isConnected ? (
+                  <p className="text-[10px] text-green-400 flex items-center gap-1">
+                    <Wifi className="size-2.5" /> Neural Sync Active
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-red-400 flex items-center gap-1">
+                    <WifiOff className="size-2.5" /> Synchronizing...
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         <ScrollArea className="flex-1 p-6" ref={scrollRef}>
           <div className="space-y-6">
-            {(messages ?? []).length === 0 && (
+            {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-40 text-center opacity-50">
                 <Sparkles className="size-12 mb-4 text-indigo-500" />
-                <p className="text-sm">Initiate a live secure session with Nexus Neural.</p>
+                <p className="text-sm">Initiate a secure neural session.</p>
               </div>
             )}
             
-            {(messages ?? []).map((msg) => (
-              <React.Fragment key={msg?.id ?? Math.random()}>
+            {messages.map((msg) => (
+              <React.Fragment key={msg.id}>
                 <div className="flex justify-end items-start gap-3 group relative">
                   <div className="flex items-start gap-2 max-w-[85%]">
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-8 text-muted-foreground rounded-lg"><MoreVertical className="size-4" /></Button>
+                          <Button variant="ghost" size="icon" className="size-8 text-muted-foreground"><MoreVertical className="size-4" /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-slate-900 border-white/10">
-                          {msg?.status !== 'replied' && (
-                            <DropdownMenuItem onClick={() => handleStartEdit(msg)} className="gap-2 cursor-pointer">
+                          {msg.status !== 'replied' && (
+                            <DropdownMenuItem onClick={() => { setEditingId(msg.id); setEditingText(msg.text); }} className="gap-2">
                               <Pencil className="size-4" /> Edit Request
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem onClick={() => deleteMessage(msg!.id)} className="gap-2 text-red-400 cursor-pointer">
+                          <DropdownMenuItem onClick={() => deleteMessage(msg.id)} className="gap-2 text-red-400">
                             <Trash2 className="size-4" /> Retract Request
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
 
-                    <div className={cn("flex-1 p-4 transition-all duration-300", editingId === msg?.id ? "bg-indigo-500/10 border border-indigo-500/30 rounded-2xl" : "message-bubble-user")}>
-                      {user?.role === 'admin' && <p className="text-[10px] font-bold text-white/50 uppercase mb-1">From: {msg?.userName}</p>}
-                      {editingId === msg?.id ? (
+                    <div className={cn("flex-1 p-4 transition-all duration-300", editingId === msg.id ? "bg-indigo-500/10 border border-indigo-500/30 rounded-2xl" : "message-bubble-user")}>
+                      {editingId === msg.id ? (
                         <div className="space-y-3">
-                          <Textarea autoFocus value={editingText} onChange={(e) => setEditingText(e.target.value)} className="bg-white/5 border-white/10 min-h-[60px]" />
+                          <Textarea autoFocus value={editingText} onChange={(e) => setEditingText(e.target.value)} className="bg-white/5 border-white/10" />
                           <div className="flex justify-end gap-2">
                             <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
-                            <Button size="sm" onClick={handleSaveEdit} className="bg-indigo-500">Save</Button>
+                            <Button size="sm" onClick={async () => { await updateMessageText(msg.id, editingText); setEditingId(null); }} className="bg-indigo-500">Save</Button>
                           </div>
                         </div>
                       ) : (
                         <>
-                          {msg?.text && <p className="text-sm leading-relaxed whitespace-pre-wrap pr-4">{msg.text}</p>}
-                          {msg?.attachments && msg.attachments.length > 0 && <AttachmentPreview attachments={msg.attachments} />}
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                          {msg.attachments && msg.attachments.length > 0 && <AttachmentPreview attachments={msg.attachments} />}
                           <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
-                            {msg?.isUserEdited && <span className="text-[9px] italic mr-1">(edited)</span>}
-                            <span className="text-[10px]">{msg?.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                            {msg.isUserEdited && <span className="text-[9px] italic mr-1">(edited)</span>}
+                            <span className="text-[10px]">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
                         </>
                       )}
@@ -309,10 +290,10 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                   <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0"><User className="size-4 text-indigo-400" /></div>
                 </div>
 
-                {msg?.status === 'replied' && msg.response && (
-                  <div ref={el => { if (msg.id) messageRefs.current[msg.id] = el; }} className="flex justify-start items-start gap-3 group">
+                {msg.status === 'replied' && msg.response && (
+                  <div ref={el => { messageRefs.current[msg.id] = el; }} className="flex justify-start items-start gap-3">
                     <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0"><Bot className="size-4 text-indigo-400" /></div>
-                    <div className={cn("max-w-[80%] message-bubble-ai p-4 border transition-all duration-500", highlightId === msg?.id && "animate-highlight ring-2 ring-indigo-500")}>
+                    <div className={cn("max-w-[80%] message-bubble-ai p-4 border transition-all duration-500", highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500")}>
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.response}</p>
                     </div>
                   </div>
@@ -325,16 +306,16 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         <div className="p-4 bg-white/5 border-t border-white/5">
           {isRecording ? (
             <div className="h-14 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-between px-6">
-              <div className="flex items-center gap-3"><div className="size-2 rounded-full bg-red-500 animate-pulse" /><span className="text-sm font-bold text-red-400">Recording...</span></div>
+              <div className="flex items-center gap-3"><div className="size-2 rounded-full bg-red-500 animate-pulse" /><span className="text-sm font-bold text-red-400">Recording Audio...</span></div>
               <Button onClick={stopRecording} size="icon" className="bg-red-500"><Square className="size-4" /></Button>
             </div>
           ) : (
-            <div className="relative group">
+            <div className="relative">
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder={isUploading ? "Uploading..." : isSending ? "Transmitting..." : "Message NexusAI..."}
+                placeholder={isUploading ? "Uploading payload..." : "Message NexusAI..."}
                 disabled={isUploading || isSending}
                 className="w-full h-14 bg-white/5 border-white/10 focus-visible:ring-indigo-500 rounded-2xl pl-12 pr-28 text-sm"
               />
@@ -342,7 +323,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                 <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileSelect} />
                 <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="icon" disabled={isUploading || isSending}><Paperclip className="size-4" /></Button>
                 <Button onClick={startRecording} variant="ghost" size="icon" disabled={isUploading || isSending}><Mic className="size-4" /></Button>
-                <Button onClick={handleSend} disabled={(!input?.trim() && (pendingAttachments?.length ?? 0) === 0) || isUploading || isSending} size="icon" className="bg-primary">
+                <Button onClick={handleSend} disabled={(!input.trim() && pendingAttachments.length === 0) || isUploading || isSending} size="icon" className="bg-primary shadow-lg shadow-primary/20">
                   {isSending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
                 </Button>
               </div>

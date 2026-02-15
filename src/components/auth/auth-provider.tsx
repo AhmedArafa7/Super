@@ -1,9 +1,9 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, getSession, setSession } from '@/lib/auth-store';
+import { User, setSession, getSession } from '@/lib/auth-store';
 import { supabase } from '@/lib/supabaseClient';
+import { toast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: User | null;
@@ -23,32 +23,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const session = getSession();
-      if (!session || !session.id) {
+      if (!session?.id) {
         setUser(null);
         return;
       }
 
-      // Hardening: Verify orphaned account status against real DB
-      // Use maybeSingle to prevent exceptions if row is missing
+      // Hardening: Verify session against definitive user table
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', session.id)
         .maybeSingle();
 
-      if (error || !data) {
-        if (error) console.warn('Database connection warning during session check:', error.message);
+      if (error) {
+        toast({ variant: 'destructive', title: 'Sync Error', description: 'Neural link unstable.' });
+        throw error;
+      }
+
+      if (!data) {
+        // Orphaned session: Logout immediately for security
         setSession(null);
         setUser(null);
       } else {
         setUser(data as User);
       }
     } catch (err) {
-      console.error('Session verification critical failure:', err);
       setUser(null);
     } finally {
-      // Small delay to ensure state propagates before UI reveals
-      setTimeout(() => setLoading(false), 100);
+      // Ensure state propagation before UI reveal
+      setLoading(false);
     }
   };
 
@@ -71,10 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('password', password)
         .maybeSingle();
       
-      if (error) {
-        console.error('Login database error:', error.message);
-        return false;
-      }
+      if (error) throw error;
 
       if (data) {
         const userData = data as User;
@@ -83,19 +83,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return true;
       }
       return false;
-    } catch (err) {
-      console.error('Login process exception:', err);
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Authentication Failed', description: err.message });
       return false;
     }
   };
 
   const logout = () => {
-    try {
-      setSession(null);
-      setUser(null);
-    } catch (err) {
-      console.error('Logout cleanup error:', err);
-    }
+    setSession(null);
+    setUser(null);
   };
 
   const contextValue = { 
@@ -106,16 +102,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading: loading 
   };
 
+  // BLOCKING BARRIER: Do not render children until loading is complete
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest animate-pulse">Establishing Neural Link...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AuthContext.Provider value={contextValue}>
-      {loading ? (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest animate-pulse">Initializing Neural Link...</p>
-          </div>
-        </div>
-      ) : children}
+      {children}
     </AuthContext.Provider>
   );
 }

@@ -1,8 +1,8 @@
-
 'use client';
 
 import { supabase } from './supabaseClient';
 import { addNotification } from './notification-store';
+import { toast } from '@/hooks/use-toast';
 
 export type TransactionType = 'deposit' | 'purchase_hold' | 'purchase_release' | 'purchase_refund';
 
@@ -13,7 +13,7 @@ export interface Transaction {
   type: TransactionType;
   status: 'pending' | 'completed' | 'failed';
   description: string;
-  relatedId?: string; // Product ID or Order ID
+  relatedId?: string;
   timestamp: string;
 }
 
@@ -23,7 +23,6 @@ export interface Wallet {
   frozenBalance: number;
 }
 
-// Resilient mapper with defaults
 const mapWalletFromDB = (w: any): Wallet => ({
   userId: w?.user_id ?? w?.userId ?? '',
   balance: Number(w?.balance ?? 0),
@@ -41,8 +40,12 @@ const mapTransactionFromDB = (t: any): Transaction => ({
   timestamp: t?.created_at ?? t?.timestamp ?? new Date().toISOString()
 });
 
-export const getWallet = async (userId: string): Promise<Wallet | null> => {
-  if (!userId) return null;
+/**
+ * Fetches the definitive wallet state from the server.
+ * Returns a fallback zeroed wallet on error instead of crashing.
+ */
+export const getWallet = async (userId: string): Promise<Wallet> => {
+  if (!userId) return { userId: '', balance: 0, frozenBalance: 0 };
   
   try {
     const { data, error } = await supabase
@@ -51,31 +54,23 @@ export const getWallet = async (userId: string): Promise<Wallet | null> => {
       .eq('user_id', userId)
       .maybeSingle();
 
-    if (error) {
-      console.warn('Wallet fetch warning:', error.message);
-      return { userId, balance: 0, frozenBalance: 0 }; // Defensive fallback
-    }
+    if (error) throw error;
 
     if (!data) {
-      // Attempt to auto-initialize if missing, but return default if insertion fails
-      try {
-        const { data: newData, error: createError } = await supabase
-          .from('wallets')
-          .insert([{ user_id: userId, balance: 0, frozen_balance: 0 }])
-          .select()
-          .single();
-        
-        if (createError) return { userId, balance: 0, frozenBalance: 0 };
-        return mapWalletFromDB(newData);
-      } catch {
-        return { userId, balance: 0, frozenBalance: 0 };
-      }
+      const { data: newData, error: createError } = await supabase
+        .from('wallets')
+        .insert([{ user_id: userId, balance: 0, frozen_balance: 0 }])
+        .select()
+        .single();
+      
+      if (createError) throw createError;
+      return mapWalletFromDB(newData);
     }
 
     return mapWalletFromDB(data);
-  } catch (err) {
-    console.error('Wallet subsystem failure:', err);
-    return { userId, balance: 0, frozenBalance: 0 }; // Critical fallback
+  } catch (err: any) {
+    console.error('Wallet sync failure:', err.message);
+    return { userId, balance: 0, frozenBalance: 0 };
   }
 };
 
@@ -88,13 +83,10 @@ export const getTransactions = async (userId: string): Promise<Transaction[]> =>
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.warn('Transaction fetch warning:', error.message);
-      return [];
-    }
+    if (error) throw error;
     return (data || []).map(mapTransactionFromDB);
-  } catch (err) {
-    console.error('Transaction log subsystem failure:', err);
+  } catch (err: any) {
+    console.error('Transaction fetch failure:', err.message);
     return [];
   }
 };
@@ -102,10 +94,10 @@ export const getTransactions = async (userId: string): Promise<Transaction[]> =>
 export const depositFunds = async (userId: string, amount: number) => {
   if (!userId || amount <= 0) return false;
   try {
+    // Atomic deposit: Let DB handle current balance addition if possible
+    // For now using read-modify-write as we don't have an RPC function
     const wallet = await getWallet(userId);
-    if (!wallet) return false;
-
-    const newBalance = (wallet.balance || 0) + amount;
+    const newBalance = wallet.balance + amount;
 
     const { error: walletError } = await supabase
       .from('wallets')
@@ -131,29 +123,30 @@ export const depositFunds = async (userId: string, amount: number) => {
     });
 
     return true;
-  } catch (err) {
-    console.error('Deposit process failed:', err);
+  } catch (err: any) {
+    toast({ variant: 'destructive', title: 'Deposit Failed', description: err.message });
     return false;
   }
 };
 
+/**
+ * Initiates an Escrow Hold.
+ * Relies on DB response for liquidity checks.
+ */
 export const initiateEscrow = async (buyerId: string, sellerId: string, amount: number, itemId: string) => {
-  if (!buyerId || !sellerId || !itemId) return { success: false, error: 'Invalid parameters' };
-  
   try {
     const buyerWallet = await getWallet(buyerId);
-    if (!buyerWallet) return { success: false, error: 'Wallet not initialized' };
-    if ((buyerWallet.balance || 0) < amount) return { success: false, error: 'Insufficient credits' };
+    if (buyerWallet.balance < amount) throw new Error('Insufficient neural credits.');
 
-    const { error: buyerUpdateError } = await supabase
+    const { error: updateError } = await supabase
       .from('wallets')
       .update({ 
         balance: buyerWallet.balance - amount,
-        frozen_balance: (buyerWallet.frozenBalance || 0) + amount 
+        frozen_balance: buyerWallet.frozenBalance + amount 
       })
       .eq('user_id', buyerId);
 
-    if (buyerUpdateError) throw buyerUpdateError;
+    if (updateError) throw updateError;
 
     await supabase.from('transactions').insert([{
       user_id: buyerId,
@@ -164,75 +157,40 @@ export const initiateEscrow = async (buyerId: string, sellerId: string, amount: 
       description: `Funds reserved for item acquisition (Escrow Hold)`
     }]);
 
-    addNotification({
-      type: 'market_restock',
-      title: 'Purchase Initialized',
-      message: `Escrow hold activated for ${amount} credits. Reserved until delivery confirmation.`,
-      userId: buyerId
-    });
-
     return { success: true };
-  } catch (err) {
-    console.error('Escrow hold failed:', err);
-    return { success: false, error: 'Neural link synchronization failure' };
+  } catch (err: any) {
+    toast({ variant: 'destructive', title: 'Acquisition Failed', description: err.message });
+    return { success: false, error: err.message };
   }
 };
 
 export const releaseEscrow = async (buyerId: string, sellerId: string, amount: number, itemId: string) => {
-  if (!buyerId || !sellerId || !itemId) return false;
-  
   try {
     const [buyerWallet, sellerWallet] = await Promise.all([
       getWallet(buyerId),
       getWallet(sellerId)
     ]);
 
-    if (!buyerWallet || !sellerWallet) throw new Error('Wallet node missing');
-
-    const { error: buyerError } = await supabase
+    const { error: bError } = await supabase
       .from('wallets')
-      .update({ frozen_balance: Math.max(0, (buyerWallet.frozenBalance || 0) - amount) })
+      .update({ frozen_balance: Math.max(0, buyerWallet.frozenBalance - amount) })
       .eq('user_id', buyerId);
+    if (bError) throw bError;
 
-    if (buyerError) throw buyerError;
-
-    const { error: sellerError } = await supabase
+    const { error: sError } = await supabase
       .from('wallets')
-      .update({ balance: (sellerWallet.balance || 0) + amount })
+      .update({ balance: sellerWallet.balance + amount })
       .eq('user_id', sellerId);
-
-    if (sellerError) throw sellerError;
+    if (sError) throw sError;
 
     await supabase.from('transactions').insert([
-      {
-        user_id: buyerId,
-        amount: 0,
-        type: 'purchase_release',
-        status: 'completed',
-        related_id: itemId,
-        description: `Payment released from Escrow`
-      },
-      {
-        user_id: sellerId,
-        amount: amount,
-        type: 'deposit',
-        status: 'completed',
-        related_id: itemId,
-        description: `Payment received for asset synchronization`
-      }
+      { user_id: buyerId, amount: 0, type: 'purchase_release', status: 'completed', related_id: itemId, description: `Payment released from Escrow` },
+      { user_id: sellerId, amount: amount, type: 'deposit', status: 'completed', related_id: itemId, description: `Payment received for asset sync` }
     ]);
 
-    addNotification({
-      type: 'market_restock',
-      title: 'Credits Transferred',
-      message: `You received ${amount} credits for the acquisition of your asset.`,
-      userId: sellerId,
-      priority: 'info'
-    });
-
     return true;
-  } catch (err) {
-    console.error('Escrow release process failure:', err);
+  } catch (err: any) {
+    toast({ variant: 'destructive', title: 'Sync Error', description: 'Failed to release funds.' });
     return false;
   }
 };
