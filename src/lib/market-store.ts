@@ -13,8 +13,11 @@ export type OfferType = 'price' | 'trade';
 
 export interface MarketOffer {
   id: string;
-  userId: string;
-  userName: string;
+  itemId: string;
+  itemTitle?: string;
+  buyerId: string;
+  buyerName?: string;
+  sellerId: string;
   type: OfferType;
   value?: number;
   details?: string;
@@ -62,6 +65,20 @@ const mapItemFromDB = (m: any): MarketItem => ({
   quantity: m.quantity ?? 1,
   category: (m.category || 'digital_assets') as MarketCategory,
   createdAt: m.created_at || m.createdAt || new Date().toISOString(),
+});
+
+const mapOfferFromDB = (o: any): MarketOffer => ({
+  id: o.id,
+  itemId: o.item_id,
+  itemTitle: o.market_items?.title || 'Unknown Item',
+  buyerId: o.buyer_id,
+  buyerName: o.users?.name || 'Anonymous Node',
+  sellerId: o.seller_id,
+  type: o.type as OfferType,
+  value: o.offer_value,
+  details: o.offer_details,
+  status: o.status as OfferStatus,
+  timestamp: o.created_at || new Date().toISOString()
 });
 
 export const getMarketItems = async (
@@ -147,12 +164,12 @@ export const addMarketOffer = async (
   itemId: string, 
   sellerId: string, 
   itemTitle: string,
-  offer: Omit<MarketOffer, 'id' | 'status' | 'timestamp'>
+  offer: Omit<MarketOffer, 'id' | 'status' | 'timestamp' | 'itemId' | 'sellerId'>
 ) => {
   try {
     const payload = {
       item_id: itemId,
-      buyer_id: offer.userId,
+      buyer_id: offer.buyerId,
       seller_id: sellerId,
       type: offer.type,
       offer_value: offer.value || null,
@@ -166,7 +183,7 @@ export const addMarketOffer = async (
     addNotification({
       type: 'market_restock',
       title: 'New Negotiation Request',
-      message: `${offer.userName} sent a ${offer.type} offer for "${itemTitle}"`,
+      message: `${offer.buyerName || 'A node'} sent a ${offer.type} offer for "${itemTitle}"`,
       userId: sellerId,
       priority: 'info'
     });
@@ -178,13 +195,45 @@ export const addMarketOffer = async (
   }
 };
 
-export const updateOfferStatus = async (itemId: string, offerId: string, status: OfferStatus) => {
+export const getReceivedOffers = async (userId: string): Promise<MarketOffer[]> => {
   try {
-    // Note: This logic might need to target market_offers table directly
-    const { error } = await supabase.from('market_offers').update({ status }).eq('id', offerId);
+    const { data, error } = await supabase
+      .from('market_offers')
+      .select('*, market_items(title), users:buyer_id(name)')
+      .eq('seller_id', userId)
+      .order('created_at', { ascending: false });
+
     if (error) throw error;
+    return (data || []).map(mapOfferFromDB);
   } catch (err) {
-    console.error('Update offer failure:', err);
+    console.error('Fetch offers failure:', err);
+    return [];
+  }
+};
+
+export const respondToOffer = async (offerId: string, status: OfferStatus, buyerId: string, itemTitle: string) => {
+  try {
+    const { error } = await supabase
+      .from('market_offers')
+      .update({ status })
+      .eq('id', offerId);
+
+    if (error) throw error;
+
+    addNotification({
+      type: 'market_restock',
+      title: status === 'accepted' ? 'Offer Accepted!' : 'Offer Rejected',
+      message: status === 'accepted' 
+        ? `The seller accepted your offer for "${itemTitle}".` 
+        : `The seller declined your proposal for "${itemTitle}".`,
+      userId: buyerId,
+      priority: status === 'accepted' ? 'info' : 'warning'
+    });
+
+    return true;
+  } catch (err) {
+    console.error('Respond to offer failure:', err);
+    return false;
   }
 };
 

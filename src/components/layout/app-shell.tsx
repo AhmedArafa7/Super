@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
-import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, User, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard } from "lucide-react";
+import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, User, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { NotificationsView } from "@/components/features/notifications-view";
 import { KnowledgeHub } from "@/components/features/knowledge-hub";
 import { WalletView } from "@/components/features/wallet-view";
 import { UserDashboard } from "@/components/features/user-dashboard";
+import { OffersInbox } from "@/components/features/offers-inbox";
 import { getNotifications, AppNotification, clearAllUnreadNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -24,7 +25,7 @@ import { LoginView } from "@/components/auth/login-view";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard";
+type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers";
 
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -46,7 +47,7 @@ export function AppShell() {
     window.addEventListener('notifications-update', updateCount);
     window.addEventListener('storage', updateCount);
     
-    // PHASE 2: Neural Link Synchronization Logic
+    // Neural Link Synchronization Logic
     const handleOnline = () => {
       if (user?.id) processOfflineQueue(user.id);
     };
@@ -78,6 +79,7 @@ export function AppShell() {
     { id: "stream", label: "StreamHub", icon: Video },
     { id: "market", label: "TechMarket", icon: ShoppingBag },
     { id: "wallet", label: "Neural Wallet", icon: Wallet },
+    { id: "offers", label: "Offers Inbox", icon: Tag },
     { id: "learning", label: "Knowledge Hub", icon: GraduationCap },
     { id: "features", label: "Capabilities", icon: Zap },
     { id: "notifications", label: "Notifications", icon: Bell },
@@ -112,6 +114,7 @@ export function AppShell() {
       case "stream": return <StreamHub />;
       case "market": return <TechMarket />;
       case "wallet": return <WalletView />;
+      case "offers": return <OffersInbox />;
       case "features": return <Capabilities />;
       case "admin": return user?.role === 'admin' ? <AdminPanel /> : <AIChat />;
       case "learning": return <KnowledgeHub />;

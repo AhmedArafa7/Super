@@ -41,8 +41,8 @@ export function MakeOfferModal({ item, trigger }: MakeOfferModalProps) {
     setIsSubmitting(true);
     try {
       const success = await addMarketOffer(item.id, item.ownerId, item.title, {
-        userId: user.id,
-        userName: user.name,
+        buyerId: user.id,
+        buyerName: user.name,
         type: offerType,
         value: offerType === 'price' ? Number(offerValue) : undefined,
         details: offerType === 'trade' ? offerDetails : undefined
