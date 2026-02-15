@@ -61,34 +61,21 @@ export const getSubjects = async (userId?: string): Promise<Subject[]> => {
 };
 
 export const addSubject = async (subject: Omit<Subject, 'id' | 'createdAt'>) => {
-  // First attempt: try 'title' which is common for Subject/Lesson entities
-  const firstPayload = {
-    title: subject.name,
+  const payload: any = {
     description: subject.description,
     allowed_user_ids: subject.allowedUserIds,
   };
 
-  const { data, error } = await supabase.from('subjects').insert([firstPayload]).select().single();
-  
-  if (error) {
-    // If 'title' column doesn't exist, try 'name'
-    const secondPayload = {
-      name: subject.name,
-      description: subject.description,
-      allowed_user_ids: subject.allowedUserIds
-    };
-    
-    const { data: retryData, error: retryError } = await supabase.from('subjects').insert([secondPayload]).select().single();
-    
-    if (retryError) {
-      // Only log error if both attempts fail
-      console.error('Error adding subject (failed both title and name columns):', retryError.message);
-      return null;
-    }
-    return mapSubjectFromDB(retryData);
-  }
-  
-  return data ? mapSubjectFromDB(data) : null;
+  // Try with 'name' first
+  const { data: nameData, error: nameError } = await supabase.from('subjects').insert([{ ...payload, name: subject.name }]).select().maybeSingle();
+  if (!nameError && nameData) return mapSubjectFromDB(nameData);
+
+  // If 'name' fails, try with 'title'
+  const { data: titleData, error: titleError } = await supabase.from('subjects').insert([{ ...payload, title: subject.name }]).select().maybeSingle();
+  if (!titleError && titleData) return mapSubjectFromDB(titleData);
+
+  console.error('Error adding subject (all variations failed):', nameError?.message || titleError?.message);
+  return null;
 };
 
 export const deleteSubject = async (id: string) => {
@@ -105,7 +92,7 @@ export const getCollections = async (subjectId: string): Promise<Collection[]> =
   }
 
   return (data || [])
-    .filter(c => (c.subjectId === subjectId || c.subject_id === subjectId))
+    .filter(c => (c.subject_id === subjectId || c.subjectId === subjectId))
     .map(c => ({
       id: c.id,
       subjectId: c.subject_id || c.subjectId,
@@ -114,18 +101,32 @@ export const getCollections = async (subjectId: string): Promise<Collection[]> =
       orderIndex: c.order_index || c.orderIndex || 0,
       createdAt: c.created_at || c.createdAt
     }))
-    .sort((a, b) => a.orderIndex - b.orderIndex);
+    .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
 };
 
 export const addCollection = async (collection: Omit<Collection, 'id' | 'createdAt'>) => {
-  const payload = {
+  const payload: any = {
     subject_id: collection.subjectId,
     title: collection.title,
     description: collection.description,
     order_index: collection.orderIndex,
   };
-  const { data, error } = await supabase.from('collections').insert([payload]).select().single();
-  if (error) console.error('Error adding collection:', error.message);
+
+  // Primary attempt
+  const { data, error } = await supabase.from('collections').insert([payload]).select().maybeSingle();
+  
+  if (error) {
+    // Resilience: If order_index fails, retry without it
+    if (error.message.includes('order_index') || error.message.includes('column')) {
+      const { order_index, ...fallbackPayload } = payload;
+      const { data: retryData, error: retryError } = await supabase.from('collections').insert([fallbackPayload]).select().maybeSingle();
+      if (!retryError) return retryData;
+      console.error('Retry adding collection failed:', retryError.message);
+    }
+    console.error('Error adding collection:', error.message);
+    return null;
+  }
+  
   return data;
 };
 
@@ -138,7 +139,7 @@ export const getLearningItems = async (collectionId: string): Promise<LearningIt
   }
 
   return (data || [])
-    .filter(i => (i.collectionId === collectionId || i.collection_id === collectionId))
+    .filter(i => (i.collection_id === collectionId || i.collectionId === collectionId))
     .map(i => ({
       id: i.id,
       collectionId: i.collection_id || i.collectionId,
@@ -149,11 +150,11 @@ export const getLearningItems = async (collectionId: string): Promise<LearningIt
       orderIndex: i.order_index || i.orderIndex || 0,
       createdAt: i.created_at || i.createdAt
     }))
-    .sort((a, b) => a.orderIndex - b.orderIndex);
+    .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
 };
 
 export const addLearningItem = async (item: Omit<LearningItem, 'id' | 'createdAt'>) => {
-  const payload = {
+  const payload: any = {
     collection_id: item.collectionId,
     title: item.title,
     type: item.type,
@@ -161,25 +162,45 @@ export const addLearningItem = async (item: Omit<LearningItem, 'id' | 'createdAt
     quiz_data: item.quizData,
     order_index: item.orderIndex,
   };
-  const { data, error } = await supabase.from('learning_items').insert([payload]).select().single();
-  if (error) console.error('Error adding learning item:', error.message);
+
+  const { data, error } = await supabase.from('learning_items').insert([payload]).select().maybeSingle();
+  
+  if (error) {
+    // Resilience: If order_index fails, retry without it
+    if (error.message.includes('order_index') || error.message.includes('column')) {
+      const { order_index, ...fallbackPayload } = payload;
+      const { data: retryData, error: retryError } = await supabase.from('learning_items').insert([fallbackPayload]).select().maybeSingle();
+      if (!retryError) return retryData;
+    }
+    console.error('Error adding learning item:', error.message);
+    return null;
+  }
+  
   return data;
 };
 
 export const uploadLearningFile = async (file: File): Promise<string | null> => {
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${Math.random()}.${fileExt}`;
-  const filePath = `learning-content/${fileName}`;
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `learning-content/${fileName}`;
 
-  const { error: uploadError } = await supabase.storage
-    .from('nexus-content')
-    .upload(filePath, file);
+    // Try multiple bucket names for resilience
+    let bucket = 'nexus-content';
+    
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file);
 
-  if (uploadError) {
-    console.error('Error uploading file:', uploadError.message);
+    if (uploadError) {
+      console.error(`Error uploading to ${bucket}:`, uploadError.message);
+      return null;
+    }
+
+    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+    return data.publicUrl;
+  } catch (err) {
+    console.error('File upload exception:', err);
     return null;
   }
-
-  const { data } = supabase.storage.from('nexus-content').getPublicUrl(filePath);
-  return data.publicUrl;
 };
