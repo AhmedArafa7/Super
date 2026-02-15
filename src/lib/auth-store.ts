@@ -11,13 +11,11 @@ export interface User {
   password?: string;
   name: string;
   role: UserRole;
+  avatar_url?: string;
 }
 
 const SESSION_KEY = 'nexus_session';
 
-/**
- * Maps database user object to the frontend User interface.
- */
 export const mapUserFromDB = (u: any): User => {
   if (!u) return null as any;
   return {
@@ -25,7 +23,8 @@ export const mapUserFromDB = (u: any): User => {
     username: u.username,
     password: u.password,
     name: u.full_name || u.username || 'Unknown Node',
-    role: u.role || 'user'
+    role: u.role || 'user',
+    avatar_url: u.avatar_url || ''
   };
 };
 
@@ -35,90 +34,73 @@ export const getSession = (): User | null => {
     const stored = localStorage.getItem(SESSION_KEY);
     return stored ? JSON.parse(stored) : null;
   } catch (e) {
-    console.error('Session retrieval failure:', e);
     return null;
   }
 };
 
 export const setSession = (user: User | null) => {
   if (typeof window === 'undefined') return;
-  try {
-    if (user) {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(SESSION_KEY);
-    }
-    window.dispatchEvent(new Event('auth-update'));
-  } catch (e) {
-    console.error('Session update failure:', e);
+  if (user) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+  } else {
+    localStorage.removeItem(SESSION_KEY);
   }
+  window.dispatchEvent(new Event('auth-update'));
 };
 
 export const getStoredUsers = async (): Promise<User[]> => {
-  try {
-    const { data, error } = await supabase.from('users').select('*');
-    if (error) throw error;
-    return (data || []).map(mapUserFromDB);
-  } catch (err: any) {
-    console.error('Error fetching users:', err.message);
-    return [];
-  }
+  const { data, error } = await supabase.from('users').select('*');
+  if (error) return [];
+  return (data || []).map(mapUserFromDB);
 };
 
 export const addUser = async (user: Omit<User, 'id'>) => {
-  try {
-    const payload = {
-      username: user.username,
-      password: user.password,
-      full_name: user.name,
-      role: user.role
-    };
+  const payload = {
+    username: user.username,
+    password: user.password,
+    full_name: user.name,
+    role: user.role,
+    avatar_url: user.avatar_url
+  };
 
-    const { data, error } = await supabase.from('users').insert([payload]).select().single();
-    if (error) throw error;
-    window.dispatchEvent(new Event('auth-update'));
-    return mapUserFromDB(data);
-  } catch (err: any) {
-    console.error('Error adding user:', err.message);
-    throw err;
-  }
+  const { data, error } = await supabase.from('users').insert([payload]).select().single();
+  if (error) throw error;
+  window.dispatchEvent(new Event('auth-update'));
+  return mapUserFromDB(data);
 };
 
 export const deleteUser = async (id: string) => {
-  try {
-    const { error } = await supabase.from('users').delete().eq('id', id);
-    if (error) throw error;
-    window.dispatchEvent(new Event('auth-update'));
-  } catch (err: any) {
-    console.error('Error deleting user:', err.message);
-    throw err;
-  }
+  await supabase.from('users').delete().eq('id', id);
+  window.dispatchEvent(new Event('auth-update'));
 };
 
 export const updateUserProfile = async (userId: string, updates: Partial<User>) => {
-  try {
-    const dbUpdates: any = {};
-    if (updates.name) dbUpdates.full_name = updates.name;
-    if (updates.role) dbUpdates.role = updates.role;
+  const dbUpdates: any = {};
+  if (updates.name) dbUpdates.full_name = updates.name;
+  if (updates.role) dbUpdates.role = updates.role;
+  if (updates.avatar_url !== undefined) dbUpdates.avatar_url = updates.avatar_url;
 
-    const { data, error } = await supabase
-      .from('users')
-      .update(dbUpdates)
-      .eq('id', userId)
-      .select()
-      .single();
+  const { data, error } = await supabase
+    .from('users')
+    .update(dbUpdates)
+    .eq('id', userId)
+    .select()
+    .single();
 
-    if (error) throw error;
-    
-    const mappedUser = mapUserFromDB(data);
-    const currentSession = getSession();
-    if (currentSession && currentSession.id === userId) {
-      setSession({ ...currentSession, ...mappedUser });
-    }
-    
-    return mappedUser;
-  } catch (err: any) {
-    console.error('Profile update failed:', err.message);
-    throw err;
+  if (error) throw error;
+  
+  const mappedUser = mapUserFromDB(data);
+  const currentSession = getSession();
+  if (currentSession && currentSession.id === userId) {
+    setSession({ ...currentSession, ...mappedUser });
   }
+  return mappedUser;
+};
+
+export const uploadAvatar = async (file: File): Promise<string | null> => {
+  const fileName = `${crypto.randomUUID()}-${file.name}`;
+  const { error } = await supabase.storage.from('avatars').upload(fileName, file);
+  if (error) return null;
+  const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+  return urlData.publicUrl;
 };

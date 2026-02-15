@@ -21,6 +21,7 @@ export interface Collection {
   subjectId: string;
   title: string;
   description?: string;
+  orderIndex: number;
   createdAt: string;
 }
 
@@ -33,24 +34,21 @@ export interface Subject {
   createdAt: string;
 }
 
-const mapSubjectFromDB = (s: any): Subject => ({
-  id: s.id,
-  title: s.title || 'Untitled Subject',
-  description: s.description || '',
-  icon: s.icon || '',
-  allowedUserIds: s.allowed_user_ids || null,
-  createdAt: s.created_at || new Date().toISOString()
-});
-
 export const getSubjects = async (userId?: string): Promise<Subject[]> => {
   const { data, error } = await supabase.from('subjects').select('*');
   if (error) return [];
   
-  let subjects = (data || []).map(mapSubjectFromDB);
-  return subjects.filter(s => {
+  return (data || []).map(s => ({
+    id: s.id,
+    title: s.title,
+    description: s.description || '',
+    icon: s.icon || '',
+    allowedUserIds: s.allowed_user_ids || null,
+    createdAt: s.created_at
+  })).filter(s => {
     if (!s.allowedUserIds || s.allowedUserIds.length === 0) return true;
     return userId && s.allowedUserIds.includes(userId);
-  }).sort((a, b) => a.title.localeCompare(b.title));
+  });
 };
 
 export const addSubject = async (subject: Omit<Subject, 'id' | 'createdAt'>) => {
@@ -60,9 +58,8 @@ export const addSubject = async (subject: Omit<Subject, 'id' | 'createdAt'>) => 
     icon: subject.icon,
     allowed_user_ids: subject.allowedUserIds
   }]).select().single();
-  
   if (error) throw error;
-  return mapSubjectFromDB(data);
+  return data;
 };
 
 export const deleteSubject = async (id: string) => {
@@ -72,7 +69,8 @@ export const deleteSubject = async (id: string) => {
 export const getCollections = async (subjectId: string): Promise<Collection[]> => {
   const { data, error } = await supabase.from('collections')
     .select('*')
-    .eq('subject_id', subjectId);
+    .eq('subject_id', subjectId)
+    .order('order_index', { ascending: true });
   
   if (error) return [];
   return (data || []).map(c => ({
@@ -80,6 +78,7 @@ export const getCollections = async (subjectId: string): Promise<Collection[]> =
     subjectId: c.subject_id,
     title: c.title,
     description: c.description || '',
+    orderIndex: c.order_index || 0,
     createdAt: c.created_at
   }));
 };
@@ -88,9 +87,9 @@ export const addCollection = async (collection: Omit<Collection, 'id' | 'created
   const { data, error } = await supabase.from('collections').insert([{
     subject_id: collection.subjectId,
     title: collection.title,
-    description: collection.description
+    description: collection.description,
+    order_index: collection.orderIndex
   }]).select().single();
-  
   if (error) throw error;
   return data;
 };
@@ -123,22 +122,19 @@ export const addLearningItem = async (item: Omit<LearningItem, 'id' | 'createdAt
     quiz_data: item.quizData,
     order_index: item.orderIndex
   }]).select().single();
-  
   if (error) throw error;
   return data;
 };
 
 export const uploadLearningFile = async (file: File): Promise<string | null> => {
-  const bucketsToTry = ['learning', 'nexus-content', 'avatars', 'public'];
-  for (const bucket of bucketsToTry) {
-    try {
-      const fileName = `${crypto.randomUUID()}-${file.name}`;
-      const { data, error } = await supabase.storage.from(bucket).upload(fileName, file);
-      if (!error) {
-        const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
-        return urlData.publicUrl;
-      }
-    } catch (err) {}
+  const fileName = `${crypto.randomUUID()}-${file.name}`;
+  const { error } = await supabase.storage.from('learning').upload(fileName, file);
+  if (error) {
+    const { error: error2 } = await supabase.storage.from('nexus-content').upload(fileName, file);
+    if (error2) return null;
+    const { data: urlData } = supabase.storage.from('nexus-content').getPublicUrl(fileName);
+    return urlData.publicUrl;
   }
-  return null;
+  const { data: urlData } = supabase.storage.from('learning').getPublicUrl(fileName);
+  return urlData.publicUrl;
 };

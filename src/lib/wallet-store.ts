@@ -1,4 +1,3 @@
-
 'use client';
 
 import { create } from 'zustand';
@@ -26,13 +25,27 @@ export interface Wallet {
   currency: string;
 }
 
+export interface PendingTransaction {
+  id: string;
+  title: string;
+  price: number;
+  timestamp: string;
+  status: 'pending_sync' | 'failed_needs_action';
+  errorReason?: string;
+}
+
 interface WalletState {
   wallet: Wallet | null;
   transactions: Transaction[];
+  pendingTransactions: PendingTransaction[];
   isLoading: boolean;
   fetchWallet: (userId: string) => Promise<void>;
   fetchTransactions: (userId: string) => Promise<void>;
   depositFunds: (userId: string, amount: number) => Promise<boolean>;
+  addPendingTransaction: (tx: PendingTransaction) => void;
+  removePendingTransaction: (id: string) => void;
+  retryTransaction: (userId: string, txId: string) => Promise<void>;
+  processOfflineQueue: (userId: string) => Promise<void>;
 }
 
 const mapWalletFromDB = (w: any): Wallet => ({
@@ -47,7 +60,7 @@ const mapTransactionFromDB = (t: any): Transaction => ({
   walletId: t.wallet_id,
   amount: Number(t.amount || 0),
   type: t.type as TransactionType,
-  status: (t.status as any) || 'failed',
+  status: (t.status || 'failed') as any,
   description: t.description || '',
   relatedOrderId: t.related_order_id,
   timestamp: t.created_at
@@ -58,73 +71,90 @@ export const useWalletStore = create<WalletState>()(
     (set, get) => ({
       wallet: null,
       transactions: [],
+      pendingTransactions: [],
       isLoading: false,
 
       fetchWallet: async (userId) => {
-        try {
-          const { data, error } = await supabase
-            .from('wallets')
-            .select('*')
-            .eq('user_id', userId)
-            .maybeSingle();
-
-          if (error) throw error;
-          if (!data) {
-            const { data: newData } = await supabase
-              .from('wallets')
-              .insert([{ user_id: userId, balance: 0, frozen_balance: 0, currency: 'Credits' }])
-              .select().single();
-            if (newData) set({ wallet: mapWalletFromDB(newData) });
-          } else {
-            set({ wallet: mapWalletFromDB(data) });
-          }
-        } catch (err) {}
+        const { data, error } = await supabase.from('wallets').select('*').eq('user_id', userId).maybeSingle();
+        if (!error && data) set({ wallet: mapWalletFromDB(data) });
       },
 
       fetchTransactions: async (userId) => {
-        try {
-          const { data, error } = await supabase
-            .from('transactions')
-            .select('*')
-            .eq('wallet_id', userId)
-            .order('created_at', { ascending: false });
-
-          if (!error) set({ transactions: (data || []).map(mapTransactionFromDB) });
-        } catch (err) {}
+        const { data, error } = await supabase.from('transactions').select('*').eq('wallet_id', userId).order('created_at', { ascending: false });
+        if (!error) set({ transactions: (data || []).map(mapTransactionFromDB) });
       },
 
       depositFunds: async (userId, amount) => {
         try {
-          const { data: wallet, error: walletError } = await supabase
-            .from('wallets')
-            .select('user_id, balance')
-            .eq('user_id', userId)
-            .maybeSingle();
+          const { data: wallet } = await supabase.from('wallets').select('balance').eq('user_id', userId).single();
+          if (!wallet) return false;
 
-          if (walletError || !wallet) return false;
-
-          const newBalance = Number(wallet.balance || 0) + amount;
-          
-          const { error: updateError } = await supabase
-            .from('wallets')
-            .update({ balance: newBalance })
-            .eq('user_id', userId);
-
-          if (updateError) throw updateError;
+          const { error } = await supabase.from('wallets').update({ balance: wallet.balance + amount }).eq('user_id', userId);
+          if (error) throw error;
 
           await supabase.from('transactions').insert([{
             wallet_id: userId,
             amount,
             type: 'deposit',
             status: 'completed',
-            description: `Manual Node Deposit (+${amount})`
+            description: 'Neural Node Deposit'
           }]);
 
           await get().fetchWallet(userId);
+          await get().fetchTransactions(userId);
           return true;
         } catch (err) {
-          console.error('Deposit error:', err);
+          console.error('Deposit sync failed:', err);
           return false;
+        }
+      },
+
+      addPendingTransaction: (tx) => {
+        set((state) => ({
+          pendingTransactions: [...state.pendingTransactions, tx]
+        }));
+      },
+
+      removePendingTransaction: (id) => {
+        set((state) => ({
+          pendingTransactions: state.pendingTransactions.filter(t => t.id !== id)
+        }));
+      },
+
+      retryTransaction: async (userId, txId) => {
+        const tx = get().pendingTransactions.find(t => t.id === txId);
+        if (!tx) return;
+
+        set(state => ({
+          pendingTransactions: state.pendingTransactions.map(t => 
+            t.id === txId ? { ...t, status: 'pending_sync' } : t
+          )
+        }));
+
+        // Mocking a retry attempt to the hypothetical backend
+        setTimeout(async () => {
+          if (navigator.onLine) {
+            get().removePendingTransaction(txId);
+            toast({ title: "Sync Successful", description: `Acquisition of "${tx.title}" finalized.` });
+            await get().fetchWallet(userId);
+          } else {
+            set(state => ({
+              pendingTransactions: state.pendingTransactions.map(t => 
+                t.id === txId ? { ...t, status: 'failed_needs_action', errorReason: 'Network Link Unstable' } : t
+              )
+            }));
+          }
+        }, 1500);
+      },
+
+      processOfflineQueue: async (userId) => {
+        const { pendingTransactions } = get();
+        if (pendingTransactions.length === 0) return;
+
+        for (const tx of pendingTransactions) {
+          if (tx.status === 'pending_sync') {
+            await get().retryTransaction(userId, tx.id);
+          }
         }
       }
     }),
@@ -132,49 +162,12 @@ export const useWalletStore = create<WalletState>()(
   )
 );
 
-/**
- * Standalone helper to fetch a wallet
- */
-export const getWallet = async (userId: string): Promise<Wallet | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('wallets')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-    
-    if (error || !data) return null;
-    return mapWalletFromDB(data);
-  } catch (e) {
-    return null;
-  }
-};
+// Selectors
+export const selectTotalPendingDebt = (state: WalletState) => 
+  state.pendingTransactions.reduce((acc, tx) => acc + tx.price, 0);
 
-/**
- * Standalone helper to fetch transactions
- */
-export const getTransactions = async (userId: string): Promise<Transaction[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('wallet_id', userId)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return (data || []).map(mapTransactionFromDB);
-  } catch (e) {
-    console.error('Failed to get transactions:', e);
-    return [];
-  }
-};
-
-/**
- * Standalone helper to deposit funds
- */
-export const depositFunds = async (userId: string, amount: number): Promise<boolean> => {
-  return useWalletStore.getState().depositFunds(userId, amount);
-};
-
-export const selectTotalPendingDebt = (state: any) => 0;
-export type PendingTransaction = any;
+// Exports for direct use
+export const getWallet = (userId: string) => useWalletStore.getState().fetchWallet(userId);
+export const getTransactions = (userId: string) => useWalletStore.getState().fetchTransactions(userId);
+export const depositFunds = (userId: string, amount: number) => useWalletStore.getState().depositFunds(userId, amount);
+export const processOfflineQueue = (userId: string) => useWalletStore.getState().processOfflineQueue(userId);
