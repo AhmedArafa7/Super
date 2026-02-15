@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
-import { updateUserProfile, uploadAvatar } from "@/lib/auth-store";
+import { updateUserProfile } from "@/lib/auth-store";
 import { getTransactions, Transaction } from "@/lib/wallet-store";
 import { getReceivedOffers } from "@/lib/market-store";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -25,7 +25,6 @@ export function UserDashboard() {
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState(user?.name || "");
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [orders, setOrders] = useState<Transaction[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [pendingOffersCount, setPendingOffersCount] = useState(0);
@@ -75,24 +74,6 @@ export function UserDashboard() {
     }
   };
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user?.id) return;
-
-    setIsUploading(true);
-    try {
-      const publicUrl = await uploadAvatar(user.id, file);
-      if (publicUrl) {
-        await updateUserProfile(user.id, { avatar_url: publicUrl });
-        toast({ title: "Avatar Uploaded", description: "Visual node identifier updated." });
-      }
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Upload Failed", description: err.message });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -135,18 +116,8 @@ export function UserDashboard() {
             <Card className="glass border-white/5 rounded-[2.5rem] p-8 flex flex-col items-center text-center">
               <div className="relative group mb-6">
                 <div className="size-32 rounded-[2.5rem] bg-indigo-500/10 border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden transition-all group-hover:border-primary/50">
-                  {isUploading ? (
-                    <Loader2 className="size-8 animate-spin text-primary" />
-                  ) : user?.avatar_url ? (
-                    <img src={user.avatar_url} alt="Avatar" className="size-full object-cover" />
-                  ) : (
-                    <User className="size-12 text-muted-foreground" />
-                  )}
+                  <User className="size-12 text-muted-foreground" />
                 </div>
-                <label className="absolute bottom-2 right-2 size-10 bg-primary rounded-2xl flex items-center justify-center cursor-pointer shadow-lg shadow-primary/30 hover:scale-110 transition-transform">
-                  <Upload className="size-4 text-white" />
-                  <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} disabled={isUploading} />
-                </label>
               </div>
               <h3 className="text-xl font-bold text-white">{user?.name}</h3>
               <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">@{user?.username}</p>

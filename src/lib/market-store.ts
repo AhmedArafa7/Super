@@ -2,7 +2,6 @@
 'use client';
 
 import { supabase } from './supabaseClient';
-import { addNotification } from './notification-store';
 
 export type ListingType = 'sell_offer' | 'buy_request';
 export type PricingMode = 'fixed' | 'range' | 'negotiable';
@@ -29,20 +28,12 @@ export interface MarketItem {
   id: string;
   title: string;
   description: string;
-  listingType: ListingType;
-  pricingMode: PricingMode;
   price?: number;
-  minPrice?: number;
-  maxPrice?: number;
-  currency: string;
-  status: MarketItemStatus;
-  offers: MarketOffer[];
-  ownerId: string;
-  ownerName: string;
-  buyerId?: string;
-  image?: string;
-  quantity: number;
+  sellerId: string;
+  imageUrl?: string;
   category: MarketCategory;
+  stockQuantity: number;
+  status: MarketItemStatus;
   createdAt: string;
 }
 
@@ -50,43 +41,28 @@ const mapItemFromDB = (m: any): MarketItem => ({
   id: m.id,
   title: m.title || 'Untitled',
   description: m.description || '',
-  listingType: (m.listing_type || m.listingType || 'sell_offer') as ListingType,
-  pricingMode: (m.pricing_mode || m.pricingMode || 'fixed') as PricingMode,
   price: m.price || 0,
-  minPrice: m.min_price || m.minPrice || 0,
-  maxPrice: m.max_price || m.maxPrice || 0,
-  currency: m.currency || 'Credits',
-  status: (m.status || 'active') as MarketItemStatus,
-  offers: m.offers || [],
-  ownerId: m.seller_id || m.owner_id || m.ownerId || '',
-  ownerName: m.owner_name || m.ownerName || 'Unknown',
-  buyerId: m.buyer_id || m.buyerId || undefined,
-  image: m.image || '',
-  quantity: m.quantity ?? 1,
+  sellerId: m.seller_id || '',
+  imageUrl: m.image_url || '',
   category: (m.category || 'digital_assets') as MarketCategory,
-  createdAt: m.created_at || m.createdAt || new Date().toISOString(),
+  stockQuantity: m.stock_quantity ?? 1,
+  status: (m.status || 'active') as MarketItemStatus,
+  createdAt: m.created_at || new Date().toISOString(),
 });
 
-const mapOfferFromDB = (o: any): MarketOffer => {
-  // Resilient title mapping
-  const itemTitle = o.products?.title || o.product?.title || o.market_items?.title || 'Unknown Item';
-  // Resilient name mapping (checking full_name then name)
-  const buyerName = o.users?.full_name || o.users?.name || o.buyer?.name || 'Anonymous Node';
-
-  return {
-    id: o.id,
-    itemId: o.product_id || o.item_id,
-    itemTitle,
-    buyerId: o.buyer_id,
-    buyerName,
-    sellerId: o.seller_id,
-    type: (o.offer_type || o.type || 'price') as OfferType,
-    value: o.offer_value || o.value,
-    details: o.offer_details || o.details,
-    status: (o.status || 'pending') as OfferStatus,
-    timestamp: o.created_at || new Date().toISOString()
-  };
-};
+const mapOfferFromDB = (o: any): MarketOffer => ({
+  id: o.id,
+  itemId: o.product_id,
+  itemTitle: o.products?.title || 'Unknown Item',
+  buyerId: o.buyer_id,
+  buyerName: o.users?.full_name || 'Anonymous Node',
+  sellerId: o.seller_id,
+  type: (o.offer_type || 'price') as OfferType,
+  value: o.offer_value || 0,
+  details: o.offer_details || '',
+  status: (o.status || 'pending') as OfferStatus,
+  timestamp: o.created_at
+});
 
 export const getMarketItems = async (
   from = 0, 
@@ -95,191 +71,63 @@ export const getMarketItems = async (
   category?: MarketCategory
 ): Promise<{ items: MarketItem[], hasMore: boolean }> => {
   try {
-    let query = supabase
-      .from('products')
-      .select('*', { count: 'exact' });
-
-    if (search) {
-      query = query.ilike('title', `%${search}%`);
-    }
-
-    if (category && category !== 'all') {
-      query = query.eq('category', category);
-    }
+    let query = supabase.from('products').select('*', { count: 'exact' });
+    if (search) query = query.ilike('title', `%${search}%`);
+    if (category && category !== 'all') query = query.eq('category', category);
 
     const { data, error, count } = await query
       .range(from, to)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    
-    const items = (data || []).map(mapItemFromDB);
-    const hasMore = count ? to < count - 1 : false;
-    
-    return { items, hasMore };
+    return { items: (data || []).map(mapItemFromDB), hasMore: count ? to < count - 1 : false };
   } catch (err) {
-    console.error('Market fetch failure:', err);
     return { items: [], hasMore: false };
   }
 };
 
-export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'createdAt' | 'offers' | 'status'>) => {
-  try {
-    const payload = {
-      title: item.title,
-      description: item.description,
-      listing_type: item.listingType,
-      pricing_mode: item.pricingMode,
-      price: item.price,
-      min_price: item.minPrice,
-      max_price: item.maxPrice,
-      currency: item.currency,
-      seller_id: item.ownerId,
-      owner_name: item.ownerName,
-      image: item.image,
-      quantity: item.quantity,
-      category: item.category,
-      status: 'active'
-    };
-
-    const { data, error } = await supabase.from('products').insert([payload]).select().single();
-    if (error) throw error;
-
-    addNotification({
-      type: 'market_restock',
-      title: 'New Neural Asset',
-      message: `${item.ownerName} listed "${item.title}"`,
-      priority: 'info'
-    });
-
-    return mapItemFromDB(data);
-  } catch (err) {
-    console.error('Add item failure:', err);
-    throw err;
-  }
+export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'createdAt' | 'status'>) => {
+  const payload = {
+    title: item.title,
+    description: item.description,
+    price: item.price,
+    seller_id: item.sellerId,
+    image_url: item.imageUrl,
+    category: item.category,
+    stock_quantity: item.stockQuantity,
+    status: 'active'
+  };
+  const { data, error } = await supabase.from('products').insert([payload]).select().single();
+  if (error) throw error;
+  return mapItemFromDB(data);
 };
 
-export const updateItemStatus = async (itemId: string, status: MarketItemStatus, buyerId?: string) => {
-  try {
-    await supabase.from('products').update({ status, buyer_id: buyerId }).eq('id', itemId);
-  } catch (err) {
-    console.error('Update status failure:', err);
-  }
-};
-
-export const addMarketOffer = async (
-  itemId: string, 
-  sellerId: string, 
-  itemTitle: string,
-  offer: Omit<MarketOffer, 'id' | 'status' | 'timestamp' | 'itemId' | 'sellerId'>
-) => {
-  try {
-    const payload = {
-      product_id: itemId,
-      buyer_id: offer.buyerId,
-      seller_id: sellerId,
-      offer_type: offer.type,
-      offer_value: offer.value || null,
-      offer_details: offer.details || null,
-      status: 'pending'
-    };
-
-    const { error } = await supabase.from('offers').insert([payload]);
-    if (error) throw error;
-
-    addNotification({
-      type: 'market_restock',
-      title: 'New Negotiation Request',
-      message: `${offer.buyerName || 'A node'} sent a ${offer.type} offer for "${itemTitle}"`,
-      userId: sellerId,
-      priority: 'info'
-    });
-
-    return true;
-  } catch (err) {
-    console.error('Add offer failure:', err);
-    throw err;
-  }
+export const addMarketOffer = async (itemId: string, sellerId: string, offer: Omit<MarketOffer, 'id' | 'status' | 'timestamp' | 'itemId' | 'sellerId'>) => {
+  const payload = {
+    product_id: itemId,
+    buyer_id: offer.buyerId,
+    seller_id: sellerId,
+    offer_type: offer.type,
+    offer_value: offer.value || null,
+    offer_details: offer.details || null,
+    status: 'pending'
+  };
+  const { error } = await supabase.from('offers').insert([payload]);
+  return !error;
 };
 
 export const getReceivedOffers = async (userId: string): Promise<MarketOffer[]> => {
-  try {
-    // Explicit join syntax to avoid ambiguity in Supabase
-    const { data, error } = await supabase
-      .from('offers')
-      .select(`
-        *,
-        products!product_id (
-          title
-        ),
-        users!buyer_id (
-          full_name,
-          name
-        )
-      `)
-      .eq('seller_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      // Fallback: If joins fail, at least get the base data to prevent app crash
-      const { data: simpleData, error: simpleError } = await supabase
-        .from('offers')
-        .select('*')
-        .eq('seller_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (simpleError) {
-        console.error('Total failure in getReceivedOffers:', simpleError);
-        return [];
-      }
-      return (simpleData || []).map(mapOfferFromDB);
-    }
-    
-    return (data || []).map(mapOfferFromDB);
-  } catch (err) {
-    console.error('Fetch offers failure:', err);
-    return [];
-  }
+  const { data, error } = await supabase
+    .from('offers')
+    .select(`*, products(title), users!buyer_id(full_name)`)
+    .eq('seller_id', userId)
+    .order('created_at', { ascending: false });
+  
+  if (error) return [];
+  return (data || []).map(mapOfferFromDB);
 };
 
-export const respondToOffer = async (offerId: string, status: OfferStatus, buyerId: string, itemTitle: string) => {
-  try {
-    const { error } = await supabase
-      .from('offers')
-      .update({ status })
-      .eq('id', offerId);
-
-    if (error) throw error;
-
-    addNotification({
-      type: 'market_restock',
-      title: status === 'accepted' ? 'Offer Accepted!' : 'Offer Rejected',
-      message: status === 'accepted' 
-        ? `The seller accepted your offer for "${itemTitle}".` 
-        : `The seller declined your proposal for "${itemTitle}".`,
-      userId: buyerId,
-      priority: status === 'accepted' ? 'info' : 'warning'
-    });
-
-    return true;
-  } catch (err) {
-    console.error('Respond to offer failure:', err);
-    return false;
-  }
-};
-
-export const updateItemQuantity = async (itemId: string, quantity: number) => {
-  try {
-    await supabase.from('products').update({ quantity }).eq('id', itemId);
-  } catch (err) {
-    console.error('Update quantity failure:', err);
-  }
-};
-
-export const deleteMarketItem = async (id: string) => {
-  try {
-    await supabase.from('products').delete().eq('id', id);
-  } catch (err) {
-    console.error('Delete item failure:', err);
-  }
+export const respondToOffer = async (offerId: string, status: OfferStatus) => {
+  const { error } = await supabase.from('offers').update({ status }).eq('id', offerId);
+  return !error;
 };

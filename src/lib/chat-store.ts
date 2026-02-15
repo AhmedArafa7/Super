@@ -25,9 +25,7 @@ export interface WizardMessage {
   status: MessageStatus;
   timestamp: string;
   isEdited?: boolean;
-  isUserEdited?: boolean;
   editReason?: string;
-  editedAt?: string;
   attachments?: Attachment[];
 }
 
@@ -41,7 +39,6 @@ interface ChatState {
   updateMessageText: (id: string, text: string) => Promise<void>;
   deleteMessage: (id: string) => Promise<void>;
   setConnected: (status: boolean) => void;
-  // Admin actions
   approveMessage: (id: string, response: string) => Promise<void>;
   rejectMessage: (id: string) => Promise<void>;
   editMessage: (id: string, newResponse: string, reason: string) => Promise<void>;
@@ -49,18 +46,16 @@ interface ChatState {
 
 const mapMessageFromDB = (m: any): WizardMessage => {
   return {
-    id: String(m?.id ?? Math.random()),
-    userId: m?.userId ?? m?.user_id ?? 'unknown',
-    userName: m?.userName ?? m?.user_name ?? 'Anonymous Node',
-    text: m?.text ?? '',
-    response: m?.response ?? null,
-    status: (m?.status as MessageStatus) ?? 'sent',
-    timestamp: m?.timestamp ?? m?.created_at ?? new Date().toISOString(),
-    isEdited: m?.isEdited ?? m?.is_edited ?? false,
-    isUserEdited: m?.isUserEdited ?? m?.is_user_edited ?? false,
-    editReason: m?.editReason ?? m?.edit_reason ?? '',
-    editedAt: m?.editedAt ?? m?.edited_at ?? null,
-    attachments: m?.attachments ?? []
+    id: m.id,
+    userId: m.sender_id || 'unknown',
+    userName: m.sender_name || 'Anonymous Node',
+    text: m.text || '',
+    response: m.response || null,
+    status: (m.status as MessageStatus) || 'sent',
+    timestamp: m.created_at || new Date().toISOString(),
+    isEdited: m.is_edited || false,
+    editReason: m.edit_reason || '',
+    attachments: m.attachments || []
   };
 };
 
@@ -75,31 +70,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loadMessages: async (userId, isAdmin) => {
     set({ isLoading: true });
     try {
-      const { data, error } = await supabase.from('messages').select('*');
-      
-      if (error) {
-        console.error('Supabase Query Error (messages):', error.message, error.details);
-        set({ isLoading: false });
-        return;
-      }
+      const { data, error } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+      if (error) throw error;
       
       let mapped = (data || []).map(mapMessageFromDB);
       if (!isAdmin && userId) {
         mapped = mapped.filter(m => m.userId === userId);
       }
       
-      set({ 
-        messages: mapped.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()),
-        isLoading: false 
-      });
+      set({ messages: mapped, isLoading: false });
     } catch (err: any) {
-      console.error('Failed to load chat history:', err?.message || err);
+      console.error('Failed to load chat history:', err.message);
       set({ isLoading: false });
     }
   },
 
   sendMessage: async (text, userId, userName, attachments) => {
-    const optimisticId = `opt-${Math.random()}`;
+    const optimisticId = crypto.randomUUID();
     const optimisticMsg: WizardMessage = {
       id: optimisticId,
       userId,
@@ -118,47 +105,38 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     try {
       const payload = {
-        user_id: userId,
-        user_name: userName,
-        text: text ?? '',
+        sender_id: userId,
+        sender_name: userName,
+        text: text,
         status: 'sent',
-        attachments: attachments ?? [],
-        timestamp: new Date().toISOString()
+        attachments: attachments ?? []
       };
 
       const { data, error } = await supabase.from('messages').insert([payload]).select().single();
       if (error) throw error;
 
-      // Replace optimistic message with actual data
       set(state => ({
         messages: state.messages.map(m => m.id === optimisticId ? mapMessageFromDB(data) : m),
         isSending: false
       }));
     } catch (err: any) {
-      console.error('Send message failure:', err?.message || err);
       toast({ variant: 'destructive', title: 'Sync Error', description: 'Failed to transmit message.' });
       set(state => ({ 
         messages: state.messages.filter(m => m.id !== optimisticId),
         isSending: false 
       }));
-      throw err;
     }
   },
 
   updateMessageText: async (id, text) => {
     try {
-      const { error } = await supabase.from('messages').update({ 
-        text, 
-        is_user_edited: true 
-      }).eq('id', id);
+      const { error } = await supabase.from('messages').update({ text }).eq('id', id);
       if (error) throw error;
-      
       set(state => ({
-        messages: state.messages.map(m => m.id === id ? { ...m, text, isUserEdited: true } : m)
+        messages: state.messages.map(m => m.id === id ? { ...m, text } : m)
       }));
     } catch (err: any) {
-      console.error('Update message failure:', err?.message || err);
-      toast({ variant: 'destructive', title: 'Edit Error', description: 'Failed to update request.' });
+      toast({ variant: 'destructive', title: 'Edit Error', description: err.message });
     }
   },
 
@@ -168,8 +146,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (error) throw error;
       set(state => ({ messages: state.messages.filter(m => m.id !== id) }));
     } catch (err: any) {
-      console.error('Delete message failure:', err?.message || err);
-      toast({ variant: 'destructive', title: 'Sync Error', description: 'Failed to retract message.' });
+      toast({ variant: 'destructive', title: 'Retract Error', description: err.message });
     }
   },
 
@@ -181,8 +158,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         messages: state.messages.map(m => m.id === id ? { ...m, response, status: 'replied' } : m)
       }));
     } catch (err: any) {
-      console.error('Approve message failure:', err?.message || err);
-      toast({ variant: 'destructive', title: 'Admin Error', description: 'Failed to approve message.' });
+      toast({ variant: 'destructive', title: 'Admin Error', description: err.message });
     }
   },
 
@@ -194,8 +170,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         messages: state.messages.map(m => m.id === id ? { ...m, status: 'rejected' } : m)
       }));
     } catch (err: any) {
-      console.error('Reject message failure:', err?.message || err);
-      toast({ variant: 'destructive', title: 'Admin Error', description: 'Failed to reject message.' });
+      toast({ variant: 'destructive', title: 'Admin Error', description: err.message });
     }
   },
 
@@ -204,8 +179,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const { error } = await supabase.from('messages').update({
         response: newResponse,
         is_edited: true,
-        edit_reason: reason,
-        edited_at: new Date().toISOString()
+        edit_reason: reason
       }).eq('id', id);
       if (error) throw error;
       set(state => ({
@@ -213,34 +187,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
           ...m, 
           response: newResponse, 
           isEdited: true, 
-          editReason: reason, 
-          editedAt: new Date().toISOString() 
+          editReason: reason
         } : m)
       }));
     } catch (err: any) {
-      console.error('Edit message failure:', err?.message || err);
-      toast({ variant: 'destructive', title: 'Admin Error', description: 'Failed to correct response.' });
+      toast({ variant: 'destructive', title: 'Correction Error', description: err.message });
     }
   }
 }));
 
-// Backward compatibility exports
 export const getStoredMessages = async (userId?: string, isAdmin?: boolean) => {
   const store = useChatStore.getState();
   await store.loadMessages(userId || '', !!isAdmin);
   return useChatStore.getState().messages;
 };
 
-export const addWizardMessage = (text: string, userId: string, userName: string, attachments?: Attachment[]) => {
-  return useChatStore.getState().sendMessage(text, userId, userName, attachments);
-};
-
-export const updateMessageStatus = async (id: string, status: MessageStatus) => {
-  await supabase.from('messages').update({ status }).eq('id', id);
-};
-
-export const deleteMessage = (id: string) => useChatStore.getState().deleteMessage(id);
 export const approveMessage = (id: string, response: string) => useChatStore.getState().approveMessage(id, response);
-export const editMessage = (id: string, newResponse: string, reason: string) => useChatStore.getState().editMessage(id, newResponse, reason);
 export const rejectMessage = (id: string) => useChatStore.getState().rejectMessage(id);
-export const updateMessageText = (id: string, text: string) => useChatStore.getState().updateMessageText(id, text);
+export const editMessage = (id: string, newResponse: string, reason: string) => useChatStore.getState().editMessage(id, newResponse, reason);
