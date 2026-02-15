@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabaseClient";
 import { LearningItem } from "@/lib/learning-store";
+import { QuizPlayer } from "./quiz-player";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -172,7 +173,7 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
 
         {/* Player Container */}
         <div className="flex-1 bg-black relative flex flex-col">
-          <div className="flex-1 relative">
+          <div className="flex-1 relative overflow-y-auto">
             {activeItem?.type === 'video' ? (
               <div className="absolute inset-0 flex items-center justify-center">
                 {mounted && (
@@ -190,19 +191,18 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
                 )}
               </div>
             ) : activeItem?.type === 'quiz_json' ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
-                <div className="max-w-md w-full p-8 glass border-white/10 rounded-[2.5rem] text-center">
-                  <div className="size-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-primary/10">
-                    <Trophy className="size-10 text-primary" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/50">
+                {activeItem.quizData ? (
+                  <QuizPlayer 
+                    data={activeItem.quizData} 
+                    onComplete={(score) => console.log(`Quiz finished with score: ${score}`)}
+                  />
+                ) : (
+                  <div className="p-8 text-center glass border-white/10 rounded-3xl">
+                    <Trophy className="size-12 text-amber-400 mx-auto mb-4" />
+                    <p className="text-muted-foreground">This quiz node has no data configured.</p>
                   </div>
-                  <h3 className="text-2xl font-bold mb-2">Knowledge Assessment</h3>
-                  <p className="text-muted-foreground mb-8 text-sm leading-relaxed">
-                    Test your neural synchronization with a interactive quiz. Ready to begin?
-                  </p>
-                  <Button className="w-full h-12 bg-primary rounded-xl font-bold shadow-lg shadow-primary/20">
-                    Initialize Quiz Module
-                  </Button>
-                </div>
+                )}
               </div>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
