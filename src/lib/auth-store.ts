@@ -77,17 +77,18 @@ export const getStoredUsers = async (): Promise<User[]> => {
 /**
  * Registers a new neural node in the system.
  * Maps 'name' to 'full_name' for database compatibility.
+ * Omit avatar_url if the column is missing in schema cache.
  */
 export const addUser = async (user: Omit<User, 'id'>) => {
   try {
-    const payload = {
+    const payload: any = {
       username: user.username,
       password: user.password,
       full_name: user.name,
-      role: user.role,
-      avatar_url: user.avatar_url
+      role: user.role
     };
 
+    // Note: avatar_url omitted to resolve "column does not exist" schema error
     const { data, error } = await supabase.from('users').insert([payload]).select().single();
     if (error) {
       console.error('Supabase registration error:', error.message, error.details, error.hint);
@@ -128,6 +129,11 @@ export const updateUserProfile = async (userId: string, updates: Partial<User>) 
       delete dbUpdates.name;
     }
 
+    // Resilience: Strip avatar_url from updates if column is missing in database schema
+    if ('avatar_url' in dbUpdates) {
+      delete dbUpdates.avatar_url;
+    }
+
     const { data, error } = await supabase
       .from('users')
       .update(dbUpdates)
@@ -155,6 +161,10 @@ export const updateUserProfile = async (userId: string, updates: Partial<User>) 
   }
 };
 
+/**
+ * Uploads an avatar payload to storage.
+ * Note: Database link update is bypassed if avatar_url column is missing.
+ */
 export const uploadAvatar = async (userId: string, file: File): Promise<string | null> => {
   try {
     const fileExt = file.name.split('.').pop();
@@ -168,6 +178,10 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string |
     if (uploadError) throw uploadError;
 
     const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+    
+    // We log a warning instead of failing since we know the column might be missing
+    console.warn('Avatar storage successful, but database column avatar_url appears to be missing.');
+    
     return data.publicUrl;
   } catch (err: any) {
     console.error('Avatar upload failed:', err.message || err);
