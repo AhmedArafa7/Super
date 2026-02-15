@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
-import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShoppingCart, User, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard } from "lucide-react";
+import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, User, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import { KnowledgeHub } from "@/components/features/knowledge-hub";
 import { WalletView } from "@/components/features/wallet-view";
 import { UserDashboard } from "@/components/features/user-dashboard";
 import { getNotifications, AppNotification, clearAllUnreadNotifications } from "@/lib/notification-store";
+import { useWalletStore } from "@/lib/wallet-store";
 import { useAuth } from "@/components/auth/auth-provider";
 import { LoginView } from "@/components/auth/login-view";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,6 +32,8 @@ export function AppShell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   
+  const syncOfflineTransactions = useWalletStore(state => state.syncOfflineTransactions);
+
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
@@ -43,11 +46,21 @@ export function AppShell() {
     window.addEventListener('notifications-update', updateCount);
     window.addEventListener('storage', updateCount);
     
+    // Sync logic for Offline-First Wallet
+    const handleOnline = () => {
+      if (user?.id) syncOfflineTransactions(user.id);
+    };
+    
+    window.addEventListener('online', handleOnline);
+    // Try syncing immediately if already online
+    if (navigator.onLine) handleOnline();
+
     return () => {
       window.removeEventListener('notifications-update', updateCount);
       window.removeEventListener('storage', updateCount);
+      window.removeEventListener('online', handleOnline);
     };
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, syncOfflineTransactions]);
 
   useEffect(() => {
     if (user?.role === 'admin') {

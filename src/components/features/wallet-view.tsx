@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -13,7 +14,7 @@ import {
   Zap, 
   Loader2,
   RefreshCcw,
-  ChevronRight
+  AlertCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,31 +22,33 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/components/auth/auth-provider';
-import { getWallet, getTransactions, Transaction, Wallet } from '@/lib/wallet-store';
+import { useWalletStore, selectTotalPendingDebt } from '@/lib/wallet-store';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 export function WalletView() {
   const { user } = useAuth();
-  const [wallet, setWallet] = useState<Wallet | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const wallet = useWalletStore(state => state.wallet);
+  const transactions = useWalletStore(state => state.transactions);
+  const fetchWallet = useWalletStore(state => state.fetchWallet);
+  const fetchTransactions = useWalletStore(state => state.fetchTransactions);
+  const pendingDebt = useWalletStore(selectTotalPendingDebt);
+  
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
     if (!user) return;
     setIsLoading(true);
-    const [w, t] = await Promise.all([
-      getWallet(user.id),
-      getTransactions(user.id)
+    await Promise.all([
+      fetchWallet(user.id),
+      fetchTransactions(user.id)
     ]);
-    setWallet(w);
-    setTransactions(t);
     setIsLoading(false);
   };
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 10000);
+    const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
   }, [user]);
 
@@ -77,10 +80,18 @@ export function WalletView() {
           </h2>
           <p className="text-muted-foreground mt-1">Manage your digital credits and escrow holdings.</p>
         </div>
-        <Button variant="outline" className="rounded-xl border-white/10 hover:bg-white/5" onClick={loadData}>
-          <RefreshCcw className="size-4 mr-2" />
-          Sync Node
-        </Button>
+        <div className="flex items-center gap-3">
+          {pendingDebt > 0 && (
+            <Badge variant="destructive" className="h-10 px-4 rounded-xl gap-2 animate-pulse">
+              <AlertCircle className="size-4" />
+              -{pendingDebt.toLocaleString()} [Offline]
+            </Badge>
+          )}
+          <Button variant="outline" className="rounded-xl border-white/10 hover:bg-white/5" onClick={loadData}>
+            <RefreshCcw className="size-4 mr-2" />
+            Sync Node
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -93,11 +104,18 @@ export function WalletView() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-bold text-white tracking-tighter">
-                {wallet?.balance.toLocaleString() || '0'}
-              </span>
-              <span className="text-muted-foreground font-medium uppercase tracking-widest text-xs">Credits</span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-baseline gap-2">
+                <span className="text-5xl font-bold text-white tracking-tighter">
+                  {wallet?.balance.toLocaleString() || '0'}
+                </span>
+                <span className="text-muted-foreground font-medium uppercase tracking-widest text-xs">Credits</span>
+              </div>
+              {pendingDebt > 0 && (
+                <div className="text-red-400 text-sm font-bold flex items-center gap-1">
+                  (-{pendingDebt.toLocaleString()} Pending)
+                </div>
+              )}
             </div>
             <div className="mt-8 flex gap-3">
               <Button className="flex-1 bg-primary text-white rounded-xl h-11">
