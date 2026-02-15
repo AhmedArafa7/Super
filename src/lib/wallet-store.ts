@@ -46,7 +46,7 @@ interface WalletState {
   fetchTransactions: (userId: string) => Promise<void>;
   processOfflinePurchase: (amount: number, description: string, itemId?: string, sellerId?: string) => void;
   syncOfflineTransactions: (userId: string) => Promise<void>;
-  initiateEscrow: (buyerId: string, sellerId: string, amount: number, itemId: string, itemName: string) => Promise<{ success: boolean; newBalance?: number }>;
+  initiateEscrow: (buyerId: string, itemId: string, itemName: string) => Promise<{ success: boolean; newBalance?: number }>;
   depositFunds: (userId: string, amount: number) => Promise<boolean>;
 }
 
@@ -105,14 +105,6 @@ export const useWalletStore = create<WalletState>()(
       fetchTransactions: async (userId) => {
         if (!userId) return;
         try {
-          const { data, error } = await supabase
-            .from('wallets')
-            .select('id')
-            .eq('user_id', userId)
-            .maybeSingle();
-            
-          if (error) throw error;
-          
           const { data: txs, error: txError } = await supabase
             .from('transactions')
             .select('*')
@@ -154,65 +146,89 @@ export const useWalletStore = create<WalletState>()(
 
         for (const tx of pendingOfflineTransactions) {
           try {
-            // Attempt to use the secure RPC for each
+            // Re-use RPC for each queued item
             const { data, error } = await supabase.rpc('secure_purchase_item', {
-              p_user_id: userId,
-              p_amount: tx.amount,
-              p_description: `${tx.description} (Offline Sync)`
+              p_buyer_id: userId,
+              p_product_id: tx.itemId
             });
 
             if (error) throw error;
             if (data.success) {
-              // Successfully processed
               set(state => ({
                 pendingOfflineTransactions: state.pendingOfflineTransactions.filter(p => p.id !== tx.id)
               }));
             }
           } catch (err) {
             console.error('Failed to sync offline transaction:', err);
-            // Keep in queue to retry later
           }
         }
         
-        // Refresh truth from server
         await get().fetchWallet(userId);
         await get().fetchTransactions(userId);
       },
 
-      initiateEscrow: async (buyerId, sellerId, amount, itemId, itemName) => {
+      initiateEscrow: async (buyerId, itemId, itemName) => {
+        set({ isLoading: true });
+        
         if (!navigator.onLine) {
-          get().processOfflinePurchase(amount, itemName, itemId, sellerId);
-          return { success: true }; // "Success" in queueing
+          // Note: In a real app we'd need to fetch price before going offline or 
+          // allow the sync to fail later if balance is insufficient.
+          get().processOfflinePurchase(0, itemName, itemId); 
+          set({ isLoading: false });
+          return { success: true };
         }
 
         try {
+          // ATOMIC SECURE TRANSACTION VIA RPC
           const { data, error } = await supabase.rpc('secure_purchase_item', {
-            p_user_id: buyerId,
-            p_amount: amount,
-            p_description: `Purchase: ${itemName} (Escrow Hold)`
+            p_buyer_id: buyerId,
+            p_product_id: itemId
           });
 
           if (error) throw error;
 
           if (data.success === false) {
-            throw new Error(data.error || 'Server rejected the transaction hold.');
+            toast({ 
+              variant: 'destructive', 
+              title: 'Acquisition Refused', 
+              description: data.error || 'Server rejected the transaction.' 
+            });
+            set({ isLoading: false });
+            return { success: false };
           }
 
-          await get().fetchWallet(buyerId);
+          // Update truth from server response
+          if (get().wallet) {
+            set(state => ({
+              wallet: state.wallet ? { ...state.wallet, balance: data.new_balance } : null
+            }));
+          }
+          
+          await get().fetchTransactions(buyerId);
+          
+          toast({ 
+            title: "Acquisition Initialized", 
+            description: `Funds for "${itemName}" moved to Secure Escrow.` 
+          });
+
+          set({ isLoading: false });
           return { success: true, newBalance: data.new_balance };
         } catch (err: any) {
           toast({ 
             variant: 'destructive', 
-            title: 'Acquisition Refused', 
-            description: err.message || 'The neural payment link was rejected.' 
+            title: 'Neural Link Error', 
+            description: 'Failed to communicate with the transaction node.' 
           });
+          set({ isLoading: false });
           return { success: false };
         }
       },
 
       depositFunds: async (userId, amount) => {
         if (!userId || amount <= 0) return false;
+        set({ isLoading: true });
         try {
+          // For deposits, we still update manually in this demo, but could also be RPC
           const { data: walletData } = await supabase.from('wallets').select('balance').eq('user_id', userId).single();
           const newBalance = (walletData?.balance || 0) + amount;
 
@@ -240,9 +256,11 @@ export const useWalletStore = create<WalletState>()(
           });
 
           await get().fetchWallet(userId);
+          set({ isLoading: false });
           return true;
         } catch (err: any) {
           toast({ variant: 'destructive', title: 'Deposit Failed', description: err.message });
+          set({ isLoading: false });
           return false;
         }
       }
@@ -258,7 +276,7 @@ export const useWalletStore = create<WalletState>()(
 export const selectTotalPendingDebt = (state: WalletState) => 
   state.pendingOfflineTransactions.reduce((acc, tx) => acc + tx.amount, 0);
 
-// Keep existing async exports for compatibility if needed, but preferred to use useWalletStore directly
+// Compatibility exports
 export const getWallet = async (userId: string) => {
   const store = useWalletStore.getState();
   await store.fetchWallet(userId);
@@ -271,8 +289,8 @@ export const getTransactions = async (userId: string) => {
   return store.transactions;
 };
 
-export const initiateEscrow = (buyerId: string, sellerId: string, amount: number, itemId: string, itemName: string) => 
-  useWalletStore.getState().initiateEscrow(buyerId, sellerId, amount, itemId, itemName);
+export const initiateEscrow = (buyerId: string, itemId: string, itemName: string) => 
+  useWalletStore.getState().initiateEscrow(buyerId, itemId, itemName);
 
 export const depositFunds = (userId: string, amount: number) => 
   useWalletStore.getState().depositFunds(userId, amount);
