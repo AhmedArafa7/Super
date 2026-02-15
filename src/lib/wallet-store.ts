@@ -30,6 +30,7 @@ export interface PendingTransaction {
   timestamp: string;
   status: PendingTransactionStatus;
   errorReason?: string;
+  idempotencyKey: string; // Critical for preventing double-spend on retries
 }
 
 export interface Wallet {
@@ -110,6 +111,9 @@ export const useWalletStore = create<WalletState>()(
       initiateEscrow: async (buyerId, itemId, itemName, price) => {
         set({ isLoading: true });
         
+        // Generate a fixed idempotency key for this attempt
+        const idempotencyKey = crypto.randomUUID();
+
         if (!navigator.onLine) {
           const newPending: PendingTransaction = {
             id: Math.random().toString(36).substring(2, 15),
@@ -117,7 +121,8 @@ export const useWalletStore = create<WalletState>()(
             price: Number(price),
             title: itemName,
             timestamp: new Date().toISOString(),
-            status: 'pending_sync'
+            status: 'pending_sync',
+            idempotencyKey
           };
           
           set(state => ({
@@ -136,7 +141,8 @@ export const useWalletStore = create<WalletState>()(
         try {
           const { data, error } = await supabase.rpc('secure_purchase_item', {
             p_buyer_id: buyerId,
-            p_product_id: itemId
+            p_product_id: itemId,
+            p_idempotency_key: idempotencyKey
           });
 
           if (error) throw error;
@@ -192,13 +198,13 @@ export const useWalletStore = create<WalletState>()(
           try {
             const { data, error } = await supabase.rpc('secure_purchase_item', {
               p_buyer_id: userId,
-              p_product_id: tx.productId
+              p_product_id: tx.productId,
+              p_idempotency_key: tx.idempotencyKey
             });
 
             if (!error && data?.success) {
               successIds.push(tx.id);
             } else if (data?.success === false) {
-              // Handle insufficient funds or other business logic errors
               if (data.error?.toLowerCase().includes('insufficient') || data.error?.toLowerCase().includes('balance')) {
                 failedUpdates[tx.id] = { 
                   status: 'failed_needs_action', 
@@ -209,8 +215,6 @@ export const useWalletStore = create<WalletState>()(
                   title: 'Acquisition Paused', 
                   description: `Could not process "${tx.title}": Insufficient credits.` 
                 });
-              } else {
-                // Keep as pending_sync for generic errors to retry later
               }
             }
           } catch (err) {
