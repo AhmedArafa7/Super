@@ -30,6 +30,7 @@ export function AdminPanel() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [responses, setResponses] = useState<Record<string, string>>({});
+  const [isRegistering, setIsRegistering] = useState(false);
   
   // Broadcast state
   const [broadcast, setBroadcast] = useState({ title: "", body: "", priority: "info" as Priority });
@@ -71,6 +72,25 @@ export function AdminPanel() {
       window.removeEventListener('auth-update', handleAuthUpdate);
     };
   }, []);
+
+  const handleRegisterUser = async () => {
+    if (!newUser.name || !newUser.username || !newUser.password) return;
+    
+    setIsRegistering(true);
+    try {
+      await addUser(newUser);
+      setNewUser({ name: "", username: "", password: "", role: "user" });
+      toast({ title: "User Registered", description: "Node activated successfully." });
+    } catch (err: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Registration Failed", 
+        description: err.message || "Could not register neural node. Check ID uniqueness." 
+      });
+    } finally {
+      setIsRegistering(false);
+    }
+  };
 
   const handleDeposit = async (userId: string) => {
     const amount = 5000; // Mock deposit
@@ -172,15 +192,11 @@ export function AdminPanel() {
                   />
                 </div>
                 <Button 
-                  onClick={async () => {
-                    await addUser(newUser);
-                    setNewUser({ name: "", username: "", password: "", role: "user" });
-                    toast({ title: "User Registered", description: "Node activated." });
-                  }}
+                  onClick={handleRegisterUser}
                   className="w-full mt-4 h-12 bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg"
-                  disabled={!newUser.name || !newUser.username || !newUser.password}
+                  disabled={!newUser.name || !newUser.username || !newUser.password || isRegistering}
                 >
-                  Confirm Registration
+                  {isRegistering ? "Synchronizing..." : "Confirm Registration"}
                 </Button>
               </div>
             </Card>

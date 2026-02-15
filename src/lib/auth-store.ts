@@ -47,10 +47,13 @@ export const setSession = (user: User | null) => {
 export const getStoredUsers = async (): Promise<User[]> => {
   try {
     const { data, error } = await supabase.from('users').select('*');
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase query error (users):', error.message, error.details);
+      throw error;
+    }
     return data || [];
-  } catch (err) {
-    console.error('Error fetching users:', err);
+  } catch (err: any) {
+    console.error('Error fetching users:', err.message || err);
     return [];
   }
 };
@@ -61,11 +64,14 @@ export const getStoredUsers = async (): Promise<User[]> => {
 export const addUser = async (user: Omit<User, 'id'>) => {
   try {
     const { data, error } = await supabase.from('users').insert([user]).select().single();
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase registration error:', error.message, error.details, error.hint);
+      throw error;
+    }
     window.dispatchEvent(new Event('auth-update'));
     return data;
-  } catch (err) {
-    console.error('Error adding user:', err);
+  } catch (err: any) {
+    console.error('Error adding user:', err.message || err);
     throw err;
   }
 };
@@ -76,10 +82,13 @@ export const addUser = async (user: Omit<User, 'id'>) => {
 export const deleteUser = async (id: string) => {
   try {
     const { error } = await supabase.from('users').delete().eq('id', id);
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase deletion error:', error.message);
+      throw error;
+    }
     window.dispatchEvent(new Event('auth-update'));
-  } catch (err) {
-    console.error('Error deleting user:', err);
+  } catch (err: any) {
+    console.error('Error deleting user:', err.message || err);
     throw err;
   }
 };
@@ -93,7 +102,10 @@ export const updateUserProfile = async (userId: string, updates: Partial<User>) 
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase update error:', error.message);
+      throw error;
+    }
     
     // Update local session to reflect changes
     const currentSession = getSession();
@@ -102,8 +114,8 @@ export const updateUserProfile = async (userId: string, updates: Partial<User>) 
     }
     
     return data;
-  } catch (err) {
-    console.error('Profile update failed:', err);
+  } catch (err: any) {
+    console.error('Profile update failed:', err.message || err);
     throw err;
   }
 };
@@ -122,8 +134,8 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string |
 
     const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
     return data.publicUrl;
-  } catch (err) {
-    console.error('Avatar upload failed:', err);
+  } catch (err: any) {
+    console.error('Avatar upload failed:', err.message || err);
     return null;
   }
 };
