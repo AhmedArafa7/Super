@@ -1,14 +1,14 @@
 
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, memo } from "react";
 import { Send, Bot, User, Sparkles, Paperclip, Mic, Loader2, Pencil, Trash2, X, FileText, Download, Square, Music, Globe, Wifi, WifiOff, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { getStoredMessages, addWizardMessage, updateMessageText, deleteMessage, WizardMessage, Attachment } from "@/lib/chat-store";
+import { useChatStore, WizardMessage, Attachment } from "@/lib/chat-store";
 import { clearAllUnreadNotifications, markNotificationByMessageIdAsRead } from "@/lib/notification-store";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -24,94 +24,165 @@ interface AIChatProps {
 
 const MAX_FILE_SIZE = 1.5 * 1024 * 1024;
 
+// Memoized message item to prevent re-renders when input state changes
+const MessageItem = memo(({ 
+  msg, 
+  highlightId, 
+  onEdit, 
+  onDelete 
+}: { 
+  msg: WizardMessage; 
+  highlightId: string | null; 
+  onEdit: (m: WizardMessage) => void; 
+  onDelete: (id: string) => void;
+}) => {
+  const isUser = true; // All messages in the main list are user-initiated in this schema
+
+  return (
+    <React.Fragment>
+      <div className="flex justify-end items-start gap-3 group relative">
+        <div className="flex items-start gap-2 max-w-[85%]">
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-8 text-muted-foreground"><MoreVertical className="size-4" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-slate-900 border-white/10">
+                {msg.status !== 'replied' && (
+                  <DropdownMenuItem onClick={() => onEdit(msg)} className="gap-2">
+                    <Pencil className="size-4" /> Edit Request
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => onDelete(msg.id)} className="gap-2 text-red-400">
+                  <Trash2 className="size-4" /> Retract Request
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <div className={cn("flex-1 p-4 transition-all duration-300 message-bubble-user", msg.status === 'queued' && "opacity-70 italic")}>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+            {msg.attachments && msg.attachments.length > 0 && <AttachmentPreview attachments={msg.attachments} />}
+            <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
+              {msg.isUserEdited && <span className="text-[9px] italic mr-1">(edited)</span>}
+              <span className="text-[10px]">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          </div>
+        </div>
+        <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0"><User className="size-4 text-indigo-400" /></div>
+      </div>
+
+      {msg.status === 'replied' && msg.response && (
+        <div className="flex justify-start items-start gap-3">
+          <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0"><Bot className="size-4 text-indigo-400" /></div>
+          <div className={cn("max-w-[80%] message-bubble-ai p-4 border transition-all duration-500", highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500")}>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.response}</p>
+          </div>
+        </div>
+      )}
+    </React.Fragment>
+  );
+});
+
+MessageItem.displayName = "MessageItem";
+
+const AttachmentPreview = memo(({ attachments }: { attachments: Attachment[] }) => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+    {attachments.map((att) => (
+      <div key={att.id} className="glass border border-white/5 rounded-xl p-2 flex items-center gap-3 overflow-hidden">
+        {att.type === 'image' ? (
+          <div className="size-10 rounded-lg overflow-hidden bg-white/5 shrink-0 relative">
+            <img src={att.url} alt={att.name} className="size-full object-cover" />
+          </div>
+        ) : att.type === 'audio' ? (
+          <div className="size-10 rounded-lg bg-indigo-500/20 flex items-center justify-center shrink-0">
+            <Music className="size-5 text-indigo-400" />
+          </div>
+        ) : (
+          <div className="size-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+            <FileText className="size-5 text-indigo-400" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold text-white truncate">{att.name}</p>
+          <p className="text-[9px] text-muted-foreground">{att.size}</p>
+        </div>
+        <a href={att.url} download={att.name} className="p-1 hover:bg-white/5 rounded-lg transition-colors">
+          <Download className="size-3 text-muted-foreground" />
+        </a>
+      </div>
+    ))}
+  </div>
+));
+AttachmentPreview.displayName = "AttachmentPreview";
+
 export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isMobile, setOpenMobile } = useSidebar();
-  const [messages, setMessages] = useState<WizardMessage[]>([]);
+  
+  // Zustand Store Selectors
+  const messages = useChatStore(state => state.messages);
+  const isConnected = useChatStore(state => state.isConnected);
+  const isSending = useChatStore(state => state.isSending);
+  const loadMessages = useChatStore(state => state.loadMessages);
+  const sendMessage = useChatStore(state => state.sendMessage);
+  const deleteMessage = useChatStore(state => state.deleteMessage);
+  const updateMessageText = useChatStore(state => state.updateMessageText);
+  const setConnected = useChatStore(state => state.setConnected);
+
+  // Local UI state
   const [input, setInput] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const [isConnected, setIsConnected] = useState(true);
   
   const scrollRef = useRef<HTMLDivElement>(null);
-  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const loadMessages = async () => {
-    if (!user?.id) return;
-    try {
-      const initialMessages = await getStoredMessages(user.id, user.role === 'admin');
-      setMessages(initialMessages ?? []);
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Sync Error', description: 'History could not be retrieved.' });
-    }
-  };
 
   useEffect(() => {
     if (!user?.id) return;
-    loadMessages();
+    loadMessages(user.id, user.role === 'admin');
 
     const channel = supabase
       .channel('chat-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
-        loadMessages();
+        loadMessages(user.id, user.role === 'admin');
       })
       .subscribe((status) => {
-        setIsConnected(status === 'SUBSCRIBED');
+        setConnected(status === 'SUBSCRIBED');
       });
     
     clearAllUnreadNotifications(user.id);
 
     return () => {
       supabase.removeChannel(channel);
-      if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (user?.id && highlightId && messageRefs.current[highlightId]) {
-      const el = messageRefs.current[highlightId];
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      markNotificationByMessageIdAsRead(highlightId, user.id);
-      const timer = setTimeout(() => { onHighlightComplete?.(); }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [highlightId, messages, user?.id]);
+  }, [user?.id, loadMessages, setConnected]);
 
   useEffect(() => {
     if (scrollRef.current && !highlightId) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
-  }, [messages, highlightId]);
-
-  const handleFocusInput = () => {
-    if (isMobile) {
-      setOpenMobile(false);
-    }
-  };
+  }, [messages.length, highlightId]);
 
   const handleSend = async () => {
     const hasContent = input?.trim() || pendingAttachments?.length > 0;
     if (!hasContent || !user?.id || isSending || isUploading) return;
 
-    setIsSending(true);
     try {
-      const res = await addWizardMessage(input, user.id, user.name, pendingAttachments);
-      if (res) {
-        setInput("");
-        setPendingAttachments([]);
-      }
+      const textToSend = input;
+      setInput(""); // Clear immediately for UX
+      const currentAttachments = [...pendingAttachments];
+      setPendingAttachments([]);
+      
+      await sendMessage(textToSend, user.id, user.name, currentAttachments);
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Transmission Failed", description: err.message });
-    } finally {
-      setIsSending(false);
+      // Input is preserved in state indirectly via pessimistic rollback handled in store, 
+      // but for better UX we could restore local state if needed.
     }
   };
 
@@ -189,35 +260,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     }
   };
 
-  const AttachmentPreview = ({ attachments }: { attachments: Attachment[] }) => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-      {attachments.map((att) => (
-        <div key={att.id} className="glass border border-white/5 rounded-xl p-2 flex items-center gap-3 overflow-hidden">
-          {att.type === 'image' ? (
-            <div className="size-10 rounded-lg overflow-hidden bg-white/5 shrink-0 relative">
-              <img src={att.url} alt={att.name} className="size-full object-cover" />
-            </div>
-          ) : att.type === 'audio' ? (
-            <div className="size-10 rounded-lg bg-indigo-500/20 flex items-center justify-center shrink-0">
-              <Music className="size-5 text-indigo-400" />
-            </div>
-          ) : (
-            <div className="size-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-              <FileText className="size-5 text-indigo-400" />
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold text-white truncate">{att.name}</p>
-            <p className="text-[9px] text-muted-foreground">{att.size}</p>
-          </div>
-          <a href={att.url} download={att.name} className="p-1 hover:bg-white/5 rounded-lg transition-colors">
-            <Download className="size-3 text-muted-foreground" />
-          </a>
-        </div>
-      ))}
-    </div>
-  );
-
   return (
     <div className="flex flex-col h-full max-w-5xl mx-auto pt-8 pb-4 px-4 sm:px-6 lg:px-8">
       <div className="flex-1 overflow-hidden flex flex-col glass rounded-3xl mb-4 relative shadow-2xl">
@@ -254,64 +296,39 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
               />
             ) : (
               messages.map((msg) => (
-                <React.Fragment key={msg.id}>
-                  <div className="flex justify-end items-start gap-3 group relative">
-                    <div className="flex items-start gap-2 max-w-[85%]">
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="size-8 text-muted-foreground"><MoreVertical className="size-4" /></Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-slate-900 border-white/10">
-                            {msg.status !== 'replied' && (
-                              <DropdownMenuItem onClick={() => { setEditingId(msg.id); setEditingText(msg.text); }} className="gap-2">
-                                <Pencil className="size-4" /> Edit Request
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => deleteMessage(msg.id)} className="gap-2 text-red-400">
-                              <Trash2 className="size-4" /> Retract Request
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-
-                      <div className={cn("flex-1 p-4 transition-all duration-300", editingId === msg.id ? "bg-indigo-500/10 border border-indigo-500/30 rounded-2xl" : "message-bubble-user")}>
-                        {editingId === msg.id ? (
-                          <div className="space-y-3">
-                            <Textarea autoFocus value={editingText} onChange={(e) => setEditingText(e.target.value)} className="bg-white/5 border-white/10" />
-                            <div className="flex justify-end gap-2">
-                              <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
-                              <Button size="sm" onClick={async () => { await updateMessageText(msg.id, editingText); setEditingId(null); }} className="bg-indigo-500">Save</Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                            {msg.attachments && msg.attachments.length > 0 && <AttachmentPreview attachments={msg.attachments} />}
-                            <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
-                              {msg.isUserEdited && <span className="text-[9px] italic mr-1">(edited)</span>}
-                              <span className="text-[10px]">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0"><User className="size-4 text-indigo-400" /></div>
-                  </div>
-
-                  {msg.status === 'replied' && msg.response && (
-                    <div ref={el => { messageRefs.current[msg.id] = el; }} className="flex justify-start items-start gap-3">
-                      <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0"><Bot className="size-4 text-indigo-400" /></div>
-                      <div className={cn("max-w-[80%] message-bubble-ai p-4 border transition-all duration-500", highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500")}>
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.response}</p>
-                      </div>
-                    </div>
-                  )}
-                </React.Fragment>
+                <MessageItem 
+                  key={msg.id} 
+                  msg={msg} 
+                  highlightId={highlightId} 
+                  onEdit={(m) => { setEditingId(m.id); setEditingText(m.text); }}
+                  onDelete={deleteMessage}
+                />
               ))
             )}
           </div>
         </ScrollArea>
+
+        {/* Edit Modal / Inline */}
+        {editingId && (
+          <div className="absolute inset-x-0 bottom-0 z-30 p-4 bg-slate-900/95 border-t border-indigo-500/30 backdrop-blur-xl animate-in slide-in-from-bottom duration-300">
+            <div className="max-w-3xl mx-auto space-y-4">
+              <div className="flex justify-between items-center">
+                <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Adjusting Neural Request</p>
+                <Button variant="ghost" size="icon" onClick={() => setEditingId(null)} className="size-6"><X className="size-4" /></Button>
+              </div>
+              <Textarea 
+                autoFocus 
+                value={editingText} 
+                onChange={(e) => setEditingText(e.target.value)} 
+                className="bg-white/5 border-white/10 min-h-[100px] rounded-2xl" 
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" className="rounded-xl" onClick={() => setEditingId(null)}>Cancel</Button>
+                <Button onClick={async () => { await updateMessageText(editingId, editingText); setEditingId(null); }} className="bg-indigo-500 rounded-xl px-8">Save Transmission</Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="p-4 bg-white/5 border-t border-white/5">
           {isRecording ? (
@@ -323,7 +340,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
             <div className="relative">
               <Input
                 value={input}
-                onFocus={handleFocusInput}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder={isUploading ? "Uploading payload..." : "Message NexusAI..."}
@@ -338,6 +354,19 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                   {isSending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
                 </Button>
               </div>
+            </div>
+          )}
+          
+          {pendingAttachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3 animate-in fade-in slide-in-from-top-2">
+              {pendingAttachments.map((att) => (
+                <div key={att.id} className="glass border border-indigo-500/20 rounded-lg px-2 py-1 flex items-center gap-2">
+                  <span className="text-[10px] text-white/80 max-w-[100px] truncate">{att.name}</span>
+                  <button onClick={() => setPendingAttachments(p => p.filter(a => a.id !== att.id))} className="text-red-400 hover:text-red-300">
+                    <X className="size-3" />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
