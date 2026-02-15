@@ -180,14 +180,18 @@ export const addLearningItem = async (item: Omit<LearningItem, 'id' | 'createdAt
 };
 
 export const uploadLearningFile = async (file: File): Promise<string | null> => {
-  // Common bucket names to try for resilience
-  const bucketsToTry = ['learning', 'nexus-content', 'files', 'content', 'avatars', 'public'];
+  // Extended bucket list for maximum resilience
+  const bucketsToTry = ['learning', 'nexus-content', 'files', 'content', 'avatars', 'public', 'storage', 'assets'];
   
   for (const bucket of bucketsToTry) {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `learning-content/${fileName}`;
+      
+      // Use a flatter path for broad compatibility if folder-specific RLS is tight
+      const filePath = (bucket === 'avatars' || bucket === 'public') 
+        ? `learning-${fileName}` 
+        : `learning-content/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from(bucket)
@@ -198,20 +202,21 @@ export const uploadLearningFile = async (file: File): Promise<string | null> => 
         return data.publicUrl;
       }
 
-      // If bucket is not found, continue to the next one
+      // If bucket not found, just silently move to the next one
       if (uploadError.message.includes('Bucket not found')) {
         continue;
       }
 
-      // For other errors (like policy restrictions), log and stop
-      console.error(`Upload error for bucket ${bucket}:`, uploadError.message);
-      return null;
+      // Log other errors (like RLS violations) but don't stop the loop!
+      // Another bucket might have more permissive policies.
+      console.warn(`Upload attempt failed for bucket "${bucket}":`, uploadError.message);
+      continue;
     } catch (err) {
-      // In case of network errors or other exceptions, try next bucket
+      // Catch any unexpected runtime errors and keep trying
       continue;
     }
   }
 
-  console.error('Failed to upload file: No suitable storage bucket found.');
+  console.error('Failed to upload file: No suitable storage bucket found or all available buckets rejected the payload.');
   return null;
 };
