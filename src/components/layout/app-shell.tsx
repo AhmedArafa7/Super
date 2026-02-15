@@ -1,9 +1,9 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
-import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, User, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard, Tag } from "lucide-react";
+import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard, Repeat } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import { UserDashboard } from "@/components/features/user-dashboard";
 import { OffersInbox } from "@/components/features/offers-inbox";
 import { getNotifications, AppNotification, clearAllUnreadNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
+import { getReceivedOffers } from "@/lib/market-store";
 import { useAuth } from "@/components/auth/auth-provider";
 import { LoginView } from "@/components/auth/login-view";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,6 +32,7 @@ export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<NavItem>("chat");
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingOffersCount, setPendingOffersCount] = useState(0);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   
   const processOfflineQueue = useWalletStore(state => state.processOfflineQueue);
@@ -38,16 +40,18 @@ export function AppShell() {
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
-    const updateCount = () => {
+    const updateCount = async () => {
       const all = getNotifications(user.id);
       setUnreadCount(all.filter(n => !n.isRead).length);
+      
+      const offers = await getReceivedOffers(user.id);
+      setPendingOffersCount(offers.filter(o => o.status === 'pending').length);
     };
 
     updateCount();
     window.addEventListener('notifications-update', updateCount);
     window.addEventListener('storage', updateCount);
     
-    // Neural Link Synchronization Logic
     const handleOnline = () => {
       if (user?.id) processOfflineQueue(user.id);
     };
@@ -63,10 +67,8 @@ export function AppShell() {
   }, [isAuthenticated, user, processOfflineQueue]);
 
   useEffect(() => {
-    if (user?.role === 'admin') {
+    if (user?.role === 'admin' && activeTab === 'chat') {
       setActiveTab("admin");
-    } else {
-      setActiveTab("chat");
     }
   }, [user]);
 
@@ -79,10 +81,10 @@ export function AppShell() {
     { id: "stream", label: "StreamHub", icon: Video },
     { id: "market", label: "TechMarket", icon: ShoppingBag },
     { id: "wallet", label: "Neural Wallet", icon: Wallet },
-    { id: "offers", label: "Offers Inbox", icon: Tag },
+    { id: "offers", label: "Offers Inbox", icon: Repeat, badge: pendingOffersCount },
     { id: "learning", label: "Knowledge Hub", icon: GraduationCap },
     { id: "features", label: "Capabilities", icon: Zap },
-    { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount },
   ];
 
   const handleSmartRoute = (n: AppNotification) => {
@@ -160,9 +162,9 @@ export function AppShell() {
                   >
                     <item.icon className="size-5 shrink-0" />
                     <span className="font-medium">{item.label}</span>
-                    {item.id === 'notifications' && unreadCount > 0 && (
+                    {item.badge !== undefined && item.badge > 0 && (
                        <Badge className="ml-auto bg-indigo-500 h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full border border-slate-900">
-                        {unreadCount}
+                        {item.badge}
                       </Badge>
                     )}
                   </SidebarMenuButton>
@@ -206,7 +208,7 @@ export function AppShell() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 <Input 
                   placeholder="Search Nexus..." 
-                  className="w-64 pl-9 h-9 bg-white/5 border-white/10 focus-visible:ring-primary rounded-lg text-sm"
+                  className="w-64 pl-9 h-9 bg-white/5 border-white/10 focus-visible:ring-indigo-500 rounded-lg text-sm"
                 />
               </div>
             </div>
@@ -246,29 +248,29 @@ export function AppShell() {
                     <img src={user?.avatar_url || `https://picsum.photos/seed/${user?.username}/32/32`} alt="Profile" className="h-full w-full object-cover" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-slate-950 border-white/10" align="end" forceMount>
+                <DropdownMenuContent className="w-56 bg-slate-950 border-white/10 rounded-2xl p-2" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none text-white">{user?.name}</p>
-                      <p className="text-xs leading-none text-muted-foreground">@{user?.username}</p>
+                    <div className="flex flex-col space-y-1 px-2 py-1">
+                      <p className="text-sm font-bold text-white leading-none">{user?.name}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">@{user?.username}</p>
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-white/5" />
-                  <DropdownMenuItem onClick={() => setActiveTab("dashboard")} className="hover:bg-white/5 cursor-pointer">
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    <span>User Dashboard</span>
+                  <DropdownMenuSeparator className="bg-white/5 my-2" />
+                  <DropdownMenuItem onClick={() => setActiveTab("dashboard")} className="hover:bg-white/5 cursor-pointer rounded-xl h-10 px-3">
+                    <LayoutDashboard className="mr-3 h-4 w-4 text-indigo-400" />
+                    <span>Neural Dashboard</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setActiveTab("wallet")} className="hover:bg-white/5 cursor-pointer">
-                    <Wallet className="mr-2 h-4 w-4" />
+                  <DropdownMenuItem onClick={() => setActiveTab("wallet")} className="hover:bg-white/5 cursor-pointer rounded-xl h-10 px-3">
+                    <Wallet className="mr-3 h-4 w-4 text-indigo-400" />
                     <span>Neural Wallet</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setActiveTab("features")} className="hover:bg-white/5 cursor-pointer">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Node Settings</span>
+                  <DropdownMenuItem onClick={() => setActiveTab("features")} className="hover:bg-white/5 cursor-pointer rounded-xl h-10 px-3">
+                    <Zap className="mr-3 h-4 w-4 text-indigo-400" />
+                    <span>Capabilities</span>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-white/5" />
-                  <DropdownMenuItem onClick={logout} className="text-red-400 hover:bg-red-500/10 cursor-pointer">
-                    <LogOut className="mr-2 h-4 w-4" />
+                  <DropdownMenuSeparator className="bg-white/5 my-2" />
+                  <DropdownMenuItem onClick={logout} className="text-red-400 hover:bg-red-500/10 cursor-pointer rounded-xl h-10 px-3">
+                    <LogOut className="mr-3 h-4 w-4" />
                     <span>Initiate Logout</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>

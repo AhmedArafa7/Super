@@ -4,9 +4,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
   CheckCircle2, XCircle, Clock, ShoppingBag, 
-  Tag, MessageSquare, User, Loader2, ArrowRight
+  Tag, MessageSquare, User, Loader2, ArrowRight, Repeat
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -42,16 +42,16 @@ export function OffersInbox() {
       const success = await respondToOffer(offer.id, status, offer.buyerId, offer.itemTitle || 'Item');
       if (success) {
         toast({
-          title: status === 'accepted' ? "Offer Accepted" : "Offer Rejected",
-          description: `The neural negotiation for "${offer.itemTitle}" has been updated.`
+          title: status === 'accepted' ? "Proposal Accepted" : "Proposal Declined",
+          description: `The negotiation for "${offer.itemTitle}" has been finalized.`
         });
         loadOffers();
       }
     } catch (err) {
       toast({
         variant: "destructive",
-        title: "Sync Failed",
-        description: "Failed to update offer status."
+        title: "Sync Failure",
+        description: "Failed to transmit status update to the network."
       });
     } finally {
       setProcessingId(null);
@@ -64,18 +64,18 @@ export function OffersInbox() {
         <div>
           <h2 className="text-4xl font-headline font-bold text-white tracking-tight flex items-center gap-3">
             <MessageSquare className="text-indigo-400" />
-            Negotiation Inbox
+            Negotiation Stream
           </h2>
-          <p className="text-muted-foreground mt-1 text-lg">Manage incoming neural asset proposals.</p>
+          <p className="text-muted-foreground mt-1 text-lg">Manage incoming acquisition proposals from the network.</p>
         </div>
-        <Button variant="ghost" className="rounded-xl border border-white/10" onClick={loadOffers}>
-          Refresh Queue
+        <Button variant="ghost" className="rounded-xl border border-white/10 h-11" onClick={loadOffers}>
+          Refresh Stream
         </Button>
       </div>
 
       <Card className="glass border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
-        <CardHeader className="border-b border-white/5 bg-white/5">
-          <CardTitle className="text-sm font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+        <CardHeader className="border-b border-white/5 bg-white/5 p-8">
+          <CardTitle className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
             <Clock className="size-4" />
             Pending Proposals ({offers.filter(o => o.status === 'pending').length})
           </CardTitle>
@@ -83,50 +83,53 @@ export function OffersInbox() {
         <CardContent className="p-0">
           <ScrollArea className="h-[600px]">
             {isLoading ? (
-              <div className="flex items-center justify-center py-20"><Loader2 className="size-8 animate-spin text-primary" /></div>
+              <div className="flex items-center justify-center py-24"><Loader2 className="size-10 animate-spin text-primary" /></div>
             ) : offers.length === 0 ? (
               <EmptyState 
-                icon={Tag}
-                title="Inbox Empty"
-                description="No negotiation requests have been received for your listed assets."
-                className="py-20"
+                icon={Repeat}
+                title="Neural Stream Clear"
+                description="No active negotiation requests have been detected for your assets."
+                className="py-24"
               />
             ) : (
               <div className="divide-y divide-white/5">
                 {offers.map((offer) => (
-                  <div key={offer.id} className="p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:bg-white/5 transition-colors group">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="size-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center border border-white/5 group-hover:scale-110 transition-transform">
-                        {offer.type === 'price' ? <Tag className="size-5 text-indigo-400" /> : <ShoppingBag className="size-5 text-amber-400" />}
+                  <div key={offer.id} className="p-8 flex flex-col md:flex-row md:items-center justify-between gap-8 hover:bg-white/5 transition-colors group">
+                    <div className="flex items-start gap-6 flex-1">
+                      <div className="size-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center border border-indigo-500/20 group-hover:scale-105 transition-transform">
+                        {offer.type === 'price' ? <Tag className="size-6 text-indigo-400" /> : <Repeat className="size-6 text-amber-400" />}
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-white">{offer.itemTitle}</h3>
-                          <Badge variant="outline" className="text-[9px] h-4 border-white/10 text-muted-foreground uppercase">{offer.type}</Badge>
+                          <h3 className="font-bold text-lg text-white">{offer.itemTitle}</h3>
+                          <Badge variant="outline" className="text-[9px] h-4 border-indigo-500/30 text-indigo-400 uppercase tracking-tighter">{offer.type}</Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          From: <span className="text-white font-medium">{offer.buyerName}</span>
+                          Proposer: <span className="text-white font-medium">@{offer.buyerName}</span>
                         </p>
-                        <div className="bg-white/5 p-4 rounded-2xl border border-white/5 mt-3 max-w-md">
+                        <div className="bg-white/5 p-5 rounded-2xl border border-white/5 mt-4 max-w-lg">
                           {offer.type === 'price' ? (
-                            <p className="text-lg font-bold text-indigo-400">{offer.value?.toLocaleString()} <span className="text-xs uppercase font-normal text-muted-foreground">Credits Offered</span></p>
+                            <p className="text-xl font-bold text-indigo-400">
+                              {offer.value?.toLocaleString()} 
+                              <span className="text-xs uppercase font-normal text-muted-foreground ml-2">Credits Proposed</span>
+                            </p>
                           ) : (
-                            <p className="text-sm italic text-white/80 leading-relaxed">"{offer.details}"</p>
+                            <p className="text-sm italic text-white/80 leading-relaxed font-serif">"{offer.details}"</p>
                           )}
                         </div>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-2">
-                          Received {formatDistanceToNow(new Date(offer.timestamp), { addSuffix: true })}
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-4">
+                          Synchronized {formatDistanceToNow(new Date(offer.timestamp), { addSuffix: true })}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
+                    <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0">
                       {offer.status === 'pending' ? (
                         <>
                           <Button 
                             onClick={() => handleAction(offer, 'accepted')}
                             disabled={processingId === offer.id}
-                            className="w-full sm:w-auto bg-green-600 hover:bg-green-500 text-white rounded-xl h-11 px-6 font-bold"
+                            className="w-full sm:w-auto bg-green-600 hover:bg-green-500 text-white rounded-xl h-12 px-8 font-bold shadow-lg shadow-green-600/20"
                           >
                             {processingId === offer.id ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4 mr-2" />}
                             Accept
@@ -135,14 +138,17 @@ export function OffersInbox() {
                             onClick={() => handleAction(offer, 'rejected')}
                             disabled={processingId === offer.id}
                             variant="ghost" 
-                            className="w-full sm:w-auto text-red-400 hover:bg-red-500/10 rounded-xl h-11 px-6"
+                            className="w-full sm:w-auto text-red-400 hover:bg-red-500/10 rounded-xl h-12 px-8"
                           >
                             {processingId === offer.id ? <Loader2 className="size-4 animate-spin" /> : <XCircle className="size-4 mr-2" />}
-                            Reject
+                            Decline
                           </Button>
                         </>
                       ) : (
-                        <Badge className={offer.status === 'accepted' ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}>
+                        <Badge className={cn(
+                          "px-4 py-1 rounded-lg text-xs font-bold",
+                          offer.status === 'accepted' ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+                        )}>
                           {offer.status.toUpperCase()}
                         </Badge>
                       )}
