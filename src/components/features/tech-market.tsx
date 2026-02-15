@@ -24,6 +24,7 @@ import {
 } from "@/lib/market-store";
 import { getWallet, initiateEscrow } from "@/lib/wallet-store";
 import { EmptyState } from "@/components/ui/empty-state";
+import { MakeOfferModal } from "./make-offer-modal";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
@@ -316,13 +317,16 @@ function ProductCard({ item, onBuy, isProcessing, isMine }: { item: MarketItem, 
         </div>
 
         {!isMine && (
-          <Button 
-            disabled={item.status !== 'active' || isProcessing || item.quantity === 0}
-            className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl h-12 font-bold shadow-lg shadow-primary/20 transition-all"
-            onClick={() => onBuy(item)}
-          >
-            {isProcessing ? <Loader2 className="size-4 animate-spin" /> : 'Acquire Asset'}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              disabled={item.status !== 'active' || isProcessing || item.quantity === 0}
+              className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-xl h-12 font-bold shadow-lg shadow-primary/20 transition-all"
+              onClick={() => onBuy(item)}
+            >
+              {isProcessing ? <Loader2 className="size-4 animate-spin" /> : 'Acquire'}
+            </Button>
+            <MakeOfferModal item={item} />
+          </div>
         )}
         
         {isMine && (

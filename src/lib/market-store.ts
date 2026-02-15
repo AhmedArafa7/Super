@@ -9,14 +9,16 @@ export type PricingMode = 'fixed' | 'range' | 'negotiable';
 export type MarketItemStatus = 'active' | 'sold' | 'reserved' | 'archived';
 export type OfferStatus = 'pending' | 'accepted' | 'rejected';
 export type MarketCategory = 'all' | 'ai_tools' | 'hardware' | 'services' | 'digital_assets';
+export type OfferType = 'price' | 'trade';
 
 export interface MarketOffer {
   id: string;
   userId: string;
   userName: string;
-  offerAmount: number;
+  type: OfferType;
+  value?: number;
+  details?: string;
   status: OfferStatus;
-  message?: string;
   timestamp: string;
 }
 
@@ -141,60 +143,46 @@ export const updateItemStatus = async (itemId: string, status: MarketItemStatus,
   }
 };
 
-export const addOffer = async (itemId: string, offer: Omit<MarketOffer, 'id' | 'status' | 'timestamp'>) => {
+export const addMarketOffer = async (
+  itemId: string, 
+  sellerId: string, 
+  itemTitle: string,
+  offer: Omit<MarketOffer, 'id' | 'status' | 'timestamp'>
+) => {
   try {
-    const { data: itemData } = await supabase.from('market_items').select('offers, owner_id, title, currency').eq('id', itemId).single();
-    if (!itemData) return;
-
-    const newOffer: MarketOffer = {
-      ...offer,
-      id: Math.random().toString(36).substring(2, 9),
-      status: 'pending',
-      timestamp: new Date().toISOString(),
+    const payload = {
+      item_id: itemId,
+      buyer_id: offer.userId,
+      seller_id: sellerId,
+      type: offer.type,
+      offer_value: offer.value || null,
+      offer_details: offer.details || null,
+      status: 'pending'
     };
 
-    const updatedOffers = [...(itemData.offers || []), newOffer];
-    await supabase.from('market_items').update({ offers: updatedOffers }).eq('id', itemId);
+    const { error } = await supabase.from('market_offers').insert([payload]);
+    if (error) throw error;
 
     addNotification({
       type: 'market_restock',
-      title: 'New Offer Received',
-      message: `${offer.userName} offered ${offer.offerAmount} ${itemData.currency} for "${itemData.title}"`,
-      userId: itemData.owner_id,
+      title: 'New Negotiation Request',
+      message: `${offer.userName} sent a ${offer.type} offer for "${itemTitle}"`,
+      userId: sellerId,
       priority: 'info'
     });
+
+    return true;
   } catch (err) {
     console.error('Add offer failure:', err);
+    throw err;
   }
 };
 
 export const updateOfferStatus = async (itemId: string, offerId: string, status: OfferStatus) => {
   try {
-    const { data: itemData } = await supabase.from('market_items').select('*').eq('id', itemId).single();
-    if (!itemData) return;
-
-    let targetUserId = '';
-    const updatedOffers = (itemData.offers || []).map((o: any) => {
-      if (o.id === offerId) {
-        targetUserId = o.userId;
-        return { ...o, status };
-      }
-      return o;
-    });
-
-    await supabase.from('market_items').update({ 
-      offers: updatedOffers,
-      status: status === 'accepted' ? 'reserved' : itemData.status,
-      buyer_id: status === 'accepted' ? targetUserId : itemData.buyer_id
-    }).eq('id', itemId);
-
-    addNotification({
-      type: 'market_restock',
-      title: status === 'accepted' ? 'Offer Accepted!' : 'Offer Declined',
-      message: status === 'accepted' ? `Your offer for "${itemData.title}" was accepted.` : `Your offer was declined.`,
-      userId: targetUserId,
-      priority: status === 'accepted' ? 'info' : 'warning'
-    });
+    // Note: This logic might need to target market_offers table directly
+    const { error } = await supabase.from('market_offers').update({ status }).eq('id', offerId);
+    if (error) throw error;
   } catch (err) {
     console.error('Update offer failure:', err);
   }
