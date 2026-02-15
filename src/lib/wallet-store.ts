@@ -1,3 +1,4 @@
+
 'use client';
 
 import { create } from 'zustand';
@@ -95,14 +96,28 @@ export const useWalletStore = create<WalletState>()(
       fetchTransactions: async (userId) => {
         if (!userId) return;
         try {
+          // Fetch wallet ID as a fallback for the transactions link
+          const { data: walletData } = await supabase.from('wallets').select('id').eq('user_id', userId).maybeSingle();
+          const walletId = walletData?.id;
+
+          // Try to fetch transactions linked to either the user directly or their wallet
+          // We use a resilient approach that handles different potential column names
           const { data: txs, error: txError } = await supabase
             .from('transactions')
             .select('*')
-            .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
           if (txError) throw txError;
-          set({ transactions: (txs || []).map(mapTransactionFromDB) });
+
+          // Manual filter to handle schema variations (user_id, userId, wallet_id) safely
+          const filtered = (txs || []).filter(t => 
+            t.user_id === userId || 
+            t.userId === userId || 
+            (walletId && t.wallet_id === walletId) ||
+            (walletId && t.walletId === walletId)
+          );
+
+          set({ transactions: filtered.map(mapTransactionFromDB) });
         } catch (err: any) {
           console.error('Transaction fetch failure:', err.message);
         }
@@ -111,13 +126,12 @@ export const useWalletStore = create<WalletState>()(
       initiateEscrow: async (buyerId, itemId, itemName, price) => {
         set({ isLoading: true });
         
-        // Generate a cryptographically secure idempotency key at the moment of intent
         const idempotencyKey = crypto.randomUUID();
 
         if (!navigator.onLine) {
           const newPending: PendingTransaction = {
             id: Math.random().toString(36).substring(2, 15),
-            buyerId, // Locked to this specific user node
+            buyerId, 
             productId: itemId,
             price: Number(price),
             title: itemName,
@@ -185,11 +199,9 @@ export const useWalletStore = create<WalletState>()(
       processOfflineQueue: async (currentUserId) => {
         const { pendingTransactions, isSyncing } = get();
         
-        // Safety check: ensure currentUserId is a valid string, not an Event object
         if (typeof currentUserId !== 'string' || !currentUserId) return;
         if (isSyncing || pendingTransactions.length === 0) return;
 
-        // Filter ONLY transactions belonging to the current user
         const userTasks = pendingTransactions.filter(t => 
           t.buyerId === currentUserId && t.status === 'pending_sync'
         );
@@ -201,7 +213,6 @@ export const useWalletStore = create<WalletState>()(
         const successIds: string[] = [];
         const failedUpdates: Record<string, { status: PendingTransactionStatus; reason?: string }> = {};
 
-        // Sequential processing for atomic credit integrity
         for (const tx of userTasks) {
           try {
             const { data, error } = await supabase.rpc('secure_purchase_item', {
@@ -210,11 +221,9 @@ export const useWalletStore = create<WalletState>()(
               p_idempotency_key: tx.idempotencyKey
             });
 
-            // If success OR if the server reports it was already processed (conflict on idempotency key)
             if (!error && data?.success) {
               successIds.push(tx.id);
             } else if (data?.success === false) {
-              // Handle known business logic errors
               if (data.error?.toLowerCase().includes('insufficient') || data.error?.toLowerCase().includes('balance')) {
                 failedUpdates[tx.id] = { 
                   status: 'failed_needs_action', 
@@ -224,7 +233,6 @@ export const useWalletStore = create<WalletState>()(
             }
           } catch (err) {
             console.error(`Sync failure for task ${tx.id}:`, err);
-            // On network error, we keep status as 'pending_sync' for future auto-retry
           }
         }
 
@@ -310,7 +318,7 @@ const mapWalletFromDB = (w: any): Wallet => ({
 
 const mapTransactionFromDB = (t: any): Transaction => ({
   id: String(t?.id ?? ''),
-  userId: t?.user_id ?? t?.userId ?? '',
+  userId: t?.user_id ?? t?.userId ?? t?.wallet_id ?? t?.walletId ?? '',
   amount: Number(t?.amount ?? 0),
   type: (t?.type as TransactionType) ?? 'deposit',
   status: (t?.status as 'pending' | 'completed' | 'failed') ?? 'failed',
