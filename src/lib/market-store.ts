@@ -58,7 +58,7 @@ const mapItemFromDB = (m: any): MarketItem => ({
   currency: m.currency || 'Credits',
   status: (m.status || 'active') as MarketItemStatus,
   offers: m.offers || [],
-  ownerId: m.owner_id || m.ownerId || '',
+  ownerId: m.seller_id || m.owner_id || m.ownerId || '',
   ownerName: m.owner_name || m.ownerName || 'Unknown',
   buyerId: m.buyer_id || m.buyerId || undefined,
   image: m.image || '',
@@ -69,14 +69,14 @@ const mapItemFromDB = (m: any): MarketItem => ({
 
 const mapOfferFromDB = (o: any): MarketOffer => ({
   id: o.id,
-  itemId: o.item_id,
-  itemTitle: o.market_items?.title || 'Unknown Item',
+  itemId: o.product_id || o.item_id,
+  itemTitle: o.products?.title || o.market_items?.title || 'Unknown Item',
   buyerId: o.buyer_id,
   buyerName: o.users?.name || 'Anonymous Node',
   sellerId: o.seller_id,
-  type: o.type as OfferType,
-  value: o.offer_value,
-  details: o.offer_details,
+  type: (o.offer_type || o.type) as OfferType,
+  value: o.offer_value || o.value,
+  details: o.offer_details || o.details,
   status: o.status as OfferStatus,
   timestamp: o.created_at || new Date().toISOString()
 });
@@ -89,7 +89,7 @@ export const getMarketItems = async (
 ): Promise<{ items: MarketItem[], hasMore: boolean }> => {
   try {
     let query = supabase
-      .from('market_items')
+      .from('products')
       .select('*', { count: 'exact' });
 
     if (search) {
@@ -127,7 +127,7 @@ export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'createdAt' | 
       min_price: item.minPrice,
       max_price: item.maxPrice,
       currency: item.currency,
-      owner_id: item.ownerId,
+      seller_id: item.ownerId,
       owner_name: item.ownerName,
       image: item.image,
       quantity: item.quantity,
@@ -135,7 +135,7 @@ export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'createdAt' | 
       status: 'active'
     };
 
-    const { data, error } = await supabase.from('market_items').insert([payload]).select().single();
+    const { data, error } = await supabase.from('products').insert([payload]).select().single();
     if (error) throw error;
 
     addNotification({
@@ -154,7 +154,7 @@ export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'createdAt' | 
 
 export const updateItemStatus = async (itemId: string, status: MarketItemStatus, buyerId?: string) => {
   try {
-    await supabase.from('market_items').update({ status, buyer_id: buyerId }).eq('id', itemId);
+    await supabase.from('products').update({ status, buyer_id: buyerId }).eq('id', itemId);
   } catch (err) {
     console.error('Update status failure:', err);
   }
@@ -168,16 +168,16 @@ export const addMarketOffer = async (
 ) => {
   try {
     const payload = {
-      item_id: itemId,
+      product_id: itemId,
       buyer_id: offer.buyerId,
       seller_id: sellerId,
-      type: offer.type,
+      offer_type: offer.type,
       offer_value: offer.value || null,
       offer_details: offer.details || null,
       status: 'pending'
     };
 
-    const { error } = await supabase.from('market_offers').insert([payload]);
+    const { error } = await supabase.from('offers').insert([payload]);
     if (error) throw error;
 
     addNotification({
@@ -198,12 +198,24 @@ export const addMarketOffer = async (
 export const getReceivedOffers = async (userId: string): Promise<MarketOffer[]> => {
   try {
     const { data, error } = await supabase
-      .from('market_offers')
-      .select('*, market_items(title), users:buyer_id(name)')
+      .from('offers')
+      .select(`
+        *,
+        products (
+          title
+        ),
+        users!buyer_id (
+          name
+        )
+      `)
       .eq('seller_id', userId)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error in getReceivedOffers:', error);
+      throw error;
+    }
+    
     return (data || []).map(mapOfferFromDB);
   } catch (err) {
     console.error('Fetch offers failure:', err);
@@ -214,7 +226,7 @@ export const getReceivedOffers = async (userId: string): Promise<MarketOffer[]> 
 export const respondToOffer = async (offerId: string, status: OfferStatus, buyerId: string, itemTitle: string) => {
   try {
     const { error } = await supabase
-      .from('market_offers')
+      .from('offers')
       .update({ status })
       .eq('id', offerId);
 
@@ -239,7 +251,7 @@ export const respondToOffer = async (offerId: string, status: OfferStatus, buyer
 
 export const updateItemQuantity = async (itemId: string, quantity: number) => {
   try {
-    await supabase.from('market_items').update({ quantity }).eq('id', itemId);
+    await supabase.from('products').update({ quantity }).eq('id', itemId);
   } catch (err) {
     console.error('Update quantity failure:', err);
   }
@@ -247,7 +259,7 @@ export const updateItemQuantity = async (itemId: string, quantity: number) => {
 
 export const deleteMarketItem = async (id: string) => {
   try {
-    await supabase.from('market_items').delete().eq('id', id);
+    await supabase.from('products').delete().eq('id', id);
   } catch (err) {
     console.error('Delete item failure:', err);
   }
