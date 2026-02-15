@@ -25,6 +25,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { LoginView } from "@/components/auth/login-view";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers";
 
@@ -52,12 +53,16 @@ export function AppShell() {
     window.addEventListener('notifications-update', updateCount);
     window.addEventListener('storage', updateCount);
     
+    // OFFLINE SYNC LOGIC
     const handleOnline = () => {
-      if (user?.id) processOfflineQueue(user.id);
+      if (user?.id) {
+        toast({ title: "Neural Link Restored", description: "Synchronizing offline acquisitions..." });
+        processOfflineQueue(user.id);
+      }
     };
     
     window.addEventListener('online', handleOnline);
-    if (navigator.onLine) handleOnline();
+    if (navigator.onLine && user?.id) processOfflineQueue(user.id);
 
     return () => {
       window.removeEventListener('notifications-update', updateCount);

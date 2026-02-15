@@ -46,7 +46,7 @@ export function TechMarket() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
 
   const [search, setSearch] = useState("");
@@ -67,7 +67,11 @@ export function TechMarket() {
   });
 
   const loadData = useCallback(async (isLoadMore = false) => {
-    if (!isLoadMore) setIsLoading(true);
+    if (!isLoadMore) {
+      setIsLoading(true);
+      setOffset(0);
+    }
+    
     const currentOffset = isLoadMore ? offset + ITEMS_PER_PAGE : 0;
     
     const { items: fetchedItems, hasMore: more } = await getMarketItems(
@@ -80,12 +84,13 @@ export function TechMarket() {
     setItems(prev => isLoadMore ? [...prev, ...fetchedItems] : fetchedItems);
     setHasMore(more);
     setOffset(currentOffset);
-    if (!isLoadMore) setIsLoading(false);
+    setIsLoading(false);
   }, [search, category, offset]);
 
+  // Handle filter changes
   useEffect(() => {
     const timer = setTimeout(() => {
-      loadData();
+      loadData(false);
     }, 500); 
     return () => clearTimeout(timer);
   }, [search, category]);
@@ -114,7 +119,8 @@ export function TechMarket() {
           await updateItemStatus(item.id, 'reserved', user.id);
           await updateItemQuantity(item.id, item.quantity - 1);
         }
-        loadData();
+        // Refresh visible data
+        loadData(false);
       }
     } catch (err) {
       toast({ variant: "destructive", title: "Transmission Sync Failed", description: "Failed to verify credit transaction with the network." });
@@ -189,7 +195,7 @@ export function TechMarket() {
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={async () => { await addMarketItem({ ...newListing, ownerId: user!.id, ownerName: user!.name }); setIsAddModalOpen(false); loadData(); }} className="w-full bg-primary h-12 rounded-xl font-bold shadow-lg shadow-primary/20">Authorize Publication</Button>
+                <Button onClick={async () => { await addMarketItem({ ...newListing, ownerId: user!.id, ownerName: user!.name }); setIsAddModalOpen(false); loadData(false); }} className="w-full bg-primary h-12 rounded-xl font-bold shadow-lg shadow-primary/20">Authorize Publication</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -236,37 +242,39 @@ export function TechMarket() {
             }
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pb-12">
-            {filteredItems.map((item) => (
-              <ProductCard 
-                key={item.id} 
-                item={item} 
-                onBuy={handleBuyNow} 
-                isProcessing={isProcessing} 
-                isMine={item.ownerId === user?.id} 
-              />
-            ))}
-          </div>
-        )}
-        
-        {hasMore && (
-          <div className="flex justify-center pb-16">
-            <Button 
-              onClick={() => loadData(true)} 
-              variant="outline" 
-              className="rounded-xl border-white/10 px-12 h-14 hover:bg-white/5 transition-all min-w-[240px] font-bold"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="size-4 animate-spin mr-2" />
-                  Synchronizing...
-                </>
-              ) : (
-                'Fetch More Payloads'
-              )}
-            </Button>
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pb-12">
+              {filteredItems.map((item) => (
+                <ProductCard 
+                  key={item.id} 
+                  item={item} 
+                  onBuy={handleBuyNow} 
+                  isProcessing={isProcessing} 
+                  isMine={item.ownerId === user?.id} 
+                />
+              ))}
+            </div>
+            
+            {hasMore && (
+              <div className="flex justify-center pb-16">
+                <Button 
+                  onClick={() => loadData(true)} 
+                  variant="outline" 
+                  className="rounded-xl border-white/10 px-12 h-14 hover:bg-white/5 transition-all min-w-[240px] font-bold"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin mr-2" />
+                      Synchronizing...
+                    </>
+                  ) : (
+                    'Fetch More Payloads'
+                  )}
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
