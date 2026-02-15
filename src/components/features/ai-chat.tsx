@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -13,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useSidebar } from "@/components/ui/sidebar";
 
 interface AIChatProps {
   highlightId?: string | null;
@@ -24,6 +27,7 @@ const MAX_FILE_SIZE = 1.5 * 1024 * 1024;
 export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isMobile, setOpenMobile } = useSidebar();
   const [messages, setMessages] = useState<WizardMessage[]>([]);
   const [input, setInput] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -54,7 +58,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     if (!user?.id) return;
     loadMessages();
 
-    // REALTIME SUBSCRIPTION WITH CLEANUP
     const channel = supabase
       .channel('chat-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
@@ -88,6 +91,12 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     }
   }, [messages, highlightId]);
 
+  const handleFocusInput = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   const handleSend = async () => {
     const hasContent = input?.trim() || pendingAttachments?.length > 0;
     if (!hasContent || !user?.id || isSending || isUploading) return;
@@ -101,7 +110,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       }
     } catch (err: any) {
       toast({ variant: "destructive", title: "Transmission Failed", description: err.message });
-      // Input is preserved for retry
     } finally {
       setIsSending(false);
     }
@@ -237,69 +245,71 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
 
         <ScrollArea className="flex-1 p-6" ref={scrollRef}>
           <div className="space-y-6">
-            {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-40 text-center opacity-50">
-                <Sparkles className="size-12 mb-4 text-indigo-500" />
-                <p className="text-sm">Initiate a secure neural session.</p>
-              </div>
-            )}
-            
-            {messages.map((msg) => (
-              <React.Fragment key={msg.id}>
-                <div className="flex justify-end items-start gap-3 group relative">
-                  <div className="flex items-start gap-2 max-w-[85%]">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-8 text-muted-foreground"><MoreVertical className="size-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-slate-900 border-white/10">
-                          {msg.status !== 'replied' && (
-                            <DropdownMenuItem onClick={() => { setEditingId(msg.id); setEditingText(msg.text); }} className="gap-2">
-                              <Pencil className="size-4" /> Edit Request
+            {messages.length === 0 ? (
+              <EmptyState 
+                icon={Sparkles}
+                title="Neural Stream Empty"
+                description="Initiate a secure session to begin communicating with the Nexus AI node."
+                className="mt-12"
+              />
+            ) : (
+              messages.map((msg) => (
+                <React.Fragment key={msg.id}>
+                  <div className="flex justify-end items-start gap-3 group relative">
+                    <div className="flex items-start gap-2 max-w-[85%]">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-8 text-muted-foreground"><MoreVertical className="size-4" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-slate-900 border-white/10">
+                            {msg.status !== 'replied' && (
+                              <DropdownMenuItem onClick={() => { setEditingId(msg.id); setEditingText(msg.text); }} className="gap-2">
+                                <Pencil className="size-4" /> Edit Request
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => deleteMessage(msg.id)} className="gap-2 text-red-400">
+                              <Trash2 className="size-4" /> Retract Request
                             </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={() => deleteMessage(msg.id)} className="gap-2 text-red-400">
-                            <Trash2 className="size-4" /> Retract Request
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
 
-                    <div className={cn("flex-1 p-4 transition-all duration-300", editingId === msg.id ? "bg-indigo-500/10 border border-indigo-500/30 rounded-2xl" : "message-bubble-user")}>
-                      {editingId === msg.id ? (
-                        <div className="space-y-3">
-                          <Textarea autoFocus value={editingText} onChange={(e) => setEditingText(e.target.value)} className="bg-white/5 border-white/10" />
-                          <div className="flex justify-end gap-2">
-                            <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
-                            <Button size="sm" onClick={async () => { await updateMessageText(msg.id, editingText); setEditingId(null); }} className="bg-indigo-500">Save</Button>
+                      <div className={cn("flex-1 p-4 transition-all duration-300", editingId === msg.id ? "bg-indigo-500/10 border border-indigo-500/30 rounded-2xl" : "message-bubble-user")}>
+                        {editingId === msg.id ? (
+                          <div className="space-y-3">
+                            <Textarea autoFocus value={editingText} onChange={(e) => setEditingText(e.target.value)} className="bg-white/5 border-white/10" />
+                            <div className="flex justify-end gap-2">
+                              <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
+                              <Button size="sm" onClick={async () => { await updateMessageText(msg.id, editingText); setEditingId(null); }} className="bg-indigo-500">Save</Button>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                          {msg.attachments && msg.attachments.length > 0 && <AttachmentPreview attachments={msg.attachments} />}
-                          <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
-                            {msg.isUserEdited && <span className="text-[9px] italic mr-1">(edited)</span>}
-                            <span className="text-[10px]">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                          </div>
-                        </>
-                      )}
+                        ) : (
+                          <>
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                            {msg.attachments && msg.attachments.length > 0 && <AttachmentPreview attachments={msg.attachments} />}
+                            <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
+                              {msg.isUserEdited && <span className="text-[9px] italic mr-1">(edited)</span>}
+                              <span className="text-[10px]">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
+                    <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0"><User className="size-4 text-indigo-400" /></div>
                   </div>
-                  <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0"><User className="size-4 text-indigo-400" /></div>
-                </div>
 
-                {msg.status === 'replied' && msg.response && (
-                  <div ref={el => { messageRefs.current[msg.id] = el; }} className="flex justify-start items-start gap-3">
-                    <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0"><Bot className="size-4 text-indigo-400" /></div>
-                    <div className={cn("max-w-[80%] message-bubble-ai p-4 border transition-all duration-500", highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500")}>
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.response}</p>
+                  {msg.status === 'replied' && msg.response && (
+                    <div ref={el => { messageRefs.current[msg.id] = el; }} className="flex justify-start items-start gap-3">
+                      <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0"><Bot className="size-4 text-indigo-400" /></div>
+                      <div className={cn("max-w-[80%] message-bubble-ai p-4 border transition-all duration-500", highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500")}>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.response}</p>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </React.Fragment>
-            ))}
+                  )}
+                </React.Fragment>
+              ))
+            )}
           </div>
         </ScrollArea>
 
@@ -313,6 +323,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
             <div className="relative">
               <Input
                 value={input}
+                onFocus={handleFocusInput}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder={isUploading ? "Uploading payload..." : "Message NexusAI..."}

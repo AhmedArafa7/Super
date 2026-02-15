@@ -1,10 +1,11 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { 
   ShoppingCart, Zap, Cpu, ArrowUpRight, ArrowDownLeft, Tag, 
   CheckCircle2, XCircle, Clock, ChevronRight, Upload, Trash2, 
-  Wallet, Loader2, Plus
+  Wallet, Loader2, Plus, Ghost, ShoppingBag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ import {
   MarketItem, MarketOffer, PricingMode, ListingType, updateItemStatus, updateItemQuantity
 } from "@/lib/market-store";
 import { getWallet, initiateEscrow, releaseEscrow } from "@/lib/wallet-store";
+import { EmptyState } from "@/components/ui/empty-state";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
@@ -81,7 +83,6 @@ export function TechMarket() {
   const handleBuyNow = async (item: MarketItem) => {
     if (!user?.id || isProcessing) return;
 
-    // INVENTORY SAFETY LOCK
     if (item.quantity < 1) {
       return toast({ variant: "destructive", title: "Out of Stock", description: "This neural asset has already been synchronized elsewhere." });
     }
@@ -170,6 +171,17 @@ export function TechMarket() {
       <ScrollArea className="flex-1 -mx-4 px-4">
         {isLoading ? (
           <div className="flex items-center justify-center h-64"><Loader2 className="size-8 animate-spin text-primary" /></div>
+        ) : filteredItems.length === 0 ? (
+          <EmptyState 
+            icon={ShoppingBag}
+            title="Marketplace Silent"
+            description="No neural assets matching your criteria were found in the current sector."
+            action={
+              <Button variant="outline" className="rounded-xl border-white/10" onClick={() => setIsAddModalOpen(true)}>
+                Initialize First Listing
+              </Button>
+            }
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pb-10">
             {filteredItems.map((item) => (
