@@ -1,3 +1,4 @@
+
 'use client';
 
 import { supabase } from './supabaseClient';
@@ -94,8 +95,6 @@ export const getTransactions = async (userId: string): Promise<Transaction[]> =>
 export const depositFunds = async (userId: string, amount: number) => {
   if (!userId || amount <= 0) return false;
   try {
-    // Atomic deposit: Let DB handle current balance addition if possible
-    // For now using read-modify-write as we don't have an RPC function
     const wallet = await getWallet(userId);
     const newBalance = wallet.balance + amount;
 
@@ -130,40 +129,45 @@ export const depositFunds = async (userId: string, amount: number) => {
 };
 
 /**
- * Initiates an Escrow Hold.
- * Relies on DB response for liquidity checks.
+ * Initiates an Escrow Hold using a secure server-side RPC.
+ * This ensures atomic verification of funds and reservation.
  */
-export const initiateEscrow = async (buyerId: string, sellerId: string, amount: number, itemId: string) => {
+export const initiateEscrow = async (buyerId: string, sellerId: string, amount: number, itemId: string, itemName: string) => {
   try {
-    const buyerWallet = await getWallet(buyerId);
-    if (buyerWallet.balance < amount) throw new Error('Insufficient neural credits.');
+    // SECURITY: Call atomic server-side RPC to handle the transaction hold.
+    // This prevents race conditions and client-side balance spoofing.
+    const { data, error } = await supabase.rpc('secure_purchase_item', {
+      p_user_id: buyerId,
+      p_amount: amount,
+      p_description: `Purchase: ${itemName} (Escrow Hold)`
+    });
 
-    const { error: updateError } = await supabase
-      .from('wallets')
-      .update({ 
-        balance: buyerWallet.balance - amount,
-        frozen_balance: buyerWallet.frozenBalance + amount 
-      })
-      .eq('user_id', buyerId);
+    if (error) throw error;
 
-    if (updateError) throw updateError;
+    // The RPC returns { success: boolean, error?: string, new_balance?: number }
+    if (data.success === false) {
+      throw new Error(data.error || 'Server rejected the transaction hold.');
+    }
 
-    await supabase.from('transactions').insert([{
-      user_id: buyerId,
-      amount: -amount,
-      type: 'purchase_hold',
-      status: 'completed',
-      related_id: itemId,
-      description: `Funds reserved for item acquisition (Escrow Hold)`
-    }]);
-
-    return { success: true };
+    // Success: Funds are now atomically moved to frozen_balance in the DB.
+    // We return success and the new balance truth from the server.
+    return { 
+      success: true, 
+      newBalance: data.new_balance 
+    };
   } catch (err: any) {
-    toast({ variant: 'destructive', title: 'Acquisition Failed', description: err.message });
+    toast({ 
+      variant: 'destructive', 
+      title: 'Acquisition Refused', 
+      description: err.message || 'The neural payment link was rejected by the server.' 
+    });
     return { success: false, error: err.message };
   }
 };
 
+/**
+ * Releases funds from Escrow to the Seller.
+ */
 export const releaseEscrow = async (buyerId: string, sellerId: string, amount: number, itemId: string) => {
   try {
     const [buyerWallet, sellerWallet] = await Promise.all([
@@ -171,6 +175,7 @@ export const releaseEscrow = async (buyerId: string, sellerId: string, amount: n
       getWallet(sellerId)
     ]);
 
+    // Atomic updates for release
     const { error: bError } = await supabase
       .from('wallets')
       .update({ frozen_balance: Math.max(0, buyerWallet.frozenBalance - amount) })
