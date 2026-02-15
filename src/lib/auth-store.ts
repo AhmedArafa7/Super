@@ -16,6 +16,22 @@ export interface User {
 
 const SESSION_KEY = 'nexus_session';
 
+/**
+ * Maps database user object to the frontend User interface.
+ * Handles variations in column naming (e.g., full_name vs name).
+ */
+export const mapUserFromDB = (u: any): User => {
+  if (!u) return null as any;
+  return {
+    id: u.id,
+    username: u.username,
+    password: u.password,
+    name: u.full_name || u.name || u.displayName || u.username || 'Unknown Node',
+    role: u.role || 'user',
+    avatar_url: u.avatar_url || u.avatarUrl
+  };
+};
+
 export const getSession = (): User | null => {
   if (typeof window === 'undefined') return null;
   try {
@@ -51,7 +67,7 @@ export const getStoredUsers = async (): Promise<User[]> => {
       console.error('Supabase query error (users):', error.message, error.details);
       throw error;
     }
-    return data || [];
+    return (data || []).map(mapUserFromDB);
   } catch (err: any) {
     console.error('Error fetching users:', err.message || err);
     return [];
@@ -60,16 +76,25 @@ export const getStoredUsers = async (): Promise<User[]> => {
 
 /**
  * Registers a new neural node in the system.
+ * Maps 'name' to 'full_name' for database compatibility.
  */
 export const addUser = async (user: Omit<User, 'id'>) => {
   try {
-    const { data, error } = await supabase.from('users').insert([user]).select().single();
+    const payload = {
+      username: user.username,
+      password: user.password,
+      full_name: user.name,
+      role: user.role,
+      avatar_url: user.avatar_url
+    };
+
+    const { data, error } = await supabase.from('users').insert([payload]).select().single();
     if (error) {
       console.error('Supabase registration error:', error.message, error.details, error.hint);
       throw error;
     }
     window.dispatchEvent(new Event('auth-update'));
-    return data;
+    return mapUserFromDB(data);
   } catch (err: any) {
     console.error('Error adding user:', err.message || err);
     throw err;
@@ -95,9 +120,17 @@ export const deleteUser = async (id: string) => {
 
 export const updateUserProfile = async (userId: string, updates: Partial<User>) => {
   try {
+    const dbUpdates: any = { ...updates };
+    
+    // Map 'name' to 'full_name' if present in updates
+    if (updates.name) {
+      dbUpdates.full_name = updates.name;
+      delete dbUpdates.name;
+    }
+
     const { data, error } = await supabase
       .from('users')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', userId)
       .select()
       .single();
@@ -107,13 +140,15 @@ export const updateUserProfile = async (userId: string, updates: Partial<User>) 
       throw error;
     }
     
+    const mappedUser = mapUserFromDB(data);
+    
     // Update local session to reflect changes
     const currentSession = getSession();
     if (currentSession && currentSession.id === userId) {
-      setSession({ ...currentSession, ...data });
+      setSession({ ...currentSession, ...mappedUser });
     }
     
-    return data;
+    return mappedUser;
   } catch (err: any) {
     console.error('Profile update failed:', err.message || err);
     throw err;

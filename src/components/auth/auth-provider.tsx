@@ -1,7 +1,8 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, setSession, getSession } from '@/lib/auth-store';
+import { User, setSession, getSession, mapUserFromDB } from '@/lib/auth-store';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from '@/hooks/use-toast';
 
@@ -45,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(null);
         setUser(null);
       } else {
-        setUser(data as User);
+        setUser(mapUserFromDB(data));
       }
     } catch (err) {
       setUser(null);
@@ -77,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
 
       if (data) {
-        const userData = data as User;
+        const userData = mapUserFromDB(data);
         setSession(userData);
         setUser(userData);
         return true;

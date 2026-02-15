@@ -70,8 +70,8 @@ const mapItemFromDB = (m: any): MarketItem => ({
 const mapOfferFromDB = (o: any): MarketOffer => {
   // Resilient title mapping
   const itemTitle = o.products?.title || o.product?.title || o.market_items?.title || 'Unknown Item';
-  // Resilient name mapping
-  const buyerName = o.users?.name || o.buyer?.name || 'Anonymous Node';
+  // Resilient name mapping (checking full_name then name)
+  const buyerName = o.users?.full_name || o.users?.name || o.buyer?.name || 'Anonymous Node';
 
   return {
     id: o.id,
@@ -213,6 +213,7 @@ export const getReceivedOffers = async (userId: string): Promise<MarketOffer[]> 
           title
         ),
         users!buyer_id (
+          full_name,
           name
         )
       `)
