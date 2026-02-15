@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { FileText, Calendar, MoreVertical, Circle, ChevronRight, BookOpen, Play, Music, Trophy, Lock, Plus, Trash2, ArrowUp, ArrowDown, Upload, Loader2, Globe } from "lucide-react";
+import { FileText, Calendar, MoreVertical, Circle, ChevronRight, BookOpen, Play, Music, Trophy, Lock, Plus, Trash2, ArrowUp, ArrowDown, Upload, Loader2, Globe, CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +34,14 @@ export function KnowledgeHub() {
 
   // Form States
   const [newSubject, setNewSubject] = useState({ name: "", description: "", allowedUserIds: "" });
-  const [newCollection, setNewCollection] = useState({ title: "", description: "" });
+  const [newCollection, setNewCollection] = useState({ 
+    title: "", 
+    description: "",
+    includeAsset: true,
+    assetTitle: "",
+    assetType: "file" as LearningItemType,
+    file: null as File | null
+  });
   const [newItem, setNewItem] = useState<{title: string, type: LearningItemType, file: File | null}>({ title: "", type: "file", file: null });
   const [isUploading, setIsUploading] = useState(false);
 
@@ -72,60 +79,89 @@ export function KnowledgeHub() {
 
   const handleCreateCollection = async () => {
     if (!selectedSubject || !newCollection.title) return;
-    await addCollection({ 
-      subjectId: selectedSubject.id, 
-      title: newCollection.title, 
-      description: newCollection.description,
-      orderIndex: collections.length 
-    });
-    setIsCollectionModalOpen(false);
-    handleSelectSubject(selectedSubject);
+    setIsUploading(true);
+
+    try {
+      // 1. Create the Collection (Lesson)
+      const colData = await addCollection({ 
+        subjectId: selectedSubject.id, 
+        title: newCollection.title, 
+        description: newCollection.description,
+        orderIndex: collections.length 
+      });
+
+      if (!colData) throw new Error("Failed to create collection");
+
+      // 2. If a file is selected, upload and link it
+      if (newCollection.includeAsset && newCollection.file) {
+        let url = "";
+        let quizData = null;
+
+        if (newCollection.assetType === 'quiz_json') {
+          const content = await newCollection.file.text();
+          quizData = JSON.parse(content);
+        } else {
+          const uploadedUrl = await uploadLearningFile(newCollection.file);
+          if (!uploadedUrl) throw new Error("File upload failed");
+          url = uploadedUrl;
+        }
+
+        await addLearningItem({
+          collectionId: colData.id,
+          title: newCollection.assetTitle || newCollection.title,
+          type: newCollection.assetType,
+          url,
+          quizData,
+          orderIndex: 0
+        });
+      }
+
+      toast({ title: "Lesson Integrated", description: "Content synchronized successfully." });
+      setIsCollectionModalOpen(false);
+      setNewCollection({ title: "", description: "", includeAsset: true, assetTitle: "", assetType: "file", file: null });
+      handleSelectSubject(selectedSubject);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Integration Failed", description: err.message });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleCreateItem = async () => {
     if (!activeCollectionId || !newItem.title || !newItem.file) return;
     setIsUploading(true);
     
-    let url = "";
-    let quizData = null;
+    try {
+      let url = "";
+      let quizData = null;
 
-    if (newItem.type === 'quiz_json') {
-      const reader = new FileReader();
-      const contentPromise = new Promise<string>((resolve) => {
-        reader.onload = (e) => resolve(e.target?.result as string);
-        reader.readAsText(newItem.file!);
-      });
-      const content = await contentPromise;
-      try {
+      if (newItem.type === 'quiz_json') {
+        const content = await newItem.file.text();
         quizData = JSON.parse(content);
-      } catch (e) {
-        toast({ title: "Invalid JSON", variant: "destructive" });
-        setIsUploading(false);
-        return;
+      } else {
+        const uploadedUrl = await uploadLearningFile(newItem.file);
+        if (!uploadedUrl) throw new Error("Upload failed");
+        url = uploadedUrl;
       }
-    } else {
-      const uploadedUrl = await uploadLearningFile(newItem.file);
-      if (!uploadedUrl) {
-        toast({ title: "Upload Failed", variant: "destructive" });
-        setIsUploading(false);
-        return;
-      }
-      url = uploadedUrl;
+
+      await addLearningItem({
+        collectionId: activeCollectionId,
+        title: newItem.title,
+        type: newItem.type,
+        url,
+        quizData,
+        orderIndex: (itemsMap[activeCollectionId]?.length || 0)
+      });
+
+      toast({ title: "Asset Added", description: "Resource linked to lesson." });
+      setIsItemModalOpen(false);
+      handleSelectSubject(selectedSubject!);
+      setNewItem({ title: "", type: "file", file: null });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Upload Failed", description: err.message });
+    } finally {
+      setIsUploading(false);
     }
-
-    await addLearningItem({
-      collectionId: activeCollectionId,
-      title: newItem.title,
-      type: newItem.type,
-      url,
-      quizData,
-      orderIndex: (itemsMap[activeCollectionId]?.length || 0)
-    });
-
-    setIsUploading(false);
-    setIsItemModalOpen(false);
-    handleSelectSubject(selectedSubject!);
-    setNewItem({ title: "", type: "file", file: null });
   };
 
   if (!selectedSubject) {
@@ -285,11 +321,13 @@ export function KnowledgeHub() {
                     </div>
                     <div className="flex-1 flex items-center justify-between">
                       <p className="text-sm font-semibold text-slate-800">{item.title}</p>
-                      {item.type === 'quiz_json' ? (
-                        <Button size="sm" className="bg-rose-600 hover:bg-rose-500 text-white text-xs h-8 px-4">Start Quiz</Button>
-                      ) : (
-                        <a href={item.url} target="_blank" className="text-xs font-bold text-teal-700 hover:underline uppercase">View Content</a>
-                      )}
+                      <div className="flex gap-2">
+                        {item.type === 'quiz_json' ? (
+                          <Button size="sm" className="bg-rose-600 hover:bg-rose-500 text-white text-xs h-8 px-4">Start Quiz</Button>
+                        ) : (
+                          <a href={item.url} target="_blank" className="text-xs font-bold text-teal-700 hover:underline uppercase">View Content</a>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -313,41 +351,95 @@ export function KnowledgeHub() {
 
       {/* Admin Modals */}
       <Dialog open={isCollectionModalOpen} onOpenChange={setIsCollectionModalOpen}>
-        <DialogContent className="bg-slate-900 border-white/10 text-white rounded-3xl">
+        <DialogContent className="bg-slate-950 border-white/10 text-white rounded-[2.5rem] sm:max-w-[550px] p-8 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Add Collection / Lesson</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">Add Collection / Lesson</DialogTitle>
+            <DialogDescription className="text-slate-400">Create a new lesson and optionally upload your first asset.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid gap-2">
-              <Label>Lesson Title</Label>
-              <Input className="bg-white/5 border-white/10 text-white" value={newCollection.title} onChange={e => setNewCollection({...newCollection, title: e.target.value})} />
+          <div className="space-y-6 py-6">
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label>Lesson Title</Label>
+                <Input className="bg-white/5 border-white/10 text-white h-12 rounded-xl" value={newCollection.title} onChange={e => setNewCollection({...newCollection, title: e.target.value})} placeholder="e.g., Intro to Neural Networks" />
+              </div>
+              <div className="grid gap-2">
+                <Label>Brief Description</Label>
+                <Textarea className="bg-white/5 border-white/10 text-white rounded-xl min-h-[80px]" value={newCollection.description} onChange={e => setNewCollection({...newCollection, description: e.target.value})} placeholder="What will students learn?" />
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label>Brief Description</Label>
-              <Textarea className="bg-white/5 border-white/10 text-white" value={newCollection.description} onChange={e => setNewCollection({...newCollection, description: e.target.value})} />
+
+            <div className="border-t border-white/5 pt-6 space-y-4">
+              <h4 className="text-sm font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                <Upload className="size-4" />
+                Lesson Asset (Optional)
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Asset Type</Label>
+                  <Select value={newCollection.assetType} onValueChange={(v: any) => setNewCollection({...newCollection, assetType: v})}>
+                    <SelectTrigger className="bg-white/5 border-white/10 h-11 rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-white/10 text-white">
+                      <SelectItem value="video">Video</SelectItem>
+                      <SelectItem value="audio">Audio</SelectItem>
+                      <SelectItem value="file">Document (PDF)</SelectItem>
+                      <SelectItem value="quiz_json">Quiz (JSON)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Asset Title</Label>
+                  <Input className="bg-white/5 border-white/10 h-11 rounded-xl" value={newCollection.assetTitle} onChange={e => setNewCollection({...newCollection, assetTitle: e.target.value})} placeholder="Display name" />
+                </div>
+              </div>
+              
+              <div className="relative border-2 border-dashed border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center bg-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
+                <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setNewCollection({...newCollection, file: e.target.files?.[0] || null})} accept={newCollection.assetType === 'quiz_json' ? '.json' : '*'} />
+                {newCollection.file ? (
+                  <div className="flex flex-col items-center gap-1">
+                    <CheckCircle2 className="size-8 text-green-400" />
+                    <span className="text-xs text-slate-300 truncate w-48 text-center">{newCollection.file.name}</span>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="size-8 text-muted-foreground group-hover:text-primary transition-colors mb-2" />
+                    <p className="text-xs font-medium text-white/70">Click or drag payload to upload</p>
+                  </>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleCreateCollection} className="w-full bg-primary h-11">Append Lesson</Button>
+            <Button onClick={handleCreateCollection} disabled={isUploading || !newCollection.title} className="w-full bg-primary h-14 rounded-2xl font-bold text-lg shadow-lg shadow-primary/20">
+              {isUploading ? (
+                <>
+                  <Loader2 className="size-5 animate-spin mr-2" />
+                  Synchronizing Neural Content...
+                </>
+              ) : (
+                "Append Lesson & Assets"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isItemModalOpen} onOpenChange={setIsItemModalOpen}>
-        <DialogContent className="bg-slate-900 border-white/10 text-white rounded-3xl">
+        <DialogContent className="bg-slate-950 border-white/10 text-white rounded-[2.5rem] p-8 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>New Learning Asset</DialogTitle>
-            <DialogDescription className="text-slate-400">Universal upload: Video, Audio, PDF, or Quiz JSON.</DialogDescription>
+            <DialogTitle className="text-2xl font-bold">New Learning Asset</DialogTitle>
+            <DialogDescription className="text-slate-400">Add another resource to this lesson sequence.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-6 py-6">
             <div className="grid gap-2">
-              <Label>Title</Label>
-              <Input className="bg-white/5 border-white/10 text-white" value={newItem.title} onChange={e => setNewItem({...newItem, title: e.target.value})} />
+              <Label>Asset Title</Label>
+              <Input className="bg-white/5 border-white/10 h-12 rounded-xl" value={newItem.title} onChange={e => setNewItem({...newItem, title: e.target.value})} placeholder="e.g., Reading Materials" />
             </div>
             <div className="grid gap-2">
               <Label>Asset Type</Label>
               <Select value={newItem.type} onValueChange={(v: any) => setNewItem({...newItem, type: v})}>
-                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                <SelectTrigger className="bg-white/5 border-white/10 h-12 rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-900 border-white/10 text-white">
@@ -359,26 +451,26 @@ export function KnowledgeHub() {
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label>{newItem.type === 'quiz_json' ? 'Upload Quiz JSON' : 'Upload Asset'}</Label>
-              <div className="relative h-24 border-2 border-dashed border-white/10 rounded-xl flex items-center justify-center bg-white/5 group hover:bg-white/10 cursor-pointer">
+              <Label>Upload Asset</Label>
+              <div className="relative h-32 border-2 border-dashed border-white/10 rounded-2xl flex items-center justify-center bg-white/5 group hover:bg-white/10 cursor-pointer">
                 <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setNewItem({...newItem, file: e.target.files?.[0] || null})} accept={newItem.type === 'quiz_json' ? '.json' : '*'} />
                 {newItem.file ? (
                   <div className="flex flex-col items-center gap-1">
-                    <CheckCircle2 className="size-6 text-green-400" />
-                    <span className="text-[10px] text-slate-300 truncate w-40 text-center">{newItem.file.name}</span>
+                    <CheckCircle2 className="size-8 text-green-400" />
+                    <span className="text-xs text-slate-300 truncate w-48 text-center">{newItem.file.name}</span>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center gap-1 text-slate-500">
-                    <Upload className="size-6" />
-                    <span className="text-[10px] uppercase font-bold tracking-widest">Select Payload</span>
+                  <div className="flex flex-col items-center gap-2 text-slate-500">
+                    <Upload className="size-8" />
+                    <span className="text-xs uppercase font-bold tracking-widest">Select Payload</span>
                   </div>
                 )}
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleCreateItem} disabled={isUploading} className="w-full bg-primary h-11">
-              {isUploading ? <Loader2 className="size-4 animate-spin mr-2" /> : <Plus className="size-4 mr-2" />}
+            <Button onClick={handleCreateItem} disabled={isUploading || !newItem.file || !newItem.title} className="w-full bg-primary h-14 rounded-2xl font-bold shadow-lg">
+              {isUploading ? <Loader2 className="size-5 animate-spin mr-2" /> : <Plus className="size-5 mr-2" />}
               {isUploading ? "Transmitting..." : "Integrate Asset"}
             </Button>
           </DialogFooter>
@@ -387,7 +479,3 @@ export function KnowledgeHub() {
     </div>
   );
 }
-
-const CheckCircle2 = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-);
