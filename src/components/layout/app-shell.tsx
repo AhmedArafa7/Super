@@ -1,11 +1,13 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
-import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShoppingCart, User, ShieldCheck, GraduationCap, Wallet } from "lucide-react";
+import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShoppingCart, User, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AIChat } from "@/components/features/ai-chat";
 import { StreamHub } from "@/components/features/stream-hub";
 import { TechMarket } from "@/components/features/tech-market";
@@ -14,23 +16,21 @@ import { AdminPanel } from "@/components/features/admin-panel";
 import { NotificationsView } from "@/components/features/notifications-view";
 import { KnowledgeHub } from "@/components/features/knowledge-hub";
 import { WalletView } from "@/components/features/wallet-view";
+import { UserDashboard } from "@/components/features/user-dashboard";
 import { getNotifications, AppNotification, clearAllUnreadNotifications } from "@/lib/notification-store";
 import { useAuth } from "@/components/auth/auth-provider";
 import { LoginView } from "@/components/auth/login-view";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet";
+type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard";
 
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<NavItem>("chat");
-  const [cartCount, setCartCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   
-  const clickTimer = useRef<NodeJS.Timeout | null>(null);
-
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
@@ -104,6 +104,7 @@ export function AppShell() {
       case "admin": return user?.role === 'admin' ? <AdminPanel /> : <AIChat />;
       case "learning": return <KnowledgeHub />;
       case "notifications": return <NotificationsView onSmartRoute={handleSmartRoute} />;
+      case "dashboard": return <UserDashboard />;
       default: return <AIChat />;
     }
   };
@@ -168,7 +169,7 @@ export function AppShell() {
             )}
             <div className="flex items-center gap-3 px-2">
               <div className="size-8 rounded-full bg-indigo-900/50 border border-white/10 overflow-hidden">
-                <img src={`https://picsum.photos/seed/${user?.username}/32/32`} alt="User" />
+                <img src={user?.avatar_url || `https://picsum.photos/seed/${user?.username}/32/32`} alt="User" className="size-full object-cover" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{user?.name}</p>
@@ -221,19 +222,42 @@ export function AppShell() {
                   )}
                 </AnimatePresence>
               </Button>
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white relative">
-                <ShoppingCart className="size-5" />
-                {cartCount > 0 && (
-                  <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-primary text-[10px]">
-                    {cartCount}
-                  </Badge>
-                )}
-              </Button>
+              
               <div className="h-8 w-px bg-white/10 mx-2" />
-              <Button size="sm" className="bg-primary text-white hover:bg-primary/90 rounded-lg shadow-md shadow-primary/10">
-                <Zap className="mr-2 size-4 fill-white" />
-                Connect
-              </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 overflow-hidden border border-white/10 hover:border-primary/50 transition-colors">
+                    <img src={user?.avatar_url || `https://picsum.photos/seed/${user?.username}/32/32`} alt="Profile" className="h-full w-full object-cover" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-slate-950 border-white/10" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none text-white">{user?.name}</p>
+                      <p className="text-xs leading-none text-muted-foreground">@{user?.username}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-white/5" />
+                  <DropdownMenuItem onClick={() => setActiveTab("dashboard")} className="hover:bg-white/5 cursor-pointer">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <span>User Dashboard</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveTab("wallet")} className="hover:bg-white/5 cursor-pointer">
+                    <Wallet className="mr-2 h-4 w-4" />
+                    <span>Neural Wallet</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveTab("features")} className="hover:bg-white/5 cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Node Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-white/5" />
+                  <DropdownMenuItem onClick={logout} className="text-red-400 hover:bg-red-500/10 cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Initiate Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </header>
 

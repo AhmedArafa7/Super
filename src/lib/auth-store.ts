@@ -1,6 +1,8 @@
 
 'use client';
 
+import { supabase } from './supabaseClient';
+
 export type UserRole = 'admin' | 'user';
 
 export interface User {
@@ -9,54 +11,10 @@ export interface User {
   password?: string;
   name: string;
   role: UserRole;
+  avatar_url?: string;
 }
 
-const STORAGE_KEY = 'nexus_users';
 const SESSION_KEY = 'nexus_session';
-
-const DEFAULT_ADMIN: User = {
-  id: 'admin-id',
-  username: 'admin',
-  password: '123',
-  name: 'Master Admin',
-  role: 'admin',
-};
-
-export const getStoredUsers = (): User[] => {
-  if (typeof window === 'undefined') return [];
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [DEFAULT_ADMIN];
-  } catch (e) {
-    console.error('Auth store corruption:', e);
-    return [DEFAULT_ADMIN];
-  }
-};
-
-export const saveUsers = (users: User[]) => {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(users ?? []));
-  } catch (e) {
-    console.error('Failed to save user registry:', e);
-  }
-};
-
-export const addUser = (user: Omit<User, 'id'>) => {
-  const users = getStoredUsers();
-  const newUser: User = {
-    ...user,
-    id: Math.random().toString(36).substring(2, 15),
-  };
-  saveUsers([...users, newUser]);
-  return newUser;
-};
-
-export const deleteUser = (id: string) => {
-  if (id === 'admin-id') return;
-  const users = getStoredUsers();
-  saveUsers(users.filter(u => u.id !== id));
-};
 
 export const getSession = (): User | null => {
   if (typeof window === 'undefined') return null;
@@ -80,5 +38,92 @@ export const setSession = (user: User | null) => {
     window.dispatchEvent(new Event('auth-update'));
   } catch (e) {
     console.error('Session update failure:', e);
+  }
+};
+
+/**
+ * Fetches all registered nodes from the Supabase database.
+ */
+export const getStoredUsers = async (): Promise<User[]> => {
+  try {
+    const { data, error } = await supabase.from('users').select('*');
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    return [];
+  }
+};
+
+/**
+ * Registers a new neural node in the system.
+ */
+export const addUser = async (user: Omit<User, 'id'>) => {
+  try {
+    const { data, error } = await supabase.from('users').insert([user]).select().single();
+    if (error) throw error;
+    window.dispatchEvent(new Event('auth-update'));
+    return data;
+  } catch (err) {
+    console.error('Error adding user:', err);
+    throw err;
+  }
+};
+
+/**
+ * Permanently deactivates a neural node and its link.
+ */
+export const deleteUser = async (id: string) => {
+  try {
+    const { error } = await supabase.from('users').delete().eq('id', id);
+    if (error) throw error;
+    window.dispatchEvent(new Event('auth-update'));
+  } catch (err) {
+    console.error('Error deleting user:', err);
+    throw err;
+  }
+};
+
+export const updateUserProfile = async (userId: string, updates: Partial<User>) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    // Update local session to reflect changes
+    const currentSession = getSession();
+    if (currentSession && currentSession.id === userId) {
+      setSession({ ...currentSession, ...data });
+    }
+    
+    return data;
+  } catch (err) {
+    console.error('Profile update failed:', err);
+    throw err;
+  }
+};
+
+export const uploadAvatar = async (userId: string, file: File): Promise<string | null> => {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+    return data.publicUrl;
+  } catch (err) {
+    console.error('Avatar upload failed:', err);
+    return null;
   }
 };
