@@ -106,7 +106,7 @@ export function TechMarket() {
         return toast({ variant: "destructive", title: "Credit Shortage", description: "Insufficient balance." });
       }
 
-      const res = await initiateEscrow(user.id, item.ownerId, price, item.id);
+      const res = await initiateEscrow(user.id, item.ownerId, price, item.id, item.title);
       if (res.success) {
         await updateItemStatus(item.id, 'reserved', user.id);
         await updateItemQuantity(item.id, item.quantity - 1);
@@ -220,7 +220,7 @@ export function TechMarket() {
       </div>
 
       <div className="flex-1">
-        {isLoading ? (
+        {isLoading && items.length === 0 ? (
           <div className="flex items-center justify-center py-20"><Loader2 className="size-12 animate-spin text-primary" /></div>
         ) : filteredItems.length === 0 ? (
           <EmptyState 
@@ -247,10 +247,22 @@ export function TechMarket() {
           </div>
         )}
         
-        {hasMore && !isLoading && (
+        {hasMore && (
           <div className="flex justify-center pb-12">
-            <Button onClick={() => loadData(true)} variant="outline" className="rounded-xl border-white/10 px-12 h-12 hover:bg-white/5 transition-all">
-              Load Additional Payloads
+            <Button 
+              onClick={() => loadData(true)} 
+              variant="outline" 
+              className="rounded-xl border-white/10 px-12 h-12 hover:bg-white/5 transition-all min-w-[200px]"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin mr-2" />
+                  Scanning...
+                </>
+              ) : (
+                'Load Additional Payloads'
+              )}
             </Button>
           </div>
         )}
