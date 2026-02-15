@@ -66,11 +66,9 @@ export const addSubject = async (subject: Omit<Subject, 'id' | 'createdAt'>) => 
     allowed_user_ids: subject.allowedUserIds,
   };
 
-  // Try with 'name' first
   const { data: nameData, error: nameError } = await supabase.from('subjects').insert([{ ...payload, name: subject.name }]).select().maybeSingle();
   if (!nameError && nameData) return mapSubjectFromDB(nameData);
 
-  // If 'name' fails, try with 'title'
   const { data: titleData, error: titleError } = await supabase.from('subjects').insert([{ ...payload, title: subject.name }]).select().maybeSingle();
   if (!titleError && titleData) return mapSubjectFromDB(titleData);
 
@@ -112,18 +110,14 @@ export const addCollection = async (collection: Omit<Collection, 'id' | 'created
     order_index: collection.orderIndex,
   };
 
-  // Primary attempt
   const { data, error } = await supabase.from('collections').insert([payload]).select().maybeSingle();
   
   if (error) {
-    // Resilience: If order_index fails, retry without it
-    if (error.message.includes('order_index') || error.message.includes('column')) {
-      const { order_index, ...fallbackPayload } = payload;
-      const { data: retryData, error: retryError } = await supabase.from('collections').insert([fallbackPayload]).select().maybeSingle();
-      if (!retryError) return retryData;
-      console.error('Retry adding collection failed:', retryError.message);
-    }
-    console.error('Error adding collection:', error.message);
+    console.warn('Primary collection insert failed, retrying without order_index:', error.message);
+    const { order_index, ...fallbackPayload } = payload;
+    const { data: retryData, error: retryError } = await supabase.from('collections').insert([fallbackPayload]).select().maybeSingle();
+    if (!retryError) return retryData;
+    console.error('Critical: Error adding collection:', retryError.message);
     return null;
   }
   
@@ -166,13 +160,11 @@ export const addLearningItem = async (item: Omit<LearningItem, 'id' | 'createdAt
   const { data, error } = await supabase.from('learning_items').insert([payload]).select().maybeSingle();
   
   if (error) {
-    // Resilience: If order_index fails, retry without it
-    if (error.message.includes('order_index') || error.message.includes('column')) {
-      const { order_index, ...fallbackPayload } = payload;
-      const { data: retryData, error: retryError } = await supabase.from('learning_items').insert([fallbackPayload]).select().maybeSingle();
-      if (!retryError) return retryData;
-    }
-    console.error('Error adding learning item:', error.message);
+    console.warn('Primary item insert failed, retrying without order_index:', error.message);
+    const { order_index, ...fallbackPayload } = payload;
+    const { data: retryData, error: retryError } = await supabase.from('learning_items').insert([fallbackPayload]).select().maybeSingle();
+    if (!retryError) return retryData;
+    console.error('Critical: Error adding learning item:', retryError.message);
     return null;
   }
   
@@ -180,43 +172,44 @@ export const addLearningItem = async (item: Omit<LearningItem, 'id' | 'createdAt
 };
 
 export const uploadLearningFile = async (file: File): Promise<string | null> => {
-  // Extended bucket list for maximum resilience
+  // Broad spectrum of buckets to maximize success chance
   const bucketsToTry = ['learning', 'nexus-content', 'files', 'content', 'avatars', 'public', 'storage', 'assets'];
+  let lastFailureReason = "";
   
   for (const bucket of bucketsToTry) {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
       
-      // Use a flatter path for broad compatibility if folder-specific RLS is tight
-      const filePath = (bucket === 'avatars' || bucket === 'public') 
-        ? `learning-${fileName}` 
-        : `learning-content/${fileName}`;
+      // Use a completely flat path for maximum RLS compatibility in prototypes
+      const filePath = `learning_${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, file, { cacheControl: '3600', upsert: false });
 
       if (!uploadError) {
         const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+        console.log(`Neural Sync Successful: Payload stored in node "${bucket}"`);
         return data.publicUrl;
       }
 
-      // If bucket not found, just silently move to the next one
+      lastFailureReason = uploadError.message;
+      
+      // Silently move to next if bucket doesn't exist
       if (uploadError.message.includes('Bucket not found')) {
         continue;
       }
 
-      // Log other errors (like RLS violations) but don't stop the loop!
-      // Another bucket might have more permissive policies.
-      console.warn(`Upload attempt failed for bucket "${bucket}":`, uploadError.message);
-      continue;
-    } catch (err) {
-      // Catch any unexpected runtime errors and keep trying
+      // Log specific rejections (RLS, size, etc) for debugging
+      console.warn(`Node "${bucket}" rejected payload:`, uploadError.message);
+    } catch (err: any) {
+      lastFailureReason = err.message;
       continue;
     }
   }
 
-  console.error('Failed to upload file: No suitable storage bucket found or all available buckets rejected the payload.');
+  console.error(`Institutional Storage Exhausted. Final Rejection Reason: ${lastFailureReason}. 
+  Nexus Admin: Ensure at least one bucket (e.g., 'learning' or 'avatars') exists with Public 'INSERT' policies enabled for 'anon' nodes.`);
   return null;
 };

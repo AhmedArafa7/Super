@@ -1,8 +1,7 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { FileText, Calendar, MoreVertical, Circle, ChevronRight, BookOpen, Play, Music, Trophy, Lock, Plus, Trash2, ArrowUp, ArrowDown, Upload, Loader2, Globe, CheckCircle2, AlertCircle } from "lucide-react";
+import { FileText, Calendar, MoreVertical, Circle, ChevronRight, BookOpen, Play, Music, Trophy, Lock, Plus, Trash2, ArrowUp, ArrowDown, Upload, Loader2, Globe, CheckCircle2, AlertCircle, RefreshCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,9 +50,14 @@ export function KnowledgeHub() {
 
   const loadSubjects = async () => {
     setIsLoading(true);
-    const data = await getSubjects(user?.username);
-    setSubjects(data);
-    setIsLoading(false);
+    try {
+      const data = await getSubjects(user?.username);
+      setSubjects(data);
+    } catch (err) {
+      console.error("Subject sync failure:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSelectSubject = async (subject: Subject) => {
@@ -74,6 +78,7 @@ export function KnowledgeHub() {
     await addSubject({ ...newSubject, allowedUserIds: allowed });
     toast({ title: "Subject Created", description: "New neural pathway initialized." });
     setIsSubjectModalOpen(false);
+    setNewSubject({ name: "", description: "", allowedUserIds: "" });
     loadSubjects();
   };
 
@@ -90,7 +95,7 @@ export function KnowledgeHub() {
         orderIndex: collections.length 
       });
 
-      if (!colData) throw new Error("Failed to create collection");
+      if (!colData) throw new Error("Failed to initialize lesson record.");
 
       // 2. If a file is selected, upload and link it
       if (newCollection.includeAsset && newCollection.file) {
@@ -102,7 +107,7 @@ export function KnowledgeHub() {
           quizData = JSON.parse(content);
         } else {
           const uploadedUrl = await uploadLearningFile(newCollection.file);
-          if (!uploadedUrl) throw new Error("File upload failed");
+          if (!uploadedUrl) throw new Error("Neural transmission failed: No available storage nodes. Contact Nexus administrator.");
           url = uploadedUrl;
         }
 
@@ -121,7 +126,11 @@ export function KnowledgeHub() {
       setNewCollection({ title: "", description: "", includeAsset: true, assetTitle: "", assetType: "file", file: null });
       handleSelectSubject(selectedSubject);
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Integration Failed", description: err.message });
+      toast({ 
+        variant: "destructive", 
+        title: "Integration Refused", 
+        description: err.message || "Failed to synchronize content with the network." 
+      });
     } finally {
       setIsUploading(false);
     }
@@ -140,7 +149,7 @@ export function KnowledgeHub() {
         quizData = JSON.parse(content);
       } else {
         const uploadedUrl = await uploadLearningFile(newItem.file);
-        if (!uploadedUrl) throw new Error("Upload failed");
+        if (!uploadedUrl) throw new Error("Network rejection: Could not secure a storage node for this payload.");
         url = uploadedUrl;
       }
 
@@ -158,7 +167,11 @@ export function KnowledgeHub() {
       handleSelectSubject(selectedSubject!);
       setNewItem({ title: "", type: "file", file: null });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Upload Failed", description: err.message });
+      toast({ 
+        variant: "destructive", 
+        title: "Transmission Failed", 
+        description: err.message 
+      });
     } finally {
       setIsUploading(false);
     }
@@ -173,41 +186,52 @@ export function KnowledgeHub() {
             <p className="text-muted-foreground mt-2">Neural learning pathways and institutional intelligence.</p>
           </div>
           
-          <Dialog open={isSubjectModalOpen} onOpenChange={setIsSubjectModalOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary rounded-xl h-12 px-6 shadow-lg shadow-primary/20">
-                <Plus className="mr-2 size-5" />
-                Add New Subject
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-slate-900 border-white/10 rounded-[2rem]">
-              <DialogHeader>
-                <DialogTitle>Create Learning Subject</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="grid gap-2">
-                  <Label>Subject Name</Label>
-                  <Input className="bg-white/5 border-white/10 rounded-xl" value={newSubject.name} onChange={e => setNewSubject({...newSubject, name: e.target.value})} />
+          <div className="flex gap-3">
+            <Button variant="ghost" size="icon" onClick={loadSubjects} className="h-12 w-12 rounded-xl border border-white/10">
+              <RefreshCcw className="size-5" />
+            </Button>
+            <Dialog open={isSubjectModalOpen} onOpenChange={setIsSubjectModalOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary rounded-xl h-12 px-6 shadow-lg shadow-primary/20">
+                  <Plus className="mr-2 size-5" />
+                  Add New Subject
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-900 border-white/10 rounded-[2rem]">
+                <DialogHeader>
+                  <DialogTitle>Create Learning Subject</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="grid gap-2">
+                    <Label>Subject Name</Label>
+                    <Input className="bg-white/5 border-white/10 rounded-xl" value={newSubject.name} onChange={e => setNewSubject({...newSubject, name: e.target.value})} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Description</Label>
+                    <Textarea className="bg-white/5 border-white/10 rounded-xl" value={newSubject.description} onChange={e => setNewSubject({...newSubject, description: e.target.value})} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Allowed Usernames (Comma separated, empty for public)</Label>
+                    <Input className="bg-white/5 border-white/10 rounded-xl" placeholder="user1, user2" value={newSubject.allowedUserIds} onChange={e => setNewSubject({...newSubject, allowedUserIds: e.target.value})} />
+                  </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label>Description</Label>
-                  <Textarea className="bg-white/5 border-white/10 rounded-xl" value={newSubject.description} onChange={e => setNewSubject({...newSubject, description: e.target.value})} />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Allowed Usernames (Comma separated, empty for public)</Label>
-                  <Input className="bg-white/5 border-white/10 rounded-xl" placeholder="user1, user2" value={newSubject.allowedUserIds} onChange={e => setNewSubject({...newSubject, allowedUserIds: e.target.value})} />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={handleCreateSubject} className="w-full bg-primary rounded-xl h-11">Authorize Subject</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                <DialogFooter>
+                  <Button onClick={handleCreateSubject} className="w-full bg-primary rounded-xl h-11">Authorize Subject</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="size-8 animate-spin text-primary" />
+          </div>
+        ) : subjects.length === 0 ? (
+          <div className="py-20 text-center glass rounded-[3rem] border-dashed border-2 border-white/10">
+            <BookOpen className="size-16 mx-auto mb-6 text-muted-foreground opacity-20" />
+            <h3 className="text-xl font-bold text-white mb-2">Registry Empty</h3>
+            <p className="text-muted-foreground max-w-xs mx-auto">No neural learning pathways have been established in this node yet.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -265,88 +289,95 @@ export function KnowledgeHub() {
       </header>
 
       <main className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
-        {collections.map((col, index) => (
-          <div 
-            key={col.id} 
-            className="flex flex-col md:flex-row bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden"
-          >
-            <div className={cn(
-              "w-full md:w-64 p-6 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-r border-slate-100",
-              index === 0 ? "bg-amber-50/50" : "bg-white"
-            )}>
-              {index === 0 && (
-                <Badge className="bg-red-600 hover:bg-red-700 text-white rounded-sm text-[10px] px-2 py-0.5 mb-2 font-bold uppercase">
-                  Lesson Start
-                </Badge>
-              )}
-              <div className="text-5xl font-extrabold text-slate-800 leading-none">
-                {(index + 1).toString().padStart(2, '0')}
+        {collections.length === 0 ? (
+          <div className="py-20 text-center bg-white rounded-xl border-dashed border-2 border-slate-200">
+            <RefreshCcw className="size-12 mx-auto mb-4 text-slate-300 animate-spin-slow" />
+            <p className="text-slate-500">No lessons discovered. Start by appending a lesson sequence.</p>
+          </div>
+        ) : (
+          collections.map((col, index) => (
+            <div 
+              key={col.id} 
+              className="flex flex-col md:flex-row bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden"
+            >
+              <div className={cn(
+                "w-full md:w-64 p-6 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-r border-slate-100",
+                index === 0 ? "bg-amber-50/50" : "bg-white"
+              )}>
+                {index === 0 && (
+                  <Badge className="bg-red-600 hover:bg-red-700 text-white rounded-sm text-[10px] px-2 py-0.5 mb-2 font-bold uppercase">
+                    Lesson Start
+                  </Badge>
+                )}
+                <div className="text-5xl font-extrabold text-slate-800 leading-none">
+                  {(index + 1).toString().padStart(2, '0')}
+                </div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                  Sequence
+                </div>
+                <div className="mt-4 flex items-center gap-1.5 text-teal-700 font-semibold text-sm">
+                  <BookOpen className="size-3.5" />
+                  {col.title}
+                </div>
               </div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                Sequence
-              </div>
-              <div className="mt-4 flex items-center gap-1.5 text-teal-700 font-semibold text-sm">
-                <BookOpen className="size-3.5" />
-                {col.title}
-              </div>
-            </div>
 
-            <div className="flex-1 p-6 bg-slate-50/30 space-y-4">
-              {itemsMap[col.id]?.map((item) => (
-                <div 
-                  key={item.id} 
-                  className={cn(
-                    "bg-white rounded-md border-l-4 p-4 shadow-sm group hover:shadow-md transition-shadow",
-                    item.type === 'video' ? "border-blue-500" : 
-                    item.type === 'audio' ? "border-purple-500" : 
-                    item.type === 'quiz_json' ? "border-rose-500" : "border-green-500"
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Circle className={cn("size-2.5 fill-current", 
-                        item.type === 'video' ? "text-blue-500" : 
-                        item.type === 'audio' ? "text-purple-500" : 
-                        item.type === 'quiz_json' ? "text-rose-500" : "text-green-500"
-                      )} />
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-500">{item.type.replace('_', ' ')}</span>
+              <div className="flex-1 p-6 bg-slate-50/30 space-y-4">
+                {itemsMap[col.id]?.map((item) => (
+                  <div 
+                    key={item.id} 
+                    className={cn(
+                      "bg-white rounded-md border-l-4 p-4 shadow-sm group hover:shadow-md transition-shadow",
+                      item.type === 'video' ? "border-blue-500" : 
+                      item.type === 'audio' ? "border-purple-500" : 
+                      item.type === 'quiz_json' ? "border-rose-500" : "border-green-500"
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Circle className={cn("size-2.5 fill-current", 
+                          item.type === 'video' ? "text-blue-500" : 
+                          item.type === 'audio' ? "text-purple-500" : 
+                          item.type === 'quiz_json' ? "text-rose-500" : "text-green-500"
+                        )} />
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">{item.type.replace('_', ' ')}</span>
+                      </div>
+                      <MoreVertical className="size-4 text-slate-300 cursor-pointer" />
                     </div>
-                    <MoreVertical className="size-4 text-slate-300 cursor-pointer" />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="size-10 bg-slate-100 rounded flex items-center justify-center text-slate-400">
-                      {item.type === 'video' ? <Play className="size-5" /> : 
-                       item.type === 'audio' ? <Music className="size-5" /> : 
-                       item.type === 'quiz_json' ? <Trophy className="size-5" /> : <FileText className="size-5" />}
-                    </div>
-                    <div className="flex-1 flex items-center justify-between">
-                      <p className="text-sm font-semibold text-slate-800">{item.title}</p>
-                      <div className="flex gap-2">
-                        {item.type === 'quiz_json' ? (
-                          <Button size="sm" className="bg-rose-600 hover:bg-rose-500 text-white text-xs h-8 px-4">Start Quiz</Button>
-                        ) : (
-                          <a href={item.url} target="_blank" className="text-xs font-bold text-teal-700 hover:underline uppercase">View Content</a>
-                        )}
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 bg-slate-100 rounded flex items-center justify-center text-slate-400">
+                        {item.type === 'video' ? <Play className="size-5" /> : 
+                         item.type === 'audio' ? <Music className="size-5" /> : 
+                         item.type === 'quiz_json' ? <Trophy className="size-5" /> : <FileText className="size-5" />}
+                      </div>
+                      <div className="flex-1 flex items-center justify-between">
+                        <p className="text-sm font-semibold text-slate-800">{item.title}</p>
+                        <div className="flex gap-2">
+                          {item.type === 'quiz_json' ? (
+                            <Button size="sm" className="bg-rose-600 hover:bg-rose-500 text-white text-xs h-8 px-4">Start Quiz</Button>
+                          ) : (
+                            <a href={item.url} target="_blank" className="text-xs font-bold text-teal-700 hover:underline uppercase">View Content</a>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              
-              <Button 
-                variant="ghost" 
-                className="w-full border-dashed border-2 border-slate-200 h-12 text-slate-400 hover:bg-slate-50 hover:text-slate-600 rounded-lg text-xs font-bold"
-                onClick={() => {
-                  setActiveCollectionId(col.id);
-                  setIsItemModalOpen(true);
-                }}
-              >
-                <Plus className="size-4 mr-2" />
-                Add Learning Item to {col.title}
-              </Button>
+                ))}
+                
+                <Button 
+                  variant="ghost" 
+                  className="w-full border-dashed border-2 border-slate-200 h-12 text-slate-400 hover:bg-slate-50 hover:text-slate-600 rounded-lg text-xs font-bold"
+                  onClick={() => {
+                    setActiveCollectionId(col.id);
+                    setIsItemModalOpen(true);
+                  }}
+                >
+                  <Plus className="size-4 mr-2" />
+                  Add Learning Item to {col.title}
+                </Button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </main>
 
       {/* Admin Modals */}
