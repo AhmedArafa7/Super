@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -57,12 +56,17 @@ export function AppShell() {
     const handleOnline = () => {
       if (user?.id) {
         toast({ title: "Neural Link Restored", description: "Synchronizing offline acquisitions..." });
+        // Correctly pass currentUserId, ensuring we don't pass the Event object
         processOfflineQueue(user.id);
       }
     };
     
     window.addEventListener('online', handleOnline);
-    if (navigator.onLine && user?.id) processOfflineQueue(user.id);
+    
+    // Initial sync check
+    if (navigator.onLine && user?.id) {
+      processOfflineQueue(user.id);
+    }
 
     return () => {
       window.removeEventListener('notifications-update', updateCount);

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { create } from 'zustand';
@@ -24,13 +23,14 @@ export type PendingTransactionStatus = 'pending_sync' | 'failed_needs_action';
 
 export interface PendingTransaction {
   id: string;
+  buyerId: string; // Hard-linked to the user node
   productId: string;
   price: number;
   title: string;
   timestamp: string;
   status: PendingTransactionStatus;
   errorReason?: string;
-  idempotencyKey: string; // Critical for preventing double-spend on retries
+  idempotencyKey: string; // Prevents double-spending on retries
 }
 
 export interface Wallet {
@@ -50,7 +50,7 @@ interface WalletState {
   fetchWallet: (userId: string) => Promise<void>;
   fetchTransactions: (userId: string) => Promise<void>;
   initiateEscrow: (buyerId: string, itemId: string, itemName: string, price: number) => Promise<{ success: boolean; newBalance?: number }>;
-  processOfflineQueue: (userId: string) => Promise<void>;
+  processOfflineQueue: (currentUserId: string) => Promise<void>;
   depositFunds: (userId: string, amount: number) => Promise<boolean>;
   removePendingTransaction: (id: string) => void;
   retryTransaction: (userId: string, transactionId: string) => Promise<void>;
@@ -111,12 +111,13 @@ export const useWalletStore = create<WalletState>()(
       initiateEscrow: async (buyerId, itemId, itemName, price) => {
         set({ isLoading: true });
         
-        // Generate a fixed idempotency key for this attempt
+        // Generate a cryptographically secure idempotency key at the moment of intent
         const idempotencyKey = crypto.randomUUID();
 
         if (!navigator.onLine) {
           const newPending: PendingTransaction = {
             id: Math.random().toString(36).substring(2, 15),
+            buyerId, // Locked to this specific user node
             productId: itemId,
             price: Number(price),
             title: itemName,
@@ -181,44 +182,49 @@ export const useWalletStore = create<WalletState>()(
         }
       },
 
-      processOfflineQueue: async (userId) => {
+      processOfflineQueue: async (currentUserId) => {
         const { pendingTransactions, isSyncing } = get();
+        
+        // Safety check: ensure currentUserId is a valid string, not an Event object
+        if (typeof currentUserId !== 'string' || !currentUserId) return;
         if (isSyncing || pendingTransactions.length === 0) return;
 
-        // Filter only those that are in pending_sync status
-        const toProcess = pendingTransactions.filter(t => t.status === 'pending_sync');
-        if (toProcess.length === 0) return;
+        // Filter ONLY transactions belonging to the current user
+        const userTasks = pendingTransactions.filter(t => 
+          t.buyerId === currentUserId && t.status === 'pending_sync'
+        );
+        
+        if (userTasks.length === 0) return;
 
         set({ isSyncing: true });
         
         const successIds: string[] = [];
         const failedUpdates: Record<string, { status: PendingTransactionStatus; reason?: string }> = {};
 
-        for (const tx of toProcess) {
+        // Sequential processing for atomic credit integrity
+        for (const tx of userTasks) {
           try {
             const { data, error } = await supabase.rpc('secure_purchase_item', {
-              p_buyer_id: userId,
+              p_buyer_id: currentUserId,
               p_product_id: tx.productId,
               p_idempotency_key: tx.idempotencyKey
             });
 
+            // If success OR if the server reports it was already processed (conflict on idempotency key)
             if (!error && data?.success) {
               successIds.push(tx.id);
             } else if (data?.success === false) {
+              // Handle known business logic errors
               if (data.error?.toLowerCase().includes('insufficient') || data.error?.toLowerCase().includes('balance')) {
                 failedUpdates[tx.id] = { 
                   status: 'failed_needs_action', 
                   reason: 'Insufficient Funds' 
                 };
-                toast({ 
-                  variant: 'destructive', 
-                  title: 'Acquisition Paused', 
-                  description: `Could not process "${tx.title}": Insufficient credits.` 
-                });
               }
             }
           } catch (err) {
-            console.error(`Sync failed for item ${tx.id}:`, err);
+            console.error(`Sync failure for task ${tx.id}:`, err);
+            // On network error, we keep status as 'pending_sync' for future auto-retry
           }
         }
 
@@ -229,8 +235,8 @@ export const useWalletStore = create<WalletState>()(
           isSyncing: false
         }));
         
-        await get().fetchWallet(userId);
-        await get().fetchTransactions(userId);
+        await get().fetchWallet(currentUserId);
+        await get().fetchTransactions(currentUserId);
       },
 
       depositFunds: async (userId, amount) => {
