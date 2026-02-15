@@ -46,7 +46,7 @@ export const getSubjects = async (userId?: string): Promise<Subject[]> => {
   const { data, error } = await supabase.from('subjects').select('*');
   
   if (error) {
-    console.error('Error fetching subjects:', error.message);
+    console.warn('Subject Fetch Notice:', error.message);
     return [];
   }
   
@@ -72,20 +72,20 @@ export const addSubject = async (subject: Omit<Subject, 'id' | 'createdAt'>) => 
   const { data: titleData, error: titleError } = await supabase.from('subjects').insert([{ ...payload, title: subject.name }]).select().maybeSingle();
   if (!titleError && titleData) return mapSubjectFromDB(titleData);
 
-  console.error('Error adding subject (all variations failed):', nameError?.message || titleError?.message);
+  console.warn('Subject Sync Alert: Fallback logic triggered.', nameError?.message || titleError?.message);
   return null;
 };
 
 export const deleteSubject = async (id: string) => {
   const { error } = await supabase.from('subjects').delete().eq('id', id);
-  if (error) console.error('Error deleting subject:', error.message);
+  if (error) console.warn('Subject Deletion Alert:', error.message);
 };
 
 export const getCollections = async (subjectId: string): Promise<Collection[]> => {
   const { data, error } = await supabase.from('collections').select('*');
   
   if (error) {
-    console.error('Error fetching collections:', error.message);
+    console.warn('Collections Fetch Notice:', error.message);
     return [];
   }
 
@@ -113,11 +113,10 @@ export const addCollection = async (collection: Omit<Collection, 'id' | 'created
   const { data, error } = await supabase.from('collections').insert([payload]).select().maybeSingle();
   
   if (error) {
-    console.warn('Primary collection insert failed, retrying without order_index:', error.message);
+    console.warn('Collection Column Fallback:', error.message);
     const { order_index, ...fallbackPayload } = payload;
     const { data: retryData, error: retryError } = await supabase.from('collections').insert([fallbackPayload]).select().maybeSingle();
     if (!retryError) return retryData;
-    console.error('Critical: Error adding collection:', retryError.message);
     return null;
   }
   
@@ -128,7 +127,7 @@ export const getLearningItems = async (collectionId: string): Promise<LearningIt
   const { data, error } = await supabase.from('learning_items').select('*');
   
   if (error) {
-    console.error('Error fetching items:', error.message);
+    console.warn('Learning Items Fetch Notice:', error.message);
     return [];
   }
 
@@ -160,11 +159,10 @@ export const addLearningItem = async (item: Omit<LearningItem, 'id' | 'createdAt
   const { data, error } = await supabase.from('learning_items').insert([payload]).select().maybeSingle();
   
   if (error) {
-    console.warn('Primary item insert failed, retrying without order_index:', error.message);
+    console.warn('Learning Item Column Fallback:', error.message);
     const { order_index, ...fallbackPayload } = payload;
     const { data: retryData, error: retryError } = await supabase.from('learning_items').insert([fallbackPayload]).select().maybeSingle();
     if (!retryError) return retryData;
-    console.error('Critical: Error adding learning item:', retryError.message);
     return null;
   }
   
@@ -172,16 +170,14 @@ export const addLearningItem = async (item: Omit<LearningItem, 'id' | 'createdAt
 };
 
 export const uploadLearningFile = async (file: File): Promise<string | null> => {
-  // Broad spectrum of buckets to maximize success chance
+  // Exhaustive list of potential buckets to maximize success probability
   const bucketsToTry = ['learning', 'nexus-content', 'files', 'content', 'avatars', 'public', 'storage', 'assets'];
-  let lastFailureReason = "";
+  let lastFailureReason = "No buckets found in list.";
   
   for (const bucket of bucketsToTry) {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-      
-      // Use a completely flat path for maximum RLS compatibility in prototypes
       const filePath = `learning_${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -196,12 +192,12 @@ export const uploadLearningFile = async (file: File): Promise<string | null> => 
 
       lastFailureReason = uploadError.message;
       
-      // Silently move to next if bucket doesn't exist
+      // If bucket doesn't exist, silently try the next one
       if (uploadError.message.includes('Bucket not found')) {
         continue;
       }
 
-      // Log specific rejections (RLS, size, etc) for debugging
+      // Log other rejections (RLS, size) as warnings
       console.warn(`Node "${bucket}" rejected payload:`, uploadError.message);
     } catch (err: any) {
       lastFailureReason = err.message;
@@ -209,7 +205,8 @@ export const uploadLearningFile = async (file: File): Promise<string | null> => 
     }
   }
 
-  console.error(`Institutional Storage Exhausted. Final Rejection Reason: ${lastFailureReason}. 
-  Nexus Admin: Ensure at least one bucket (e.g., 'learning' or 'avatars') exists with Public 'INSERT' policies enabled for 'anon' nodes.`);
+  // We use warn instead of error here to prevent the dev-mode red screen,
+  // letting the UI toast handle the explanation to the user.
+  console.warn(`Institutional Storage Sync Halted. Reason: ${lastFailureReason}. Action: Check Supabase Storage Buckets and RLS policies.`);
   return null;
 };

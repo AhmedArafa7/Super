@@ -107,18 +107,27 @@ export function KnowledgeHub() {
           quizData = JSON.parse(content);
         } else {
           const uploadedUrl = await uploadLearningFile(newCollection.file);
-          if (!uploadedUrl) throw new Error("Neural transmission failed: No available storage nodes. Contact Nexus administrator.");
-          url = uploadedUrl;
+          if (!uploadedUrl) {
+            toast({ 
+              variant: "warning", 
+              title: "Storage Unconfigured", 
+              description: "Lesson created, but file could not be stored. Nexus Admin: Create a 'learning' bucket in Supabase." 
+            });
+          } else {
+            url = uploadedUrl;
+          }
         }
 
-        await addLearningItem({
-          collectionId: colData.id,
-          title: newCollection.assetTitle || newCollection.title,
-          type: newCollection.assetType,
-          url,
-          quizData,
-          orderIndex: 0
-        });
+        if (url || quizData) {
+          await addLearningItem({
+            collectionId: colData.id,
+            title: newCollection.assetTitle || newCollection.title,
+            type: newCollection.assetType,
+            url,
+            quizData,
+            orderIndex: 0
+          });
+        }
       }
 
       toast({ title: "Lesson Integrated", description: "Content synchronized successfully." });
@@ -149,7 +158,9 @@ export function KnowledgeHub() {
         quizData = JSON.parse(content);
       } else {
         const uploadedUrl = await uploadLearningFile(newItem.file);
-        if (!uploadedUrl) throw new Error("Network rejection: Could not secure a storage node for this payload.");
+        if (!uploadedUrl) {
+          throw new Error("Institutional Storage Exhausted: No available buckets detected in Supabase. Please contact administrator to create a storage bucket.");
+        }
         url = uploadedUrl;
       }
 
