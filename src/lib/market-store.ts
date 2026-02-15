@@ -67,19 +67,26 @@ const mapItemFromDB = (m: any): MarketItem => ({
   createdAt: m.created_at || m.createdAt || new Date().toISOString(),
 });
 
-const mapOfferFromDB = (o: any): MarketOffer => ({
-  id: o.id,
-  itemId: o.product_id || o.item_id,
-  itemTitle: o.products?.title || o.market_items?.title || 'Unknown Item',
-  buyerId: o.buyer_id,
-  buyerName: o.users?.name || 'Anonymous Node',
-  sellerId: o.seller_id,
-  type: (o.offer_type || o.type) as OfferType,
-  value: o.offer_value || o.value,
-  details: o.offer_details || o.details,
-  status: o.status as OfferStatus,
-  timestamp: o.created_at || new Date().toISOString()
-});
+const mapOfferFromDB = (o: any): MarketOffer => {
+  // Resilient title mapping
+  const itemTitle = o.products?.title || o.product?.title || o.market_items?.title || 'Unknown Item';
+  // Resilient name mapping
+  const buyerName = o.users?.name || o.buyer?.name || 'Anonymous Node';
+
+  return {
+    id: o.id,
+    itemId: o.product_id || o.item_id,
+    itemTitle,
+    buyerId: o.buyer_id,
+    buyerName,
+    sellerId: o.seller_id,
+    type: (o.offer_type || o.type || 'price') as OfferType,
+    value: o.offer_value || o.value,
+    details: o.offer_details || o.details,
+    status: (o.status || 'pending') as OfferStatus,
+    timestamp: o.created_at || new Date().toISOString()
+  };
+};
 
 export const getMarketItems = async (
   from = 0, 
@@ -197,11 +204,12 @@ export const addMarketOffer = async (
 
 export const getReceivedOffers = async (userId: string): Promise<MarketOffer[]> => {
   try {
+    // Explicit join syntax to avoid ambiguity in Supabase
     const { data, error } = await supabase
       .from('offers')
       .select(`
         *,
-        products (
+        products!product_id (
           title
         ),
         users!buyer_id (
@@ -212,8 +220,18 @@ export const getReceivedOffers = async (userId: string): Promise<MarketOffer[]> 
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Supabase error in getReceivedOffers:', error);
-      throw error;
+      // Fallback: If joins fail, at least get the base data to prevent app crash
+      const { data: simpleData, error: simpleError } = await supabase
+        .from('offers')
+        .select('*')
+        .eq('seller_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (simpleError) {
+        console.error('Total failure in getReceivedOffers:', simpleError);
+        return [];
+      }
+      return (simpleData || []).map(mapOfferFromDB);
     }
     
     return (data || []).map(mapOfferFromDB);
