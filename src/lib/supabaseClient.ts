@@ -9,4 +9,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase credentials missing. Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set in your .env file.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// During build time, if environment variables are missing, we use placeholder values to prevent the process from crashing.
+// The actual values will be used when the app is running in a live environment.
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder-project.supabase.co', 
+  supabaseAnonKey || 'placeholder-anon-key'
+);

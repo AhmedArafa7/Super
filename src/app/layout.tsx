@@ -1,10 +1,16 @@
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Footer } from "@/components/layout/footer";
 import { OnboardingModal } from "@/components/features/onboarding-modal";
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+};
 
 export const metadata: Metadata = {
   title: 'NexusAI - The Future of Intelligent Assistance',
@@ -33,7 +39,6 @@ export const metadata: Metadata = {
     description: 'The future of decentralized assistance.',
     images: ['https://picsum.photos/seed/nexus-og/1200/630'],
   },
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
 };
 
 export default function RootLayout({
