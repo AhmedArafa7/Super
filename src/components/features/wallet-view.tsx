@@ -16,7 +16,10 @@ import {
   RefreshCcw,
   AlertCircle,
   Clock,
-  ExternalLink
+  ExternalLink,
+  RotateCw,
+  XCircle,
+  Repeat
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,9 +28,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '@/components/auth/auth-provider';
-import { useWalletStore, selectTotalPendingDebt } from '@/lib/wallet-store';
+import { useWalletStore, selectTotalPendingDebt, PendingTransaction } from '@/lib/wallet-store';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 
 export function WalletView() {
   const { user } = useAuth();
@@ -36,6 +40,8 @@ export function WalletView() {
   const pendingTransactions = useWalletStore(state => state.pendingTransactions);
   const fetchWallet = useWalletStore(state => state.fetchWallet);
   const fetchTransactions = useWalletStore(state => state.fetchTransactions);
+  const removePendingTransaction = useWalletStore(state => state.removePendingTransaction);
+  const retryTransaction = useWalletStore(state => state.retryTransaction);
   const pendingDebt = useWalletStore(selectTotalPendingDebt);
   
   const [isLoading, setIsLoading] = useState(true);
@@ -56,6 +62,15 @@ export function WalletView() {
     return () => clearInterval(interval);
   }, [user]);
 
+  const handlePayLater = (tx: PendingTransaction) => {
+    // In a real app, this would redirect to TechMarket or open MakeOfferModal
+    removePendingTransaction(tx.id);
+    toast({
+      title: "Negotiation Pivot",
+      description: `Acquisition of "${tx.title}" moved to Negotiation protocols.`,
+    });
+  };
+
   const getTransactionIcon = (type: string) => {
     switch (type) {
       case 'deposit': return <ArrowUpCircle className="size-4 text-green-400" />;
@@ -73,6 +88,9 @@ export function WalletView() {
       </div>
     );
   }
+
+  const failedAcquisitions = pendingTransactions.filter(t => t.status === 'failed_needs_action');
+  const activeSyncing = pendingTransactions.filter(t => t.status === 'pending_sync');
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -93,27 +111,76 @@ export function WalletView() {
                   -{pendingDebt.toLocaleString()} [Sync Pending]
                 </Badge>
               </DialogTrigger>
-              <DialogContent className="bg-slate-900 border-white/10 text-white rounded-[2rem]">
+              <DialogContent className="bg-slate-900 border-white/10 text-white rounded-[2rem] sm:max-w-xl">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     <Clock className="text-red-400" />
                     Offline Acquisition Queue
                   </DialogTitle>
                   <DialogDescription className="text-slate-400">
-                    These transactions were initialized while your neural link was offline. They will settle once connectivity returns.
+                    Neural link drop detected during these transactions.
                   </DialogDescription>
                 </DialogHeader>
-                <ScrollArea className="max-h-[300px] mt-4">
-                  <div className="space-y-3">
-                    {pendingTransactions.map((tx) => (
-                      <div key={tx.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">
-                        <div>
-                          <p className="font-bold text-sm">{tx.title}</p>
-                          <p className="text-[10px] text-muted-foreground uppercase">{formatDistanceToNow(new Date(tx.timestamp), { addSuffix: true })}</p>
-                        </div>
-                        <p className="font-bold text-red-400">-{tx.price.toLocaleString()} Credits</p>
+                
+                <ScrollArea className="max-h-[500px] mt-4 pr-4">
+                  <div className="space-y-6">
+                    {failedAcquisitions.length > 0 && (
+                      <div className="space-y-3">
+                        <p className="text-[10px] uppercase font-bold text-red-400 tracking-widest px-1">Resolution Required</p>
+                        {failedAcquisitions.map((tx) => (
+                          <div key={tx.id} className="p-4 bg-red-500/5 rounded-2xl border border-red-500/10 flex flex-col gap-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-bold text-sm text-white">{tx.title}</p>
+                                <p className="text-[10px] text-red-400 font-bold uppercase">{tx.errorReason || 'Refused by Node'}</p>
+                              </div>
+                              <p className="font-bold text-red-400">-{tx.price.toLocaleString()} Credits</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="flex-1 h-8 text-[10px] rounded-lg border-white/10"
+                                onClick={() => user && retryTransaction(user.id, tx.id)}
+                              >
+                                <RotateCw className="size-3 mr-1" /> Retry
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="flex-1 h-8 text-[10px] rounded-lg border-white/10"
+                                onClick={() => handlePayLater(tx)}
+                              >
+                                <Repeat className="size-3 mr-1" /> Pay Later
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-8 text-[10px] rounded-lg text-red-400 hover:bg-red-500/10"
+                                onClick={() => removePendingTransaction(tx.id)}
+                              >
+                                <XCircle className="size-3 mr-1" /> Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
+
+                    {activeSyncing.length > 0 && (
+                      <div className="space-y-3">
+                        <p className="text-[10px] uppercase font-bold text-indigo-400 tracking-widest px-1">Synchronizing</p>
+                        {activeSyncing.map((tx) => (
+                          <div key={tx.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between opacity-70">
+                            <div>
+                              <p className="font-bold text-sm">{tx.title}</p>
+                              <p className="text-[10px] text-muted-foreground uppercase">{formatDistanceToNow(new Date(tx.timestamp), { addSuffix: true })}</p>
+                            </div>
+                            <p className="font-bold text-white/60">-{tx.price.toLocaleString()} Credits</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </ScrollArea>
               </DialogContent>

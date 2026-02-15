@@ -20,12 +20,16 @@ export interface Transaction {
   timestamp: string;
 }
 
+export type PendingTransactionStatus = 'pending_sync' | 'failed_needs_action';
+
 export interface PendingTransaction {
   id: string;
   productId: string;
   price: number;
   title: string;
   timestamp: string;
+  status: PendingTransactionStatus;
+  errorReason?: string;
 }
 
 export interface Wallet {
@@ -47,6 +51,8 @@ interface WalletState {
   initiateEscrow: (buyerId: string, itemId: string, itemName: string, price: number) => Promise<{ success: boolean; newBalance?: number }>;
   processOfflineQueue: (userId: string) => Promise<void>;
   depositFunds: (userId: string, amount: number) => Promise<boolean>;
+  removePendingTransaction: (id: string) => void;
+  retryTransaction: (userId: string, transactionId: string) => Promise<void>;
 }
 
 export const useWalletStore = create<WalletState>()(
@@ -104,14 +110,14 @@ export const useWalletStore = create<WalletState>()(
       initiateEscrow: async (buyerId, itemId, itemName, price) => {
         set({ isLoading: true });
         
-        // DETECTION: Check for neural link (online status)
         if (!navigator.onLine) {
           const newPending: PendingTransaction = {
             id: Math.random().toString(36).substring(2, 15),
             productId: itemId,
             price: Number(price),
             title: itemName,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            status: 'pending_sync'
           };
           
           set(state => ({
@@ -128,7 +134,6 @@ export const useWalletStore = create<WalletState>()(
         }
 
         try {
-          // ATOMIC SECURE TRANSACTION VIA RPC
           const { data, error } = await supabase.rpc('secure_purchase_item', {
             p_buyer_id: buyerId,
             p_product_id: itemId
@@ -146,7 +151,6 @@ export const useWalletStore = create<WalletState>()(
             return { success: false };
           }
 
-          // Update truth from server response
           set(state => ({
             wallet: state.wallet ? { ...state.wallet, balance: Number(data.new_balance) } : null
           }));
@@ -175,13 +179,16 @@ export const useWalletStore = create<WalletState>()(
         const { pendingTransactions, isSyncing } = get();
         if (isSyncing || pendingTransactions.length === 0) return;
 
+        // Filter only those that are in pending_sync status
+        const toProcess = pendingTransactions.filter(t => t.status === 'pending_sync');
+        if (toProcess.length === 0) return;
+
         set({ isSyncing: true });
-        toast({ title: "Syncing Ledger", description: "Transmitting offline payloads to Nexus." });
-
+        
         const successIds: string[] = [];
+        const failedUpdates: Record<string, { status: PendingTransactionStatus; reason?: string }> = {};
 
-        // Sequential processing for atomic balance integrity
-        for (const tx of pendingTransactions) {
+        for (const tx of toProcess) {
           try {
             const { data, error } = await supabase.rpc('secure_purchase_item', {
               p_buyer_id: userId,
@@ -191,26 +198,30 @@ export const useWalletStore = create<WalletState>()(
             if (!error && data?.success) {
               successIds.push(tx.id);
             } else if (data?.success === false) {
-              // If server rejected (e.g. insufficient funds now), we still remove from queue 
-              // but notify the user of the final rejection
-              toast({ 
-                variant: 'destructive', 
-                title: 'Sync Rejection', 
-                description: `Could not process ${tx.title}: ${data.error}` 
-              });
-              successIds.push(tx.id); 
+              // Handle insufficient funds or other business logic errors
+              if (data.error?.toLowerCase().includes('insufficient') || data.error?.toLowerCase().includes('balance')) {
+                failedUpdates[tx.id] = { 
+                  status: 'failed_needs_action', 
+                  reason: 'Insufficient Funds' 
+                };
+                toast({ 
+                  variant: 'destructive', 
+                  title: 'Acquisition Paused', 
+                  description: `Could not process "${tx.title}": Insufficient credits.` 
+                });
+              } else {
+                // Keep as pending_sync for generic errors to retry later
+              }
             }
           } catch (err) {
             console.error(`Sync failed for item ${tx.id}:`, err);
-            // We keep it in the queue for retry if it's a network error during sync
           }
         }
 
-        // Atomically remove successful/processed items
         set((state) => ({
-          pendingTransactions: state.pendingTransactions.filter(
-            (tx) => !successIds.includes(tx.id)
-          ),
+          pendingTransactions: state.pendingTransactions
+            .filter((tx) => !successIds.includes(tx.id))
+            .map((tx) => failedUpdates[tx.id] ? { ...tx, ...failedUpdates[tx.id] } : tx),
           isSyncing: false
         }));
         
@@ -257,6 +268,21 @@ export const useWalletStore = create<WalletState>()(
           set({ isLoading: false });
           return false;
         }
+      },
+
+      removePendingTransaction: (id) => {
+        set(state => ({
+          pendingTransactions: state.pendingTransactions.filter(t => t.id !== id)
+        }));
+      },
+
+      retryTransaction: async (userId, transactionId) => {
+        set(state => ({
+          pendingTransactions: state.pendingTransactions.map(t => 
+            t.id === transactionId ? { ...t, status: 'pending_sync', errorReason: undefined } : t
+          )
+        }));
+        await get().processOfflineQueue(userId);
       }
     }),
     {
