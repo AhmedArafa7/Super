@@ -212,8 +212,9 @@ export function AdminPanel() {
                 <div className="grid gap-1.5">
                   <Label>Full Name</Label>
                   <Input 
+                    dir="auto"
                     placeholder="e.g., John Doe" 
-                    className="bg-white/5 border-white/10 rounded-xl h-11"
+                    className="bg-white/5 border-white/10 rounded-xl h-11 text-right"
                     value={newUser.name}
                     onChange={(e) => setNewUser({...newUser, name: e.target.value})}
                   />
@@ -235,27 +236,6 @@ export function AdminPanel() {
                     className="bg-white/5 border-white/10 rounded-xl h-11"
                     value={newUser.password}
                     onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label>Node Role</Label>
-                  <Select value={newUser.role} onValueChange={(v: any) => setNewUser({...newUser, role: v})}>
-                    <SelectTrigger className="bg-white/5 border-white/10 rounded-xl h-11">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-white/10 text-white">
-                      <SelectItem value="user">Standard Node (User)</SelectItem>
-                      <SelectItem value="admin">Nexus Control (Admin)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-1.5">
-                  <Label>Custom Classification</Label>
-                  <Input 
-                    placeholder="e.g., VIP, Beta" 
-                    className="bg-white/5 border-white/10 rounded-xl h-11"
-                    value={newUser.custom_tag}
-                    onChange={(e) => setNewUser({...newUser, custom_tag: e.target.value})}
                   />
                 </div>
                 <Button 
@@ -284,7 +264,7 @@ export function AdminPanel() {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <p className="font-bold text-white text-base">{u.name}</p>
+                              <p dir="auto" className="font-bold text-white text-base text-right">{u.name}</p>
                               {u.customTag && <Badge variant="outline" className="text-[8px] border-indigo-500/30 text-indigo-400 px-1.5 h-4 uppercase">{u.customTag}</Badge>}
                             </div>
                             <span className="text-[10px] text-muted-foreground uppercase font-mono">@{u.username} • {u.role}</span>
@@ -469,8 +449,8 @@ export function AdminPanel() {
                       <div className="flex gap-4">
                         <img src={v.thumbnail} className="size-20 rounded-xl object-cover" />
                         <div className="flex-1">
-                          <h4 className="font-bold text-white text-sm">{v.title}</h4>
-                          <p className="text-xs text-muted-foreground">Author: {v.author}</p>
+                          <h4 dir="auto" className="font-bold text-white text-sm text-right">{v.title}</h4>
+                          <p dir="auto" className="text-xs text-muted-foreground text-right">Author: {v.author}</p>
                         </div>
                       </div>
                       <div className="flex gap-2">

@@ -66,7 +66,7 @@ export function TechMarket() {
   useEffect(() => {
     const timer = setTimeout(() => loadData(false), 500);
     return () => clearTimeout(timer);
-  }, [search, category]);
+  }, [search, category, loadData]);
 
   const handleAddListing = async () => {
     if (!user) return;
@@ -108,7 +108,11 @@ export function TechMarket() {
               <div className="grid gap-5 py-6">
                 <div className="grid gap-2">
                    <Label>Asset Title</Label>
-                   <Input dir="auto" placeholder="Technical name..." value={newListing.title} onChange={e => setNewListing({...newListing, title: e.target.value})} className="bg-white/5 border-white/10" />
+                   <Input dir="auto" placeholder="Technical name..." value={newListing.title} onChange={e => setNewListing({...newListing, title: e.target.value})} className="bg-white/5 border-white/10 text-right" />
+                </div>
+                <div className="grid gap-2">
+                   <Label>Description</Label>
+                   <Textarea dir="auto" placeholder="Neural capabilities..." value={newListing.description} onChange={e => setNewListing({...newListing, description: e.target.value})} className="bg-white/5 border-white/10 text-right" />
                 </div>
                 <div className="grid gap-2">
                    <Label>Valuation (Credits)</Label>
@@ -133,7 +137,7 @@ export function TechMarket() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
         <div className="md:col-span-3 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
-          <Input dir="auto" placeholder="Search neural assets..." className="w-full h-14 bg-white/5 border-white/10 rounded-2xl pl-12" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input dir="auto" placeholder="Search neural assets..." className="w-full h-14 bg-white/5 border-white/10 rounded-2xl pl-12 text-right" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={category} onValueChange={(v: any) => setCategory(v)}>
           <SelectTrigger className="h-14 bg-white/5 border-white/10 rounded-2xl">
@@ -159,6 +163,7 @@ export function TechMarket() {
                 </div>
                 <CardContent className="p-7">
                   <h3 dir="auto" className="text-xl font-bold text-white mb-2 line-clamp-1 text-right">{item.title}</h3>
+                  <p dir="auto" className="text-xs text-muted-foreground line-clamp-2 mb-4 text-right">{item.description}</p>
                   <p className="text-2xl font-bold text-primary tracking-tighter text-right">{item.price?.toLocaleString()} Credits</p>
                   <p className="text-[10px] text-muted-foreground uppercase font-bold mt-4 text-right">{item.stockQuantity} Nodes Available</p>
                   {item.sellerId !== user?.id && <Button className="w-full mt-6 bg-primary rounded-xl h-12 font-bold">Acquire Asset</Button>}

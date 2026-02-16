@@ -75,7 +75,7 @@ export function KnowledgeHub() {
   const handleCreateSubject = async () => {
     if (!newSubject.title) return;
     const allowed = newSubject.allowedUserIds ? newSubject.allowedUserIds.split(',').map(s => s.trim()) : null;
-    await addSubject({ ...newSubject, allowedUserIds: allowed });
+    await addSubject({ title: newSubject.title, description: newSubject.description, allowedUserIds: allowed });
     toast({ title: "Subject Created", description: "New neural pathway initialized." });
     setIsSubjectModalOpen(false);
     setNewSubject({ title: "", description: "", allowedUserIds: "" });
@@ -176,11 +176,11 @@ export function KnowledgeHub() {
                 <div className="space-y-4 py-4">
                   <div className="grid gap-2">
                     <Label>Subject Title</Label>
-                    <Input dir="auto" className="bg-white/5 border-white/10" value={newSubject.title} onChange={e => setNewSubject({...newSubject, title: e.target.value})} />
+                    <Input dir="auto" className="bg-white/5 border-white/10 text-right" value={newSubject.title} onChange={e => setNewSubject({...newSubject, title: e.target.value})} />
                   </div>
                   <div className="grid gap-2">
                     <Label>Description</Label>
-                    <Textarea dir="auto" className="bg-white/5 border-white/10" value={newSubject.description} onChange={e => setNewSubject({...newSubject, description: e.target.value})} />
+                    <Textarea dir="auto" className="bg-white/5 border-white/10 text-right" value={newSubject.description} onChange={e => setNewSubject({...newSubject, description: e.target.value})} />
                   </div>
                 </div>
                 <DialogFooter>
@@ -205,8 +205,8 @@ export function KnowledgeHub() {
                   <div className="size-14 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 mb-6 group-hover:bg-primary transition-all">
                     <BookOpen className="size-7" />
                   </div>
-                  <h3 dir="auto" className="text-2xl font-bold text-white mb-2">{subject.title}</h3>
-                  <p dir="auto" className="text-muted-foreground text-sm line-clamp-2">{subject.description}</p>
+                  <h3 dir="auto" className="text-2xl font-bold text-white mb-2 text-right">{subject.title}</h3>
+                  <p dir="auto" className="text-muted-foreground text-sm line-clamp-2 text-right">{subject.description}</p>
                   <div className="flex items-center justify-between pt-6 mt-6 border-t border-white/5">
                     <div className="flex items-center gap-2">
                        {subject.allowedUserIds ? <Lock className="size-3 text-amber-400" /> : <Globe className="size-3 text-green-400" />}
@@ -231,7 +231,7 @@ export function KnowledgeHub() {
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => setSelectedSubject(null)}><ChevronRight className="rotate-180" /></Button>
-            <h1 dir="auto" className="text-2xl font-bold">{selectedSubject.title}</h1>
+            <h1 dir="auto" className="text-2xl font-bold text-right">{selectedSubject.title}</h1>
           </div>
           <Button variant="outline" className="rounded-xl border-white/10" onClick={() => setIsCollectionModalOpen(true)}>
             <Plus className="size-4 mr-2" /> Add Lesson
@@ -245,7 +245,7 @@ export function KnowledgeHub() {
             <div className="p-8 flex flex-col md:flex-row gap-8">
               <div className="w-full md:w-48 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-r border-white/5 pb-6 md:pb-0 md:pr-8">
                 <span className="text-5xl font-black text-white/20">{(idx + 1).toString().padStart(2, '0')}</span>
-                <p dir="auto" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2">{col.title}</p>
+                <p dir="auto" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2 text-right">{col.title}</p>
               </div>
               <div className="flex-1 space-y-4">
                 {itemsMap[col.id]?.map((item) => (
@@ -254,7 +254,7 @@ export function KnowledgeHub() {
                       <div className="size-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
                         {item.type === 'video' ? <Play className="size-5" /> : item.type === 'audio' ? <Mic className="size-5" /> : item.type === 'text' ? <AlignLeft className="size-5" /> : <FileText className="size-5" />}
                       </div>
-                      <p dir="auto" className="font-bold text-sm">{item.title}</p>
+                      <p dir="auto" className="font-bold text-sm text-right">{item.title}</p>
                     </div>
                     <Badge variant="outline" className="text-[10px] border-white/10 uppercase">{item.type.replace('_', ' ')}</Badge>
                   </div>
@@ -278,11 +278,11 @@ export function KnowledgeHub() {
           <div className="space-y-4 py-4">
             <div className="grid gap-2">
               <Label>Lesson Title</Label>
-              <Input dir="auto" className="bg-white/5 border-white/10" value={newCollection.title} onChange={e => setNewCollection({...newCollection, title: e.target.value})} />
+              <Input dir="auto" className="bg-white/5 border-white/10 text-right" value={newCollection.title} onChange={e => setNewCollection({...newCollection, title: e.target.value})} />
             </div>
             <div className="grid gap-2">
               <Label>Description</Label>
-              <Textarea dir="auto" className="bg-white/5 border-white/10" value={newCollection.description} onChange={e => setNewCollection({...newCollection, description: e.target.value})} />
+              <Textarea dir="auto" className="bg-white/5 border-white/10 text-right" value={newCollection.description} onChange={e => setNewCollection({...newCollection, description: e.target.value})} />
             </div>
           </div>
           <DialogFooter>
@@ -297,7 +297,7 @@ export function KnowledgeHub() {
           <div className="space-y-4 py-4">
             <div className="grid gap-2">
               <Label>Asset Title</Label>
-              <Input dir="auto" className="bg-white/5 border-white/10" value={newItem.title} onChange={e => setNewItem({...newItem, title: e.target.value})} />
+              <Input dir="auto" className="bg-white/5 border-white/10 text-right" value={newItem.title} onChange={e => setNewItem({...newItem, title: e.target.value})} />
             </div>
             <div className="grid gap-2">
               <Label>Type</Label>
@@ -318,7 +318,7 @@ export function KnowledgeHub() {
                 <Label>Explanation Content</Label>
                 <Textarea 
                   dir="auto"
-                  className="bg-white/5 border-white/10 min-h-[150px]" 
+                  className="bg-white/5 border-white/10 min-h-[150px] text-right" 
                   placeholder="Enter the educational text here..."
                   value={newItem.textContent}
                   onChange={e => setNewItem({...newItem, textContent: e.target.value})}
