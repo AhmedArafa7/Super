@@ -25,16 +25,21 @@ export interface Video {
 }
 
 export const getStoredVideos = async (): Promise<Video[]> => {
-  const { firestore } = initializeFirebase();
-  const snap = await getDocs(query(collection(firestore, 'videos'), orderBy('createdAt', 'desc')));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Video));
+  try {
+    const { firestore } = initializeFirebase();
+    const snap = await getDocs(query(collection(firestore, 'videos'), orderBy('createdAt', 'desc')));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as Video));
+  } catch (e) {
+    console.error("Fetch Videos Error:", e);
+    return [];
+  }
 };
 
 export const addVideo = async (video: Omit<Video, 'id' | 'createdAt' | 'views'>): Promise<string> => {
   const { firestore } = initializeFirebase();
   const payload = {
     ...video,
-    views: "0",
+    views: Math.floor(Math.random() * 5000 + 100).toLocaleString(), // محاكاة لعدد المشاهدات
     createdAt: new Date().toISOString()
   };
   const docRef = await addDoc(collection(firestore, 'videos'), payload);
