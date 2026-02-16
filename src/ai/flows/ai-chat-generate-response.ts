@@ -1,7 +1,7 @@
 
 'use server';
 /**
- * @fileOverview AI Chat response generation flow.
+ * @fileOverview AI Chat response generation flow using Groq Llama 3.3.
  *
  * - aiChatGenerateResponse - A function that generates context-aware AI responses.
  * - AIChatGenerateResponseInput - The input type for the aiChatGenerateResponse function.
@@ -33,7 +33,9 @@ const prompt = ai.definePrompt({
   name: 'aiChatGenerateResponsePrompt',
   input: {schema: AIChatGenerateResponseInputSchema},
   output: {schema: AIChatGenerateResponseOutputSchema},
-  prompt: `You are a helpful AI assistant for NexusAI. Respond to the user message based on the chat history, if any. Be concise, technical, and helpful.
+  prompt: `You are a highly intelligent AI assistant for the NexusAI ecosystem. 
+Your primary engine is Llama 3.3 70B via Groq.
+Be technical, helpful, and concise. Respond in the same language as the user (prefer Arabic if the user speaks Arabic).
 
 Chat History:
 {{#each history}}
