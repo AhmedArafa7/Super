@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -66,7 +67,7 @@ export function KnowledgeHub() {
     
     const items: Record<string, LearningItem[]> = {};
     for (const col of cols) {
-      items[col.id] = await getLearningItems(col.id);
+      items[col.id] = await getLearningItems(subject.id, col.id);
     }
     setItemsMap(items);
   };
@@ -100,7 +101,7 @@ export function KnowledgeHub() {
   };
 
   const handleCreateItem = async () => {
-    if (!activeCollectionId || !newItem.title) return;
+    if (!activeCollectionId || !newItem.title || !selectedSubject) return;
     
     setIsUploading(true);
     setUploadProgress(0);
@@ -112,7 +113,6 @@ export function KnowledgeHub() {
         url = newItem.textContent;
         setUploadProgress(100);
       } else if (newItem.file) {
-        // نمرر دالة تحديث التقدم الحقيقي
         const uploadUrl = await uploadLearningFile(newItem.file, (pct) => {
           setUploadProgress(pct);
         });
@@ -126,6 +126,7 @@ export function KnowledgeHub() {
       }
 
       await addLearningItem({
+        subjectId: selectedSubject.id,
         collectionId: activeCollectionId,
         title: newItem.title,
         type: newItem.type,
@@ -139,13 +140,10 @@ export function KnowledgeHub() {
       setNewItem({ title: "", type: "file", file: null, textContent: "" });
       
     } catch (err: any) {
-      const isBucketError = err.message.toLowerCase().includes('bucket not found');
       toast({ 
         variant: "destructive", 
-        title: isBucketError ? "Bucket Not Found" : "Sync Failed", 
-        description: isBucketError 
-          ? "Please create a bucket named 'learning' in your Supabase Storage dashboard."
-          : err.message 
+        title: "Sync Failed", 
+        description: err.message 
       });
     } finally {
       setIsUploading(false);
