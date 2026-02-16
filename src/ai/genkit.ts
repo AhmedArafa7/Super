@@ -1,18 +1,17 @@
-
 import {genkit} from 'genkit';
 import Groq from 'groq-sdk';
 
-// Initialize Genkit instance
+// Initialize Genkit instance with Groq as the primary engine
 export const ai = genkit({
   model: 'groq/llama-3.3-70b-versatile',
 });
 
 // Define the Groq model adapter within Genkit
-// This allows us to use standard Genkit features (flows, prompts) with Groq's high-speed API
+// This allows us to use llama-3.3-70b-versatile (The strongest model for Arabic and Logic)
 ai.defineModel(
   {
     name: 'groq/llama-3.3-70b-versatile',
-    label: 'Groq Llama 3.3 70B',
+    label: 'Groq Llama 3.3 70B (Neural Engine)',
   },
   async (input) => {
     const groq = new Groq({
@@ -43,7 +42,7 @@ ai.defineModel(
       return {
         message: {
           role: 'assistant',
-          content: [{ text: "عذراً، حدث خطأ في الاتصال بالعقدة الذكية (Groq). يرجى التأكد من إعداد المفتاح GROQ_API_KEY بشكل صحيح." }],
+          content: [{ text: "عذراً، حدث خطأ في الاتصال بالعقدة العصبية (Groq). يرجى التأكد من ضبط مفتاح GROQ_API_KEY في Vercel." }],
         },
       };
     }

@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect, memo } from "react";
@@ -16,7 +15,6 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useSidebar } from "@/components/ui/sidebar";
 import { aiChatGenerateResponse } from "@/ai/flows/ai-chat-generate-response";
 import { getWelcomeMessage } from "@/ai/flows/ai-chat-welcome-message";
 
@@ -27,7 +25,6 @@ interface AIChatProps {
 
 const MAX_FILE_SIZE = 1.5 * 1024 * 1024;
 
-// Memoized message item to prevent re-renders when input state changes
 const MessageItem = memo(({ 
   msg, 
   highlightId, 
@@ -121,7 +118,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  // Zustand Store Selectors
   const messages = useChatStore(state => state.messages);
   const isConnected = useChatStore(state => state.isConnected);
   const isSending = useChatStore(state => state.isSending);
@@ -132,7 +128,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const setConnected = useChatStore(state => state.setConnected);
   const approveMessage = useChatStore(state => state.approveMessage);
 
-  // Local UI state
   const [input, setInput] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
@@ -166,25 +161,23 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     };
   }, [user?.id, loadMessages, setConnected]);
 
-  // Welcome Message Logic
+  // Welcome Message Logic using Groq
   useEffect(() => {
-    if (messages.length === 0 && user && isConnected && !isAITyping) {
-      handleGetWelcomeMessage();
-    }
+    const triggerWelcome = async () => {
+      if (messages.length === 0 && user && isConnected && !isAITyping) {
+        setIsAITyping(true);
+        try {
+          const { message } = await getWelcomeMessage();
+          toast({ title: "Nexus Node Synchronized", description: message });
+        } catch (err) {
+          console.warn("AI Node not ready.");
+        } finally {
+          setIsAITyping(false);
+        }
+      }
+    };
+    triggerWelcome();
   }, [messages.length, user, isConnected]);
-
-  const handleGetWelcomeMessage = async () => {
-    if (!user) return;
-    setIsAITyping(true);
-    try {
-      const { message } = await getWelcomeMessage();
-      toast({ title: "Nexus Node Synchronized", description: message });
-    } catch (err) {
-      console.warn("AI Node not ready for welcome message.");
-    } finally {
-      setIsAITyping(false);
-    }
-  };
 
   useEffect(() => {
     if (scrollRef.current && !highlightId) {
@@ -202,35 +195,30 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     setPendingAttachments([]);
 
     try {
-      // 1. Send message to Supabase
       const savedMsg = await sendMessage(userText, user.id, user.name, currentAttachments);
       
       if (savedMsg) {
         setIsAITyping(true);
         
-        // 2. Prepare context for AI
+        // Contextual History for Groq
         const history = messages.slice(-5).map(m => ({
           role: 'user' as const,
           content: m.text
         }));
-        // If the last message had a response, add it to history
         messages.slice(-5).forEach(m => {
           if (m.response) {
             history.push({ role: 'assistant' as const, content: m.response });
           }
         });
 
-        // 3. Request AI Response
+        // Get Response from Groq Llama 3.3
         const responseData = await aiChatGenerateResponse({
           message: userText,
           history: history
         });
 
         if (responseData && responseData.response) {
-          // 4. Save AI response back to Supabase
           await approveMessage(savedMsg.id, responseData.response);
-        } else {
-          throw new Error("AI Returned empty response payload.");
         }
       }
     } catch (err: any) {
@@ -238,7 +226,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       toast({ 
         variant: "destructive", 
         title: "Neural Link Error", 
-        description: "The AI node failed to process the request. Ensure GOOGLE_GENAI_API_KEY is configured." 
+        description: "Failed to reach Groq node. Ensure GROQ_API_KEY is active." 
       });
     } finally {
       setIsAITyping(false);
@@ -310,7 +298,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
           setTimeout(() => {
             setPendingAttachments(prev => [...prev, {
               id: Math.random().toString(36).substring(2, 9),
-              name: `Voice Transmission ${new Date().toLocaleTimeString()}.webm`,
+              name: `Voice Packet ${new Date().toLocaleTimeString()}.webm`,
               type: 'audio',
               url: reader.result as string,
               size: (blob.size / 1024 / 1024).toFixed(2) + ' MB',
@@ -343,7 +331,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
           <AlertTriangle className="size-5 text-amber-400 shrink-0" />
           <p className="text-xs text-amber-200/80">
-            <strong>Neural Sync Unstable:</strong> Connection to Supabase node lost. Check your API configuration or network status.
+            <strong>Neural Sync Lost:</strong> Connection to cloud node interrupted.
           </p>
         </div>
       )}
@@ -355,15 +343,15 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
               <Bot className={cn("size-5 text-indigo-400", isAITyping && "animate-pulse")} />
             </div>
             <div>
-              <p className="font-bold text-sm">Nexus Realtime Stream</p>
+              <p className="font-bold text-sm">Nexus AI (Groq Llama 3.3)</p>
               <div className="flex items-center gap-2">
                 {isConnected ? (
                   <p className="text-[10px] text-green-400 flex items-center gap-1">
-                    <Wifi className="size-2.5" /> {isAITyping ? "AI is processing..." : "Neural Sync Active"}
+                    <Wifi className="size-2.5" /> {isAITyping ? "Processing..." : "Active"}
                   </p>
                 ) : (
                   <p className="text-[10px] text-red-400 flex items-center gap-1">
-                    <WifiOff className="size-2.5" /> Offline Mode
+                    <WifiOff className="size-2.5" /> Offline
                   </p>
                 )}
               </div>
@@ -377,7 +365,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
               <EmptyState 
                 icon={Sparkles}
                 title="Neural Stream Empty"
-                description="Initiate a secure session to begin communicating with the Nexus AI node."
+                description="Initiate a secure session with the Llama 3.3 engine."
                 className="mt-12"
               />
             ) : (
@@ -406,7 +394,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
           </div>
         </ScrollArea>
 
-        {/* Edit Modal / Inline */}
         {editingId && (
           <div className="absolute inset-x-0 bottom-0 z-30 p-4 bg-slate-900/95 border-t border-indigo-500/30 backdrop-blur-xl animate-in slide-in-from-bottom duration-300">
             <div className="max-w-3xl mx-auto space-y-4">
@@ -431,7 +418,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         <div className="p-4 bg-white/5 border-t border-white/5">
           {isRecording ? (
             <div className="h-14 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-between px-6">
-              <div className="flex items-center gap-3"><div className="size-2 rounded-full bg-red-500 animate-pulse" /><span className="text-sm font-bold text-red-400">Recording Audio...</span></div>
+              <div className="flex items-center gap-3"><div className="size-2 rounded-full bg-red-500 animate-pulse" /><span className="text-sm font-bold text-red-400">Capturing Audio...</span></div>
               <Button onClick={stopRecording} size="icon" className="bg-red-500"><Square className="size-4" /></Button>
             </div>
           ) : (
@@ -439,7 +426,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
               {isUploading && (
                 <div className="absolute -top-12 left-0 right-0 p-2 glass border-t border-indigo-500/30 rounded-t-xl space-y-1">
                   <div className="flex justify-between text-[8px] uppercase font-bold tracking-widest text-indigo-400">
-                    <span>Uploading Payload</span>
+                    <span>Uploading Data</span>
                     <span>{Math.round(uploadProgress)}%</span>
                   </div>
                   <Progress value={uploadProgress} className="h-1 bg-white/5" />
@@ -449,7 +436,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder={isUploading ? "Uploading payload..." : isAITyping ? "Nexus is thinking..." : "Message NexusAI..."}
+                placeholder={isUploading ? "Processing..." : isAITyping ? "Nexus is thinking..." : "Message AI node..."}
                 disabled={isUploading || isSending || isAITyping}
                 className="w-full h-14 bg-white/5 border-white/10 focus-visible:ring-indigo-500 rounded-2xl pl-12 pr-28 text-sm"
               />
