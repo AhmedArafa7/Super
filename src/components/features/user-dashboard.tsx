@@ -119,7 +119,7 @@ export function UserDashboard() {
                   <User className="size-12 text-muted-foreground" />
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-white">{user?.name}</h3>
+              <h3 dir="auto" className="text-xl font-bold text-white">{user?.name}</h3>
               <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">@{user?.username}</p>
               <Badge variant="outline" className="mt-4 border-indigo-500/30 text-indigo-400 capitalize">{user?.role} Node</Badge>
             </Card>
@@ -134,6 +134,7 @@ export function UserDashboard() {
                   <Label htmlFor="displayName">Display Name</Label>
                   <Input 
                     id="displayName" 
+                    dir="auto"
                     value={displayName} 
                     onChange={(e) => setDisplayName(e.target.value)}
                     className="bg-white/5 border-white/10 h-12 rounded-xl"
@@ -195,8 +196,8 @@ export function UserDashboard() {
                             {order.type === 'purchase_hold' ? <Clock className="size-4 text-amber-400" /> : <Package className="size-4 text-green-400" />}
                           </div>
                           <div>
-                            <p className="font-bold text-white text-sm">{order.description}</p>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">
+                            <p dir="auto" className="font-bold text-white text-sm text-right">{order.description}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5 text-right">
                               {order.type.replace('_', ' ')} • {formatDistanceToNow(new Date(order.timestamp), { addSuffix: true })}
                             </p>
                           </div>
