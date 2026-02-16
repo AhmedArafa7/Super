@@ -128,13 +128,27 @@ export const addLearningItem = async (item: Omit<LearningItem, 'id' | 'createdAt
   return data;
 };
 
+/**
+ * وظيفة رفع متطورة تدعم الأسماء الآمنة وتتبع التقدم الحقيقي.
+ */
 export const uploadLearningFile = async (
   file: File, 
   onProgress?: (percentage: number) => void
 ): Promise<string | null> => {
-  const fileName = `${crypto.randomUUID()}-${file.name}`;
-  // تم ترتيب المستودعات للبدء بـ 'learning' كأولوية قصوى
-  const buckets = ['learning', 'nexus-content', 'files', 'assets', 'avatars'];
+  // تطهير اسم الملف: إزالة المسافات والرموز الخاصة لضمان قبول السيرفر
+  const extension = file.name.split('.').pop();
+  const safeBaseName = file.name
+    .split('.')
+    .slice(0, -1)
+    .join('.')
+    .replace(/[^a-z0-9]/gi, '_')
+    .toLowerCase()
+    .substring(0, 50);
+  
+  const fileName = `${crypto.randomUUID()}-${safeBaseName}.${extension}`;
+  
+  // ترتيب المحاولات عبر المستودعات المتاحة
+  const buckets = ['learning', 'nexus-content', 'files', 'assets'];
   let lastFailureReason = '';
 
   for (const bucket of buckets) {
@@ -144,9 +158,9 @@ export const uploadLearningFile = async (
         .upload(fileName, file, { 
           cacheControl: '3600', 
           upsert: false,
-          // تفعيل مراقبة التقدم الحقيقي
+          // مراقبة النسبة المئوية الحقيقية من المتصفح
           onUploadProgress: (progress) => {
-            if (onProgress) {
+            if (onProgress && progress.total > 0) {
               const percentage = (progress.loaded / progress.total) * 100;
               onProgress(Math.round(percentage));
             }
@@ -155,6 +169,7 @@ export const uploadLearningFile = async (
 
       if (uploadError) {
         lastFailureReason = uploadError.message;
+        console.warn(`Nexus Sync: Bucket '${bucket}' rejected payload. Reason: ${lastFailureReason}`);
         continue;
       }
 
@@ -164,9 +179,10 @@ export const uploadLearningFile = async (
       }
     } catch (e: any) {
       lastFailureReason = e.message;
+      console.warn(`Nexus Sync: Exception in node '${bucket}': ${e.message}`);
     }
   }
 
-  console.warn(`Storage Notification: All buckets checked. Final status: ${lastFailureReason || 'Bucket not found'}`);
+  console.warn(`Nexus Storage Alert: All available nodes exhausted. Final rejection: ${lastFailureReason || 'Bucket not found'}`);
   return null;
 };

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { FileText, ChevronRight, BookOpen, Play, Music, Trophy, Plus, Trash2, Upload, Loader2, Globe, CheckCircle2, RefreshCcw, Lock, AlignLeft, Mic } from "lucide-react";
+import { FileText, ChevronRight, BookOpen, Play, Music, Trophy, Plus, Trash2, Upload, Loader2, Globe, CheckCircle2, RefreshCcw, Lock, AlignLeft, Mic, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -104,7 +104,7 @@ export function KnowledgeHub() {
     if (!activeCollectionId || !newItem.title) return;
     
     setIsUploading(true);
-    setUploadProgress(0); // نبدأ من الصفر الفعلي
+    setUploadProgress(0);
 
     try {
       let url = "";
@@ -113,7 +113,7 @@ export function KnowledgeHub() {
         url = newItem.textContent;
         setUploadProgress(100);
       } else if (newItem.file) {
-        // نمرر دالة تحديث التقدم إلى وظيفة الرفع
+        // نمرر دالة تحديث التقدم الحقيقي
         const uploadUrl = await uploadLearningFile(newItem.file, (pct) => {
           setUploadProgress(pct);
         });
@@ -121,8 +121,8 @@ export function KnowledgeHub() {
         if (!uploadUrl) {
           toast({ 
             variant: "destructive", 
-            title: "Storage Alert", 
-            description: "No suitable storage bucket found or permission denied. Check your Supabase configuration." 
+            title: "Transmission Error", 
+            description: "No storage node accepted the payload. Check your bucket policies or internet link." 
           });
           setIsUploading(false);
           setUploadProgress(0);
@@ -130,7 +130,7 @@ export function KnowledgeHub() {
         }
         url = uploadUrl;
       } else {
-        toast({ variant: "destructive", title: "Missing Payload", description: "Please provide a file or text content." });
+        toast({ variant: "destructive", title: "Empty Payload", description: "Please provide a file or technical content." });
         setIsUploading(false);
         setUploadProgress(0);
         return;
@@ -144,17 +144,14 @@ export function KnowledgeHub() {
         orderIndex: (itemsMap[activeCollectionId]?.length || 0)
       });
 
-      setTimeout(() => {
-        toast({ title: "Asset Added", description: "Resource linked to lesson successfully." });
-        setIsItemModalOpen(false);
-        if (selectedSubject) handleSelectSubject(selectedSubject);
-        setNewItem({ title: "", type: "file", file: null, textContent: "" });
-        setIsUploading(false);
-        setUploadProgress(0);
-      }, 500);
+      toast({ title: "Asset Synchronized", description: "The educational resource is now linked to the neural node." });
+      setIsItemModalOpen(false);
+      if (selectedSubject) handleSelectSubject(selectedSubject);
+      setNewItem({ title: "", type: "file", file: null, textContent: "" });
       
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Transmission Failed", description: err.message });
+      toast({ variant: "destructive", title: "Sync Failed", description: err.message });
+    } finally {
       setIsUploading(false);
       setUploadProgress(0);
     }
@@ -367,7 +364,7 @@ export function KnowledgeHub() {
                 </div>
                 <Progress value={uploadProgress} className="h-1.5 bg-white/5" />
                 <p className="text-[10px] text-muted-foreground italic text-center">
-                  {uploadProgress === 100 ? "Syncing database nodes..." : "Transmitting data packets to institution vault..."}
+                  {uploadProgress === 100 ? "Finalizing synchronization..." : "Transmitting data packets to institution vault..."}
                 </p>
               </div>
             )}
@@ -376,10 +373,19 @@ export function KnowledgeHub() {
             <Button 
               onClick={handleCreateItem} 
               disabled={isUploading || (!newItem.file && newItem.type !== 'text') || (newItem.type === 'text' && !newItem.textContent)} 
-              className="w-full bg-primary h-11 rounded-xl"
+              className="w-full bg-primary h-11 rounded-xl font-bold"
             >
-              {isUploading ? <Loader2 className="size-4 animate-spin mr-2" /> : <Plus className="size-4 mr-2" />}
-              {isUploading ? `Uploading ${uploadProgress}%` : "Integrate Asset"}
+              {isUploading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin mr-2" />
+                  Uploading {uploadProgress}%
+                </>
+              ) : (
+                <>
+                  <Plus className="size-4 mr-2" />
+                  Integrate Asset
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
