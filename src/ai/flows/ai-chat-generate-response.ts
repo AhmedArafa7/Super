@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview نظام توليد الردود الذكي - يدعم التبديل التلقائي بين الموديلات.
@@ -40,10 +41,18 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
     inputSchema: AIChatGenerateResponseInputSchema,
   },
   async input => {
+    // التأكد من أن الرسالة ليست فارغة لتجنب ردود "لم تكتب شيئاً"
+    if (!input.message || input.message.trim() === "") {
+      return {
+        response: "يبدو أنك لم تكتب نصاً في رسالتك. كيف يمكنني مساعدتك تقنياً اليوم؟",
+        engine: "System"
+      };
+    }
+
     const hasGroq = !!(process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY);
     const hasGemini = !!(process.env.GOOGLE_GENAI_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_GENAI_API_KEY);
     
-    // الأولوية لـ Groq للسرعة، ثم Gemini للدقة
+    // تحديد الموديل النشط بناءً على المفاتيح المتوفرة
     const modelToUse = hasGroq ? 'groq/llama-3.3-70b-versatile' : 'googleai/gemini-1.5-flash';
     const engineName = hasGroq ? 'Groq Llama 3.3' : 'Google Gemini 1.5';
 
@@ -55,18 +64,19 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
     }
     
     try {
-      const response = await ai.generate({
-        model: modelToUse,
-        prompt: prompt(input),
+      // تصحيح الاستدعاء: استخدام البرومبت المعرف مسبقاً مع الموديل المختار مباشرة
+      const { text } = await prompt(input, {
+        model: modelToUse
       });
       
       return {
-        response: response.text || "عذراً، لم أتمكن من صياغة رد حالياً.",
+        response: text || "عذراً، لم أتمكن من صياغة رد حالياً.",
         engine: engineName
       };
     } catch (err) {
+      console.error("Neural Sync Error:", err);
       return {
-        response: "حدث خطأ أثناء الاتصال بالمحرك العصبي. قد يكون ذلك بسبب نفاذ حدود الاستخدام المجاني (Rate Limit).",
+        response: "حدث خطأ أثناء الاتصال بالمحرك العصبي. قد يكون ذلك بسبب نفاذ حدود الاستخدام (Rate Limit).",
         engine: engineName
       };
     }
