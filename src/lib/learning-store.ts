@@ -61,7 +61,9 @@ export const deleteSubject = async (id: string) => {
 export const getCollections = async (subjectId: string): Promise<Collection[]> => {
   const { firestore } = initializeFirebase();
   try {
-    const snap = await getDocs(query(collection(firestore, 'subjects', subjectId, 'collections'), orderBy('orderIndex', 'asc')));
+    const colRef = collection(firestore, 'subjects', subjectId, 'collections');
+    const q = query(colRef, orderBy('orderIndex', 'asc'));
+    const snap = await getDocs(q);
     return snap.docs.map(d => ({ id: d.id, ...d.data() } as Collection));
   } catch (e) {
     console.error("Fetch Collections Error:", e);
@@ -79,10 +81,9 @@ export const addCollection = async (data: { subjectId: string, title: string, de
 export const getLearningItems = async (subjectId: string, collectionId: string): Promise<LearningItem[]> => {
   const { firestore } = initializeFirebase();
   try {
-    const snap = await getDocs(query(
-      collection(firestore, 'subjects', subjectId, 'collections', collectionId, 'learning_items'), 
-      orderBy('orderIndex', 'asc')
-    ));
+    const itemsRef = collection(firestore, 'subjects', subjectId, 'collections', collectionId, 'learning_items');
+    const q = query(itemsRef, orderBy('orderIndex', 'asc'));
+    const snap = await getDocs(q);
     return snap.docs.map(d => ({ id: d.id, ...d.data(), collectionId } as LearningItem));
   } catch (e) {
     console.error("Fetch Learning Items Error:", e);

@@ -39,7 +39,7 @@ interface WalletState {
   isLoading: boolean;
   fetchWallet: (userId: string) => Promise<void>;
   fetchTransactions: (userId: string) => Promise<void>;
-  adjustFunds: (userId: string, amount: number, type: 'deposit' | 'withdrawal' | 'purchase_hold' | 'purchase_release') => Promise<boolean>;
+  adjustFunds: (userId: string, amount: number, type: TransactionType) => Promise<boolean>;
   processOfflineQueue: (userId: string) => Promise<void>;
   removePendingTransaction: (id: string) => void;
   retryTransaction: (userId: string, id: string) => Promise<void>;
@@ -106,6 +106,9 @@ export const useWalletStore = create<WalletState>()(
         } else if (type === 'purchase_release') {
           if (current.frozenBalance < amount) return false;
           newFrozen -= amount;
+        } else if (type === 'purchase_refund') {
+          newBalance += amount;
+          newFrozen -= amount;
         }
 
         await updateDoc(walletRef, { balance: newBalance, frozenBalance: newFrozen });
@@ -155,7 +158,7 @@ export const useWalletStore = create<WalletState>()(
       const tx = get().pendingTransactions.find(t => t.id === id);
       if (!tx) return;
 
-      const success = await get().adjustFunds(userId, tx.price, 'withdrawal');
+      const success = await get().adjustFunds(userId, tx.price, 'purchase_hold');
       if (success) {
         get().removePendingTransaction(id);
         toast({ title: "Sync Complete", description: `Transmission "${tx.title}" finalized.` });
@@ -174,4 +177,4 @@ export const selectTotalPendingDebt = (state: { pendingTransactions: PendingTran
   state.pendingTransactions.reduce((acc, curr) => acc + curr.price, 0);
 
 export const getTransactions = (userId: string) => useWalletStore.getState().fetchTransactions(userId);
-export const adjustFunds = (userId: string, amount: number, type: any) => useWalletStore.getState().adjustFunds(userId, amount, type);
+export const adjustFunds = (userId: string, amount: number, type: TransactionType) => useWalletStore.getState().adjustFunds(userId, amount, type);

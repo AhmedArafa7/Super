@@ -23,15 +23,27 @@
         "response": { "type": "string" },
         "engine": { "type": "string" },
         "status": { "type": "string" },
-        "timestamp": { "type": "string" }
+        "timestamp": { "type": "string" },
+        "attachments": { "type": "array" }
       }
     },
-    "Subject": {
-      "title": "Subject",
+    "Wallet": {
+      "title": "Wallet",
       "properties": {
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "allowedUserIds": { "type": "array", "items": { "type": "string" } }
+        "balance": { "type": "number" },
+        "frozenBalance": { "type": "number" },
+        "currency": { "type": "string" }
+      }
+    },
+    "MarketOffer": {
+      "title": "MarketOffer",
+      "properties": {
+        "productId": { "type": "string" },
+        "buyerId": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "status": { "type": "string" },
+        "type": { "type": "string" },
+        "value": { "type": "number" }
       }
     }
   },

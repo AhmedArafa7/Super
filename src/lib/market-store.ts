@@ -2,7 +2,7 @@
 'use client';
 
 import { initializeFirebase } from '@/firebase';
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc, where, limit, startAfter } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc, where } from 'firebase/firestore';
 
 export type MarketItemStatus = 'active' | 'sold' | 'reserved' | 'archived';
 export type MarketCategory = 'all' | 'ai_tools' | 'hardware' | 'services' | 'digital_assets';
@@ -15,6 +15,7 @@ export interface MarketItem {
   description: string;
   price: number;
   sellerId: string;
+  ownerId: string; // Used for negotiations
   imageUrl?: string;
   category: MarketCategory;
   stockQuantity: number;
@@ -46,7 +47,11 @@ export const getMarketItems = async (
   let q = query(collection(firestore, 'products'), orderBy('title'));
   
   const snap = await getDocs(q);
-  let items = snap.docs.map(d => ({ id: d.id, ...d.data() } as MarketItem));
+  let items = snap.docs.map(d => ({ 
+    id: d.id, 
+    ...d.data(),
+    ownerId: d.data().sellerId // Map sellerId to ownerId for components that expect it
+  } as MarketItem));
   
   if (category && category !== 'all') {
     items = items.filter(i => i.category === category);
@@ -63,7 +68,7 @@ export const getMarketItems = async (
   };
 };
 
-export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'status' | 'currency'>) => {
+export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'status' | 'currency' | 'ownerId'>) => {
   const { firestore } = initializeFirebase();
   await addDoc(collection(firestore, 'products'), { 
     ...item, 
@@ -88,14 +93,15 @@ export const addMarketOffer = async (productId: string, sellerId: string, itemTi
 
 export const getReceivedOffers = async (userId: string): Promise<MarketOffer[]> => {
   const { firestore } = initializeFirebase();
-  const q = query(collection(firestore, 'offers'), where('sellerId', '==', userId), orderBy('timestamp', 'desc'));
+  const q = query(collection(firestore, 'offers'), where('sellerId', '==', userId));
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as MarketOffer));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as MarketOffer))
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
 export const respondToOffer = async (offerId: string, status: OfferStatus, buyerId: string, itemTitle: string) => {
   const { firestore } = initializeFirebase();
   await updateDoc(doc(firestore, 'offers', offerId), { status });
-  // Logic for wallet transfers could be added here if offer is accepted
+  // Add logic for wallet transfers if accepted
   return true;
 };
