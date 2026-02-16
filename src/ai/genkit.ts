@@ -14,8 +14,19 @@ ai.defineModel(
     label: 'Groq Llama 3.3 70B (Neural Engine)',
   },
   async (input) => {
+    const apiKey = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY;
+
+    if (!apiKey) {
+      return {
+        message: {
+          role: 'assistant',
+          content: [{ text: "عذراً، لم يتم العثور على مفتاح البرمجة (GROQ_API_KEY). يرجى التأكد من إضافة المفتاح في إعدادات Vercel (Environment Variables) ليعمل الذكاء الاصطناعي." }],
+        },
+      };
+    }
+
     const groq = new Groq({
-      apiKey: process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY,
+      apiKey: apiKey,
     });
 
     const messages = input.messages.map((m) => ({
@@ -42,7 +53,7 @@ ai.defineModel(
       return {
         message: {
           role: 'assistant',
-          content: [{ text: "عذراً، حدث خطأ في الاتصال بالعقدة العصبية (Groq). يرجى التأكد من ضبط مفتاح GROQ_API_KEY في Vercel." }],
+          content: [{ text: "عذراً، حدث خطأ في الاتصال بالعقدة العصبية (Groq). يرجى التأكد من استهلاك الحصة المتاحة أو صحة المفتاح." }],
         },
       };
     }
