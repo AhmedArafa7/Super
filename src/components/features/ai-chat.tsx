@@ -48,11 +48,11 @@ const MessageItem = memo(({
               <DropdownMenuContent align="end" className="bg-slate-900 border-white/10">
                 {msg.status !== 'replied' && (
                   <DropdownMenuItem onClick={() => onEdit(msg)} className="gap-2">
-                    <Pencil className="size-4" /> Edit Request
+                    <Pencil className="size-4" /> تعديل الطلب
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={() => onDelete(msg.id)} className="gap-2 text-red-400">
-                  <Trash2 className="size-4" /> Retract Request
+                  <Trash2 className="size-4" /> سحب الطلب
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -158,7 +158,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
           const isError = message.includes("GROQ_API_KEY");
           
           toast({ 
-            title: isError ? "Neural Link Warning" : "Nexus Node Synchronized", 
+            title: isError ? "تنبيه الربط العصبي" : "تمت مزامنة عقدة Nexus", 
             description: message,
             variant: isError ? "destructive" : "default"
           });
@@ -214,8 +214,8 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       console.error('Neural Link Error:', err);
       toast({ 
         variant: "destructive", 
-        title: "Neural Link Error", 
-        description: "Failed to reach Groq node. Ensure GROQ_API_KEY is active." 
+        title: "خطأ في الربط العصبي", 
+        description: "فشل الوصول لمحرك Groq. تأكد من تفعيل GROQ_API_KEY في ملف .env" 
       });
     } finally {
       setIsAITyping(false);
@@ -233,7 +233,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       const newAttachments: Attachment[] = [];
       for (const file of files) {
         if (file.size > MAX_FILE_SIZE) {
-          toast({ variant: "destructive", title: "File too large", description: `${file.name} exceeds 1.5MB.` });
+          toast({ variant: "destructive", title: "حجم الملف كبير", description: `الملف ${file.name} يتجاوز 1.5 ميجا.` });
           continue;
         }
 
@@ -262,7 +262,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         setUploadProgress(0);
       }, 400);
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Upload Failed", description: err.message });
+      toast({ variant: "destructive", title: "فشل الرفع", description: err.message });
       setIsUploading(false);
       setUploadProgress(0);
     } finally {
@@ -303,7 +303,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
-      toast({ variant: "destructive", title: "Mic Access Denied", description: "Microphone permission required." });
+      toast({ variant: "destructive", title: "تم رفض الوصول للميكروفون", description: "مطلوب صلاحية الوصول للميكروفون." });
     }
   };
 
@@ -320,7 +320,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
           <AlertTriangle className="size-5 text-amber-400 shrink-0" />
           <p className="text-xs text-amber-200/80">
-            <strong>Neural Sync Lost:</strong> Connection to cloud node interrupted.
+            <strong>فقدان المزامنة:</strong> الاتصال بالعقدة السحابية مقطوع.
           </p>
         </div>
       )}
@@ -336,11 +336,11 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
               <div className="flex items-center gap-2">
                 {isConnected ? (
                   <p className="text-[10px] text-green-400 flex items-center gap-1">
-                    <Wifi className="size-2.5" /> {isAITyping ? "Processing..." : "Active"}
+                    <Wifi className="size-2.5" /> {isAITyping ? "جاري المعالجة..." : "متصل"}
                   </p>
                 ) : (
                   <p className="text-[10px] text-red-400 flex items-center gap-1">
-                    <WifiOff className="size-2.5" /> Offline
+                    <WifiOff className="size-2.5" /> غير متصل
                   </p>
                 )}
               </div>
@@ -353,8 +353,8 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
             {messages.length === 0 && !isAITyping ? (
               <EmptyState 
                 icon={Sparkles}
-                title="Neural Stream Empty"
-                description="Initiate a secure session with the Llama 3.3 engine."
+                title="تيار عصبي فارغ"
+                description="ابدأ جلسة آمنة مع محرك Llama 3.3 المتطور."
                 className="mt-12"
               />
             ) : (
@@ -387,7 +387,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
           <div className="absolute inset-x-0 bottom-0 z-30 p-4 bg-slate-900/95 border-t border-indigo-500/30 backdrop-blur-xl animate-in slide-in-from-bottom duration-300">
             <div className="max-w-3xl mx-auto space-y-4">
               <div className="flex justify-between items-center">
-                <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Adjusting Neural Request</p>
+                <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">تعديل الطلب العصبي</p>
                 <Button variant="ghost" size="icon" onClick={() => setEditingId(null)} className="size-6"><X className="size-4" /></Button>
               </div>
               <Textarea 
@@ -397,8 +397,8 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                 className="bg-white/5 border-white/10 min-h-[100px] rounded-2xl" 
               />
               <div className="flex justify-end gap-2">
-                <Button variant="ghost" className="rounded-xl" onClick={() => setEditingId(null)}>Cancel</Button>
-                <Button onClick={async () => { await updateMessageText(editingId, user?.id || '', editingText); setEditingId(null); }} className="bg-indigo-500 rounded-xl px-8">Save Transmission</Button>
+                <Button variant="ghost" className="rounded-xl" onClick={() => setEditingId(null)}>إلغاء</Button>
+                <Button onClick={async () => { await updateMessageText(editingId, user?.id || '', editingText); setEditingId(null); }} className="bg-indigo-500 rounded-xl px-8">حفظ التعديل</Button>
               </div>
             </div>
           </div>
@@ -407,7 +407,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         <div className="p-4 bg-white/5 border-t border-white/5">
           {isRecording ? (
             <div className="h-14 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-between px-6">
-              <div className="flex items-center gap-3"><div className="size-2 rounded-full bg-red-500 animate-pulse" /><span className="text-sm font-bold text-red-400">Capturing Audio...</span></div>
+              <div className="flex items-center gap-3"><div className="size-2 rounded-full bg-red-500 animate-pulse" /><span className="text-sm font-bold text-red-400">جاري التقاط الصوت...</span></div>
               <Button onClick={stopRecording} size="icon" className="bg-red-500"><Square className="size-4" /></Button>
             </div>
           ) : (
@@ -415,7 +415,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
               {isUploading && (
                 <div className="absolute -top-12 left-0 right-0 p-2 glass border-t border-indigo-500/30 rounded-t-xl space-y-1">
                   <div className="flex justify-between text-[8px] uppercase font-bold tracking-widest text-indigo-400">
-                    <span>Uploading Data</span>
+                    <span>جاري رفع البيانات</span>
                     <span>{Math.round(uploadProgress)}%</span>
                   </div>
                   <Progress value={uploadProgress} className="h-1 bg-white/5" />
@@ -425,7 +425,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder={isUploading ? "Processing..." : isAITyping ? "Nexus is thinking..." : "Message AI node..."}
+                placeholder={isUploading ? "جاري المعالجة..." : isAITyping ? "Nexus يفكر..." : "أرسل رسالة للعقدة..."}
                 disabled={isUploading || isSending || isAITyping}
                 className="w-full h-14 bg-white/5 border-white/10 focus-visible:ring-indigo-500 rounded-2xl pl-12 pr-28 text-sm"
               />
