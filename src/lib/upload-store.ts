@@ -61,11 +61,11 @@ export const useUploadStore = create<UploadState>((set, get) => ({
     }));
 
     try {
-      const bucketName = 'nexus-media';
+      const bucketName = task.type === 'video' ? 'nexus-media' : 'nexus-learning';
       const fileExt = task.file.name.split('.').pop();
       const fileName = `${task.type}/${id}-${Date.now()}.${fileExt}`;
 
-      // محاكاة للرفع في حال عدم وجود إعدادات Supabase، أو الرفع الفعلي
+      // محاولة الرفع الفعلية
       const { data, error } = await supabase.storage
         .from(bucketName)
         .upload(fileName, task.file, {
@@ -74,41 +74,62 @@ export const useUploadStore = create<UploadState>((set, get) => ({
         });
 
       if (error) {
-        // إذا كان الخطأ بسبب عدم وجود Bucket، نقوم بالمحاكاة للنسخة التجريبية
-        if (error.message.includes('bucket_not_found') || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
-          console.warn("Using simulated upload progress for Beta demo.");
+        // إذا كان الخطأ هو عدم وجود الـ Bucket، ننتقل لوضع المحاكاة لضمان استقرار البيتا
+        if (error.message.includes('bucket_not_found') || error.message.includes('Bucket not found')) {
+          console.warn(`⚠️ Nexus Storage: Bucket "${bucketName}" not found. Falling back to simulation mode.`);
+          
+          // محاكاة تقدم الرفع لضمان عدم توقف الواجهة
           for (let i = 0; i <= 100; i += 10) {
-            await new Promise(r => setTimeout(r, 800));
+            await new Promise(r => setTimeout(r, 600));
             set(state => ({
               tasks: state.tasks.map(t => t.id === id ? { ...t, progress: i } : t)
             }));
           }
-        } else {
-          throw error;
+          
+          // في وضع المحاكاة نستخدم رابطاً افتراضياً احترافياً
+          const simulatedUrl = `https://picsum.photos/seed/${id}/1920/1080`;
+          
+          set(state => ({
+            tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'completed', progress: 100 } : t)
+          }));
+
+          if (task.type === 'video') {
+            const { addVideo } = await import('./video-store');
+            await addVideo({
+              ...task.metadata,
+              thumbnail: simulatedUrl,
+              source: 'local'
+            });
+          }
+          
+          toast({ 
+            title: "Simulated Sync Complete", 
+            description: "Notice: Real storage nodes are not initialized. Content linked via neural simulation." 
+          });
+          
+          setTimeout(() => get().removeTask(id), 5000);
+          return;
         }
+        throw error;
       }
 
-      // الحصول على الرابط النهائي
+      // في حال النجاح الفعلي
       const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(data?.path || fileName);
 
-      // تحديث الحالة النهائية
       set(state => ({
         tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'completed', progress: 100 } : t)
       }));
 
-      // إشعار النجاح النهائي وربط البيانات بـ Firestore
       if (task.type === 'video') {
         const { addVideo } = await import('./video-store');
         await addVideo({
           ...task.metadata,
-          thumbnail: publicUrl, // في نظامنا، نستخدم نفس الرابط للفيديو أو الثامنيل حالياً
+          thumbnail: publicUrl,
           source: 'local'
         });
       }
 
       toast({ title: "Neural Sync Complete", description: `File "${task.fileName}" is now live.` });
-      
-      // إزالة المهمة بعد فترة قصيرة من النجاح
       setTimeout(() => get().removeTask(id), 5000);
 
     } catch (err: any) {
@@ -116,7 +137,11 @@ export const useUploadStore = create<UploadState>((set, get) => ({
       set(state => ({
         tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'failed', error: err.message } : t)
       }));
-      toast({ variant: "destructive", title: "Sync Interrupted", description: `Node lost connection during upload of ${task.fileName}.` });
+      toast({ 
+        variant: "destructive", 
+        title: "Sync Interrupted", 
+        description: `Error: ${err.message}. Please verify storage configuration.` 
+      });
     }
   }
 }));

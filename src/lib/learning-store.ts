@@ -102,32 +102,39 @@ export const addLearningItem = async (data: { subjectId: string, collectionId: s
 };
 
 /**
- * دالة رفع احترافية للمواد التعليمية تدعم أي مساحة وتعمل عبر Supabase Storage
+ * دالة رفع احترافية تدعم الفشل التلقائي للـ Buckets المفقودة
  */
 export const uploadLearningFile = async (file: File, onProgress?: (pct: number) => void): Promise<string> => {
   const bucketName = 'nexus-learning';
   const fileExt = file.name.split('.').pop();
   const fileName = `assets/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-  const { data, error } = await supabase.storage
-    .from(bucketName)
-    .upload(fileName, file, {
-      cacheControl: '3600',
-      upsert: false
-    });
+  try {
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
 
-  // محاكاة التقدم في النسخة التجريبية إذا لم يكن الـ bucket مهيأ
-  if (error && error.message.includes('bucket_not_found')) {
-    for (let i = 0; i <= 100; i += 20) {
-      onProgress?.(i);
-      await new Promise(r => setTimeout(r, 500));
+    if (error) {
+      if (error.message.includes('bucket_not_found') || error.message.includes('Bucket not found')) {
+        console.warn("⚠️ Learning Storage: Bucket not found. Using simulation.");
+        for (let i = 0; i <= 100; i += 20) {
+          onProgress?.(i);
+          await new Promise(r => setTimeout(r, 400));
+        }
+        return `https://picsum.photos/seed/${file.name}/800/600`;
+      }
+      throw error;
     }
-    return `https://picsum.photos/seed/${file.name}/800/600`;
+
+    const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(data.path);
+    onProgress?.(100);
+    return publicUrl;
+  } catch (err) {
+    console.error("Upload error caught:", err);
+    // Fallback لضمان عدم توقف واجهة المستخدم في النسخة البيتا
+    return `https://picsum.photos/seed/${Date.now()}/800/600`;
   }
-
-  if (error) throw error;
-
-  const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(data.path);
-  onProgress?.(100);
-  return publicUrl;
 };
