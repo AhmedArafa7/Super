@@ -1,4 +1,3 @@
-
 'use client';
 
 import { create } from 'zustand';
@@ -43,6 +42,7 @@ interface WalletState {
   processOfflineQueue: (userId: string) => Promise<void>;
   removePendingTransaction: (id: string) => void;
   retryTransaction: (userId: string, id: string) => Promise<void>;
+  addPendingTransaction: (tx: PendingTransaction) => void;
 }
 
 export const useWalletStore = create<WalletState>()(
@@ -91,8 +91,12 @@ export const useWalletStore = create<WalletState>()(
 
         const current = snap.data() as Wallet;
         const finalAmount = type === 'deposit' ? amount : -amount;
-        const newBalance = current.balance + finalAmount;
+        
+        if (type === 'withdrawal' && current.balance < amount) {
+          return false;
+        }
 
+        const newBalance = current.balance + finalAmount;
         await updateDoc(walletRef, { balance: newBalance });
         
         await addDoc(collection(firestore, 'users', userId, 'transactions'), {
@@ -112,14 +116,23 @@ export const useWalletStore = create<WalletState>()(
       }
     },
 
+    addPendingTransaction: (tx) => {
+      set(state => ({
+        pendingTransactions: [tx, ...state.pendingTransactions]
+      }));
+    },
+
     processOfflineQueue: async (userId) => {
-      // منطق المزامنة عند العودة للاتصال
+      if (!navigator.onLine) return;
       const { pendingTransactions } = get();
       if (pendingTransactions.length === 0) return;
       
       console.log('Synchronizing offline node transactions...');
-      // في نموذجنا الأولي، سنحاول معالجة أول عملية معلقة
-      // هذا مجرد هيكل، المزامنة الحقيقية تتم عبر retry
+      for (const tx of pendingTransactions) {
+        if (tx.status === 'pending_sync') {
+          await get().retryTransaction(userId, tx.id);
+        }
+      }
     },
 
     removePendingTransaction: (id) => {
@@ -137,16 +150,19 @@ export const useWalletStore = create<WalletState>()(
         get().removePendingTransaction(id);
         toast({ title: "Acquisition Finalized", description: `"${tx.title}" has been successfully synchronized.` });
       } else {
+        set(state => ({
+          pendingTransactions: state.pendingTransactions.map(t => 
+            t.id === id ? { ...t, status: 'failed_needs_action', errorReason: 'Insufficient Credits' } : t
+          )
+        }));
         toast({ variant: "destructive", title: "Sync Failed", description: "Insufficient credits in the neural node." });
       }
     }
   })
 );
 
-// Selectors
-export const selectTotalPendingDebt = (state: WalletState) => 
+export const selectTotalPendingDebt = (state: { pendingTransactions: PendingTransaction[] }) => 
   state.pendingTransactions.reduce((acc, curr) => acc + curr.price, 0);
 
-// Shortcuts
 export const getTransactions = (userId: string) => useWalletStore.getState().fetchTransactions(userId);
 export const adjustFunds = (userId: string, amount: number, type: 'deposit' | 'withdrawal') => useWalletStore.getState().adjustFunds(userId, amount, type);

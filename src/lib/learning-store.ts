@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeFirebase } from '@/firebase';
@@ -8,11 +7,13 @@ export type LearningItemType = 'video' | 'audio' | 'file' | 'quiz_json' | 'text'
 
 export interface LearningItem {
   id: string;
+  collectionId: string;
   title: string;
   type: LearningItemType;
   url?: string;
   quizData?: any;
   orderIndex: number;
+  createdAt?: string;
 }
 
 export interface Collection {
@@ -31,13 +32,18 @@ export interface Subject {
 
 export const getSubjects = async (userId?: string): Promise<Subject[]> => {
   const { firestore } = initializeFirebase();
-  const snap = await getDocs(collection(firestore, 'subjects'));
-  const subjects = snap.docs.map(d => ({ id: d.id, ...d.data() } as Subject));
-  
-  return subjects.filter(s => {
-    if (!s.allowedUserIds || s.allowedUserIds.length === 0) return true;
-    return userId && s.allowedUserIds.includes(userId);
-  });
+  try {
+    const snap = await getDocs(collection(firestore, 'subjects'));
+    const subjects = snap.docs.map(d => ({ id: d.id, ...d.data() } as Subject));
+    
+    return subjects.filter(s => {
+      if (!s.allowedUserIds || s.allowedUserIds.length === 0) return true;
+      return userId && s.allowedUserIds.includes(userId);
+    });
+  } catch (e) {
+    console.error("Fetch Subjects Error:", e);
+    return [];
+  }
 };
 
 export const addSubject = async (subject: Omit<Subject, 'id'>) => {
@@ -53,26 +59,44 @@ export const deleteSubject = async (id: string) => {
 
 export const getCollections = async (subjectId: string): Promise<Collection[]> => {
   const { firestore } = initializeFirebase();
-  const snap = await getDocs(query(collection(firestore, 'subjects', subjectId, 'collections'), orderBy('orderIndex', 'asc')));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Collection));
+  try {
+    const snap = await getDocs(query(collection(firestore, 'subjects', subjectId, 'collections'), orderBy('orderIndex', 'asc')));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as Collection));
+  } catch (e) {
+    console.error("Fetch Collections Error:", e);
+    return [];
+  }
 };
 
 export const addCollection = async (data: { subjectId: string, title: string, description?: string, orderIndex: number }) => {
   const { firestore } = initializeFirebase();
   const { subjectId, ...rest } = data;
-  await addDoc(collection(firestore, 'subjects', subjectId, 'collections'), rest);
+  const colRef = collection(firestore, 'subjects', subjectId, 'collections');
+  await addDoc(colRef, rest);
 };
 
 export const getLearningItems = async (subjectId: string, collectionId: string): Promise<LearningItem[]> => {
   const { firestore } = initializeFirebase();
-  const snap = await getDocs(query(collection(firestore, 'subjects', subjectId, 'collections', collectionId, 'learning_items'), orderBy('orderIndex', 'asc')));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as LearningItem));
+  try {
+    const snap = await getDocs(query(
+      collection(firestore, 'subjects', subjectId, 'collections', collectionId, 'learning_items'), 
+      orderBy('orderIndex', 'asc')
+    ));
+    return snap.docs.map(d => ({ id: d.id, ...d.data(), collectionId } as LearningItem));
+  } catch (e) {
+    console.error("Fetch Learning Items Error:", e);
+    return [];
+  }
 };
 
 export const addLearningItem = async (data: { subjectId: string, collectionId: string, title: string, type: LearningItemType, url: string, orderIndex: number }) => {
   const { firestore } = initializeFirebase();
   const { subjectId, collectionId, ...rest } = data;
-  await addDoc(collection(firestore, 'subjects', subjectId, 'collections', collectionId, 'learning_items'), rest);
+  const itemsRef = collection(firestore, 'subjects', subjectId, 'collections', collectionId, 'learning_items');
+  await addDoc(itemsRef, {
+    ...rest,
+    createdAt: new Date().toISOString()
+  });
 };
 
 export const uploadLearningFile = async (file: File, onProgress?: (pct: number) => void): Promise<string> => {

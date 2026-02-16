@@ -12,56 +12,39 @@
         "role": { "type": "string", "enum": ["admin", "user"] },
         "avatar_url": { "type": "string" },
         "custom_tag": { "type": "string" }
-      },
-      "required": ["id", "username", "role"]
+      }
     },
     "ChatMessage": {
       "title": "ChatMessage",
-      "description": "A message in the AI chat history.",
-      "type": "object",
       "properties": {
-        "sender_id": { "type": "string" },
-        "sender_name": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
         "text": { "type": "string" },
         "response": { "type": "string" },
+        "engine": { "type": "string" },
         "status": { "type": "string" },
-        "created_at": { "type": "string", "format": "date-time" },
-        "attachments": { "type": "array", "items": { "type": "object" } }
-      },
-      "required": ["sender_id", "text", "status"]
+        "timestamp": { "type": "string" }
+      }
     },
-    "Video": {
-      "title": "Video",
-      "description": "Content in StreamHub.",
-      "type": "object",
+    "Subject": {
+      "title": "Subject",
       "properties": {
         "title": { "type": "string" },
-        "thumbnail": { "type": "string" },
-        "author": { "type": "string" },
-        "views": { "type": "string" },
-        "status": { "type": "string" }
+        "description": { "type": "string" },
+        "allowedUserIds": { "type": "array", "items": { "type": "string" } }
       }
     }
   },
-  "auth": {
-    "providers": ["anonymous", "password"]
-  },
   "firestore": {
-    "/users/{userId}": {
-      "schema": { "$ref": "#/backend/entities/User" },
-      "description": "Primary user node data."
-    },
-    "/users/{userId}/messages/{msgId}": {
-      "schema": { "$ref": "#/backend/entities/ChatMessage" },
-      "description": "Neural chat streams."
-    },
-    "/videos/{videoId}": {
-      "schema": { "$ref": "#/backend/entities/Video" },
-      "description": "Distributed content streams."
-    },
-    "/products/{productId}": {
-      "schema": { "type": "object" },
-      "description": "Marketplace assets."
-    }
+    "/users/{userId}": { "description": "User profiles" },
+    "/users/{userId}/messages/{msgId}": { "description": "Chat history" },
+    "/users/{userId}/wallet/main": { "description": "Credit balance" },
+    "/users/{userId}/transactions/{txId}": { "description": "Financial ledger" },
+    "/subjects/{subId}": { "description": "Learning subjects" },
+    "/subjects/{subId}/collections/{colId}": { "description": "Lessons within subjects" },
+    "/subjects/{subId}/collections/{colId}/learning_items/{itemId}": { "description": "Videos, documents, text in lessons" },
+    "/products/{productId}": { "description": "Market items" },
+    "/offers/{offerId}": { "description": "Market negotiations" },
+    "/videos/{videoId}": { "description": "StreamHub videos" }
   }
 }
