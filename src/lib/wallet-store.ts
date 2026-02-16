@@ -1,3 +1,4 @@
+
 'use client';
 
 import { create } from 'zustand';
@@ -5,7 +6,7 @@ import { persist } from 'zustand/middleware';
 import { supabase } from './supabaseClient';
 import { toast } from '@/hooks/use-toast';
 
-export type TransactionType = 'deposit' | 'purchase_hold' | 'purchase_release' | 'purchase_refund';
+export type TransactionType = 'deposit' | 'withdrawal' | 'purchase_hold' | 'purchase_release' | 'purchase_refund';
 
 export interface Transaction {
   id: string;
@@ -41,7 +42,7 @@ interface WalletState {
   isLoading: boolean;
   fetchWallet: (userId: string) => Promise<void>;
   fetchTransactions: (userId: string) => Promise<void>;
-  depositFunds: (userId: string, amount: number) => Promise<boolean>;
+  adjustFunds: (userId: string, amount: number, type: 'deposit' | 'withdrawal') => Promise<boolean>;
   addPendingTransaction: (tx: PendingTransaction) => void;
   removePendingTransaction: (id: string) => void;
   retryTransaction: (userId: string, txId: string) => Promise<void>;
@@ -84,27 +85,30 @@ export const useWalletStore = create<WalletState>()(
         if (!error) set({ transactions: (data || []).map(mapTransactionFromDB) });
       },
 
-      depositFunds: async (userId, amount) => {
+      adjustFunds: async (userId, amount, type) => {
         try {
           const { data: wallet } = await supabase.from('wallets').select('balance').eq('user_id', userId).single();
           if (!wallet) return false;
 
-          const { error } = await supabase.from('wallets').update({ balance: wallet.balance + amount }).eq('user_id', userId);
+          const finalAmount = type === 'deposit' ? amount : -amount;
+          const newBalance = wallet.balance + finalAmount;
+
+          const { error } = await supabase.from('wallets').update({ balance: newBalance }).eq('user_id', userId);
           if (error) throw error;
 
           await supabase.from('transactions').insert([{
             wallet_id: userId,
-            amount,
-            type: 'deposit',
+            amount: finalAmount,
+            type: type,
             status: 'completed',
-            description: 'Neural Node Deposit'
+            description: type === 'deposit' ? 'Administrative Deposit' : 'Administrative Deduction'
           }]);
 
           await get().fetchWallet(userId);
           await get().fetchTransactions(userId);
           return true;
         } catch (err) {
-          console.error('Deposit sync failed:', err);
+          console.error('Adjustment sync failed:', err);
           return false;
         }
       },
@@ -131,7 +135,6 @@ export const useWalletStore = create<WalletState>()(
           )
         }));
 
-        // Mocking a retry attempt to the hypothetical backend
         setTimeout(async () => {
           if (navigator.onLine) {
             get().removePendingTransaction(txId);
@@ -162,12 +165,9 @@ export const useWalletStore = create<WalletState>()(
   )
 );
 
-// Selectors
 export const selectTotalPendingDebt = (state: WalletState) => 
   state.pendingTransactions.reduce((acc, tx) => acc + tx.price, 0);
 
-// Exports for direct use
 export const getWallet = (userId: string) => useWalletStore.getState().fetchWallet(userId);
 export const getTransactions = (userId: string) => useWalletStore.getState().fetchTransactions(userId);
-export const depositFunds = (userId: string, amount: number) => useWalletStore.getState().depositFunds(userId, amount);
-export const processOfflineQueue = (userId: string) => useWalletStore.getState().processOfflineQueue(userId);
+export const adjustFunds = (userId: string, amount: number, type: 'deposit' | 'withdrawal') => useWalletStore.getState().adjustFunds(userId, amount, type);
