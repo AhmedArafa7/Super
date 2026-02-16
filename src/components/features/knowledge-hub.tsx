@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/components/auth/auth-provider";
 import { cn } from "@/lib/utils";
 import { getSubjects, getCollections, getLearningItems, Subject, Collection, LearningItem, addSubject, addCollection, addLearningItem, uploadLearningFile, LearningItemType } from "@/lib/learning-store";
@@ -39,7 +40,9 @@ export function KnowledgeHub() {
     file: null,
     textContent: ""
   });
+  
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     loadSubjects();
@@ -101,6 +104,16 @@ export function KnowledgeHub() {
     if (!activeCollectionId || !newItem.title) return;
     
     setIsUploading(true);
+    setUploadProgress(10);
+    
+    // Simulate progress while uploading
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + 5;
+      });
+    }, 300);
+
     try {
       let url = "";
       
@@ -114,13 +127,17 @@ export function KnowledgeHub() {
             title: "Storage Error", 
             description: "No suitable storage bucket found. Please contact an admin to set up a 'learning' bucket." 
           });
+          clearInterval(progressInterval);
           setIsUploading(false);
+          setUploadProgress(0);
           return;
         }
         url = uploadUrl;
       } else {
         toast({ variant: "destructive", title: "Missing Payload", description: "Please provide a file for this asset type." });
+        clearInterval(progressInterval);
         setIsUploading(false);
+        setUploadProgress(0);
         return;
       }
 
@@ -132,14 +149,22 @@ export function KnowledgeHub() {
         orderIndex: (itemsMap[activeCollectionId]?.length || 0)
       });
 
-      toast({ title: "Asset Added", description: "Resource linked to lesson." });
-      setIsItemModalOpen(false);
-      handleSelectSubject(selectedSubject!);
-      setNewItem({ title: "", type: "file", file: null, textContent: "" });
+      setUploadProgress(100);
+      setTimeout(() => {
+        toast({ title: "Asset Added", description: "Resource linked to lesson." });
+        setIsItemModalOpen(false);
+        handleSelectSubject(selectedSubject!);
+        setNewItem({ title: "", type: "file", file: null, textContent: "" });
+        setIsUploading(false);
+        setUploadProgress(0);
+      }, 500);
+      
     } catch (err: any) {
       toast({ variant: "destructive", title: "Transmission Failed", description: err.message });
-    } finally {
       setIsUploading(false);
+      setUploadProgress(0);
+    } finally {
+      clearInterval(progressInterval);
     }
   };
 
@@ -329,6 +354,7 @@ export function KnowledgeHub() {
                     <div className="flex items-center gap-2 text-primary font-bold">
                       <CheckCircle2 className="size-5" />
                       <span className="text-sm truncate max-w-[200px]">{newItem.file.name}</span>
+                      <span className="text-[10px] text-muted-foreground">({(newItem.file.size / 1024 / 1024).toFixed(2)} MB)</span>
                     </div>
                   ) : (
                     <>
@@ -337,6 +363,17 @@ export function KnowledgeHub() {
                     </>
                   )}
                 </div>
+              </div>
+            )}
+
+            {isUploading && (
+              <div className="space-y-2 mt-4 animate-in fade-in slide-in-from-top-2">
+                <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-indigo-400">
+                  <span>Uploading to Neural Link</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <Progress value={uploadProgress} className="h-1.5 bg-white/5" />
+                <p className="text-[10px] text-muted-foreground italic text-center">Transmitting data packets to institution vault...</p>
               </div>
             )}
           </div>

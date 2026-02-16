@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Play, Plus, Upload, MoreVertical, Clock, Eye, Trash2, ShieldCheck, Lock, EyeOff, CheckCircle2, AlertCircle, LayoutDashboard, Globe } from "lucide-react";
+import { Play, Plus, Upload, MoreVertical, Clock, Eye, Trash2, ShieldCheck, Lock, EyeOff, CheckCircle2, AlertCircle, LayoutDashboard, Globe, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/components/auth/auth-provider";
 import { getStoredVideos, addVideo, deleteVideo, Video, Visibility } from "@/lib/video-store";
 import { useToast } from "@/hooks/use-toast";
@@ -29,9 +31,11 @@ export function StreamHub() {
     title: "",
     visibility: "public" as Visibility,
     allowedUsers: "",
-    thumbnail: ""
+    thumbnail: "",
+    fileSize: 0
   });
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     const load = () => setVideos(getStoredVideos());
@@ -55,7 +59,7 @@ export function StreamHub() {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setUploadData(prev => ({ ...prev, thumbnail: reader.result as string }));
+      setUploadData(prev => ({ ...prev, thumbnail: reader.result as string, fileSize: file.size }));
     };
     reader.readAsDataURL(file);
   };
@@ -63,28 +67,48 @@ export function StreamHub() {
   const handleFinalizeUpload = () => {
     if (!uploadData.title || !user) return;
 
-    const isAdmin = user.role === 'admin';
-    const allowedUserList = uploadData.allowedUsers.split(',').map(u => u.trim()).filter(u => u !== "");
+    setIsUploading(true);
+    setUploadProgress(10);
 
-    addVideo({
-      title: uploadData.title,
-      author: user.name,
-      authorId: user.id,
-      thumbnail: uploadData.thumbnail || "https://picsum.photos/seed/nexus/600/400",
-      time: "0:00",
-      status: isAdmin ? 'published' : 'pending_review',
-      visibility: uploadData.visibility,
-      allowedUserIds: allowedUserList,
-      uploaderRole: user.role
-    });
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + 5;
+      });
+    }, 200);
 
-    toast({
-      title: isAdmin ? "Broadcast Live" : "Submission Logged",
-      description: isAdmin ? "Video published to the public feed." : "Pending review from the Nexus Command.",
-    });
+    // Artificial delay to simulate real network sync
+    setTimeout(() => {
+      const isAdmin = user.role === 'admin';
+      const allowedUserList = uploadData.allowedUsers.split(',').map(u => u.trim()).filter(u => u !== "");
 
-    setIsModalOpen(false);
-    setUploadData({ title: "", visibility: "public", allowedUsers: "", thumbnail: "" });
+      addVideo({
+        title: uploadData.title,
+        author: user.name,
+        authorId: user.id,
+        thumbnail: uploadData.thumbnail || "https://picsum.photos/seed/nexus/600/400",
+        time: "0:00",
+        status: isAdmin ? 'published' : 'pending_review',
+        visibility: uploadData.visibility,
+        allowedUserIds: allowedUserList,
+        uploaderRole: user.role
+      });
+
+      setUploadProgress(100);
+      clearInterval(progressInterval);
+
+      setTimeout(() => {
+        toast({
+          title: isAdmin ? "Broadcast Live" : "Submission Logged",
+          description: isAdmin ? "Video published to the public feed." : "Pending review from the Nexus Command.",
+        });
+
+        setIsModalOpen(false);
+        setUploadData({ title: "", visibility: "public", allowedUsers: "", thumbnail: "", fileSize: 0 });
+        setIsUploading(false);
+        setUploadProgress(0);
+      }, 500);
+    }, 2000);
   };
 
   const publicVideos = videos.filter(v => {
@@ -151,6 +175,7 @@ export function StreamHub() {
                   <Label>Transmission Title</Label>
                   <Input 
                     placeholder="Enter title..." 
+                    disabled={isUploading}
                     className="bg-white/5 border-white/10 rounded-xl h-11"
                     value={uploadData.title}
                     onChange={(e) => setUploadData({ ...uploadData, title: e.target.value })}
@@ -160,7 +185,7 @@ export function StreamHub() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label>Visibility Level</Label>
-                    <Select value={uploadData.visibility} onValueChange={(v: any) => setUploadData({...uploadData, visibility: v})}>
+                    <Select disabled={isUploading} value={uploadData.visibility} onValueChange={(v: any) => setUploadData({...uploadData, visibility: v})}>
                       <SelectTrigger className="bg-white/5 border-white/10 rounded-xl h-11">
                         <SelectValue />
                       </SelectTrigger>
@@ -175,6 +200,7 @@ export function StreamHub() {
                     <div className="grid gap-2">
                       <Label>Target Nodes</Label>
                       <Input 
+                        disabled={isUploading}
                         placeholder="user1, user2" 
                         className="bg-white/5 border-white/10 rounded-xl h-11"
                         value={uploadData.allowedUsers}
@@ -185,11 +211,14 @@ export function StreamHub() {
                 </div>
 
                 <div className="relative border-2 border-dashed border-white/10 rounded-3xl p-8 flex flex-col items-center justify-center bg-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
-                  <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileUpload} accept="image/*" />
+                  <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileUpload} accept="image/*" disabled={isUploading} />
                   {uploadData.thumbnail ? (
                     <div className="size-full flex flex-col items-center">
                       <img src={uploadData.thumbnail} className="h-32 rounded-xl mb-4 object-cover" />
-                      <p className="text-xs text-indigo-400 font-bold">Thumbnail Processed</p>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="size-4 text-green-400" />
+                        <p className="text-xs text-indigo-400 font-bold">Payload Processed ({(uploadData.fileSize / 1024).toFixed(1)} KB)</p>
+                      </div>
                     </div>
                   ) : (
                     <>
@@ -199,10 +228,32 @@ export function StreamHub() {
                     </>
                   )}
                 </div>
+
+                {isUploading && (
+                  <div className="space-y-2 animate-in fade-in zoom-in duration-300">
+                    <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-indigo-400">
+                      <span>Syncing Neural Clip</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="h-1.5 bg-white/5" />
+                    <p className="text-[10px] text-muted-foreground italic text-center">Bypassing firewalls and establishing secure broadcast stream...</p>
+                  </div>
+                )}
               </div>
               <DialogFooter>
-                <Button onClick={handleFinalizeUpload} className="w-full bg-primary text-white hover:bg-primary/90 h-12 rounded-xl font-bold" disabled={!uploadData.title}>
-                  Authorize Transmission
+                <Button 
+                  onClick={handleFinalizeUpload} 
+                  className="w-full bg-primary text-white hover:bg-primary/90 h-12 rounded-xl font-bold" 
+                  disabled={!uploadData.title || !uploadData.thumbnail || isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                      Transmitting...
+                    </>
+                  ) : (
+                    "Authorize Transmission"
+                  )}
                 </Button>
               </DialogFooter>
             </DialogContent>

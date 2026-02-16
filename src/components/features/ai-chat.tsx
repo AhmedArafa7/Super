@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useChatStore, WizardMessage, Attachment } from "@/lib/chat-store";
 import { clearAllUnreadNotifications } from "@/lib/notification-store";
@@ -138,6 +139,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isAITyping, setIsAITyping] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -182,9 +184,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     setIsAITyping(true);
     try {
       const { message } = await getWelcomeMessage();
-      // We don't save welcome messages to DB to avoid cluttering, 
-      // but we could if we wanted a persistent history.
-      // For now, let's just toast or add a mock message.
       toast({ title: "Nexus Node Synchronized", description: message });
     } catch (err) {
       console.error("Failed to get welcome message");
@@ -248,6 +247,8 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     if (files.length === 0) return;
 
     setIsUploading(true);
+    setUploadProgress(0);
+    
     try {
       const newAttachments: Attachment[] = [];
       for (const file of files) {
@@ -258,7 +259,10 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
 
         const reader = new FileReader();
         const base64 = await new Promise<string>((resolve) => {
-          reader.onload = () => resolve(reader.result as string);
+          reader.onload = () => {
+            setUploadProgress(prev => Math.min(prev + (100 / files.length), 95));
+            resolve(reader.result as string);
+          };
           reader.readAsDataURL(file);
         });
 
@@ -271,11 +275,17 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
           mimeType: file.type
         });
       }
-      setPendingAttachments(prev => [...prev, ...newAttachments]);
+      setUploadProgress(100);
+      setTimeout(() => {
+        setPendingAttachments(prev => [...prev, ...newAttachments]);
+        setIsUploading(false);
+        setUploadProgress(0);
+      }, 400);
     } catch (err: any) {
       toast({ variant: "destructive", title: "Upload Failed", description: err.message });
-    } finally {
       setIsUploading(false);
+      setUploadProgress(0);
+    } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -288,17 +298,24 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       const chunks: Blob[] = [];
       mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
       mediaRecorder.onstop = async () => {
+        setIsUploading(true);
+        setUploadProgress(20);
         const blob = new Blob(chunks, { type: 'audio/webm' });
         const reader = new FileReader();
         reader.onloadend = () => {
-          setPendingAttachments(prev => [...prev, {
-            id: Math.random().toString(36).substring(2, 9),
-            name: `Voice Transmission ${new Date().toLocaleTimeString()}.webm`,
-            type: 'audio',
-            url: reader.result as string,
-            size: (blob.size / 1024 / 1024).toFixed(2) + ' MB',
-            mimeType: blob.type
-          }]);
+          setUploadProgress(100);
+          setTimeout(() => {
+            setPendingAttachments(prev => [...prev, {
+              id: Math.random().toString(36).substring(2, 9),
+              name: `Voice Transmission ${new Date().toLocaleTimeString()}.webm`,
+              type: 'audio',
+              url: reader.result as string,
+              size: (blob.size / 1024 / 1024).toFixed(2) + ' MB',
+              mimeType: blob.type
+            }]);
+            setIsUploading(false);
+            setUploadProgress(0);
+          }, 400);
         };
         reader.readAsDataURL(blob);
         stream.getTracks().forEach(track => track.stop());
@@ -407,6 +424,15 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
             </div>
           ) : (
             <div className="relative">
+              {isUploading && (
+                <div className="absolute -top-12 left-0 right-0 p-2 glass border-t border-indigo-500/30 rounded-t-xl space-y-1">
+                  <div className="flex justify-between text-[8px] uppercase font-bold tracking-widest text-indigo-400">
+                    <span>Uploading Payload</span>
+                    <span>{Math.round(uploadProgress)}%</span>
+                  </div>
+                  <Progress value={uploadProgress} className="h-1 bg-white/5" />
+                </div>
+              )}
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -431,6 +457,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
               {pendingAttachments.map((att) => (
                 <div key={att.id} className="glass border border-indigo-500/20 rounded-lg px-2 py-1 flex items-center gap-2">
                   <span className="text-[10px] text-white/80 max-w-[100px] truncate">{att.name}</span>
+                  <span className="text-[8px] text-muted-foreground">({att.size})</span>
                   <button onClick={() => setPendingAttachments(p => p.filter(a => a.id !== att.id))} className="text-red-400 hover:text-red-300">
                     <X className="size-3" />
                   </button>
