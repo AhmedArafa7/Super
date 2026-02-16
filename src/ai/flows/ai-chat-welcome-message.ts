@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * @fileOverview A welcome message AI agent powered by Groq Llama 3.3.
+ * @fileOverview A concise welcome message AI agent powered by Groq Llama 3.3.
  *
  * - getWelcomeMessage - A function that returns a welcome message.
  * - WelcomeMessageOutput - The return type for the getWelcomeMessage function.
@@ -21,13 +21,10 @@ export async function getWelcomeMessage(): Promise<WelcomeMessageOutput> {
 
 const prompt = ai.definePrompt({
   name: 'welcomeMessagePrompt',
-  prompt: `You are the NexusAI Core Assistant. 
-Generate a friendly and professional welcome message in Arabic.
-Introduce the user to NexusAI's core features:
-1. AI Chat (Powered by Llama 3.3 via Groq)
-2. StreamHub (Decentralized content)
-3. TechMarket (Institutional asset exchange)
-Keep it inspiring and futuristic.`,
+  prompt: `You are the NexusAI Assistant. 
+Generate a VERY CONCISE and inspiring welcome message in Arabic (max 2-3 sentences).
+Greet the user to the NexusAI ecosystem and mention that AI Chat, StreamHub, and TechMarket are ready for synchronization.
+Keep it futuristic and professional.`,
 });
 
 const welcomeMessageFlow = ai.defineFlow(
@@ -36,12 +33,9 @@ const welcomeMessageFlow = ai.defineFlow(
     outputSchema: WelcomeMessageOutputSchema,
   },
   async () => {
-    // Get raw response from model
     const response = await prompt({});
-    
-    // Return wrapped text matching the flow output schema
     return {
-      message: response.text || "مرحباً بك في NexusAI، المحرك العصبي المتطور."
+      message: response.text || "مرحباً بك في NexusAI. جميع الأنظمة العصبية جاهزة للمزامنة."
     };
   }
 );

@@ -36,44 +36,64 @@ const MessageItem = memo(({
   onEdit: (m: WizardMessage) => void; 
   onDelete: (id: string) => void;
 }) => {
+  const isAI = msg.userId === 'nexus-ai';
+
   return (
     <React.Fragment>
-      <div className="flex justify-end items-start gap-3 group relative">
-        <div className="flex items-start gap-2 max-w-[85%]">
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-8 text-muted-foreground"><MoreVertical className="size-4" /></Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-slate-900 border-white/10">
-                {msg.status !== 'replied' && (
-                  <DropdownMenuItem onClick={() => onEdit(msg)} className="gap-2">
-                    <Pencil className="size-4" /> تعديل الطلب
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem onClick={() => onDelete(msg.id)} className="gap-2 text-red-400">
-                  <Trash2 className="size-4" /> سحب الطلب
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+      <div className={cn("flex items-start gap-3 group relative", !isAI ? "justify-end" : "justify-start animate-in fade-in slide-in-from-left-2 duration-500")}>
+        {isAI && (
+          <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
+            <Bot className="size-4 text-indigo-400" />
           </div>
+        )}
+        
+        <div className={cn("flex items-start gap-2", !isAI ? "max-w-[85%]" : "max-w-[80%]")}>
+          {!isAI && (
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="size-8 text-muted-foreground"><MoreVertical className="size-4" /></Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-slate-900 border-white/10">
+                  {msg.status !== 'replied' && (
+                    <DropdownMenuItem onClick={() => onEdit(msg)} className="gap-2">
+                      <Pencil className="size-4" /> تعديل الطلب
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => onDelete(msg.id)} className="gap-2 text-red-400">
+                    <Trash2 className="size-4" /> سحب الطلب
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
 
-          <div className={cn("flex-1 p-4 transition-all duration-300 message-bubble-user", msg.status === 'queued' && "opacity-70 italic")}>
+          <div className={cn(
+            "flex-1 p-4 transition-all duration-300 shadow-lg",
+            !isAI ? "message-bubble-user" : "message-bubble-ai border border-white/5",
+            msg.status === 'queued' && "opacity-70 italic",
+            highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500"
+          )}>
             <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
             {msg.attachments && msg.attachments.length > 0 && <AttachmentPreview attachments={msg.attachments} />}
             <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
-              {msg.status === 'sent' && <Loader2 className="size-2 animate-spin text-white/50" />}
+              {msg.status === 'sent' && !isAI && <Loader2 className="size-2 animate-spin text-white/50" />}
               <span className="text-[10px]">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
           </div>
         </div>
-        <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0"><User className="size-4 text-indigo-400" /></div>
+
+        {!isAI && (
+          <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
+            <User className="size-4 text-indigo-400" />
+          </div>
+        )}
       </div>
 
-      {msg.status === 'replied' && msg.response && (
+      {msg.status === 'replied' && msg.response && !isAI && (
         <div className="flex justify-start items-start gap-3 animate-in fade-in slide-in-from-left-2 duration-500">
           <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0"><Bot className="size-4 text-indigo-400" /></div>
-          <div className={cn("max-w-[80%] message-bubble-ai p-4 border transition-all duration-500", highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500")}>
+          <div className={cn("max-w-[80%] message-bubble-ai p-4 border transition-all duration-500 border-white/5", highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500")}>
             <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.response}</p>
           </div>
         </div>
@@ -125,7 +145,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const sendMessage = useChatStore(state => state.sendMessage);
   const deleteMessage = useChatStore(state => state.deleteMessage);
   const updateMessageText = useChatStore(state => state.updateMessageText);
-  const setConnected = useChatStore(state => state.setConnected);
   const approveMessage = useChatStore(state => state.approveMessage);
 
   const [input, setInput] = useState("");
@@ -136,6 +155,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isAITyping, setIsAITyping] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState<WizardMessage | null>(null);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -144,24 +164,35 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   useEffect(() => {
     if (!user?.id) return;
     loadMessages(user.id);
-
     clearAllUnreadNotifications(user.id);
   }, [user?.id, loadMessages]);
 
   // Welcome Message Logic using Groq
   useEffect(() => {
     const triggerWelcome = async () => {
-      if (messages.length === 0 && user && isConnected && !isAITyping) {
+      if (messages.length === 0 && user && isConnected && !welcomeMessage && !isAITyping) {
         setIsAITyping(true);
         try {
           const { message } = await getWelcomeMessage();
           const isError = message.includes("GROQ_API_KEY");
           
-          toast({ 
-            title: isError ? "تنبيه الربط العصبي" : "تمت مزامنة عقدة Nexus", 
-            description: message,
-            variant: isError ? "destructive" : "default"
-          });
+          if (isError) {
+            toast({ 
+              title: "تنبيه الربط العصبي", 
+              description: "محرك Groq غير مفعل. يرجى إضافة GROQ_API_KEY في ملف .env",
+              variant: "destructive"
+            });
+          } else {
+            setWelcomeMessage({
+              id: 'welcome-ghost',
+              userId: 'nexus-ai',
+              userName: 'Nexus AI',
+              text: message,
+              response: null,
+              status: 'replied',
+              timestamp: new Date().toISOString()
+            });
+          }
         } catch (err) {
           console.warn("AI Node not ready.");
         } finally {
@@ -170,13 +201,13 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       }
     };
     triggerWelcome();
-  }, [messages.length, user, isConnected]);
+  }, [messages.length, user, isConnected, welcomeMessage]);
 
   useEffect(() => {
     if (scrollRef.current && !highlightId) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
-  }, [messages.length, highlightId, isAITyping]);
+  }, [messages.length, highlightId, isAITyping, welcomeMessage]);
 
   const handleSend = async () => {
     const hasContent = input?.trim() || pendingAttachments?.length > 0;
@@ -186,6 +217,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     setInput(""); 
     const currentAttachments = [...pendingAttachments];
     setPendingAttachments([]);
+    setWelcomeMessage(null); // Clear welcome ghost when user starts chatting
 
     try {
       const savedMsg = await sendMessage(userText, user.id, user.name, currentAttachments);
@@ -195,9 +227,11 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         
         const history = [];
         messages.slice(-5).forEach(m => {
-          history.push({ role: 'user' as const, content: m.text });
-          if (m.response) {
-            history.push({ role: 'model' as const, content: m.response });
+          if (m.userId !== 'nexus-ai') {
+            history.push({ role: 'user' as const, content: m.text });
+            if (m.response) {
+              history.push({ role: 'model' as const, content: m.response });
+            }
           }
         });
 
@@ -350,7 +384,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
 
         <ScrollArea className="flex-1 p-6" ref={scrollRef}>
           <div className="space-y-6">
-            {messages.length === 0 && !isAITyping ? (
+            {messages.length === 0 && !isAITyping && !welcomeMessage ? (
               <EmptyState 
                 icon={Sparkles}
                 title="تيار عصبي فارغ"
@@ -359,6 +393,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
               />
             ) : (
               <>
+                {welcomeMessage && <MessageItem msg={welcomeMessage} highlightId={null} onEdit={() => {}} onDelete={() => setWelcomeMessage(null)} />}
                 {messages.map((msg) => (
                   <MessageItem 
                     key={msg.id} 
@@ -371,7 +406,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                 {isAITyping && (
                   <div className="flex justify-start items-start gap-3 animate-pulse">
                     <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0"><Bot className="size-4 text-indigo-400" /></div>
-                    <div className="max-w-[100px] message-bubble-ai p-4 border flex gap-1">
+                    <div className="max-w-[100px] message-bubble-ai p-4 border flex gap-1 border-white/5">
                       <span className="size-1 bg-indigo-400 rounded-full animate-bounce" />
                       <span className="size-1 bg-indigo-400 rounded-full animate-bounce delay-75" />
                       <span className="size-1 bg-indigo-400 rounded-full animate-bounce delay-150" />
