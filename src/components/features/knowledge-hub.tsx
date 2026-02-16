@@ -104,38 +104,33 @@ export function KnowledgeHub() {
     if (!activeCollectionId || !newItem.title) return;
     
     setIsUploading(true);
-    setUploadProgress(10);
-    
-    // Simulate progress while uploading
-    const progressInterval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 90) return prev;
-        return prev + 5;
-      });
-    }, 300);
+    setUploadProgress(0); // نبدأ من الصفر الفعلي
 
     try {
       let url = "";
       
       if (newItem.type === 'text') {
         url = newItem.textContent;
+        setUploadProgress(100);
       } else if (newItem.file) {
-        const uploadUrl = await uploadLearningFile(newItem.file);
+        // نمرر دالة تحديث التقدم إلى وظيفة الرفع
+        const uploadUrl = await uploadLearningFile(newItem.file, (pct) => {
+          setUploadProgress(pct);
+        });
+
         if (!uploadUrl) {
           toast({ 
             variant: "destructive", 
             title: "Storage Alert", 
-            description: "No available storage buckets. Check your Supabase configuration." 
+            description: "No suitable storage bucket found or permission denied. Check your Supabase configuration." 
           });
-          clearInterval(progressInterval);
           setIsUploading(false);
           setUploadProgress(0);
           return;
         }
         url = uploadUrl;
       } else {
-        toast({ variant: "destructive", title: "Missing Payload", description: "Please provide a file for this asset type." });
-        clearInterval(progressInterval);
+        toast({ variant: "destructive", title: "Missing Payload", description: "Please provide a file or text content." });
         setIsUploading(false);
         setUploadProgress(0);
         return;
@@ -149,11 +144,10 @@ export function KnowledgeHub() {
         orderIndex: (itemsMap[activeCollectionId]?.length || 0)
       });
 
-      setUploadProgress(100);
       setTimeout(() => {
-        toast({ title: "Asset Added", description: "Resource linked to lesson." });
+        toast({ title: "Asset Added", description: "Resource linked to lesson successfully." });
         setIsItemModalOpen(false);
-        handleSelectSubject(selectedSubject!);
+        if (selectedSubject) handleSelectSubject(selectedSubject);
         setNewItem({ title: "", type: "file", file: null, textContent: "" });
         setIsUploading(false);
         setUploadProgress(0);
@@ -163,8 +157,6 @@ export function KnowledgeHub() {
       toast({ variant: "destructive", title: "Transmission Failed", description: err.message });
       setIsUploading(false);
       setUploadProgress(0);
-    } finally {
-      clearInterval(progressInterval);
     }
   };
 
@@ -349,6 +341,7 @@ export function KnowledgeHub() {
                     className="absolute inset-0 opacity-0 cursor-pointer" 
                     onChange={e => setNewItem({...newItem, file: e.target.files?.[0] || null})} 
                     accept={newItem.type === 'audio' ? 'audio/*' : newItem.type === 'video' ? 'video/*' : '*/*'}
+                    disabled={isUploading}
                   />
                   {newItem.file ? (
                     <div className="flex items-center gap-2 text-primary font-bold">
@@ -373,7 +366,9 @@ export function KnowledgeHub() {
                   <span>{uploadProgress}%</span>
                 </div>
                 <Progress value={uploadProgress} className="h-1.5 bg-white/5" />
-                <p className="text-[10px] text-muted-foreground italic text-center">Transmitting data packets to institution vault...</p>
+                <p className="text-[10px] text-muted-foreground italic text-center">
+                  {uploadProgress === 100 ? "Syncing database nodes..." : "Transmitting data packets to institution vault..."}
+                </p>
               </div>
             )}
           </div>
@@ -384,7 +379,7 @@ export function KnowledgeHub() {
               className="w-full bg-primary h-11 rounded-xl"
             >
               {isUploading ? <Loader2 className="size-4 animate-spin mr-2" /> : <Plus className="size-4 mr-2" />}
-              Integrate Asset
+              {isUploading ? `Uploading ${uploadProgress}%` : "Integrate Asset"}
             </Button>
           </DialogFooter>
         </DialogContent>

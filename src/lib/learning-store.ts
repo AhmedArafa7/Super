@@ -128,8 +128,12 @@ export const addLearningItem = async (item: Omit<LearningItem, 'id' | 'createdAt
   return data;
 };
 
-export const uploadLearningFile = async (file: File): Promise<string | null> => {
+export const uploadLearningFile = async (
+  file: File, 
+  onProgress?: (percentage: number) => void
+): Promise<string | null> => {
   const fileName = `${crypto.randomUUID()}-${file.name}`;
+  // تم ترتيب المستودعات للبدء بـ 'learning' كأولوية قصوى
   const buckets = ['learning', 'nexus-content', 'files', 'assets', 'avatars'];
   let lastFailureReason = '';
 
@@ -137,7 +141,17 @@ export const uploadLearningFile = async (file: File): Promise<string | null> => 
     try {
       const { data, error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(fileName, file, { cacheControl: '3600', upsert: false });
+        .upload(fileName, file, { 
+          cacheControl: '3600', 
+          upsert: false,
+          // تفعيل مراقبة التقدم الحقيقي
+          onUploadProgress: (progress) => {
+            if (onProgress) {
+              const percentage = (progress.loaded / progress.total) * 100;
+              onProgress(Math.round(percentage));
+            }
+          }
+        });
 
       if (uploadError) {
         lastFailureReason = uploadError.message;
