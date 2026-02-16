@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, Image as ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle, Clock, GraduationCap, BookOpen, Lock, Globe, Wallet, PlusCircle, MinusCircle, ShieldCheck, Tag } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, Image as ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle, Clock, GraduationCap, BookOpen, Lock, Globe, Wallet, PlusCircle, MinusCircle, ShieldCheck, Tag, Zap, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -56,6 +56,16 @@ export function AdminPanel() {
     const interval = setInterval(loadData, 30000); 
     return () => clearInterval(interval);
   }, []);
+
+  const stats = useMemo(() => {
+    const engineCounts: Record<string, number> = {};
+    messages.forEach(m => {
+      if (m.engine) {
+        engineCounts[m.engine] = (engineCounts[m.engine] || 0) + 1;
+      }
+    });
+    return engineCounts;
+  }, [messages]);
 
   const handleRegisterUser = async () => {
     if (!newUser.name || !newUser.username || !newUser.password) return;
@@ -117,8 +127,70 @@ export function AdminPanel() {
           <TabsTrigger value="stream" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">Chat Stream</TabsTrigger>
           <TabsTrigger value="content" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">Content CMS</TabsTrigger>
           <TabsTrigger value="users" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">Users & Wallets</TabsTrigger>
+          <TabsTrigger value="infra" className="rounded-xl px-6 data-[state=active]:bg-indigo-600 flex items-center gap-2">
+            <Server className="size-3" /> Infrastructure
+          </TabsTrigger>
           <TabsTrigger value="broadcast" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">Broadcast</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="infra" className="flex-1 outline-none">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card className="glass border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 size-32 bg-indigo-500/10 blur-3xl -mr-16 -mt-16" />
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                <Cpu className="size-5 text-indigo-400" />
+                Neural Engine Status
+              </h3>
+              <div className="space-y-4">
+                <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Zap className="size-4 text-amber-400" />
+                    <span className="text-sm font-medium">Groq Llama 3.3</span>
+                  </div>
+                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30">ONLINE</Badge>
+                </div>
+                <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Globe className="size-4 text-blue-400" />
+                    <span className="text-sm font-medium">Google Gemini 1.5</span>
+                  </div>
+                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30">ONLINE</Badge>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="lg:col-span-2 glass border-white/10 rounded-[2.5rem] p-8">
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                <Activity className="size-5 text-indigo-400" />
+                Consumption Metrics
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {Object.entries(stats).length === 0 ? (
+                  <div className="col-span-2 py-12 text-center border-2 border-dashed border-white/5 rounded-3xl opacity-50">
+                    <History className="size-10 mx-auto mb-4" />
+                    <p className="text-sm">No historical processing data found.</p>
+                  </div>
+                ) : (
+                  Object.entries(stats).map(([engine, count]) => (
+                    <div key={engine} className="p-6 bg-white/5 rounded-3xl border border-white/5">
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-1">{engine}</p>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-black text-white">{count}</span>
+                        <span className="text-xs text-indigo-400 font-bold">Processed Packets</span>
+                      </div>
+                      <div className="mt-4 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-indigo-500 transition-all duration-1000" 
+                          style={{ width: `${Math.min((count / messages.length) * 100, 100)}%` }} 
+                        />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Card>
+          </div>
+        </TabsContent>
 
         <TabsContent value="users" className="flex-1 outline-none">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
@@ -331,6 +403,7 @@ export function AdminPanel() {
                       </div>
                       <p className="text-xs text-slate-400 line-clamp-1 mb-2">Q: {m.text}</p>
                       {m.response && <p className="text-xs text-white line-clamp-2 italic">A: {m.response}</p>}
+                      {m.engine && <Badge variant="outline" className="text-[7px] mt-2 border-indigo-500/20 text-indigo-400/50">{m.engine}</Badge>}
                       
                       <div className="mt-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Dialog>

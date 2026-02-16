@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect, memo } from "react";
@@ -154,7 +155,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isAITyping, setIsAITyping] = useState(false);
-  const [activeEngine, setActiveEngine] = useState<string>("Scanning...");
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -202,11 +202,9 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
           history: history
         });
 
-        if (responseData) {
-          setActiveEngine(responseData.engine);
-          if (responseData.response) {
-            await approveMessage(savedMsg.id, user.id, responseData.response);
-          }
+        if (responseData && responseData.response) {
+          // Model engine is not displayed here, but passed to storage for admin stats
+          await approveMessage(savedMsg.id, user.id, responseData.response, responseData.engine);
         }
       }
     } catch (err: any) {
@@ -331,18 +329,15 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
               <Bot className={cn("size-5 text-indigo-400", isAITyping && "animate-pulse")} />
             </div>
             <div>
-              <p className="font-bold text-sm">Nexus AI</p>
+              <p className="font-bold text-sm">Nexus AI Assistant</p>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-[8px] py-0 border-indigo-500/30 text-indigo-400 uppercase flex items-center gap-1">
-                  <Cpu className="size-2" /> {activeEngine}
-                </Badge>
                 {isConnected ? (
                   <p className="text-[10px] text-green-400 flex items-center gap-1">
-                    <Wifi className="size-2.5" /> {isAITyping ? "جاري المعالجة..." : "متصل"}
+                    <Wifi className="size-2.5" /> {isAITyping ? "جاري المعالجة..." : "متصل والأنظمة نشطة"}
                   </p>
                 ) : (
                   <p className="text-[10px] text-red-400 flex items-center gap-1">
-                    <WifiOff className="size-2.5" /> غير متصل
+                    <WifiOff className="size-2.5" /> غير متصل بالعقدة
                   </p>
                 )}
               </div>
@@ -356,7 +351,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
               <EmptyState 
                 icon={Sparkles}
                 title="تيار عصبي فارغ"
-                description="ابدأ جلسة آمنة مع نظام NexusAI المتطور."
+                description="ابدأ جلسة آمنة مع نظام NexusAI المتطور. لا تتردد في طرح أي سؤال تقني."
                 className="mt-12"
               />
             ) : (

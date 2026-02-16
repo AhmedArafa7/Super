@@ -23,6 +23,7 @@ export interface WizardMessage {
   userName: string;
   text: string;
   response: string | null;
+  engine?: string; // Track which AI engine replied
   status: MessageStatus;
   timestamp: string;
   attachments?: Attachment[];
@@ -39,7 +40,7 @@ interface ChatState {
   deleteMessage: (id: string, userId: string) => Promise<void>;
   updateMessageText: (id: string, userId: string, newText: string) => Promise<void>;
   setConnected: (status: boolean) => void;
-  approveMessage: (id: string, userId: string, response: string) => Promise<void>;
+  approveMessage: (id: string, userId: string, response: string, engine?: string) => Promise<void>;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -109,11 +110,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  approveMessage: async (id, userId, response) => {
+  approveMessage: async (id, userId, response, engine) => {
     const { firestore } = initializeFirebase();
     const docRef = doc(firestore, 'users', userId, 'messages', id);
     await updateDoc(docRef, {
       response,
+      engine: engine || 'Unknown',
       status: 'replied'
     });
   }
@@ -139,11 +141,12 @@ export const getStoredMessages = async (userId?: string, fetchAll = false): Prom
   return allMessages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
-export const approveMessage = async (id: string, userId: string, response: string) => {
+export const approveMessage = async (id: string, userId: string, response: string, engine?: string) => {
   const { firestore } = initializeFirebase();
   const docRef = doc(firestore, 'users', userId, 'messages', id);
   await updateDoc(docRef, {
     response,
+    engine: engine || 'Unknown',
     status: 'replied'
   });
 };
