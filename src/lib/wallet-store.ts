@@ -1,3 +1,4 @@
+
 'use client';
 
 import { create } from 'zustand';
@@ -38,7 +39,7 @@ interface WalletState {
   isLoading: boolean;
   fetchWallet: (userId: string) => Promise<void>;
   fetchTransactions: (userId: string) => Promise<void>;
-  adjustFunds: (userId: string, amount: number, type: 'deposit' | 'withdrawal') => Promise<boolean>;
+  adjustFunds: (userId: string, amount: number, type: 'deposit' | 'withdrawal' | 'purchase_hold' | 'purchase_release') => Promise<boolean>;
   processOfflineQueue: (userId: string) => Promise<void>;
   removePendingTransaction: (id: string) => void;
   retryTransaction: (userId: string, id: string) => Promise<void>;
@@ -90,20 +91,30 @@ export const useWalletStore = create<WalletState>()(
         if (!snap.exists()) return false;
 
         const current = snap.data() as Wallet;
-        const finalAmount = type === 'deposit' ? amount : -amount;
-        
-        if (type === 'withdrawal' && current.balance < amount) {
-          return false;
+        let newBalance = current.balance;
+        let newFrozen = current.frozenBalance;
+
+        if (type === 'deposit') {
+          newBalance += amount;
+        } else if (type === 'withdrawal') {
+          if (current.balance < amount) return false;
+          newBalance -= amount;
+        } else if (type === 'purchase_hold') {
+          if (current.balance < amount) return false;
+          newBalance -= amount;
+          newFrozen += amount;
+        } else if (type === 'purchase_release') {
+          if (current.frozenBalance < amount) return false;
+          newFrozen -= amount;
         }
 
-        const newBalance = current.balance + finalAmount;
-        await updateDoc(walletRef, { balance: newBalance });
+        await updateDoc(walletRef, { balance: newBalance, frozenBalance: newFrozen });
         
         await addDoc(collection(firestore, 'users', userId, 'transactions'), {
-          amount: finalAmount,
+          amount: (type === 'deposit' || type === 'purchase_release') ? amount : -amount,
           type: type,
           status: 'completed',
-          description: type === 'deposit' ? 'Administrative Deposit' : 'Administrative Deduction',
+          description: `Neural Action: ${type.replace('_', ' ')}`,
           timestamp: new Date().toISOString()
         });
 
@@ -123,12 +134,11 @@ export const useWalletStore = create<WalletState>()(
     },
 
     processOfflineQueue: async (userId) => {
-      if (!navigator.onLine) return;
+      if (typeof window !== 'undefined' && !navigator.onLine) return;
       const { pendingTransactions } = get();
       if (pendingTransactions.length === 0) return;
       
-      console.log('Synchronizing offline node transactions...');
-      for (const tx of pendingTransactions) {
+      for (const tx of [...pendingTransactions]) {
         if (tx.status === 'pending_sync') {
           await get().retryTransaction(userId, tx.id);
         }
@@ -148,14 +158,13 @@ export const useWalletStore = create<WalletState>()(
       const success = await get().adjustFunds(userId, tx.price, 'withdrawal');
       if (success) {
         get().removePendingTransaction(id);
-        toast({ title: "Acquisition Finalized", description: `"${tx.title}" has been successfully synchronized.` });
+        toast({ title: "Sync Complete", description: `Transmission "${tx.title}" finalized.` });
       } else {
         set(state => ({
           pendingTransactions: state.pendingTransactions.map(t => 
             t.id === id ? { ...t, status: 'failed_needs_action', errorReason: 'Insufficient Credits' } : t
           )
         }));
-        toast({ variant: "destructive", title: "Sync Failed", description: "Insufficient credits in the neural node." });
       }
     }
   })
@@ -165,4 +174,4 @@ export const selectTotalPendingDebt = (state: { pendingTransactions: PendingTran
   state.pendingTransactions.reduce((acc, curr) => acc + curr.price, 0);
 
 export const getTransactions = (userId: string) => useWalletStore.getState().fetchTransactions(userId);
-export const adjustFunds = (userId: string, amount: number, type: 'deposit' | 'withdrawal') => useWalletStore.getState().adjustFunds(userId, amount, type);
+export const adjustFunds = (userId: string, amount: number, type: any) => useWalletStore.getState().adjustFunds(userId, amount, type);
