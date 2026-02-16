@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -119,21 +118,11 @@ export function KnowledgeHub() {
         });
 
         if (!uploadUrl) {
-          toast({ 
-            variant: "destructive", 
-            title: "Transmission Error", 
-            description: "No storage node accepted the payload. Check your bucket policies or internet link." 
-          });
-          setIsUploading(false);
-          setUploadProgress(0);
-          return;
+          throw new Error("No storage node accepted the payload.");
         }
         url = uploadUrl;
       } else {
-        toast({ variant: "destructive", title: "Empty Payload", description: "Please provide a file or technical content." });
-        setIsUploading(false);
-        setUploadProgress(0);
-        return;
+        throw new Error("Empty Payload: Please provide a file or technical content.");
       }
 
       await addLearningItem({
@@ -150,7 +139,14 @@ export function KnowledgeHub() {
       setNewItem({ title: "", type: "file", file: null, textContent: "" });
       
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Sync Failed", description: err.message });
+      const isBucketError = err.message.toLowerCase().includes('bucket not found');
+      toast({ 
+        variant: "destructive", 
+        title: isBucketError ? "Bucket Not Found" : "Sync Failed", 
+        description: isBucketError 
+          ? "Please create a bucket named 'learning' in your Supabase Storage dashboard."
+          : err.message 
+      });
     } finally {
       setIsUploading(false);
       setUploadProgress(0);

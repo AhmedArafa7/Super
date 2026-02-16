@@ -1,4 +1,3 @@
-
 'use client';
 
 import { supabase } from './supabaseClient';
@@ -130,12 +129,12 @@ export const addLearningItem = async (item: Omit<LearningItem, 'id' | 'createdAt
 
 /**
  * وظيفة رفع متطورة تدعم الأسماء الآمنة وتتبع التقدم الحقيقي.
+ * تم تحسينها لتشخيص أخطاء المستودعات المفقودة.
  */
 export const uploadLearningFile = async (
   file: File, 
   onProgress?: (percentage: number) => void
 ): Promise<string | null> => {
-  // تطهير اسم الملف: إزالة المسافات والرموز الخاصة لضمان قبول السيرفر
   const extension = file.name.split('.').pop();
   const safeBaseName = file.name
     .split('.')
@@ -147,7 +146,7 @@ export const uploadLearningFile = async (
   
   const fileName = `${crypto.randomUUID()}-${safeBaseName}.${extension}`;
   
-  // ترتيب المحاولات عبر المستودعات المتاحة
+  // ترتيب المحاولات عبر المستودعات المتوقعة
   const buckets = ['learning', 'nexus-content', 'files', 'assets'];
   let lastFailureReason = '';
 
@@ -158,7 +157,6 @@ export const uploadLearningFile = async (
         .upload(fileName, file, { 
           cacheControl: '3600', 
           upsert: false,
-          // مراقبة النسبة المئوية الحقيقية من المتصفح
           onUploadProgress: (progress) => {
             if (onProgress && progress.total > 0) {
               const percentage = (progress.loaded / progress.total) * 100;
@@ -169,8 +167,11 @@ export const uploadLearningFile = async (
 
       if (uploadError) {
         lastFailureReason = uploadError.message;
-        console.warn(`Nexus Sync: Bucket '${bucket}' rejected payload. Reason: ${lastFailureReason}`);
-        continue;
+        // إذا كان الخطأ أن المستودع غير موجود، ننتقل للتالي
+        if (lastFailureReason.toLowerCase().includes('not found')) {
+          continue;
+        }
+        throw new Error(lastFailureReason);
       }
 
       if (data) {
@@ -179,10 +180,14 @@ export const uploadLearningFile = async (
       }
     } catch (e: any) {
       lastFailureReason = e.message;
-      console.warn(`Nexus Sync: Exception in node '${bucket}': ${e.message}`);
+      console.warn(`Nexus Sync: Attempt failed for bucket '${bucket}': ${e.message}`);
     }
   }
 
-  console.warn(`Nexus Storage Alert: All available nodes exhausted. Final rejection: ${lastFailureReason || 'Bucket not found'}`);
-  return null;
+  // إذا وصلنا هنا، فهذا يعني أن كل المحاولات فشلت
+  const errorMsg = `Institutional Storage Exhausted. Final Rejection Reason: ${lastFailureReason}. 
+  Nexus Admin: Ensure at least one bucket (e.g., 'learning' or 'avatars') exists with Public 'INSERT' policies enabled for 'anon' nodes.`;
+  
+  console.warn(errorMsg);
+  throw new Error(lastFailureReason || 'Bucket not found');
 };
