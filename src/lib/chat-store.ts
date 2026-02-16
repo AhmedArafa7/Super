@@ -2,7 +2,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { collection, addDoc, doc, updateDoc, deleteDoc, query, orderBy, onSnapshot, getDocs, where, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, deleteDoc, query, orderBy, onSnapshot, getDocs, collectionGroup, serverTimestamp } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
 import { toast } from '@/hooks/use-toast';
 
@@ -23,7 +23,7 @@ export interface WizardMessage {
   userName: string;
   text: string;
   response: string | null;
-  engine?: string; // Track which AI engine replied
+  engine?: string;
   status: MessageStatus;
   timestamp: string;
   attachments?: Attachment[];
@@ -41,7 +41,6 @@ interface ChatState {
   updateMessageText: (id: string, userId: string, newText: string) => Promise<void>;
   setConnected: (status: boolean) => void;
   provideAIResponse: (id: string, userId: string, response: string, engine?: string) => Promise<void>;
-  approveMessage: (id: string, userId: string, response: string, engine?: string) => Promise<void>;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -116,31 +115,28 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const docRef = doc(firestore, 'users', userId, 'messages', id);
     await updateDoc(docRef, {
       response,
-      engine: engine || 'AI Engine',
-      // Status remains 'sent' to keep it in admin queue
-    });
-  },
-
-  approveMessage: async (id, userId, response, engine) => {
-    const { firestore } = initializeFirebase();
-    const docRef = doc(firestore, 'users', userId, 'messages', id);
-    await updateDoc(docRef, {
-      response,
-      engine: engine || 'Nexus Control',
-      status: 'replied'
+      engine: engine || 'AI Engine'
     });
   }
 }));
 
+// وظائف مستقلة للأدمن
 export const getStoredMessages = async (userId?: string, fetchAll = false): Promise<WizardMessage[]> => {
   const { firestore } = initializeFirebase();
   const allMessages: WizardMessage[] = [];
   
   if (fetchAll) {
-    const usersSnap = await getDocs(collection(firestore, 'users'));
-    for (const userDoc of usersSnap.docs) {
-      const msgSnap = await getDocs(collection(firestore, 'users', userDoc.id, 'messages'));
-      msgSnap.forEach(d => allMessages.push({ id: d.id, ...d.data(), userId: userDoc.id } as WizardMessage));
+    try {
+      // استخدام collectionGroup لجلب كافة الرسائل من كافة المستخدمين مرة واحدة
+      const q = query(collectionGroup(firestore, 'messages'));
+      const snap = await getDocs(q);
+      snap.forEach(d => {
+        const data = d.data();
+        const pathParts = d.ref.path.split('/');
+        allMessages.push({ id: d.id, ...data, userId: data.userId || pathParts[1] } as WizardMessage);
+      });
+    } catch (e) {
+      console.error("Admin Fetch Error:", e);
     }
   } else if (userId) {
     const q = query(collection(firestore, 'users', userId, 'messages'), orderBy('timestamp', 'asc'));

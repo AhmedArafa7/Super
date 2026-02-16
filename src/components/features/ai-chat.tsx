@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, memo } from "react";
-import { Send, Bot, User, Sparkles, Paperclip, Mic, Loader2, Pencil, Trash2, X, FileText, Download, Square, Music, Globe, Wifi, WifiOff, MoreVertical, AlertTriangle, Cpu, ShieldCheck } from "lucide-react";
+import { Send, Bot, User, Sparkles, Paperclip, Mic, Loader2, Pencil, Trash2, X, FileText, Download, Square, Music, Globe, Wifi, WifiOff, MoreVertical, Zap, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,12 +29,16 @@ const MessageItem = memo(({
   msg, 
   highlightId, 
   onEdit, 
-  onDelete 
+  onDelete,
+  onShowPreview,
+  isPreviewVisible
 }: { 
   msg: WizardMessage; 
   highlightId: string | null; 
   onEdit: (m: WizardMessage) => void; 
   onDelete: (id: string) => void;
+  onShowPreview: (id: string) => void;
+  isPreviewVisible: boolean;
 }) => {
   const isAI = msg.userId === 'nexus-ai';
 
@@ -47,40 +51,53 @@ const MessageItem = memo(({
           </div>
         )}
         
-        <div className={cn("flex items-start gap-2", !isAI ? "max-w-[85%]" : "max-w-[80%]")}>
-          {!isAI && (
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-8 text-muted-foreground"><MoreVertical className="size-4" /></Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-slate-900 border-white/10">
-                  {msg.status !== 'replied' && (
-                    <DropdownMenuItem onClick={() => onEdit(msg)} className="gap-2">
-                      <Pencil className="size-4" /> تعديل الطلب
+        <div className={cn("flex flex-col items-start gap-2", !isAI ? "max-w-[85%]" : "max-w-[80%]")}>
+          <div className="flex items-start gap-2 w-full">
+            {!isAI && (
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="size-8 text-muted-foreground"><MoreVertical className="size-4" /></Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-slate-900 border-white/10">
+                    {msg.status !== 'replied' && (
+                      <DropdownMenuItem onClick={() => onEdit(msg)} className="gap-2 text-white">
+                        <Pencil className="size-4" /> تعديل الطلب
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={() => onDelete(msg.id)} className="gap-2 text-red-400">
+                      <Trash2 className="size-4" /> سحب الطلب
                     </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={() => onDelete(msg.id)} className="gap-2 text-red-400">
-                    <Trash2 className="size-4" /> سحب الطلب
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
 
-          <div className={cn(
-            "flex-1 p-4 transition-all duration-300 shadow-lg",
-            !isAI ? "message-bubble-user" : "message-bubble-ai border border-white/5",
-            msg.status === 'queued' && "opacity-70 italic",
-            highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500"
-          )}>
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-            {msg.attachments && msg.attachments.length > 0 && <AttachmentPreview attachments={msg.attachments} />}
-            <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
-              {msg.status === 'sent' && !isAI && <Loader2 className="size-2 animate-spin text-white/50" />}
-              <span className="text-[10px]">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            <div className={cn(
+              "flex-1 p-4 transition-all duration-300 shadow-lg",
+              !isAI ? "message-bubble-user" : "message-bubble-ai border border-white/5",
+              msg.status === 'queued' && "opacity-70 italic",
+              highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500"
+            )}>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+              {msg.attachments && msg.attachments.length > 0 && <AttachmentPreview attachments={msg.attachments} />}
+              <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
+                {msg.status === 'sent' && !isAI && <Loader2 className="size-2 animate-spin text-white/50" />}
+                <span className="text-[10px]">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
             </div>
           </div>
+
+          {msg.response && !isAI && msg.status === 'sent' && !isPreviewVisible && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => onShowPreview(msg.id)}
+              className="mt-1 text-[10px] h-7 border-indigo-500/30 text-indigo-400 bg-indigo-500/5 hover:bg-indigo-500/10 rounded-lg animate-in fade-in zoom-in duration-300"
+            >
+              <Zap className="size-3 mr-1 text-amber-400" /> الحصول على مسودة الرد (AI)
+            </Button>
+          )}
         </div>
 
         {!isAI && (
@@ -90,10 +107,10 @@ const MessageItem = memo(({
         )}
       </div>
 
-      {msg.response && !isAI && (
+      {msg.response && !isAI && (isPreviewVisible || msg.status === 'replied') && (
         <div className={cn(
           "flex justify-start items-start gap-3 animate-in fade-in slide-in-from-left-2 duration-500",
-          msg.status === 'sent' && "opacity-40" // Faded while waiting for admin approval
+          msg.status === 'sent' && "opacity-40"
         )}>
           <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
             <Bot className="size-4 text-indigo-400" />
@@ -174,6 +191,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isAITyping, setIsAITyping] = useState(false);
+  const [previewIds, setPreviewIds] = useState<Set<string>>(new Set());
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -189,7 +207,15 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     if (scrollRef.current && !highlightId) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
-  }, [messages.length, highlightId, isAITyping]);
+  }, [messages.length, highlightId, isAITyping, previewIds]);
+
+  const togglePreview = (id: string) => {
+    setPreviewIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  };
 
   const handleSend = async () => {
     const hasContent = input?.trim() || pendingAttachments?.length > 0;
@@ -218,11 +244,10 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
 
         const responseData = await aiChatGenerateResponse({
           message: userText,
-          history: history
+          history: history as any
         });
 
         if (responseData && responseData.response) {
-          // Send to draft (status 'sent' remains) for admin review
           await provideAIResponse(savedMsg.id, user.id, responseData.response, responseData.engine);
         }
       }
@@ -231,7 +256,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       toast({ 
         variant: "destructive", 
         title: "خطأ في الربط العصبي", 
-        description: "فشل الوصول لمحرك الذكاء الاصطناعي. تحقق من حدود الاستخدام والمفاتيح." 
+        description: "فشل الوصول لمحرك الذكاء الاصطناعي." 
       });
     } finally {
       setIsAITyping(false);
@@ -382,6 +407,8 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                     highlightId={highlightId} 
                     onEdit={(m) => { setEditingId(m.id); setEditingText(m.text); }}
                     onDelete={(id) => deleteMessage(id, user?.id || '')}
+                    onShowPreview={togglePreview}
+                    isPreviewVisible={previewIds.has(msg.id)}
                   />
                 ))}
                 {isAITyping && (
@@ -410,10 +437,10 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                 autoFocus 
                 value={editingText} 
                 onChange={(e) => setEditingText(e.target.value)} 
-                className="bg-white/5 border-white/10 min-h-[100px] rounded-2xl" 
+                className="bg-white/5 border-white/10 min-h-[100px] rounded-2xl text-white" 
               />
               <div className="flex justify-end gap-2">
-                <Button variant="ghost" className="rounded-xl" onClick={() => setEditingId(null)}>إلغاء</Button>
+                <Button variant="ghost" className="rounded-xl text-white" onClick={() => setEditingId(null)}>إلغاء</Button>
                 <Button onClick={async () => { await updateMessageText(editingId, user?.id || '', editingText); setEditingId(null); }} className="bg-indigo-500 rounded-xl px-8">حفظ التعديل</Button>
               </div>
             </div>
@@ -443,7 +470,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder={isUploading ? "جاري المعالجة..." : isAITyping ? "Nexus يفكر..." : "أرسل رسالة للعقدة..."}
                 disabled={isUploading || isSending || isAITyping}
-                className="w-full h-14 bg-white/5 border-white/10 focus-visible:ring-indigo-500 rounded-2xl pl-12 pr-28 text-sm"
+                className="w-full h-14 bg-white/5 border-white/10 focus-visible:ring-indigo-500 rounded-2xl pl-12 pr-28 text-sm text-white"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
                 <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileSelect} />
