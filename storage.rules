@@ -3,6 +3,7 @@ service firebase.storage {
   match /b/{bucket}/o {
     match /{allPaths=**} {
       // قاعدة إنتاج مؤقتة: السماح بالوصول الكامل لضمان عمل كافة الأنظمة المدمجة في مرحلة الـ Beta
+      // سيتم تقييد القواعد لاحقاً بناءً على request.auth != null
       allow read, write: if true;
     }
   }

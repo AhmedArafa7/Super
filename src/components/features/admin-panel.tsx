@@ -78,14 +78,17 @@ export function AdminPanel() {
       const { storage } = initializeFirebase();
       const testRef = ref(storage, 'diagnostics/neural-test.txt');
       await uploadString(testRef, "NexusAI Connectivity Diagnostic: SUCCESS");
-      toast({ title: "Storage Online", description: "Successfully established link with Firebase Storage." });
+      toast({ 
+        title: "Storage Online", 
+        description: "Successfully established link with Firebase Storage." 
+      });
       await deleteObject(testRef);
     } catch (err: any) {
       console.error("Storage Test Error:", err);
       toast({ 
         variant: "destructive", 
         title: "Storage Unreachable", 
-        description: err.message || "Access denied by security rules." 
+        description: `Code: ${err.code || 'unknown'} | Reason: ${err.message || 'Access denied.'}` 
       });
     } finally {
       setIsTestingStorage(false);
@@ -181,14 +184,17 @@ export function AdminPanel() {
                   </div>
                   <Badge className="bg-green-500/20 text-green-400 border-green-500/30">ONLINE</Badge>
                 </div>
-                <Button 
-                  onClick={handleTestStorage}
-                  disabled={isTestingStorage}
-                  className="w-full bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl mt-4 h-12"
-                >
-                  {isTestingStorage ? <Loader2 className="size-4 animate-spin mr-2" /> : <ShieldCheck className="size-4 mr-2 text-indigo-400" />}
-                  Test Storage Connection
-                </Button>
+                <div className="p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
+                  <p className="text-[10px] text-indigo-400 font-bold uppercase mb-2">Diagnostic Tools</p>
+                  <Button 
+                    onClick={handleTestStorage}
+                    disabled={isTestingStorage}
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl h-11 shadow-lg shadow-indigo-600/20"
+                  >
+                    {isTestingStorage ? <Loader2 className="size-4 animate-spin mr-2" /> : <ShieldCheck className="size-4 mr-2" />}
+                    Test Storage Link
+                  </Button>
+                </div>
               </div>
             </Card>
 

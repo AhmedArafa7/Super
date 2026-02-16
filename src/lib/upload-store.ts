@@ -61,30 +61,37 @@ export const useUploadStore = create<UploadState>((set, get) => ({
 
     try {
       const { storage } = initializeFirebase();
+      // إضافة Timestamp لضمان فرادة الملف وتجاوز مشاكل التكرار
       const storageRef = ref(storage, `${task.type}/${Date.now()}-${task.file.name}`);
       const uploadTask = uploadBytesResumable(storageRef, task.file);
+
+      console.log(`[Nexus Sync Init] Attempting to upload ${task.fileName} to ${storageRef.fullPath}`);
 
       uploadTask.on('state_changed', 
         (snapshot) => {
           const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-          console.log(`[Nexus Sync] ${task.fileName}: ${progress}%`);
+          console.log(`[Nexus Sync] Progress: ${progress}% (${snapshot.bytesTransferred} bytes)`);
           
           set(state => ({
             tasks: state.tasks.map(t => t.id === id ? { ...t, progress: isNaN(progress) ? 0 : progress, status: 'uploading' } : t)
           }));
         }, 
-        (error) => {
+        (error: any) => {
           console.error("[Neural Link Failure]:", error);
+          const errorInfo = `Code: ${error.code} | Message: ${error.message}`;
+          
           set(state => ({
-            tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'failed', error: error.message } : t)
+            tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'failed', error: errorInfo } : t)
           }));
+          
           toast({ 
             variant: "destructive", 
             title: "فشل المزامنة العصبية", 
-            description: `خطأ: ${error.message}` 
+            description: errorInfo
           });
         }, 
         async () => {
+          console.log("[Nexus Sync] Finalizing link...");
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           
           set(state => ({
@@ -98,17 +105,24 @@ export const useUploadStore = create<UploadState>((set, get) => ({
               thumbnail: downloadURL,
               source: 'local'
             });
+          } else if (task.type === 'learning_asset') {
+             // Logic for learning asset if needed beyond the direct upload in store
           }
 
-          toast({ title: "اكتملت المزامنة", description: `الملف "${task.fileName}" متاح الآن.` });
+          toast({ title: "اكتملت المزامنة", description: `الملف "${task.fileName}" متاح الآن على العقدة.` });
           setTimeout(() => get().removeTask(id), 5000);
         }
       );
     } catch (err: any) {
-      console.error("[Upload Init Error]:", err);
+      console.error("[Upload Init Exception]:", err);
       set(state => ({
         tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'failed', error: err.message } : t)
       }));
+      toast({ 
+        variant: "destructive", 
+        title: "خطأ في تهيئة المهمة", 
+        description: err.message 
+      });
     }
   }
 }));
