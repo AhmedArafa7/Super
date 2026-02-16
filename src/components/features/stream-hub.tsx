@@ -38,7 +38,16 @@ export function StreamHub() {
   const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
-    const load = () => setVideos(getStoredVideos());
+    const load = async () => {
+      try {
+        const data = await getStoredVideos();
+        setVideos(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Failed to sync neural stream:", err);
+        setVideos([]);
+      }
+    };
+    
     load();
     window.addEventListener('videos-update', load);
     return () => window.removeEventListener('videos-update', load);
@@ -78,40 +87,49 @@ export function StreamHub() {
     }, 200);
 
     // Artificial delay to simulate real network sync
-    setTimeout(() => {
+    setTimeout(async () => {
       const isAdmin = user.role === 'admin';
       const allowedUserList = uploadData.allowedUsers.split(',').map(u => u.trim()).filter(u => u !== "");
 
-      addVideo({
-        title: uploadData.title,
-        author: user.name,
-        authorId: user.id,
-        thumbnail: uploadData.thumbnail || "https://picsum.photos/seed/nexus/600/400",
-        time: "0:00",
-        status: isAdmin ? 'published' : 'pending_review',
-        visibility: uploadData.visibility,
-        allowedUserIds: allowedUserList,
-        uploaderRole: user.role
-      });
-
-      setUploadProgress(100);
-      clearInterval(progressInterval);
-
-      setTimeout(() => {
-        toast({
-          title: isAdmin ? "Broadcast Live" : "Submission Logged",
-          description: isAdmin ? "Video published to the public feed." : "Pending review from the Nexus Command.",
+      try {
+        await addVideo({
+          title: uploadData.title,
+          author: user.name,
+          authorId: user.id,
+          thumbnail: uploadData.thumbnail || "https://picsum.photos/seed/nexus/600/400",
+          time: "0:00",
+          status: isAdmin ? 'published' : 'pending_review',
+          visibility: uploadData.visibility,
+          allowedUserIds: allowedUserList,
+          uploaderRole: user.role
         });
 
-        setIsModalOpen(false);
-        setUploadData({ title: "", visibility: "public", allowedUsers: "", thumbnail: "", fileSize: 0 });
+        setUploadProgress(100);
+        clearInterval(progressInterval);
+
+        setTimeout(() => {
+          toast({
+            title: isAdmin ? "Broadcast Live" : "Submission Logged",
+            description: isAdmin ? "Video published to the public feed." : "Pending review from the Nexus Command.",
+          });
+
+          setIsModalOpen(false);
+          setUploadData({ title: "", visibility: "public", allowedUsers: "", thumbnail: "", fileSize: 0 });
+          setIsUploading(false);
+          setUploadProgress(0);
+        }, 500);
+      } catch (err) {
+        clearInterval(progressInterval);
         setIsUploading(false);
-        setUploadProgress(0);
-      }, 500);
+        toast({ variant: "destructive", title: "Transmission Failed" });
+      }
     }, 2000);
   };
 
-  const publicVideos = videos.filter(v => {
+  // Ensure videos is always treated as an array
+  const safeVideos = Array.isArray(videos) ? videos : [];
+
+  const publicVideos = safeVideos.filter(v => {
     if (v.status !== 'published') return false;
     if (v.visibility === 'public') return true;
     if (v.visibility === 'private' && v.allowedUserIds.includes(user?.username || "")) return true;
@@ -119,7 +137,7 @@ export function StreamHub() {
     return false;
   });
 
-  const mySubmissions = videos.filter(v => v.authorId === user?.id);
+  const mySubmissions = safeVideos.filter(v => v.authorId === user?.id);
 
   const StatusBadge = ({ status }: { status: Video['status'] }) => {
     switch (status) {
