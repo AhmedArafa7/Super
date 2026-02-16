@@ -14,7 +14,10 @@ import {
   X, 
   CheckCircle2, 
   Circle,
-  ArrowLeft
+  ArrowLeft,
+  AlignLeft,
+  Mic,
+  Volume2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -61,7 +64,7 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
           id: item.id,
           collectionId: item.collection_id,
           title: item.title,
-          type: item.type,
+          type: item.type as any,
           url: item.url,
           quizData: item.quiz_data,
           orderIndex: item.order_index,
@@ -97,6 +100,8 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
   const getItemIcon = (type: string) => {
     switch (type) {
       case 'video': return <Play className="size-4" />;
+      case 'audio': return <Mic className="size-4" />;
+      case 'text': return <AlignLeft className="size-4" />;
       case 'quiz_json': return <Trophy className="size-4" />;
       default: return <FileText className="size-4" />;
     }
@@ -189,6 +194,39 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
                     }}
                   />
                 )}
+              </div>
+            ) : activeItem?.type === 'audio' ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-900/50">
+                <div className="max-w-md w-full p-10 glass border-white/10 rounded-[3rem] text-center">
+                  <div className="size-24 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl animate-pulse">
+                    <Volume2 className="size-12 text-indigo-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-4">{activeItem.title}</h3>
+                  <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                    {mounted && (
+                      <audio controls className="w-full">
+                        <source src={activeItem.url} />
+                        Your browser does not support the audio element.
+                      </audio>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : activeItem?.type === 'text' ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-900 p-8">
+                <ScrollArea className="max-w-3xl w-full h-full max-h-[80%] glass border-white/10 rounded-[2.5rem] p-10">
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="size-10 bg-indigo-500/20 rounded-xl flex items-center justify-center">
+                      <AlignLeft className="size-5 text-indigo-400" />
+                    </div>
+                    <h2 className="text-3xl font-bold text-white tracking-tight">{activeItem.title}</h2>
+                  </div>
+                  <div className="prose prose-invert max-w-none">
+                    <p className="text-lg text-slate-300 leading-relaxed whitespace-pre-wrap">
+                      {activeItem.url}
+                    </p>
+                  </div>
+                </ScrollArea>
               </div>
             ) : activeItem?.type === 'quiz_json' ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/50">

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { FileText, ChevronRight, BookOpen, Play, Music, Trophy, Plus, Trash2, Upload, Loader2, Globe, CheckCircle2, RefreshCcw, Lock } from "lucide-react";
+import { FileText, ChevronRight, BookOpen, Play, Music, Trophy, Plus, Trash2, Upload, Loader2, Globe, CheckCircle2, RefreshCcw, Lock, AlignLeft, Mic } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,7 +33,12 @@ export function KnowledgeHub() {
 
   const [newSubject, setNewSubject] = useState({ title: "", description: "", allowedUserIds: "" });
   const [newCollection, setNewCollection] = useState({ title: "", description: "" });
-  const [newItem, setNewItem] = useState<{title: string, type: LearningItemType, file: File | null}>({ title: "", type: "file", file: null });
+  const [newItem, setNewItem] = useState<{title: string, type: LearningItemType, file: File | null, textContent: string}>({ 
+    title: "", 
+    type: "file", 
+    file: null,
+    textContent: ""
+  });
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
@@ -80,7 +85,8 @@ export function KnowledgeHub() {
       await addCollection({ 
         subjectId: selectedSubject.id, 
         title: newCollection.title, 
-        description: newCollection.description 
+        description: newCollection.description,
+        orderIndex: collections.length
       });
       toast({ title: "Lesson Integrated", description: "Content synchronized successfully." });
       setIsCollectionModalOpen(false);
@@ -92,21 +98,44 @@ export function KnowledgeHub() {
   };
 
   const handleCreateItem = async () => {
-    if (!activeCollectionId || !newItem.title || !newItem.file) return;
+    if (!activeCollectionId || !newItem.title) return;
+    
     setIsUploading(true);
     try {
-      const url = await uploadLearningFile(newItem.file);
+      let url = "";
+      
+      if (newItem.type === 'text') {
+        url = newItem.textContent;
+      } else if (newItem.file) {
+        const uploadUrl = await uploadLearningFile(newItem.file);
+        if (!uploadUrl) {
+          toast({ 
+            variant: "destructive", 
+            title: "Storage Error", 
+            description: "No suitable storage bucket found. Please contact an admin to set up a 'learning' bucket." 
+          });
+          setIsUploading(false);
+          return;
+        }
+        url = uploadUrl;
+      } else {
+        toast({ variant: "destructive", title: "Missing Payload", description: "Please provide a file for this asset type." });
+        setIsUploading(false);
+        return;
+      }
+
       await addLearningItem({
         collectionId: activeCollectionId,
         title: newItem.title,
         type: newItem.type,
-        url: url || undefined,
+        url: url,
         orderIndex: (itemsMap[activeCollectionId]?.length || 0)
       });
+
       toast({ title: "Asset Added", description: "Resource linked to lesson." });
       setIsItemModalOpen(false);
       handleSelectSubject(selectedSubject!);
-      setNewItem({ title: "", type: "file", file: null });
+      setNewItem({ title: "", type: "file", file: null, textContent: "" });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Transmission Failed", description: err.message });
     } finally {
@@ -215,11 +244,11 @@ export function KnowledgeHub() {
                   <div key={item.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
                     <div className="flex items-center gap-4">
                       <div className="size-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                        {item.type === 'video' ? <Play className="size-5" /> : <FileText className="size-5" />}
+                        {item.type === 'video' ? <Play className="size-5" /> : item.type === 'audio' ? <Mic className="size-5" /> : item.type === 'text' ? <AlignLeft className="size-5" /> : <FileText className="size-5" />}
                       </div>
                       <p className="font-bold text-sm">{item.title}</p>
                     </div>
-                    <Badge variant="outline" className="text-[10px] border-white/10 uppercase">{item.type}</Badge>
+                    <Badge variant="outline" className="text-[10px] border-white/10 uppercase">{item.type.replace('_', ' ')}</Badge>
                   </div>
                 ))}
                 <Button 
@@ -255,7 +284,7 @@ export function KnowledgeHub() {
       </Dialog>
 
       <Dialog open={isItemModalOpen} onOpenChange={setIsItemModalOpen}>
-        <DialogContent className="bg-slate-900 border-white/10 text-white rounded-[2rem]">
+        <DialogContent className="bg-slate-900 border-white/10 text-white rounded-[2rem] sm:max-w-md">
           <DialogHeader><DialogTitle>Add Learning Asset</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid gap-2">
@@ -268,18 +297,55 @@ export function KnowledgeHub() {
                 <SelectTrigger className="bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-slate-900 border-white/10 text-white">
                   <SelectItem value="video">Video</SelectItem>
+                  <SelectItem value="audio">Audio File</SelectItem>
                   <SelectItem value="file">Document</SelectItem>
+                  <SelectItem value="text">Text (Explanation)</SelectItem>
                   <SelectItem value="quiz_json">Quiz (JSON)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2">
-              <Label>Upload File</Label>
-              <Input type="file" className="bg-white/5 border-white/10" onChange={e => setNewItem({...newItem, file: e.target.files?.[0] || null})} />
-            </div>
+            
+            {newItem.type === 'text' ? (
+              <div className="grid gap-2">
+                <Label>Explanation Content</Label>
+                <Textarea 
+                  className="bg-white/5 border-white/10 min-h-[150px]" 
+                  placeholder="Enter the educational text here..."
+                  value={newItem.textContent}
+                  onChange={e => setNewItem({...newItem, textContent: e.target.value})}
+                />
+              </div>
+            ) : (
+              <div className="grid gap-2">
+                <Label>Upload File</Label>
+                <div className="relative border-2 border-dashed border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center bg-white/5 hover:bg-white/10 transition-colors">
+                  <input 
+                    type="file" 
+                    className="absolute inset-0 opacity-0 cursor-pointer" 
+                    onChange={e => setNewItem({...newItem, file: e.target.files?.[0] || null})} 
+                    accept={newItem.type === 'audio' ? 'audio/*' : newItem.type === 'video' ? 'video/*' : '*/*'}
+                  />
+                  {newItem.file ? (
+                    <div className="flex items-center gap-2 text-primary font-bold">
+                      <CheckCircle2 className="size-5" />
+                      <span className="text-sm truncate max-w-[200px]">{newItem.file.name}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="size-8 text-muted-foreground mb-2" />
+                      <p className="text-xs text-muted-foreground">Click or drag to upload asset</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button onClick={handleCreateItem} disabled={isUploading || !newItem.file} className="w-full bg-primary h-11 rounded-xl">
+            <Button 
+              onClick={handleCreateItem} 
+              disabled={isUploading || (!newItem.file && newItem.type !== 'text') || (newItem.type === 'text' && !newItem.textContent)} 
+              className="w-full bg-primary h-11 rounded-xl"
+            >
               {isUploading ? <Loader2 className="size-4 animate-spin mr-2" /> : <Plus className="size-4 mr-2" />}
               Integrate Asset
             </Button>
