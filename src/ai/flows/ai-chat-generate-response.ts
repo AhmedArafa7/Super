@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview AI Chat response generation flow.
@@ -32,18 +33,14 @@ const prompt = ai.definePrompt({
   name: 'aiChatGenerateResponsePrompt',
   input: {schema: AIChatGenerateResponseInputSchema},
   output: {schema: AIChatGenerateResponseOutputSchema},
-  prompt: `You are a helpful AI assistant. Respond to the user message based on the chat history, if any. Be concise and helpful.
+  prompt: `You are a helpful AI assistant for NexusAI. Respond to the user message based on the chat history, if any. Be concise, technical, and helpful.
 
 Chat History:
 {{#each history}}
-  {{#if (eq role \"user\")}}
-    User: {{{content}}}
-  {{else}}
-    Assistant: {{{content}}}
-  {{/if}}
+  {{role}}: {{{content}}}
 {{/each}}
 
-User Message: {{{message}}}
+User: {{{message}}}
 
 Response: `,
 });

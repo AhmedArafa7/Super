@@ -9,13 +9,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useChatStore, WizardMessage, Attachment } from "@/lib/chat-store";
-import { clearAllUnreadNotifications, markNotificationByMessageIdAsRead } from "@/lib/notification-store";
+import { clearAllUnreadNotifications } from "@/lib/notification-store";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useSidebar } from "@/components/ui/sidebar";
+import { aiChatGenerateResponse } from "@/ai/flows/ai-chat-generate-response";
+import { getWelcomeMessage } from "@/ai/flows/ai-chat-welcome-message";
 
 interface AIChatProps {
   highlightId?: string | null;
@@ -36,8 +38,6 @@ const MessageItem = memo(({
   onEdit: (m: WizardMessage) => void; 
   onDelete: (id: string) => void;
 }) => {
-  const isUser = true; // All messages in the main list are user-initiated in this schema
-
   return (
     <React.Fragment>
       <div className="flex justify-end items-start gap-3 group relative">
@@ -64,7 +64,7 @@ const MessageItem = memo(({
             <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
             {msg.attachments && msg.attachments.length > 0 && <AttachmentPreview attachments={msg.attachments} />}
             <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
-              {msg.isUserEdited && <span className="text-[9px] italic mr-1">(edited)</span>}
+              {msg.status === 'sent' && <Loader2 className="size-2 animate-spin text-white/50" />}
               <span className="text-[10px]">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
           </div>
@@ -73,7 +73,7 @@ const MessageItem = memo(({
       </div>
 
       {msg.status === 'replied' && msg.response && (
-        <div className="flex justify-start items-start gap-3">
+        <div className="flex justify-start items-start gap-3 animate-in fade-in slide-in-from-left-2 duration-500">
           <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0"><Bot className="size-4 text-indigo-400" /></div>
           <div className={cn("max-w-[80%] message-bubble-ai p-4 border transition-all duration-500", highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500")}>
             <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.response}</p>
@@ -119,7 +119,6 @@ AttachmentPreview.displayName = "AttachmentPreview";
 export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { isMobile, setOpenMobile } = useSidebar();
   
   // Zustand Store Selectors
   const messages = useChatStore(state => state.messages);
@@ -130,6 +129,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const deleteMessage = useChatStore(state => state.deleteMessage);
   const updateMessageText = useChatStore(state => state.updateMessageText);
   const setConnected = useChatStore(state => state.setConnected);
+  const approveMessage = useChatStore(state => state.approveMessage);
 
   // Local UI state
   const [input, setInput] = useState("");
@@ -138,6 +138,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isAITyping, setIsAITyping] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -163,26 +164,82 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     };
   }, [user?.id, loadMessages, setConnected]);
 
+  // Welcome Message Logic
+  useEffect(() => {
+    if (messages.length === 0 && user && !isLoadingMessages && !isAITyping) {
+      handleGetWelcomeMessage();
+    }
+  }, [messages.length, user]);
+
+  const [isLoadingMessages, setIsLoadingMessages] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoadingMessages(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleGetWelcomeMessage = async () => {
+    if (!user) return;
+    setIsAITyping(true);
+    try {
+      const { message } = await getWelcomeMessage();
+      // We don't save welcome messages to DB to avoid cluttering, 
+      // but we could if we wanted a persistent history.
+      // For now, let's just toast or add a mock message.
+      toast({ title: "Nexus Node Synchronized", description: message });
+    } catch (err) {
+      console.error("Failed to get welcome message");
+    } finally {
+      setIsAITyping(false);
+    }
+  };
+
   useEffect(() => {
     if (scrollRef.current && !highlightId) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
-  }, [messages.length, highlightId]);
+  }, [messages.length, highlightId, isAITyping]);
 
   const handleSend = async () => {
     const hasContent = input?.trim() || pendingAttachments?.length > 0;
     if (!hasContent || !user?.id || isSending || isUploading) return;
 
+    const userText = input;
+    setInput(""); 
+    const currentAttachments = [...pendingAttachments];
+    setPendingAttachments([]);
+
     try {
-      const textToSend = input;
-      setInput(""); // Clear immediately for UX
-      const currentAttachments = [...pendingAttachments];
-      setPendingAttachments([]);
+      // 1. Send message to Supabase
+      const savedMsg = await sendMessage(userText, user.id, user.name, currentAttachments);
       
-      await sendMessage(textToSend, user.id, user.name, currentAttachments);
+      if (savedMsg) {
+        setIsAITyping(true);
+        
+        // 2. Prepare context for AI
+        const history = messages.slice(-5).map(m => ({
+          role: 'user' as const,
+          content: m.text
+        }));
+        // If the last message had a response, add it to history
+        messages.slice(-5).forEach(m => {
+          if (m.response) {
+            history.push({ role: 'assistant' as const, content: m.response });
+          }
+        });
+
+        // 3. Request AI Response
+        const { response } = await aiChatGenerateResponse({
+          message: userText,
+          history: history
+        });
+
+        // 4. Save AI response back to Supabase
+        await approveMessage(savedMsg.id, response);
+      }
     } catch (err: any) {
-      // Input is preserved in state indirectly via pessimistic rollback handled in store, 
-      // but for better UX we could restore local state if needed.
+      toast({ variant: "destructive", title: "Neural Link Error", description: "The AI node failed to respond. Please try again." });
+    } finally {
+      setIsAITyping(false);
     }
   };
 
@@ -266,14 +323,14 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
           <div className="flex items-center gap-3">
             <div className="size-10 bg-indigo-500/20 rounded-full flex items-center justify-center border border-indigo-500/30">
-              <Bot className="size-5 text-indigo-400" />
+              <Bot className={cn("size-5 text-indigo-400", isAITyping && "animate-pulse")} />
             </div>
             <div>
               <p className="font-bold text-sm">Nexus Realtime Stream</p>
               <div className="flex items-center gap-2">
                 {isConnected ? (
                   <p className="text-[10px] text-green-400 flex items-center gap-1">
-                    <Wifi className="size-2.5" /> Neural Sync Active
+                    <Wifi className="size-2.5" /> {isAITyping ? "AI is processing..." : "Neural Sync Active"}
                   </p>
                 ) : (
                   <p className="text-[10px] text-red-400 flex items-center gap-1">
@@ -287,7 +344,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
 
         <ScrollArea className="flex-1 p-6" ref={scrollRef}>
           <div className="space-y-6">
-            {messages.length === 0 ? (
+            {messages.length === 0 && !isAITyping ? (
               <EmptyState 
                 icon={Sparkles}
                 title="Neural Stream Empty"
@@ -295,15 +352,27 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                 className="mt-12"
               />
             ) : (
-              messages.map((msg) => (
-                <MessageItem 
-                  key={msg.id} 
-                  msg={msg} 
-                  highlightId={highlightId} 
-                  onEdit={(m) => { setEditingId(m.id); setEditingText(m.text); }}
-                  onDelete={deleteMessage}
-                />
-              ))
+              <>
+                {messages.map((msg) => (
+                  <MessageItem 
+                    key={msg.id} 
+                    msg={msg} 
+                    highlightId={highlightId} 
+                    onEdit={(m) => { setEditingId(m.id); setEditingText(m.text); }}
+                    onDelete={deleteMessage}
+                  />
+                ))}
+                {isAITyping && (
+                  <div className="flex justify-start items-start gap-3 animate-pulse">
+                    <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0"><Bot className="size-4 text-indigo-400" /></div>
+                    <div className="max-w-[100px] message-bubble-ai p-4 border flex gap-1">
+                      <span className="size-1 bg-indigo-400 rounded-full animate-bounce" />
+                      <span className="size-1 bg-indigo-400 rounded-full animate-bounce delay-75" />
+                      <span className="size-1 bg-indigo-400 rounded-full animate-bounce delay-150" />
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </ScrollArea>
@@ -342,16 +411,16 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder={isUploading ? "Uploading payload..." : "Message NexusAI..."}
-                disabled={isUploading || isSending}
+                placeholder={isUploading ? "Uploading payload..." : isAITyping ? "Nexus is thinking..." : "Message NexusAI..."}
+                disabled={isUploading || isSending || isAITyping}
                 className="w-full h-14 bg-white/5 border-white/10 focus-visible:ring-indigo-500 rounded-2xl pl-12 pr-28 text-sm"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
                 <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileSelect} />
-                <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="icon" disabled={isUploading || isSending}><Paperclip className="size-4" /></Button>
-                <Button onClick={startRecording} variant="ghost" size="icon" disabled={isUploading || isSending}><Mic className="size-4" /></Button>
-                <Button onClick={handleSend} disabled={(!input.trim() && pendingAttachments.length === 0) || isUploading || isSending} size="icon" className="bg-primary shadow-lg shadow-primary/20">
-                  {isSending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="icon" disabled={isUploading || isSending || isAITyping}><Paperclip className="size-4" /></Button>
+                <Button onClick={startRecording} variant="ghost" size="icon" disabled={isUploading || isSending || isAITyping}><Mic className="size-4" /></Button>
+                <Button onClick={handleSend} disabled={(!input.trim() && pendingAttachments.length === 0) || isUploading || isSending || isAITyping} size="icon" className="bg-primary shadow-lg shadow-primary/20">
+                  {isSending || isAITyping ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
                 </Button>
               </div>
             </div>

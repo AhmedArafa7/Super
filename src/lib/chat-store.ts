@@ -35,7 +35,7 @@ interface ChatState {
   isConnected: boolean;
   isSending: boolean;
   loadMessages: (userId: string, isAdmin: boolean) => Promise<void>;
-  sendMessage: (text: string, userId: string, userName: string, attachments?: Attachment[]) => Promise<void>;
+  sendMessage: (text: string, userId: string, userName: string, attachments?: Attachment[]) => Promise<WizardMessage | null>;
   updateMessageText: (id: string, text: string) => Promise<void>;
   deleteMessage: (id: string) => Promise<void>;
   setConnected: (status: boolean) => void;
@@ -115,16 +115,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const { data, error } = await supabase.from('messages').insert([payload]).select().single();
       if (error) throw error;
 
+      const savedMsg = mapMessageFromDB(data);
       set(state => ({
-        messages: state.messages.map(m => m.id === optimisticId ? mapMessageFromDB(data) : m),
+        messages: state.messages.map(m => m.id === optimisticId ? savedMsg : m),
         isSending: false
       }));
+      return savedMsg;
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Sync Error', description: 'Failed to transmit message.' });
       set(state => ({ 
         messages: state.messages.filter(m => m.id !== optimisticId),
         isSending: false 
       }));
+      return null;
     }
   },
 
