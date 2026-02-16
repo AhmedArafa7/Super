@@ -102,10 +102,10 @@ export const addLearningItem = async (data: { subjectId: string, collectionId: s
 
 export const uploadLearningFile = async (file: File, onProgress?: (pct: number) => void): Promise<string> => {
   const { storage } = initializeFirebase();
+  // إضافة Timestamp لضمان فرادة الملف
   const storageRef = ref(storage, `learning_assets/${Date.now()}-${file.name}`);
   
   try {
-    // Note: Simple upload for immediate return, progress is handled via callback in store if needed
     const snapshot = await uploadBytes(storageRef, file);
     const url = await getDownloadURL(snapshot.ref);
     onProgress?.(100);

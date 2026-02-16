@@ -1,4 +1,3 @@
-
 'use client';
 
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
@@ -12,7 +11,7 @@ export type VideoSource = 'local' | 'youtube';
 export interface Video {
   id: string;
   title: string;
-  thumbnail: string;
+  thumbnail: string; // للملفات المحلية، هذا هو رابط الفيديو الفعلي
   views: string;
   author: string;
   authorId: string;
@@ -50,8 +49,8 @@ export const addVideo = async (video: Omit<Video, 'id' | 'createdAt' | 'views'>)
   if (video.uploaderRole === 'user') {
     addNotification({
       type: 'content_new',
-      title: 'New Neural Broadcast',
-      message: `Content analysis required for: "${video.title}"`,
+      title: 'إرسال فيديو جديد',
+      message: `مطلوب مراجعة المحتوى لـ: "${video.title}"`,
       priority: 'info'
     });
   }
