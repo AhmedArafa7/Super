@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, memo } from "react";
-import { Send, Bot, User, Sparkles, Paperclip, Mic, Loader2, Pencil, Trash2, X, FileText, Download, Square, Music, Globe, Wifi, WifiOff, MoreVertical } from "lucide-react";
+import { Send, Bot, User, Sparkles, Paperclip, Mic, Loader2, Pencil, Trash2, X, FileText, Download, Square, Music, Globe, Wifi, WifiOff, MoreVertical, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -168,16 +168,10 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
 
   // Welcome Message Logic
   useEffect(() => {
-    if (messages.length === 0 && user && !isLoadingMessages && !isAITyping) {
+    if (messages.length === 0 && user && isConnected && !isAITyping) {
       handleGetWelcomeMessage();
     }
-  }, [messages.length, user]);
-
-  const [isLoadingMessages, setIsLoadingMessages] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoadingMessages(false), 2000);
-    return () => clearTimeout(timer);
-  }, []);
+  }, [messages.length, user, isConnected]);
 
   const handleGetWelcomeMessage = async () => {
     if (!user) return;
@@ -186,7 +180,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       const { message } = await getWelcomeMessage();
       toast({ title: "Nexus Node Synchronized", description: message });
     } catch (err) {
-      console.error("Failed to get welcome message");
+      console.warn("AI Node not ready for welcome message.");
     } finally {
       setIsAITyping(false);
     }
@@ -227,16 +221,25 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         });
 
         // 3. Request AI Response
-        const { response } = await aiChatGenerateResponse({
+        const responseData = await aiChatGenerateResponse({
           message: userText,
           history: history
         });
 
-        // 4. Save AI response back to Supabase
-        await approveMessage(savedMsg.id, response);
+        if (responseData && responseData.response) {
+          // 4. Save AI response back to Supabase
+          await approveMessage(savedMsg.id, responseData.response);
+        } else {
+          throw new Error("AI Returned empty response payload.");
+        }
       }
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Neural Link Error", description: "The AI node failed to respond. Please try again." });
+      console.error('Neural Link Error:', err);
+      toast({ 
+        variant: "destructive", 
+        title: "Neural Link Error", 
+        description: "The AI node failed to process the request. Ensure GOOGLE_GENAI_API_KEY is configured." 
+      });
     } finally {
       setIsAITyping(false);
     }
@@ -336,6 +339,15 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
 
   return (
     <div className="flex flex-col h-full max-w-5xl mx-auto pt-8 pb-4 px-4 sm:px-6 lg:px-8">
+      {!isConnected && (
+        <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+          <AlertTriangle className="size-5 text-amber-400 shrink-0" />
+          <p className="text-xs text-amber-200/80">
+            <strong>Neural Sync Unstable:</strong> Connection to Supabase node lost. Check your API configuration or network status.
+          </p>
+        </div>
+      )}
+
       <div className="flex-1 overflow-hidden flex flex-col glass rounded-3xl mb-4 relative shadow-2xl">
         <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
           <div className="flex items-center gap-3">
@@ -351,7 +363,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                   </p>
                 ) : (
                   <p className="text-[10px] text-red-400 flex items-center gap-1">
-                    <WifiOff className="size-2.5" /> Synchronizing...
+                    <WifiOff className="size-2.5" /> Offline Mode
                   </p>
                 )}
               </div>

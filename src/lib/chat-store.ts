@@ -78,10 +78,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         mapped = mapped.filter(m => m.userId === userId);
       }
       
-      set({ messages: mapped, isLoading: false });
+      set({ messages: mapped, isLoading: false, isConnected: true });
     } catch (err: any) {
-      console.error('Failed to load chat history:', err.message);
-      set({ isLoading: false });
+      console.error('📡 Sync Failure: Could not load neural history.', err.message);
+      set({ isLoading: false, isConnected: false });
     }
   },
 
@@ -122,7 +122,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }));
       return savedMsg;
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Sync Error', description: 'Failed to transmit message.' });
+      toast({ 
+        variant: 'destructive', 
+        title: 'Neural Link Interrupted', 
+        description: 'Failed to transmit message to the cloud node. Check your connection.' 
+      });
       set(state => ({ 
         messages: state.messages.filter(m => m.id !== optimisticId),
         isSending: false 
@@ -161,7 +165,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         messages: state.messages.map(m => m.id === id ? { ...m, response, status: 'replied' } : m)
       }));
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Admin Error', description: err.message });
+      console.error('Failed to update message with AI response:', err);
     }
   },
 
