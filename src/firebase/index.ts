@@ -6,23 +6,18 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
+// تهيئة Firebase مع ضمان استخدام الإعدادات الصريحة لـ Storage
 export function initializeFirebase() {
+  let app: FirebaseApp;
+  
   if (!getApps().length) {
-    let firebaseApp;
-    try {
-      firebaseApp = initializeApp();
-    } catch (e) {
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-      }
-      firebaseApp = initializeApp(firebaseConfig);
-    }
-
-    return getSdks(firebaseApp);
+    // نفضل دائماً استخدام الإعدادات الصريحة لضمان ربط الـ Storage Bucket
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
   }
 
-  return getSdks(getApp());
+  return getSdks(app);
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
@@ -30,7 +25,8 @@ export function getSdks(firebaseApp: FirebaseApp) {
     firebaseApp,
     auth: getAuth(firebaseApp),
     firestore: getFirestore(firebaseApp),
-    storage: getStorage(firebaseApp)
+    // نمرر رابط الـ bucket يدوياً للتأكد من عدم حدوث انسداد في الربط
+    storage: getStorage(firebaseApp, `gs://${firebaseConfig.storageBucket}`)
   };
 }
 

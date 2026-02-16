@@ -42,8 +42,8 @@ export const useUploadStore = create<UploadState>((set, get) => ({
 
     set(state => ({ tasks: [newTask, ...state.tasks] }));
     
-    // بدء الرفع فوراً
-    get().retryTask(id);
+    // بدء الرفع فوراً بعد تحديث الـ State
+    setTimeout(() => get().retryTask(id), 100);
     return id;
   },
 
@@ -61,17 +61,16 @@ export const useUploadStore = create<UploadState>((set, get) => ({
 
     try {
       const { storage } = initializeFirebase();
-      // إنشاء مرجع فريد للملف لتجنب التداخل
       const storageRef = ref(storage, `${task.type}/${Date.now()}-${task.file.name}`);
       const uploadTask = uploadBytesResumable(storageRef, task.file);
 
       uploadTask.on('state_changed', 
         (snapshot) => {
           const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-          console.log(`[Neural Sync] ${task.fileName}: ${progress}% (${snapshot.bytesTransferred}/${snapshot.totalBytes})`);
+          console.log(`[Nexus Sync] ${task.fileName}: ${progress}%`);
           
           set(state => ({
-            tasks: state.tasks.map(t => t.id === id ? { ...t, progress, status: 'uploading' } : t)
+            tasks: state.tasks.map(t => t.id === id ? { ...t, progress: isNaN(progress) ? 0 : progress, status: 'uploading' } : t)
           }));
         }, 
         (error) => {
@@ -81,13 +80,12 @@ export const useUploadStore = create<UploadState>((set, get) => ({
           }));
           toast({ 
             variant: "destructive", 
-            title: "فشل المزامنة", 
-            description: "تأكد من إعدادات Firebase Storage وصلاحيات الرفع للملفات الكبيرة." 
+            title: "فشل المزامنة العصبية", 
+            description: `خطأ: ${error.message}` 
           });
         }, 
         async () => {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          console.log(`[Neural Sync] Complete: ${downloadURL}`);
           
           set(state => ({
             tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'completed', progress: 100 } : t)
@@ -97,15 +95,13 @@ export const useUploadStore = create<UploadState>((set, get) => ({
             const { addVideo } = await import('./video-store');
             await addVideo({
               ...task.metadata,
-              thumbnail: downloadURL, // نستخدم الرابط المرفوع كـ Source للفيديو
+              thumbnail: downloadURL,
               source: 'local'
             });
           }
 
-          toast({ title: "اكتملت المزامنة العصبية", description: `الملف "${task.fileName}" أصبح متاحاً الآن على الشبكة.` });
-          
-          // إزالة المهمة بعد نجاحها بـ 10 ثوانٍ
-          setTimeout(() => get().removeTask(id), 10000);
+          toast({ title: "اكتملت المزامنة", description: `الملف "${task.fileName}" متاح الآن.` });
+          setTimeout(() => get().removeTask(id), 5000);
         }
       );
     } catch (err: any) {

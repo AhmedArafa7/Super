@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, Image as ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle, Clock, GraduationCap, BookOpen, Lock, Globe, Wallet, PlusCircle, MinusCircle, ShieldCheck, Tag, Zap, Server, Sparkles } from "lucide-react";
+import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, Image as ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle, Clock, GraduationCap, BookOpen, Lock, Globe, Wallet, PlusCircle, MinusCircle, ShieldCheck, Tag, Zap, Server, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -41,22 +41,16 @@ export function AdminPanel() {
   const loadData = async () => {
     try {
       const msgs = await getStoredMessages(undefined, true);
-      setMessages(msgs);
+      setMessages(Array.isArray(msgs) ? msgs : []);
       
-      const newResponses: Record<string, string> = { ...responses };
-      msgs.forEach(m => {
-        if (m.status === 'sent' && m.response && !newResponses[m.id]) {
-          newResponses[m.id] = m.response;
-        }
-      });
-      setResponses(newResponses);
-
       const allUsers = await getStoredUsers();
-      setUsers(allUsers);
+      setUsers(Array.isArray(allUsers) ? allUsers : []);
+      
       const allVideos = await getStoredVideos();
-      setVideos(allVideos);
+      setVideos(Array.isArray(allVideos) ? allVideos : []);
+      
       const subs = await getSubjects();
-      setSubjects(subs);
+      setSubjects(Array.isArray(subs) ? subs : []);
     } catch (err) {
       console.error("Admin Load Error:", err);
     }
@@ -91,7 +85,7 @@ export function AdminPanel() {
       toast({ 
         variant: "destructive", 
         title: "Storage Unreachable", 
-        description: err.message || "Failed to sync with storage bucket." 
+        description: err.message || "Access denied by security rules." 
       });
     } finally {
       setIsTestingStorage(false);
@@ -153,14 +147,14 @@ export function AdminPanel() {
         </div>
       </div>
 
-      <Tabs defaultValue="stream" className="flex-1 flex flex-col">
+      <Tabs defaultValue="infra" className="flex-1 flex flex-col">
         <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 w-fit overflow-x-auto">
-          <TabsTrigger value="stream" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">Chat Stream</TabsTrigger>
-          <TabsTrigger value="content" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">Content CMS</TabsTrigger>
-          <TabsTrigger value="users" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">Users & Wallets</TabsTrigger>
           <TabsTrigger value="infra" className="rounded-xl px-6 data-[state=active]:bg-indigo-600 flex items-center gap-2">
             <Server className="size-3" /> Infrastructure
           </TabsTrigger>
+          <TabsTrigger value="stream" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">Chat Stream</TabsTrigger>
+          <TabsTrigger value="content" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">Content CMS</TabsTrigger>
+          <TabsTrigger value="users" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">Users & Wallets</TabsTrigger>
           <TabsTrigger value="broadcast" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">Broadcast</TabsTrigger>
         </TabsList>
 
