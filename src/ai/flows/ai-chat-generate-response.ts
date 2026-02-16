@@ -13,9 +13,8 @@ const AIChatGenerateResponseInputSchema = z.object({
     content: z.string(),
   })).optional(),
 });
-export type AIChatGenerateResponseInput = z.infer<typeof AIChatGenerateResponseInputSchema>;
 
-export async function aiChatGenerateResponse(input: AIChatGenerateResponseInput) {
+export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerateResponseInputSchema>) {
   return aiChatGenerateResponseFlow(input);
 }
 
@@ -23,7 +22,7 @@ const prompt = ai.definePrompt({
   name: 'aiChatGenerateResponsePrompt',
   input: {schema: AIChatGenerateResponseInputSchema},
   prompt: `أنت المساعد الذكي لنظام NexusAI. 
-أجب بلغة تقنية، مهنية، ومختصرة باللغة العربية.
+أجب بلغة تقنية احترافية ومختصرة باللغة العربية.
 
 سياق الدردشة السابق:
 {{#each history}}
@@ -41,9 +40,19 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
     inputSchema: AIChatGenerateResponseInputSchema,
   },
   async input => {
-    // محاولة استخدام Groq أولاً إذا كان المفتاح موجوداً، وإلا فالعودة لـ Gemini
     const hasGroq = !!(process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY);
+    const hasGemini = !!(process.env.GOOGLE_GENAI_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_GENAI_API_KEY);
+    
+    // الأولوية لـ Groq للسرعة، ثم Gemini للدقة
     const modelToUse = hasGroq ? 'groq/llama-3.3-70b-versatile' : 'googleai/gemini-1.5-flash';
+    const engineName = hasGroq ? 'Groq Llama 3.3' : 'Google Gemini 1.5';
+
+    if (!hasGroq && !hasGemini) {
+      return {
+        response: "عذراً، لم يتم العثور على أي مفاتيح API (Groq أو Gemini). يرجى إضافة المفاتيح في ملف .env لتنشيط المحرك العصبي.",
+        engine: "None"
+      };
+    }
     
     try {
       const response = await ai.generate({
@@ -52,11 +61,13 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
       });
       
       return {
-        response: response.text || "عذراً، لم أتمكن من معالجة الطلب حالياً."
+        response: response.text || "عذراً، لم أتمكن من صياغة رد حالياً.",
+        engine: engineName
       };
     } catch (err) {
       return {
-        response: "حدث خطأ في الاتصال بالعقدة الذكية. يرجى مراجعة مفاتيح الـ API في ملف .env"
+        response: "حدث خطأ أثناء الاتصال بالمحرك العصبي. قد يكون ذلك بسبب نفاذ حدود الاستخدام المجاني (Rate Limit).",
+        engine: engineName
       };
     }
   }

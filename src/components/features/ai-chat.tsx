@@ -1,8 +1,7 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect, memo } from "react";
-import { Send, Bot, User, Sparkles, Paperclip, Mic, Loader2, Pencil, Trash2, X, FileText, Download, Square, Music, Globe, Wifi, WifiOff, MoreVertical, AlertTriangle } from "lucide-react";
+import { Send, Bot, User, Sparkles, Paperclip, Mic, Loader2, Pencil, Trash2, X, FileText, Download, Square, Music, Globe, Wifi, WifiOff, MoreVertical, AlertTriangle, Cpu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,7 +15,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/ui/empty-state";
 import { aiChatGenerateResponse } from "@/ai/flows/ai-chat-generate-response";
-import { getWelcomeMessage } from "@/ai/flows/ai-chat-welcome-message";
+import { Badge } from "@/components/ui/badge";
 
 interface AIChatProps {
   highlightId?: string | null;
@@ -155,7 +154,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isAITyping, setIsAITyping] = useState(false);
-  const [welcomeMessage, setWelcomeMessage] = useState<WizardMessage | null>(null);
+  const [activeEngine, setActiveEngine] = useState<string>("Scanning...");
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -167,47 +166,11 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     clearAllUnreadNotifications(user.id);
   }, [user?.id, loadMessages]);
 
-  // Welcome Message Logic using Groq
-  useEffect(() => {
-    const triggerWelcome = async () => {
-      if (messages.length === 0 && user && isConnected && !welcomeMessage && !isAITyping) {
-        setIsAITyping(true);
-        try {
-          const { message } = await getWelcomeMessage();
-          const isError = message.includes("GROQ_API_KEY");
-          
-          if (isError) {
-            toast({ 
-              title: "تنبيه الربط العصبي", 
-              description: "محرك Groq غير مفعل. يرجى إضافة GROQ_API_KEY في ملف .env",
-              variant: "destructive"
-            });
-          } else {
-            setWelcomeMessage({
-              id: 'welcome-ghost',
-              userId: 'nexus-ai',
-              userName: 'Nexus AI',
-              text: message,
-              response: null,
-              status: 'replied',
-              timestamp: new Date().toISOString()
-            });
-          }
-        } catch (err) {
-          console.warn("AI Node not ready.");
-        } finally {
-          setIsAITyping(false);
-        }
-      }
-    };
-    triggerWelcome();
-  }, [messages.length, user, isConnected, welcomeMessage]);
-
   useEffect(() => {
     if (scrollRef.current && !highlightId) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
-  }, [messages.length, highlightId, isAITyping, welcomeMessage]);
+  }, [messages.length, highlightId, isAITyping]);
 
   const handleSend = async () => {
     const hasContent = input?.trim() || pendingAttachments?.length > 0;
@@ -217,7 +180,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
     setInput(""); 
     const currentAttachments = [...pendingAttachments];
     setPendingAttachments([]);
-    setWelcomeMessage(null); // Clear welcome ghost when user starts chatting
 
     try {
       const savedMsg = await sendMessage(userText, user.id, user.name, currentAttachments);
@@ -240,8 +202,11 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
           history: history
         });
 
-        if (responseData && responseData.response) {
-          await approveMessage(savedMsg.id, user.id, responseData.response);
+        if (responseData) {
+          setActiveEngine(responseData.engine);
+          if (responseData.response) {
+            await approveMessage(savedMsg.id, user.id, responseData.response);
+          }
         }
       }
     } catch (err: any) {
@@ -249,7 +214,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       toast({ 
         variant: "destructive", 
         title: "خطأ في الربط العصبي", 
-        description: "فشل الوصول لمحرك Groq. تأكد من تفعيل GROQ_API_KEY في ملف .env" 
+        description: "فشل الوصول لمحرك الذكاء الاصطناعي. تحقق من حدود الاستخدام والمفاتيح." 
       });
     } finally {
       setIsAITyping(false);
@@ -366,8 +331,11 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
               <Bot className={cn("size-5 text-indigo-400", isAITyping && "animate-pulse")} />
             </div>
             <div>
-              <p className="font-bold text-sm">Nexus AI (Groq Llama 3.3)</p>
+              <p className="font-bold text-sm">Nexus AI</p>
               <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[8px] py-0 border-indigo-500/30 text-indigo-400 uppercase flex items-center gap-1">
+                  <Cpu className="size-2" /> {activeEngine}
+                </Badge>
                 {isConnected ? (
                   <p className="text-[10px] text-green-400 flex items-center gap-1">
                     <Wifi className="size-2.5" /> {isAITyping ? "جاري المعالجة..." : "متصل"}
@@ -384,16 +352,15 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
 
         <ScrollArea className="flex-1 p-6" ref={scrollRef}>
           <div className="space-y-6">
-            {messages.length === 0 && !isAITyping && !welcomeMessage ? (
+            {messages.length === 0 && !isAITyping ? (
               <EmptyState 
                 icon={Sparkles}
                 title="تيار عصبي فارغ"
-                description="ابدأ جلسة آمنة مع محرك Llama 3.3 المتطور."
+                description="ابدأ جلسة آمنة مع نظام NexusAI المتطور."
                 className="mt-12"
               />
             ) : (
               <>
-                {welcomeMessage && <MessageItem msg={welcomeMessage} highlightId={null} onEdit={() => {}} onDelete={() => setWelcomeMessage(null)} />}
                 {messages.map((msg) => (
                   <MessageItem 
                     key={msg.id} 
