@@ -1,9 +1,8 @@
-
 'use client';
 
 import { initializeFirebase } from '@/firebase';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc, deleteDoc } from 'firebase/firestore';
-import { supabase } from './supabaseClient';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export type LearningItemType = 'video' | 'audio' | 'file' | 'quiz_json' | 'text';
 
@@ -101,40 +100,18 @@ export const addLearningItem = async (data: { subjectId: string, collectionId: s
   });
 };
 
-/**
- * دالة رفع احترافية تدعم الفشل التلقائي للـ Buckets المفقودة
- */
 export const uploadLearningFile = async (file: File, onProgress?: (pct: number) => void): Promise<string> => {
-  const bucketName = 'nexus-learning';
-  const fileExt = file.name.split('.').pop();
-  const fileName = `assets/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
+  const { storage } = initializeFirebase();
+  const storageRef = ref(storage, `learning_assets/${Date.now()}-${file.name}`);
+  
   try {
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (error) {
-      if (error.message.includes('bucket_not_found') || error.message.includes('Bucket not found')) {
-        console.warn("⚠️ Learning Storage: Bucket not found. Using simulation.");
-        for (let i = 0; i <= 100; i += 20) {
-          onProgress?.(i);
-          await new Promise(r => setTimeout(r, 400));
-        }
-        return `https://picsum.photos/seed/${file.name}/800/600`;
-      }
-      throw error;
-    }
-
-    const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(data.path);
+    // Note: Simple upload for immediate return, progress is handled via callback in store if needed
+    const snapshot = await uploadBytes(storageRef, file);
+    const url = await getDownloadURL(snapshot.ref);
     onProgress?.(100);
-    return publicUrl;
+    return url;
   } catch (err) {
-    console.error("Upload error caught:", err);
-    // Fallback لضمان عدم توقف واجهة المستخدم في النسخة البيتا
-    return `https://picsum.photos/seed/${Date.now()}/800/600`;
+    console.error("Firebase Storage Upload Error:", err);
+    throw err;
   }
 };
