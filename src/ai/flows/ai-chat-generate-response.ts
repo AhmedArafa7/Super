@@ -1,64 +1,63 @@
 'use server';
 /**
- * @fileOverview AI Chat response generation flow using Groq Llama 3.3.
- *
- * - aiChatGenerateResponse - A function that generates context-aware AI responses.
- * - AIChatGenerateResponseInput - The input type for the aiChatGenerateResponse function.
- * - AIChatGenerateResponseOutput - The return type for the aiChatGenerateResponse function.
+ * @fileOverview نظام توليد الردود الذكي - يدعم التبديل التلقائي بين الموديلات.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const AIChatGenerateResponseInputSchema = z.object({
-  message: z.string().describe('The user message to respond to.'),
+  message: z.string(),
   history: z.array(z.object({
     role: z.enum(['user', 'model']),
     content: z.string(),
-  })).optional().describe('The chat history.'),
+  })).optional(),
 });
 export type AIChatGenerateResponseInput = z.infer<typeof AIChatGenerateResponseInputSchema>;
 
-const AIChatGenerateResponseOutputSchema = z.object({
-  response: z.string().describe('The AI generated response.'),
-});
-export type AIChatGenerateResponseOutput = z.infer<typeof AIChatGenerateResponseOutputSchema>;
-
-export async function aiChatGenerateResponse(input: AIChatGenerateResponseInput): Promise<AIChatGenerateResponseOutput> {
+export async function aiChatGenerateResponse(input: AIChatGenerateResponseInput) {
   return aiChatGenerateResponseFlow(input);
 }
 
 const prompt = ai.definePrompt({
   name: 'aiChatGenerateResponsePrompt',
   input: {schema: AIChatGenerateResponseInputSchema},
-  // We remove output.schema here to prevent Genkit from failing when model returns raw text
-  prompt: `You are a highly intelligent AI assistant for the NexusAI ecosystem. 
-Your primary engine is Llama 3.3 70B via Groq.
-Be technical, helpful, and concise. Respond in the same language as the user (prefer Arabic if the user speaks Arabic).
+  prompt: `أنت المساعد الذكي لنظام NexusAI. 
+أجب بلغة تقنية، مهنية، ومختصرة باللغة العربية.
 
-Chat History:
+سياق الدردشة السابق:
 {{#each history}}
   {{role}}: {{{content}}}
 {{/each}}
 
-User: {{{message}}}
+المستخدم: {{{message}}}
 
-Response: `,
+الرد: `,
 });
 
 const aiChatGenerateResponseFlow = ai.defineFlow(
   {
     name: 'aiChatGenerateResponseFlow',
     inputSchema: AIChatGenerateResponseInputSchema,
-    outputSchema: AIChatGenerateResponseOutputSchema,
   },
   async input => {
-    // Call the prompt and get the response object
-    const response = await prompt(input);
+    // محاولة استخدام Groq أولاً إذا كان المفتاح موجوداً، وإلا فالعودة لـ Gemini
+    const hasGroq = !!(process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY);
+    const modelToUse = hasGroq ? 'groq/llama-3.3-70b-versatile' : 'googleai/gemini-1.5-flash';
     
-    // Manually construct the output object using the raw text from the model
-    return {
-      response: response.text || "عذراً، لم أتمكن من معالجة الطلب حالياً."
-    };
+    try {
+      const response = await ai.generate({
+        model: modelToUse,
+        prompt: prompt(input),
+      });
+      
+      return {
+        response: response.text || "عذراً، لم أتمكن من معالجة الطلب حالياً."
+      };
+    } catch (err) {
+      return {
+        response: "حدث خطأ في الاتصال بالعقدة الذكية. يرجى مراجعة مفاتيح الـ API في ملف .env"
+      };
+    }
   }
 );

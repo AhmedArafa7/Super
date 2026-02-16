@@ -1,23 +1,24 @@
 import {genkit} from 'genkit';
+import {googleAI} from '@genkit-ai/google-genai';
 import Groq from 'groq-sdk';
 
-// Initialize Genkit instance with Groq as the primary engine
+/**
+ * تهيئة Genkit ليكون محركاً مرناً يدعم Gemini و Groq معاً.
+ * سيقوم النظام بالتبديل تلقائياً للمحرك المتاح بناءً على مفاتيح الـ API المتوفرة.
+ */
 export const ai = genkit({
-  model: 'groq/llama-3.3-70b-versatile',
+  plugins: [googleAI()],
+  model: 'googleai/gemini-1.5-flash', // الموديل الافتراضي في حال توفر مفتاح جوجل
 });
 
-// Define the Groq model adapter within Genkit
-// This allows us to use llama-3.3-70b-versatile (The strongest model for Arabic and Logic)
+// تعريف موديل Groq كبديل قوي في حال رغب المستخدم باستخدامه
 ai.defineModel(
   {
     name: 'groq/llama-3.3-70b-versatile',
     label: 'Groq Llama 3.3 70B (Neural Engine)',
   },
   async (input) => {
-    // Try to get the API key from multiple possible environment variables
-    const apiKey = process.env.GROQ_API_KEY || 
-                   process.env.NEXT_PUBLIC_GROQ_API_KEY || 
-                   process.env.GROK_API_KEY; // Handling common typo
+    const apiKey = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY;
 
     if (!apiKey) {
       return {
@@ -28,12 +29,9 @@ ai.defineModel(
       };
     }
 
-    const groq = new Groq({
-      apiKey: apiKey,
-    });
+    const groq = new Groq({ apiKey });
 
-    // Transform messages for Groq compatibility
-    // Genkit uses 'model', Groq uses 'assistant'
+    // تحويل الأدوار للتوافق مع Groq (Genkit يستخدم model، بينما Groq يتوقع assistant)
     const messages = input.messages.map((m) => ({
       role: (m.role === 'model' ? 'assistant' : m.role) as 'system' | 'user' | 'assistant',
       content: m.content.map((c) => c.text || '').join(''),
@@ -44,10 +42,8 @@ ai.defineModel(
         model: 'llama-3.3-70b-versatile',
         messages,
         temperature: 0.7,
-        max_tokens: 2048,
       });
 
-      // Return result in Genkit expected format (using 'model' role)
       return {
         message: {
           role: 'model',
@@ -55,11 +51,10 @@ ai.defineModel(
         },
       };
     } catch (error: any) {
-      console.error('Groq AI Error:', error);
       return {
         message: {
           role: 'model',
-          content: [{ text: "عذراً، حدث خطأ أثناء الاتصال بالمحرك العصبي (Groq). يرجى التأكد من أن المفتاح صحيح وله صلاحية الوصول للموديل المطلوب." }],
+          content: [{ text: "عذراً، حدث خطأ أثناء الاتصال بـ Groq. تأكد من صحة المفتاح." }],
         },
       };
     }
