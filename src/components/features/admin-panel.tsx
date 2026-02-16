@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -21,6 +20,8 @@ import { getSubjects, addSubject, deleteSubject, Subject } from "@/lib/learning-
 import { adjustFunds, Wallet as UserWallet } from "@/lib/wallet-store";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { initializeFirebase } from "@/firebase";
+import { ref, uploadString, deleteObject } from "firebase/storage";
 
 export function AdminPanel() {
   const { toast } = useToast();
@@ -31,6 +32,7 @@ export function AdminPanel() {
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [walletAmounts, setWalletAmounts] = useState<Record<string, string>>({});
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isTestingStorage, setIsTestingStorage] = useState(false);
   
   const [broadcast, setBroadcast] = useState({ title: "", body: "", priority: "info" as Priority });
   const [newUser, setNewUser] = useState({ name: "", username: "", password: "", role: "user" as 'user'|'admin', custom_tag: "" });
@@ -75,6 +77,26 @@ export function AdminPanel() {
     });
     return engineCounts;
   }, [messages]);
+
+  const handleTestStorage = async () => {
+    setIsTestingStorage(true);
+    try {
+      const { storage } = initializeFirebase();
+      const testRef = ref(storage, 'diagnostics/neural-test.txt');
+      await uploadString(testRef, "NexusAI Connectivity Diagnostic: SUCCESS");
+      toast({ title: "Storage Online", description: "Successfully established link with Firebase Storage." });
+      await deleteObject(testRef);
+    } catch (err: any) {
+      console.error("Storage Test Error:", err);
+      toast({ 
+        variant: "destructive", 
+        title: "Storage Unreachable", 
+        description: err.message || "Failed to sync with storage bucket." 
+      });
+    } finally {
+      setIsTestingStorage(false);
+    }
+  };
 
   const handleRegisterUser = async () => {
     if (!newUser.name || !newUser.username || !newUser.password) return;
@@ -165,6 +187,14 @@ export function AdminPanel() {
                   </div>
                   <Badge className="bg-green-500/20 text-green-400 border-green-500/30">ONLINE</Badge>
                 </div>
+                <Button 
+                  onClick={handleTestStorage}
+                  disabled={isTestingStorage}
+                  className="w-full bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl mt-4 h-12"
+                >
+                  {isTestingStorage ? <Loader2 className="size-4 animate-spin mr-2" /> : <ShieldCheck className="size-4 mr-2 text-indigo-400" />}
+                  Test Storage Connection
+                </Button>
               </div>
             </Card>
 
@@ -190,7 +220,7 @@ export function AdminPanel() {
                       <div className="mt-4 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-indigo-500 transition-all duration-1000" 
-                          style={{ width: `${Math.min((count / messages.length) * 100, 100)}%` }} 
+                          style={{ width: `${Math.min((count / (messages.length || 1)) * 100, 100)}%` }} 
                         />
                       </div>
                     </div>
