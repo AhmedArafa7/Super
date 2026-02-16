@@ -24,7 +24,7 @@ export interface Video {
   uploaderRole: 'admin' | 'user';
   createdAt: string;
   source: VideoSource;
-  externalUrl?: string; // رابط يوتيوب مثلاً
+  externalUrl?: string;
 }
 
 export const getStoredVideos = async (): Promise<Video[]> => {
@@ -50,8 +50,8 @@ export const addVideo = async (video: Omit<Video, 'id' | 'createdAt' | 'views'>)
   if (video.uploaderRole === 'user') {
     addNotification({
       type: 'content_new',
-      title: 'New Video Submission',
-      message: `Review required: "${video.title}" (${video.source})`,
+      title: 'New Neural Broadcast',
+      message: `Content analysis required for: "${video.title}"`,
       priority: 'info'
     });
   }
