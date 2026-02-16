@@ -7,6 +7,7 @@ import { addNotification } from './notification-store';
 
 export type VideoStatus = 'published' | 'pending_review' | 'rejected' | 'needs_action';
 export type Visibility = 'public' | 'unlisted' | 'private';
+export type VideoSource = 'local' | 'youtube';
 
 export interface Video {
   id: string;
@@ -22,6 +23,8 @@ export interface Video {
   adminFeedback?: string;
   uploaderRole: 'admin' | 'user';
   createdAt: string;
+  source: VideoSource;
+  externalUrl?: string; // رابط يوتيوب مثلاً
 }
 
 export const getStoredVideos = async (): Promise<Video[]> => {
@@ -39,7 +42,7 @@ export const addVideo = async (video: Omit<Video, 'id' | 'createdAt' | 'views'>)
   const { firestore } = initializeFirebase();
   const payload = {
     ...video,
-    views: Math.floor(Math.random() * 5000 + 100).toLocaleString(), // محاكاة لعدد المشاهدات
+    views: Math.floor(Math.random() * 5000 + 100).toLocaleString(),
     createdAt: new Date().toISOString()
   };
   const docRef = await addDoc(collection(firestore, 'videos'), payload);
@@ -48,7 +51,7 @@ export const addVideo = async (video: Omit<Video, 'id' | 'createdAt' | 'views'>)
     addNotification({
       type: 'content_new',
       title: 'New Video Submission',
-      message: `Review required: "${video.title}"`,
+      message: `Review required: "${video.title}" (${video.source})`,
       priority: 'info'
     });
   }

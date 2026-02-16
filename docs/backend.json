@@ -14,36 +14,18 @@
         "custom_tag": { "type": "string" }
       }
     },
-    "ChatMessage": {
-      "title": "ChatMessage",
+    "Video": {
+      "title": "Video",
+      "description": "A broadcast clip or external link in StreamHub.",
+      "type": "object",
       "properties": {
-        "userId": { "type": "string" },
-        "userName": { "type": "string" },
-        "text": { "type": "string" },
-        "response": { "type": "string" },
-        "engine": { "type": "string" },
-        "status": { "type": "string" },
-        "timestamp": { "type": "string" },
-        "attachments": { "type": "array" }
-      }
-    },
-    "Wallet": {
-      "title": "Wallet",
-      "properties": {
-        "balance": { "type": "number" },
-        "frozenBalance": { "type": "number" },
-        "currency": { "type": "string" }
-      }
-    },
-    "MarketOffer": {
-      "title": "MarketOffer",
-      "properties": {
-        "productId": { "type": "string" },
-        "buyerId": { "type": "string" },
-        "sellerId": { "type": "string" },
-        "status": { "type": "string" },
-        "type": { "type": "string" },
-        "value": { "type": "number" }
+        "title": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "views": { "type": "string" },
+        "author": { "type": "string" },
+        "source": { "type": "string", "enum": ["local", "youtube"] },
+        "externalUrl": { "type": "string" },
+        "status": { "type": "string" }
       }
     }
   },
@@ -53,10 +35,8 @@
     "/users/{userId}/wallet/main": { "description": "Credit balance" },
     "/users/{userId}/transactions/{txId}": { "description": "Financial ledger" },
     "/subjects/{subId}": { "description": "Learning subjects" },
-    "/subjects/{subId}/collections/{colId}": { "description": "Lessons within subjects" },
-    "/subjects/{subId}/collections/{colId}/learning_items/{itemId}": { "description": "Videos, documents, text in lessons" },
     "/products/{productId}": { "description": "Market items" },
     "/offers/{offerId}": { "description": "Market negotiations" },
-    "/videos/{videoId}": { "description": "StreamHub videos" }
+    "/videos/{videoId}": { "description": "StreamHub videos and broadcasts" }
   }
 }
