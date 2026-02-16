@@ -2,7 +2,8 @@
 'use client';
 
 import { create } from 'zustand';
-import { supabase } from './supabaseClient';
+import { collection, addDoc, doc, updateDoc, deleteDoc, query, orderBy, onSnapshot, getDocs, where, serverTimestamp } from 'firebase/firestore';
+import { initializeFirebase } from '@/firebase';
 import { toast } from '@/hooks/use-toast';
 
 export type MessageStatus = 'queued' | 'sent' | 'processing' | 'replied' | 'rejected';
@@ -24,9 +25,8 @@ export interface WizardMessage {
   response: string | null;
   status: MessageStatus;
   timestamp: string;
-  isEdited?: boolean;
-  editReason?: string;
   attachments?: Attachment[];
+  editReason?: string;
 }
 
 interface ChatState {
@@ -34,181 +34,114 @@ interface ChatState {
   isLoading: boolean;
   isConnected: boolean;
   isSending: boolean;
-  loadMessages: (userId: string, isAdmin: boolean) => Promise<void>;
+  loadMessages: (userId: string, isAdmin: boolean) => void;
   sendMessage: (text: string, userId: string, userName: string, attachments?: Attachment[]) => Promise<WizardMessage | null>;
-  updateMessageText: (id: string, text: string) => Promise<void>;
-  deleteMessage: (id: string) => Promise<void>;
   setConnected: (status: boolean) => void;
-  approveMessage: (id: string, response: string) => Promise<void>;
-  rejectMessage: (id: string) => Promise<void>;
-  editMessage: (id: string, newResponse: string, reason: string) => Promise<void>;
 }
-
-const mapMessageFromDB = (m: any): WizardMessage => {
-  return {
-    id: m.id,
-    userId: m.sender_id || 'unknown',
-    userName: m.sender_name || 'Anonymous Node',
-    text: m.text || '',
-    response: m.response || null,
-    status: (m.status as MessageStatus) || 'sent',
-    timestamp: m.created_at || new Date().toISOString(),
-    isEdited: m.is_edited || false,
-    editReason: m.edit_reason || '',
-    attachments: m.attachments || []
-  };
-};
 
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   isLoading: false,
-  isConnected: false,
+  isConnected: true,
   isSending: false,
 
   setConnected: (status) => set({ isConnected: status }),
 
-  loadMessages: async (userId, isAdmin) => {
+  loadMessages: (userId, isAdmin) => {
     set({ isLoading: true });
-    try {
-      const { data, error } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-      if (error) throw error;
-      
-      let mapped = (data || []).map(mapMessageFromDB);
-      if (!isAdmin && userId) {
-        mapped = mapped.filter(m => m.userId === userId);
-      }
-      
-      set({ messages: mapped, isLoading: false, isConnected: true });
-    } catch (err: any) {
-      console.error('📡 Sync Failure: Could not load neural history.', err.message);
+    const { firestore } = initializeFirebase();
+    
+    // For admin, we query all messages from all users (Collection Group would be better but requires index)
+    // For MVP, we'll listen to the specific user's messages. 
+    // In Admin Panel, we fetch all messages manually via getStoredMessages.
+    const messagesRef = collection(firestore, 'users', userId, 'messages');
+    const q = query(messagesRef, orderBy('timestamp', 'asc'));
+
+    return onSnapshot(q, (snapshot) => {
+      const messages = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as WizardMessage));
+      set({ messages, isLoading: false });
+    }, (err) => {
+      console.error("Firestore Listen Error:", err);
       set({ isLoading: false, isConnected: false });
-    }
+    });
   },
 
   sendMessage: async (text, userId, userName, attachments) => {
-    const optimisticId = crypto.randomUUID();
-    const optimisticMsg: WizardMessage = {
-      id: optimisticId,
-      userId,
-      userName,
-      text,
-      response: null,
-      status: 'queued',
-      timestamp: new Date().toISOString(),
-      attachments: attachments ?? []
-    };
-
-    set(state => ({ 
-      messages: [...state.messages, optimisticMsg],
-      isSending: true 
-    }));
+    const { firestore } = initializeFirebase();
+    set({ isSending: true });
 
     try {
-      const payload = {
-        sender_id: userId,
-        sender_name: userName,
-        text: text,
+      const msgData = {
+        userId,
+        userName,
+        text,
+        response: null,
         status: 'sent',
+        timestamp: new Date().toISOString(),
         attachments: attachments ?? []
       };
 
-      const { data, error } = await supabase.from('messages').insert([payload]).select().single();
-      if (error) throw error;
-
-      const savedMsg = mapMessageFromDB(data);
-      set(state => ({
-        messages: state.messages.map(m => m.id === optimisticId ? savedMsg : m),
-        isSending: false
-      }));
-      return savedMsg;
-    } catch (err: any) {
-      toast({ 
-        variant: 'destructive', 
-        title: 'Neural Link Interrupted', 
-        description: 'Failed to transmit message to the cloud node. Check your connection.' 
-      });
-      set(state => ({ 
-        messages: state.messages.filter(m => m.id !== optimisticId),
-        isSending: false 
-      }));
+      const docRef = await addDoc(collection(firestore, 'users', userId, 'messages'), msgData);
+      set({ isSending: false });
+      return { id: docRef.id, ...msgData } as WizardMessage;
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Transmission Error', description: 'Failed to sync with local node.' });
+      set({ isSending: false });
       return null;
-    }
-  },
-
-  updateMessageText: async (id, text) => {
-    try {
-      const { error } = await supabase.from('messages').update({ text }).eq('id', id);
-      if (error) throw error;
-      set(state => ({
-        messages: state.messages.map(m => m.id === id ? { ...m, text } : m)
-      }));
-    } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Edit Error', description: err.message });
-    }
-  },
-
-  deleteMessage: async (id) => {
-    try {
-      const { error } = await supabase.from('messages').delete().eq('id', id);
-      if (error) throw error;
-      set(state => ({ messages: state.messages.filter(m => m.id !== id) }));
-    } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Retract Error', description: err.message });
-    }
-  },
-
-  approveMessage: async (id, response) => {
-    try {
-      const { error } = await supabase.from('messages').update({ response, status: 'replied' }).eq('id', id);
-      if (error) throw error;
-      set(state => ({
-        messages: state.messages.map(m => m.id === id ? { ...m, response, status: 'replied' } : m)
-      }));
-    } catch (err: any) {
-      console.error('Failed to update message with AI response:', err);
-    }
-  },
-
-  rejectMessage: async (id) => {
-    try {
-      const { error } = await supabase.from('messages').update({ status: 'rejected' }).eq('id', id);
-      if (error) throw error;
-      set(state => ({
-        messages: state.messages.map(m => m.id === id ? { ...m, status: 'rejected' } : m)
-      }));
-    } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Admin Error', description: err.message });
-    }
-  },
-
-  editMessage: async (id, newResponse, reason) => {
-    try {
-      const { error } = await supabase.from('messages').update({
-        response: newResponse,
-        is_edited: true,
-        edit_reason: reason
-      }).eq('id', id);
-      if (error) throw error;
-      set(state => ({
-        messages: state.messages.map(m => m.id === id ? { 
-          ...m, 
-          response: newResponse, 
-          isEdited: true, 
-          editReason: reason
-        } : m)
-      }));
-    } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Correction Error', description: err.message });
     }
   }
 }));
 
-export const getStoredMessages = async (userId?: string, isAdmin?: boolean) => {
-  const store = useChatStore.getState();
-  await store.loadMessages(userId || '', !!isAdmin);
-  return useChatStore.getState().messages;
+// STANDALONE EXPORTS FOR ADMIN PANEL
+export const getStoredMessages = async (userId?: string, fetchAll = false): Promise<WizardMessage[]> => {
+  const { firestore } = initializeFirebase();
+  const allMessages: WizardMessage[] = [];
+  
+  if (fetchAll) {
+    // In a real app, use a collectionGroup query. For MVP, we fetch users and their messages.
+    const usersSnap = await getDocs(collection(firestore, 'users'));
+    for (const userDoc of usersSnap.docs) {
+      const msgSnap = await getDocs(collection(firestore, 'users', userDoc.id, 'messages'));
+      msgSnap.forEach(d => allMessages.push({ id: d.id, ...d.data() } as WizardMessage));
+    }
+  } else if (userId) {
+    const q = query(collection(firestore, 'users', userId, 'messages'), orderBy('timestamp', 'asc'));
+    const snap = await getDocs(q);
+    snap.forEach(d => allMessages.push({ id: d.id, ...d.data() } as WizardMessage));
+  }
+  
+  return allMessages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
-export const approveMessage = (id: string, response: string) => useChatStore.getState().approveMessage(id, response);
-export const rejectMessage = (id: string) => useChatStore.getState().rejectMessage(id);
-export const editMessage = (id: string, newResponse: string, reason: string) => useChatStore.getState().editMessage(id, newResponse, reason);
+export const approveMessage = async (id: string, userId: string, response: string) => {
+  const { firestore } = initializeFirebase();
+  const docRef = doc(firestore, 'users', userId, 'messages', id);
+  await updateDoc(docRef, {
+    response,
+    status: 'replied'
+  });
+};
+
+export const rejectMessage = async (id: string, userId: string) => {
+  const { firestore } = initializeFirebase();
+  const docRef = doc(firestore, 'users', userId, 'messages', id);
+  await updateDoc(docRef, {
+    status: 'rejected'
+  });
+};
+
+export const editMessage = async (id: string, userId: string, newResponse: string, reason: string) => {
+  const { firestore } = initializeFirebase();
+  const docRef = doc(firestore, 'users', userId, 'messages', id);
+  await updateDoc(docRef, {
+    response: newResponse,
+    editReason: reason,
+    status: 'replied'
+  });
+};
+
+export const updateMessageStatus = async (id: string, userId: string, status: MessageStatus) => {
+  const { firestore } = initializeFirebase();
+  const docRef = doc(firestore, 'users', userId, 'messages', id);
+  await updateDoc(docRef, { status });
+};

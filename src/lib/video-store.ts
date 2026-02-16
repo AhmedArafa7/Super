@@ -1,5 +1,8 @@
+
 'use client';
 
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
+import { initializeFirebase } from '@/firebase';
 import { addNotification } from './notification-store';
 
 export type VideoStatus = 'published' | 'pending_review' | 'rejected' | 'needs_action';
@@ -15,77 +18,50 @@ export interface Video {
   time: string;
   status: VideoStatus;
   visibility: Visibility;
-  allowedUserIds: string[]; // usernames for simplicity
+  allowedUserIds: string[];
   adminFeedback?: string;
   uploaderRole: 'admin' | 'user';
   createdAt: string;
 }
 
-const STORAGE_KEY = 'nexus_stream_videos';
-
-const INITIAL_MOCK_VIDEOS: Video[] = [
-  { id: "1", title: "Concept Art: Cyberpunk City 2077", thumbnail: "https://images.unsplash.com/photo-1533577116850-9cc66cad8a9b", views: "1.2M", author: "Master Admin", authorId: "admin-id", time: "12:04", status: 'published', visibility: 'public', allowedUserIds: [], uploaderRole: 'admin', createdAt: new Date().toISOString() },
-  { id: "2", title: "React Mastery: Build a Nexus UI", thumbnail: "https://images.unsplash.com/photo-1656680632373-e2aec264296b", views: "850K", author: "Master Admin", authorId: "admin-id", time: "45:12", status: 'published', visibility: 'public', allowedUserIds: [], uploaderRole: 'admin', createdAt: new Date().toISOString() },
-];
-
-export const getStoredVideos = (): Video[] => {
-  if (typeof window === 'undefined') return [];
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return stored ? JSON.parse(stored) : INITIAL_MOCK_VIDEOS;
+export const getStoredVideos = async (): Promise<Video[]> => {
+  const { firestore } = initializeFirebase();
+  const snap = await getDocs(query(collection(firestore, 'videos'), orderBy('createdAt', 'desc')));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Video));
 };
 
-export const saveVideos = (videos: Video[]) => {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(videos));
-  window.dispatchEvent(new Event('videos-update'));
-};
-
-export const addVideo = (video: Omit<Video, 'id' | 'createdAt' | 'views'>): Video => {
-  const videos = getStoredVideos();
-  const newVideo: Video = {
+export const addVideo = async (video: Omit<Video, 'id' | 'createdAt' | 'views'>): Promise<string> => {
+  const { firestore } = initializeFirebase();
+  const payload = {
     ...video,
-    id: Math.random().toString(36).substring(2, 15),
     views: "0",
-    createdAt: new Date().toISOString(),
+    createdAt: new Date().toISOString()
   };
-  saveVideos([newVideo, ...videos]);
+  const docRef = await addDoc(collection(firestore, 'videos'), payload);
   
   if (video.uploaderRole === 'user') {
-    // Notify admins (mocking admin notification)
     addNotification({
       type: 'content_new',
-      title: 'New Content Submission',
-      message: `User ${video.author} submitted a video for review: "${video.title}"`,
+      title: 'New Video Submission',
+      message: `Review required: "${video.title}"`,
       priority: 'info'
     });
   }
   
-  return newVideo;
+  window.dispatchEvent(new Event('videos-update'));
+  return docRef.id;
 };
 
-export const updateVideoStatus = (id: string, status: VideoStatus, feedback?: string) => {
-  const videos = getStoredVideos();
-  const updated = videos.map(v => {
-    if (v.id === id) {
-      const updatedVideo = { ...v, status, adminFeedback: feedback };
-      
-      // Notify uploader
-      addNotification({
-        type: 'content_new',
-        title: status === 'published' ? 'Video Approved!' : status === 'needs_action' ? 'Video Needs Action' : 'Video Rejected',
-        message: status === 'published' ? `Your video "${v.title}" is now live.` : `Admin feedback: ${feedback}`,
-        userId: v.authorId,
-        metadata: { videoId: v.id }
-      });
-      
-      return updatedVideo;
-    }
-    return v;
-  });
-  saveVideos(updated);
+export const updateVideoStatus = async (id: string, status: VideoStatus, feedback?: string) => {
+  const { firestore } = initializeFirebase();
+  const videoRef = doc(firestore, 'videos', id);
+  await updateDoc(videoRef, { status, adminFeedback: feedback });
+  
+  window.dispatchEvent(new Event('videos-update'));
 };
 
-export const deleteVideo = (id: string) => {
-  const videos = getStoredVideos();
-  saveVideos(videos.filter(v => v.id !== id));
+export const deleteVideo = async (id: string) => {
+  const { firestore } = initializeFirebase();
+  await deleteDoc(doc(firestore, 'videos', id));
+  window.dispatchEvent(new Event('videos-update'));
 };

@@ -1,278 +1,70 @@
+
 {
   "entities": {
+    "User": {
+      "title": "User",
+      "description": "Represents a user profile in the NexusAI ecosystem.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "fullName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "avatarUrl": { "type": "string" },
+        "customTag": { "type": "string" }
+      },
+      "required": ["id", "username", "role"]
+    },
     "ChatMessage": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ChatMessage",
+      "description": "A message in the AI chat history.",
       "type": "object",
-      "description": "Represents an individual message within the AI chat interface, either from a user or the AI.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ChatMessage entity."
-        },
-        "content": {
-          "type": "string",
-          "description": "The text content of the message."
-        },
-        "timestamp": {
-          "type": "string",
-          "description": "The date and time when the message was created or sent.",
-          "format": "date-time"
-        },
-        "sender": {
-          "type": "string",
-          "description": "The originator of the message (e.g., 'User' or 'AI')."
-        }
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "response": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "attachments": { "type": "array", "items": { "type": "object" } }
       },
-      "required": [
-        "id",
-        "content",
-        "timestamp",
-        "sender"
-      ]
+      "required": ["senderId", "text", "status", "createdAt"]
     },
-    "Video": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Video",
+    "Wallet": {
+      "title": "Wallet",
+      "description": "User credit balance and holdings.",
       "type": "object",
-      "description": "Represents a video available for viewing on the StreamHub platform.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Video entity."
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the video."
-        },
-        "thumbnailUrl": {
-          "type": "string",
-          "description": "The URL to the thumbnail image for the video.",
-          "format": "uri"
-        },
-        "views": {
-          "type": "number",
-          "description": "The number of times the video has been viewed."
-        },
-        "author": {
-          "type": "string",
-          "description": "The name of the author or uploader of the video."
-        }
+        "balance": { "type": "number" },
+        "frozenBalance": { "type": "number" },
+        "currency": { "type": "string" }
       },
-      "required": [
-        "id",
-        "title",
-        "thumbnailUrl",
-        "views",
-        "author"
-      ]
-    },
-    "Product": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Product",
-      "type": "object",
-      "description": "Represents a tech product available for purchase in the TechMarket e-commerce section.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Product entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the product."
-        },
-        "description": {
-          "type": "string",
-          "description": "A brief description of the product."
-        },
-        "price": {
-          "type": "number",
-          "description": "The price of the product."
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "The URL to the main image of the product.",
-          "format": "uri"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "price",
-        "imageUrl"
-      ]
-    },
-    "Cart": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Cart",
-      "type": "object",
-      "description": "Represents a shopping cart, holding references to items selected for purchase.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Cart entity. (Typically associated with a user or session)."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "The timestamp when the cart was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "The timestamp when the cart was last modified.",
-          "format": "date-time"
-        },
-        "cartItemIds": {
-          "type": "array",
-          "description": "An array of IDs referencing CartItem entities associated with this cart. (Relationship: Cart 1:N CartItem)",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "id",
-        "createdAt",
-        "updatedAt",
-        "cartItemIds"
-      ]
-    },
-    "CartItem": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CartItem",
-      "type": "object",
-      "description": "Represents a specific product and its quantity within a shopping cart.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the CartItem entity."
-        },
-        "cartId": {
-          "type": "string",
-          "description": "Reference to the Cart this item belongs to. (Relationship: Cart 1:N CartItem)"
-        },
-        "productId": {
-          "type": "string",
-          "description": "Reference to the Product entity added to the cart. (Relationship: Product 1:N CartItem)"
-        },
-        "quantity": {
-          "type": "number",
-          "description": "The quantity of the product in the cart."
-        }
-      },
-      "required": [
-        "id",
-        "cartId",
-        "productId",
-        "quantity"
-      ]
+      "required": ["balance", "frozenBalance"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}/chatMessages/{chatMessageId}",
-        "definition": {
-          "entityName": "ChatMessage",
-          "schema": {
-            "$ref": "#/backend/entities/ChatMessage"
-          },
-          "description": "Private chat messages associated with a specific user. Ownership is intrinsically linked to the `userId` in the path, ensuring Authorization Independence for read/write operations for the authenticated user.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns these chat messages."
-            },
-            {
-              "name": "chatMessageId",
-              "description": "The unique identifier for a specific chat message."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/videos/{videoId}",
-        "definition": {
-          "entityName": "Video",
-          "schema": {
-            "$ref": "#/backend/entities/Video"
-          },
-          "description": "Publicly viewable videos available on the StreamHub platform. Documents include a denormalized `ownerId` field to grant the original uploader write permissions, ensuring Authorization Independence for modification.",
-          "params": [
-            {
-              "name": "videoId",
-              "description": "The unique identifier for a specific video."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/products/{productId}",
-        "definition": {
-          "entityName": "Product",
-          "schema": {
-            "$ref": "#/backend/entities/Product"
-          },
-          "description": "Publicly viewable products available in the TechMarket. These documents are globally readable.",
-          "params": [
-            {
-              "name": "productId",
-              "description": "The unique identifier for a specific product."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/carts/{cartId}",
-        "definition": {
-          "entityName": "Cart",
-          "schema": {
-            "$ref": "#/backend/entities/Cart"
-          },
-          "description": "Private shopping carts belonging to a specific user. Ownership is determined by the `userId` in the path, providing Authorization Independence for cart management.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns this cart."
-            },
-            {
-              "name": "cartId",
-              "description": "The unique identifier for a specific shopping cart."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/carts/{cartId}/cartItems/{cartItemId}",
-        "definition": {
-          "entityName": "CartItem",
-          "schema": {
-            "$ref": "#/backend/entities/CartItem"
-          },
-          "description": "Private items within a specific user's shopping cart. Documents include a denormalized `ownerId` field (matching the `userId` from the parent path) for Authorization Independence, enabling direct and robust security checks for individual cart items.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns this cart item."
-            },
-            {
-              "name": "cartId",
-              "description": "The unique identifier of the parent cart."
-            },
-            {
-              "name": "cartItemId",
-              "description": "The unique identifier for a specific cart item."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The recommended Firestore data structure prioritizes Authorization Independence and Structural Segregation to ensure robust and debuggable security rules. Each collection or subcollection is designed to have a homogeneous security posture, meaning all documents within it share the same access requirements. Authorization is primarily achieved through path-based ownership for user-specific data and explicit `ownerId` denormalization for documents that live in global collections but require user-specific write access.\n\n**Authorization Independence (CRITICAL):**\n\n1.  **Path-Based Ownership:** For entities like `ChatMessage` and `Cart`, ownership is inherently defined by the path `/users/{userId}/...`. This means the `userId` in the path segment directly corresponds to `request.auth.uid` for access control, eliminating the need for `get()` calls to parent documents to determine ownership. This allows atomic operations (transactions/batches) without complex rule dependencies.\n\n2.  **Denormalized `ownerId`:** For entities like `Video` (which are globally viewable but user-owned for write operations) and `CartItem` (which are nested but benefit from direct ownership context for rule simplicity), an `ownerId` field is denormalized directly into the document. This field explicitly stores the ID of the user who owns or can modify the document. Firebase Security Rules can then directly check `request.auth.uid == resource.data.ownerId` without performing cross-document lookups. This ensures that authorization context is always available within the document itself, fully supporting Authorization Independence.\n\n**QAPs (Rules are not Filters):**\n\n1.  **Public Collections:** Collections like `/videos` and `/products` are designed for public read access. Clients can query these collections without requiring specific user authentication for `list` operations. Security rules will simply allow `read` for authenticated or even unauthenticated users.\n\n2.  **User-Scoped Collections:** Collections nested under `/users/{userId}/` (e.g., `/users/{userId}/chatMessages`, `/users/{userId}/carts`) automatically enforce that `list` operations can only return documents owned by the `request.auth.uid`. The security rules will use `allow list: if request.auth.uid == userId;`, ensuring that users only see their own data and that the rules themselves are not acting as filters after a broad data retrieval attempt. This design eliminates the possibility of inadvertently leaking data or performing inefficient queries that require server-side filtering by rules.\n\nBy adhering to these principles, the Firestore structure provides a clear, secure, and scalable foundation for the application, minimizing the complexity and potential for errors in security rule implementation."
+    "/users/{userId}": {
+      "schema": { "$ref": "#/backend/entities/User" },
+      "description": "User profile data."
+    },
+    "/users/{userId}/messages/{messageId}": {
+      "schema": { "$ref": "#/backend/entities/ChatMessage" },
+      "description": "User chat history."
+    },
+    "/users/{userId}/wallet/main": {
+      "schema": { "$ref": "#/backend/entities/Wallet" },
+      "description": "User financial data."
+    },
+    "/subjects/{subjectId}": {
+      "schema": { "type": "object" },
+      "description": "Learning subjects."
+    },
+    "/products/{productId}": {
+      "schema": { "type": "object" },
+      "description": "Marketplace items."
+    }
   }
 }

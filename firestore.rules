@@ -1,128 +1,26 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; }
 
-    /**
-     * CORE PHILOSOPHY:
-     * This ruleset implements a strict user-ownership model for private data while allowing public 
-     * discovery of shared resources. Security is enforced primarily through Path-Based Ownership 
-     * and Denormalized Authorization fields (ownerId) to ensure Authorization Independence.
-     *
-     * DATA STRUCTURE:
-     * - /users/{userId}/... : Contains private user data (ChatMessages, Carts). Access is restricted
-     *   to the authenticated user matching the {userId} path segment.
-     * - /videos/{videoId} : Publicly viewable content. Writes are restricted to the original uploader
-     *   via a denormalized 'ownerId'.
-     * - /products/{productId} : Publicly viewable catalog. Read-only for standard users.
-     *
-     * KEY SECURITY DECISIONS:
-     * - Denormalization: For Videos and CartItems, an 'ownerId' is used to perform fast, 
-     *   non-relational authorization checks without parent lookups.
-     * - Structural Segregation: User-specific data is strictly siloed under the /users/ tree to 
-     *   prevent cross-user data leakage and simplify list operations.
-     * - Prototyping Flexibility: Rules enforce WHO can access data, but do not restrict the 
-     *   SHAPE of the content fields, allowing for rapid schema evolution.
-     */
-
-    // --- Global Helper Functions ---
-
-    /** @description Checks if the request is from an authenticated user. */
-    function isSignedIn() {
-      return request.auth != null;
+    match /users/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+      match /messages/{messageId} { allow read, write: if isOwner(userId) || isAdmin(); }
+      match /wallet/{doc} { allow read: if isOwner(userId) || isAdmin(); allow write: if isAdmin(); }
     }
-
-    /** @description Checks if the authenticated user's UID matches the provided userId. */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    
+    match /subjects/{subjectId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+      match /collections/{colId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     }
-
-    /** @description Checks if the document exists and the current user is the owner. */
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
-    }
-
-    /** @description Validates that a specific field in the incoming data matches the user's UID. */
-    function isValidOwnership(field) {
-      return request.resource.data[field] == request.auth.uid;
-    }
-
-    /** @description Ensures a specific field has not been changed during an update. */
-    function isImmutable(field) {
-      return request.resource.data[field] == resource.data[field];
-    }
-
-    // --- Collection Rules ---
-
-    /**
-     * @description Rules for user-specific chat messages.
-     * @path /users/{userId}/chatMessages/{chatMessageId}
-     * @allow (create) Authenticated user 'abc' creating a message under /users/abc/...
-     * @deny (list) User 'abc' trying to list messages under /users/xyz/...
-     * @principle Restricts access to a user's own data tree using path-based ownership.
-     */
-    match /users/{userId}/chatMessages/{chatMessageId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update, delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Rules for publicly viewable videos.
-     * @path /videos/{videoId}
-     * @allow (get) Any user (even unauthenticated) viewing a video.
-     * @deny (update) User 'abc' trying to edit a video uploaded by user 'def'.
-     * @principle Public read with owner-only writes via denormalized ownerId.
-     */
-    match /videos/{videoId} {
-      allow get, list: if true;
-      
-      // CRITICAL: Cannot implement owner-only writes. The 'Video' entity is missing an 'ownerId' field in the schema.
-      // The reasoning suggests an ownerId is used, but it is not defined in the entity properties.
-      allow create: if isSignedIn() && isValidOwnership('ownerId'); // TODO: Ensure 'ownerId' is sent in request
-      allow update: if resource != null && resource.data.ownerId == request.auth.uid && isImmutable('ownerId'); 
-      allow delete: if resource != null && resource.data.ownerId == request.auth.uid;
-    }
-
-    /**
-     * @description Rules for the product catalog.
-     * @path /products/{productId}
-     * @allow (list) A shopper browsing the product list.
-     * @deny (create) Any user attempting to add a product via the client.
-     * @principle Publicly readable resource with write access restricted to administrative processes.
-     */
+    
     match /products/{productId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // Managed via Admin/Internal processes
+      allow read: if true;
+      allow write: if isSignedIn();
     }
-
-    /**
-     * @description Rules for user shopping carts.
-     * @path /users/{userId}/carts/{cartId}
-     * @allow (get) User 'abc' retrieving their own cart.
-     * @deny (delete) User 'xyz' attempting to delete user 'abc's cart.
-     * @principle Path-based ownership ensures users only manage their own shopping sessions.
-     */
-    match /users/{userId}/carts/{cartId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update, delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Rules for items within a user's cart.
-     * @path /users/{userId}/carts/{cartId}/cartItems/{cartItemId}
-     * @allow (update) User 'abc' changing the quantity of an item in their own cart.
-     * @deny (create) User 'abc' adding an item to user 'xyz's cart.
-     * @principle Nested path-based ownership protecting individual line items.
-     */
-    match /users/{userId}/carts/{cartId}/cartItems/{cartItemId} {
-      allow get, list: if isOwner(userId);
-      
-      // CRITICAL: Reasoning mentions 'ownerId' denormalization for CartItem, but field is missing from entity properties.
-      // Prototyping allows creation based on path ownership, but relational field validation is recommended.
-      allow create: if isOwner(userId); 
-      allow update, delete: if isExistingOwner(userId);
-    }
-
   }
 }

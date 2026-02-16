@@ -13,12 +13,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getStoredMessages, approveMessage, rejectMessage, updateMessageStatus, editMessage, WizardMessage, Attachment } from "@/lib/chat-store";
+import { getStoredMessages, approveMessage, rejectMessage, editMessage, WizardMessage, Attachment } from "@/lib/chat-store";
 import { addNotification, Priority } from "@/lib/notification-store";
 import { getStoredUsers, addUser, deleteUser, User as AuthUser } from "@/lib/auth-store";
 import { getStoredVideos, updateVideoStatus, deleteVideo, Video } from "@/lib/video-store";
 import { getSubjects, addSubject, deleteSubject, Subject } from "@/lib/learning-store";
-import { getWallet, adjustFunds, Wallet as UserWallet } from "@/lib/wallet-store";
+import { adjustFunds, Wallet as UserWallet } from "@/lib/wallet-store";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -26,95 +26,65 @@ export function AdminPanel() {
   const { toast } = useToast();
   const [messages, setMessages] = useState<WizardMessage[]>([]);
   const [users, setUsers] = useState<AuthUser[]>([]);
-  const [wallets, setWallets] = useState<Record<string, UserWallet>>({});
   const [videos, setVideos] = useState<Video[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [walletAmounts, setWalletAmounts] = useState<Record<string, string>>({});
   const [isRegistering, setIsRegistering] = useState(false);
   
-  // Broadcast state
   const [broadcast, setBroadcast] = useState({ title: "", body: "", priority: "info" as Priority });
-
-  // User Mgmt state
   const [newUser, setNewUser] = useState({ name: "", username: "", password: "", role: "user" as 'user'|'admin', custom_tag: "" });
-
-  // Subject Mgmt state
   const [newSubject, setNewSubject] = useState({ name: "", description: "", allowedUserIds: "" });
 
   const loadData = async () => {
-    const msgs = await getStoredMessages(undefined, true);
-    setMessages(msgs);
-    const allUsers = await getStoredUsers();
-    setUsers(allUsers);
-    setVideos(getStoredVideos());
-    const subs = await getSubjects();
-    setSubjects(subs);
-
-    // Load wallets for each user
-    const walletMap: Record<string, UserWallet> = {};
-    for (const u of allUsers) {
-      // In a real app we'd fetch these in one go, but for this MVP we'll fetch individually if needed
+    try {
+      const msgs = await getStoredMessages(undefined, true);
+      setMessages(msgs);
+      const allUsers = await getStoredUsers();
+      setUsers(allUsers);
+      const allVideos = await getStoredVideos();
+      setVideos(allVideos);
+      const subs = await getSubjects();
+      setSubjects(subs);
+    } catch (err) {
+      console.error("Admin Load Error:", err);
     }
   };
 
   useEffect(() => {
     loadData();
     const interval = setInterval(loadData, 30000); 
-    const handleAuthUpdate = () => loadData();
-    window.addEventListener('auth-update', handleAuthUpdate);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('auth-update', handleAuthUpdate);
-    };
+    return () => clearInterval(interval);
   }, []);
 
   const handleRegisterUser = async () => {
     if (!newUser.name || !newUser.username || !newUser.password) return;
-    
     setIsRegistering(true);
     try {
-      await addUser(newUser);
+      await addUser({ 
+        username: newUser.username, 
+        name: newUser.name, 
+        role: newUser.role, 
+        customTag: newUser.custom_tag 
+      });
       setNewUser({ name: "", username: "", password: "", role: "user", custom_tag: "" });
-      toast({ title: "User Registered", description: "Node activated and wallet initialized." });
+      toast({ title: "Node Activated", description: "User registered in the neural registry." });
       loadData();
     } catch (err: any) {
-      toast({ 
-        variant: "destructive", 
-        title: "Registration Failed", 
-        description: err.message || "Could not register neural node." 
-      });
+      toast({ variant: "destructive", title: "Registration Failed", description: err.message });
     } finally {
       setIsRegistering(false);
     }
   };
 
   const handleAdjustWallet = async (userId: string, type: 'deposit' | 'withdrawal') => {
-    const amountStr = walletAmounts[userId];
-    const amount = parseFloat(amountStr);
-    if (isNaN(amount) || amount <= 0) {
-      toast({ variant: "destructive", title: "Invalid Amount", description: "Enter a positive numerical value." });
-      return;
-    }
-
+    const amount = parseFloat(walletAmounts[userId]);
+    if (isNaN(amount) || amount <= 0) return;
     const success = await adjustFunds(userId, amount, type);
     if (success) {
-      toast({ 
-        title: type === 'deposit' ? "Credits Deposited" : "Credits Deducted", 
-        description: `Node balance adjusted by ${type === 'deposit' ? '+' : '-'}${amount} credits.` 
-      });
+      toast({ title: "Wallet Adjusted", description: `Balance updated for user node.` });
       setWalletAmounts(prev => ({ ...prev, [userId]: "" }));
       loadData();
-    }
-  };
-
-  const handleDeleteUser = async (id: string) => {
-    try {
-      await deleteUser(id);
-      toast({ title: "Node Deactivated", description: "User and associated data removed from registry." });
-      loadData();
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Purge Failed", description: err.message });
     }
   };
 
@@ -127,10 +97,8 @@ export function AdminPanel() {
       priority: broadcast.priority
     });
     setBroadcast({ title: "", body: "", priority: "info" });
-    toast({ title: "Broadcast Transmitted", description: "Global notification sent to all Nexus units." });
+    toast({ title: "Broadcast Transmitted", description: "Global alert sent to all nodes." });
   };
-
-  const pendingVideos = videos.filter(v => v.status === 'pending_review');
 
   return (
     <div className="p-8 max-w-7xl mx-auto flex flex-col h-[calc(100vh-8rem)]">
@@ -203,7 +171,7 @@ export function AdminPanel() {
                 <div className="grid gap-1.5">
                   <Label>Custom Classification</Label>
                   <Input 
-                    placeholder="e.g., Beta Tester, VIP" 
+                    placeholder="e.g., VIP, Beta" 
                     className="bg-white/5 border-white/10 rounded-xl h-11"
                     value={newUser.custom_tag}
                     onChange={(e) => setNewUser({...newUser, custom_tag: e.target.value})}
@@ -212,7 +180,7 @@ export function AdminPanel() {
                 <Button 
                   onClick={handleRegisterUser}
                   className="w-full mt-4 h-12 bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg"
-                  disabled={!newUser.name || !newUser.username || !newUser.password || isRegistering}
+                  disabled={!newUser.name || !newUser.username || isRegistering}
                 >
                   {isRegistering ? "Synchronizing..." : "Confirm Registration"}
                 </Button>
@@ -236,52 +204,43 @@ export function AdminPanel() {
                           <div>
                             <div className="flex items-center gap-2">
                               <p className="font-bold text-white text-base">{u.name}</p>
-                              {u.custom_tag && <Badge variant="outline" className="text-[8px] border-indigo-500/30 text-indigo-400 px-1.5 h-4 uppercase">{u.custom_tag}</Badge>}
+                              {u.customTag && <Badge variant="outline" className="text-[8px] border-indigo-500/30 text-indigo-400 px-1.5 h-4 uppercase">{u.customTag}</Badge>}
                             </div>
-                            <div className="flex items-center gap-2">
-                               <span className="text-[10px] text-muted-foreground uppercase font-mono">@{u.username}</span>
-                               <span className="text-[10px] text-indigo-400 font-bold uppercase">{u.role}</span>
-                            </div>
+                            <span className="text-[10px] text-muted-foreground uppercase font-mono">@{u.username} • {u.role}</span>
                           </div>
                         </div>
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="text-red-400 hover:bg-red-500/10 rounded-xl size-9"
-                          disabled={u.id === 'admin-id'}
-                          onClick={() => handleDeleteUser(u.id)}
+                          className="text-red-400 hover:bg-red-500/10 rounded-xl"
+                          onClick={() => deleteUser(u.id)}
                         >
                           <Trash2 className="size-5" />
                         </Button>
                       </div>
 
                       <div className="flex items-center gap-3 bg-white/5 p-3 rounded-2xl border border-white/5">
-                        <div className="flex-1 relative">
-                          <Input 
-                            type="number"
-                            placeholder="Amount..."
-                            className="bg-transparent border-none h-9 text-sm focus-visible:ring-0 pl-8"
-                            value={walletAmounts[u.id] || ""}
-                            onChange={(e) => setWalletAmounts({...walletAmounts, [u.id]: e.target.value})}
-                          />
-                          <Tag className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-                        </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            className="bg-green-600/20 text-green-400 hover:bg-green-600/30 h-9 rounded-xl border border-green-600/20 px-4 text-[10px] font-bold"
-                            onClick={() => handleAdjustWallet(u.id, 'deposit')}
-                          >
-                            <PlusCircle className="size-3.5 mr-1.5" /> Deposit
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            className="bg-red-600/20 text-red-400 hover:bg-red-600/30 h-9 rounded-xl border border-red-600/20 px-4 text-[10px] font-bold"
-                            onClick={() => handleAdjustWallet(u.id, 'withdrawal')}
-                          >
-                            <MinusCircle className="size-3.5 mr-1.5" /> Deduct
-                          </Button>
-                        </div>
+                        <Input 
+                          type="number"
+                          placeholder="Amount..."
+                          className="bg-transparent border-none h-9 text-sm"
+                          value={walletAmounts[u.id] || ""}
+                          onChange={(e) => setWalletAmounts({...walletAmounts, [u.id]: e.target.value})}
+                        />
+                        <Button 
+                          size="sm" 
+                          className="bg-green-600/20 text-green-400 hover:bg-green-600/30 h-9 rounded-xl px-4 text-[10px] font-bold"
+                          onClick={() => handleAdjustWallet(u.id, 'deposit')}
+                        >
+                          Deposit
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          className="bg-red-600/20 text-red-400 hover:bg-red-600/30 h-9 rounded-xl px-4 text-[10px] font-bold"
+                          onClick={() => handleAdjustWallet(u.id, 'withdrawal')}
+                        >
+                          Deduct
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -314,42 +273,35 @@ export function AdminPanel() {
                         </div>
                         <Badge variant="outline" className="text-[8px] h-4 border-indigo-500/30 text-indigo-400">PENDING</Badge>
                       </div>
-                      <p className="text-sm text-slate-300 bg-black/20 p-4 rounded-2xl border border-white/5 italic">"{m.text}"</p>
+                      <p className="text-sm text-slate-300 italic">"{m.text}"</p>
                       
-                      {m.attachments && m.attachments.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {m.attachments.map(att => (
-                            <Badge key={att.id} variant="secondary" className="bg-white/5 border-white/10 text-[9px] gap-1 px-2">
-                              {att.type === 'image' ? <ImageIcon className="size-2.5" /> : <FileText className="size-2.5" />}
-                              {att.name}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-
                       <div className="space-y-3">
                         <Textarea 
                           placeholder="Compose neural response..." 
-                          className="bg-white/5 border-white/10 rounded-xl text-sm min-h-[100px]"
+                          className="bg-white/5 border-white/10 rounded-xl text-sm min-h-[80px]"
                           value={responses[m.id] || ""}
                           onChange={(e) => setResponses({...responses, [m.id]: e.target.value})}
                         />
                         <div className="flex gap-2">
                           <Button 
                             className="flex-1 bg-indigo-600 hover:bg-indigo-500 rounded-xl h-11 font-bold"
-                            onClick={() => {
-                              approveMessage(m.id, responses[m.id] || "");
-                              toast({ title: "Response Authorized", description: "Neural packet transmitted to user node." });
+                            onClick={async () => {
+                              await approveMessage(m.id, m.userId, responses[m.id] || "");
+                              toast({ title: "Response Transmitted", description: "Neural packet sent to user node." });
+                              loadData();
                             }}
                           >
-                            <Send className="size-4 mr-2" /> Transmit
+                            Transmit
                           </Button>
                           <Button 
                             variant="ghost" 
                             className="text-red-400 hover:bg-red-500/10 rounded-xl h-11"
-                            onClick={() => rejectMessage(m.id)}
+                            onClick={async () => {
+                              await rejectMessage(m.id, m.userId);
+                              loadData();
+                            }}
                           >
-                            <X className="size-4" />
+                            Reject
                           </Button>
                         </div>
                       </div>
@@ -383,41 +335,24 @@ export function AdminPanel() {
                       <div className="mt-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button size="sm" variant="outline" className="h-8 text-[10px] rounded-lg border-white/10">
-                              <Edit3 className="size-3 mr-1.5" /> Adjust Response
-                            </Button>
+                            <Button size="sm" variant="outline" className="h-8 text-[10px] rounded-lg">Adjust Response</Button>
                           </DialogTrigger>
                           <DialogContent className="bg-slate-900 border-white/10 text-white rounded-3xl">
                             <DialogHeader>
                               <DialogTitle>Neural Correction</DialogTitle>
-                              <DialogDescription>Modify previously transmitted response.</DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
-                              <div className="grid gap-2">
-                                <Label>New Response</Label>
-                                <Textarea 
-                                  defaultValue={m.response || ""} 
-                                  id={`edit-${m.id}`}
-                                  className="bg-white/5 border-white/10 rounded-xl min-h-[150px]"
-                                />
-                              </div>
-                              <div className="grid gap-2">
-                                <Label>Correction Reason</Label>
-                                <Input id={`reason-${m.id}`} placeholder="Why is this being corrected?" className="bg-white/5 border-white/10 rounded-xl" />
-                              </div>
+                              <Textarea id={`edit-${m.id}`} defaultValue={m.response || ""} className="bg-white/5 min-h-[150px]" />
+                              <Input id={`reason-${m.id}`} placeholder="Correction reason..." className="bg-white/5" />
                             </div>
                             <DialogFooter>
-                              <Button 
-                                className="w-full bg-indigo-600 rounded-xl"
-                                onClick={() => {
-                                  const text = (document.getElementById(`edit-${m.id}`) as HTMLTextAreaElement).value;
-                                  const reason = (document.getElementById(`reason-${m.id}`) as HTMLInputElement).value;
-                                  editMessage(m.id, text, reason);
-                                  toast({ title: "Archived Updated", description: "Neural history has been modified." });
-                                }}
-                              >
-                                <Save className="size-4 mr-2" /> Save Correction
-                              </Button>
+                              <Button className="w-full bg-indigo-600" onClick={async () => {
+                                const text = (document.getElementById(`edit-${m.id}`) as HTMLTextAreaElement).value;
+                                const reason = (document.getElementById(`reason-${m.id}`) as HTMLInputElement).value;
+                                await editMessage(m.id, m.userId, text, reason);
+                                toast({ title: "Archive Updated" });
+                                loadData();
+                              }}>Save Correction</Button>
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
@@ -439,50 +374,21 @@ export function AdminPanel() {
               </h3>
               <ScrollArea className="flex-1">
                 <div className="space-y-4 pr-4">
-                  {pendingVideos.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 opacity-40">
-                      <CheckCircle2 className="size-12 mb-4" />
-                      <p>All broadcasts cleared.</p>
-                    </div>
-                  ) : (
-                    pendingVideos.map((v) => (
-                      <div key={v.id} className="p-6 bg-white/5 border border-white/5 rounded-[2rem] space-y-4">
-                        <div className="flex gap-4">
-                          <img src={v.thumbnail} className="size-24 rounded-2xl object-cover border border-white/10" />
-                          <div className="flex-1">
-                            <h4 className="font-bold text-white">{v.title}</h4>
-                            <p className="text-xs text-muted-foreground">Uploader: {v.author}</p>
-                            <Badge className="mt-2 bg-indigo-500/20 text-indigo-400 border-indigo-500/30 uppercase text-[8px]">{v.visibility}</Badge>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            className="flex-1 bg-green-600 hover:bg-green-500 rounded-xl h-11"
-                            onClick={() => updateVideoStatus(v.id, 'published')}
-                          >
-                            <Check className="size-4 mr-2" /> Publish
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            className="flex-1 border-white/10 rounded-xl h-11"
-                            onClick={() => {
-                              const reason = prompt("Enter feedback for uploader:");
-                              if(reason) updateVideoStatus(v.id, 'needs_action', reason);
-                            }}
-                          >
-                            <Edit3 className="size-4 mr-2" /> Request Fix
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            className="text-red-400 hover:bg-red-500/10 rounded-xl h-11"
-                            onClick={() => updateVideoStatus(v.id, 'rejected', 'Violates community guidelines.')}
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
+                  {videos.filter(v => v.status === 'pending_review').map((v) => (
+                    <div key={v.id} className="p-6 bg-white/5 border border-white/5 rounded-[2rem] space-y-4">
+                      <div className="flex gap-4">
+                        <img src={v.thumbnail} className="size-20 rounded-xl object-cover" />
+                        <div className="flex-1">
+                          <h4 className="font-bold text-white text-sm">{v.title}</h4>
+                          <p className="text-xs text-muted-foreground">Author: {v.author}</p>
                         </div>
                       </div>
-                    ))
-                  )}
+                      <div className="flex gap-2">
+                        <Button className="flex-1 bg-green-600" onClick={() => updateVideoStatus(v.id, 'published')}>Publish</Button>
+                        <Button variant="ghost" className="text-red-400" onClick={() => updateVideoStatus(v.id, 'rejected')}>Reject</Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </ScrollArea>
             </Card>
@@ -493,61 +399,22 @@ export function AdminPanel() {
                 Learning Path Mgmt
               </h3>
               <div className="space-y-6">
-                <div className="p-6 bg-indigo-500/10 border border-indigo-500/20 rounded-3xl">
-                  <h4 className="font-bold text-white mb-4">Initialize Subject</h4>
-                  <div className="space-y-3">
-                    <Input 
-                      placeholder="Subject Title..." 
-                      className="bg-white/5 border-white/10 rounded-xl"
-                      value={newSubject.name}
-                      onChange={e => setNewSubject({...newSubject, name: e.target.value})}
-                    />
-                    <Textarea 
-                      placeholder="Brief description..." 
-                      className="bg-white/5 border-white/10 rounded-xl"
-                      value={newSubject.description}
-                      onChange={e => setNewSubject({...newSubject, description: e.target.value})}
-                    />
-                    <Input 
-                      placeholder="Restricted User IDs (optional, comma separated)..." 
-                      className="bg-white/5 border-white/10 rounded-xl"
-                      value={newSubject.allowedUserIds}
-                      onChange={e => setNewSubject({...newSubject, allowedUserIds: e.target.value})}
-                    />
-                    <Button 
-                      className="w-full bg-indigo-600 rounded-xl h-11 font-bold"
-                      onClick={async () => {
-                        if (!newSubject.name) return;
-                        const allowed = newSubject.allowedUserIds ? newSubject.allowedUserIds.split(',').map(s => s.trim()) : null;
-                        await addSubject({ title: newSubject.name, description: newSubject.description, allowedUserIds: allowed });
-                        toast({ title: "Subject Registered", description: "Learning pathway activated." });
-                        setNewSubject({ name: "", description: "", allowedUserIds: "" });
-                        loadData();
-                      }}
-                    >
-                      Authorize Subject
-                    </Button>
-                  </div>
+                <div className="p-6 bg-indigo-500/10 border border-indigo-500/20 rounded-3xl space-y-3">
+                  <Input placeholder="Subject Title..." className="bg-white/5" value={newSubject.name} onChange={e => setNewSubject({...newSubject, name: e.target.value})} />
+                  <Button className="w-full bg-indigo-600" onClick={async () => {
+                    await addSubject({ title: newSubject.name, description: newSubject.description, allowedUserIds: null });
+                    toast({ title: "Subject Registered" });
+                    setNewSubject({ name: "", description: "", allowedUserIds: "" });
+                    loadData();
+                  }}>Authorize Subject</Button>
                 </div>
-
                 <ScrollArea className="h-64">
                   <div className="space-y-2 pr-4">
                     {subjects.map(s => (
-                      <div key={s.id} className="flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl group">
-                        <div className="flex items-center gap-3">
-                          <BookOpen className="size-4 text-indigo-400" />
-                          <span className="font-bold text-sm">{s.title}</span>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="size-8 opacity-0 group-hover:opacity-100 text-red-400"
-                          onClick={async () => {
-                            await deleteSubject(s.id);
-                            loadData();
-                          }}
-                        >
-                          <Trash2 className="size-4" />
+                      <div key={s.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl">
+                        <span className="font-bold text-sm">{s.title}</span>
+                        <Button variant="ghost" size="icon" onClick={async () => { await deleteSubject(s.id); loadData(); }}>
+                          <Trash2 className="size-4 text-red-400" />
                         </Button>
                       </div>
                     ))}
@@ -559,53 +426,19 @@ export function AdminPanel() {
         </TabsContent>
 
         <TabsContent value="broadcast" className="flex-1 outline-none">
-          <Card className="glass border-white/10 rounded-[2.5rem] p-12 max-w-2xl mx-auto flex flex-col items-center text-center">
-            <div className="size-20 bg-indigo-500/10 rounded-[2rem] flex items-center justify-center border border-indigo-500/20 mb-8">
-              <Radio className="size-10 text-indigo-400 animate-pulse" />
-            </div>
-            <h3 className="text-3xl font-bold text-white mb-2">Global Broadcast</h3>
-            <p className="text-muted-foreground mb-8">Transmit an urgent notification to all active Nexus nodes.</p>
-            
-            <div className="w-full space-y-4">
-              <div className="grid gap-2 text-left">
-                <Label>Transmission Header</Label>
-                <Input 
-                  placeholder="e.g., System Maintenance Alert" 
-                  className="bg-white/5 border-white/10 rounded-xl h-12"
-                  value={broadcast.title}
-                  onChange={(e) => setBroadcast({...broadcast, title: e.target.value})}
-                />
+          <Card className="glass border-white/10 rounded-[2.5rem] p-12 max-w-2xl mx-auto text-center">
+            <Radio className="size-12 text-indigo-400 mx-auto mb-6 animate-pulse" />
+            <h3 className="text-3xl font-bold text-white mb-8">Global Broadcast</h3>
+            <div className="space-y-4 text-left">
+              <div className="grid gap-2">
+                <Label>Header</Label>
+                <Input className="bg-white/5 h-12" value={broadcast.title} onChange={e => setBroadcast({...broadcast, title: e.target.value})} />
               </div>
-              <div className="grid gap-2 text-left">
-                <Label>Packet Content</Label>
-                <Textarea 
-                  placeholder="Enter message body..." 
-                  className="bg-white/5 border-white/10 rounded-2xl min-h-[150px]"
-                  value={broadcast.body}
-                  onChange={(e) => setBroadcast({...broadcast, body: e.target.value})}
-                />
+              <div className="grid gap-2">
+                <Label>Content</Label>
+                <Textarea className="bg-white/5 min-h-[150px]" value={broadcast.body} onChange={e => setBroadcast({...broadcast, body: e.target.value})} />
               </div>
-              <div className="grid gap-2 text-left">
-                <Label>Priority Level</Label>
-                <Select value={broadcast.priority} onValueChange={(v: any) => setBroadcast({...broadcast, priority: v})}>
-                  <SelectTrigger className="bg-white/5 border-white/10 rounded-xl h-12">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-white/10 text-white">
-                    <SelectItem value="info">Routine (Info)</SelectItem>
-                    <SelectItem value="warning">Elevated (Warning)</SelectItem>
-                    <SelectItem value="critical">Critical (Override)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button 
-                onClick={handleSendBroadcast}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 rounded-xl h-14 font-bold text-lg shadow-xl shadow-indigo-600/20 mt-4"
-                disabled={!broadcast.title || !broadcast.body}
-              >
-                <BellRing className="size-5 mr-2" />
-                Initiate Broadcast
-              </Button>
+              <Button className="w-full bg-indigo-600 h-14 font-bold" onClick={handleSendBroadcast}>Initiate Broadcast</Button>
             </div>
           </Card>
         </TabsContent>
