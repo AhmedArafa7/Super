@@ -93,8 +93,8 @@ export const useWalletStore = create<WalletState>()(
           const finalAmount = type === 'deposit' ? amount : -amount;
           const newBalance = wallet.balance + finalAmount;
 
-          const { error } = await supabase.from('wallets').update({ balance: newBalance }).eq('user_id', userId);
-          if (error) throw error;
+          const { error: walletError } = await supabase.from('wallets').update({ balance: newBalance }).eq('user_id', userId);
+          if (walletError) throw walletError;
 
           await supabase.from('transactions').insert([{
             wallet_id: userId,

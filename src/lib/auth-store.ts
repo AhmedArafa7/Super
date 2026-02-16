@@ -82,7 +82,7 @@ export const addUser = async (user: Omit<User, 'id'>) => {
 };
 
 export const deleteUser = async (id: string) => {
-  // First delete associated wallet and transactions due to FK constraints
+  // Clear related data first
   await supabase.from('transactions').delete().eq('wallet_id', id);
   await supabase.from('wallets').delete().eq('user_id', id);
   const { error } = await supabase.from('users').delete().eq('id', id);
