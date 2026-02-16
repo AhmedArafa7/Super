@@ -34,9 +34,12 @@ interface ChatState {
   isLoading: boolean;
   isConnected: boolean;
   isSending: boolean;
-  loadMessages: (userId: string, isAdmin: boolean) => void;
+  loadMessages: (userId: string) => void;
   sendMessage: (text: string, userId: string, userName: string, attachments?: Attachment[]) => Promise<WizardMessage | null>;
+  deleteMessage: (id: string, userId: string) => Promise<void>;
+  updateMessageText: (id: string, userId: string, newText: string) => Promise<void>;
   setConnected: (status: boolean) => void;
+  approveMessage: (id: string, userId: string, response: string) => Promise<void>;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -47,19 +50,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setConnected: (status) => set({ isConnected: status }),
 
-  loadMessages: (userId, isAdmin) => {
+  loadMessages: (userId) => {
     set({ isLoading: true });
     const { firestore } = initializeFirebase();
     
-    // For admin, we query all messages from all users (Collection Group would be better but requires index)
-    // For MVP, we'll listen to the specific user's messages. 
-    // In Admin Panel, we fetch all messages manually via getStoredMessages.
     const messagesRef = collection(firestore, 'users', userId, 'messages');
     const q = query(messagesRef, orderBy('timestamp', 'asc'));
 
     return onSnapshot(q, (snapshot) => {
       const messages = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as WizardMessage));
-      set({ messages, isLoading: false });
+      set({ messages, isLoading: false, isConnected: true });
     }, (err) => {
       console.error("Firestore Listen Error:", err);
       set({ isLoading: false, isConnected: false });
@@ -89,6 +89,33 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ isSending: false });
       return null;
     }
+  },
+
+  deleteMessage: async (id, userId) => {
+    const { firestore } = initializeFirebase();
+    try {
+      await deleteDoc(doc(firestore, 'users', userId, 'messages', id));
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Action Failed', description: 'Could not retract request.' });
+    }
+  },
+
+  updateMessageText: async (id, userId, newText) => {
+    const { firestore } = initializeFirebase();
+    try {
+      await updateDoc(doc(firestore, 'users', userId, 'messages', id), { text: newText });
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Action Failed', description: 'Could not update transmission.' });
+    }
+  },
+
+  approveMessage: async (id, userId, response) => {
+    const { firestore } = initializeFirebase();
+    const docRef = doc(firestore, 'users', userId, 'messages', id);
+    await updateDoc(docRef, {
+      response,
+      status: 'replied'
+    });
   }
 }));
 
@@ -98,16 +125,15 @@ export const getStoredMessages = async (userId?: string, fetchAll = false): Prom
   const allMessages: WizardMessage[] = [];
   
   if (fetchAll) {
-    // In a real app, use a collectionGroup query. For MVP, we fetch users and their messages.
     const usersSnap = await getDocs(collection(firestore, 'users'));
     for (const userDoc of usersSnap.docs) {
       const msgSnap = await getDocs(collection(firestore, 'users', userDoc.id, 'messages'));
-      msgSnap.forEach(d => allMessages.push({ id: d.id, ...d.data() } as WizardMessage));
+      msgSnap.forEach(d => allMessages.push({ id: d.id, ...d.data(), userId: userDoc.id } as WizardMessage));
     }
   } else if (userId) {
     const q = query(collection(firestore, 'users', userId, 'messages'), orderBy('timestamp', 'asc'));
     const snap = await getDocs(q);
-    snap.forEach(d => allMessages.push({ id: d.id, ...d.data() } as WizardMessage));
+    snap.forEach(d => allMessages.push({ id: d.id, ...d.data(), userId } as WizardMessage));
   }
   
   return allMessages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());

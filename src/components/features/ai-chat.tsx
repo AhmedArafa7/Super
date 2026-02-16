@@ -14,7 +14,6 @@ import { clearAllUnreadNotifications } from "@/lib/notification-store";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabaseClient";
 import { EmptyState } from "@/components/ui/empty-state";
 import { aiChatGenerateResponse } from "@/ai/flows/ai-chat-generate-response";
 import { getWelcomeMessage } from "@/ai/flows/ai-chat-welcome-message";
@@ -144,23 +143,10 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
 
   useEffect(() => {
     if (!user?.id) return;
-    loadMessages(user.id, user.role === 'admin');
+    loadMessages(user.id);
 
-    const channel = supabase
-      .channel('chat-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
-        loadMessages(user.id, user.role === 'admin');
-      })
-      .subscribe((status) => {
-        setConnected(status === 'SUBSCRIBED');
-      });
-    
     clearAllUnreadNotifications(user.id);
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, loadMessages, setConnected]);
+  }, [user?.id, loadMessages]);
 
   // Welcome Message Logic using Groq
   useEffect(() => {
@@ -169,7 +155,13 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         setIsAITyping(true);
         try {
           const { message } = await getWelcomeMessage();
-          toast({ title: "Nexus Node Synchronized", description: message });
+          const isError = message.includes("GROQ_API_KEY");
+          
+          toast({ 
+            title: isError ? "Neural Link Warning" : "Nexus Node Synchronized", 
+            description: message,
+            variant: isError ? "destructive" : "default"
+          });
         } catch (err) {
           console.warn("AI Node not ready.");
         } finally {
@@ -201,7 +193,6 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       if (savedMsg) {
         setIsAITyping(true);
         
-        // Contextual History for Groq (Using Genkit Roles: user, model)
         const history = [];
         messages.slice(-5).forEach(m => {
           history.push({ role: 'user' as const, content: m.text });
@@ -210,14 +201,13 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
           }
         });
 
-        // Get Response from Groq Llama 3.3
         const responseData = await aiChatGenerateResponse({
           message: userText,
           history: history
         });
 
         if (responseData && responseData.response) {
-          await approveMessage(savedMsg.id, responseData.response);
+          await approveMessage(savedMsg.id, user.id, responseData.response);
         }
       }
     } catch (err: any) {
@@ -375,7 +365,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                     msg={msg} 
                     highlightId={highlightId} 
                     onEdit={(m) => { setEditingId(m.id); setEditingText(m.text); }}
-                    onDelete={deleteMessage}
+                    onDelete={(id) => deleteMessage(id, user?.id || '')}
                   />
                 ))}
                 {isAITyping && (
@@ -408,7 +398,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
               />
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" className="rounded-xl" onClick={() => setEditingId(null)}>Cancel</Button>
-                <Button onClick={async () => { await updateMessageText(editingId, editingText); setEditingId(null); }} className="bg-indigo-500 rounded-xl px-8">Save Transmission</Button>
+                <Button onClick={async () => { await updateMessageText(editingId, user?.id || '', editingText); setEditingId(null); }} className="bg-indigo-500 rounded-xl px-8">Save Transmission</Button>
               </div>
             </div>
           </div>
