@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -22,7 +21,7 @@ export async function getWelcomeMessage(): Promise<WelcomeMessageOutput> {
 
 const prompt = ai.definePrompt({
   name: 'welcomeMessagePrompt',
-  output: {schema: WelcomeMessageOutputSchema},
+  // We remove output.schema here to handle raw text response correctly
   prompt: `You are the NexusAI Core Assistant. 
 Generate a friendly and professional welcome message in Arabic.
 Introduce the user to NexusAI's core features:
@@ -38,7 +37,12 @@ const welcomeMessageFlow = ai.defineFlow(
     outputSchema: WelcomeMessageOutputSchema,
   },
   async () => {
-    const {output} = await prompt({});
-    return output!;
+    // Get raw response from model
+    const response = await prompt({});
+    
+    // Return wrapped text matching the flow output schema
+    return {
+      message: response.text || "مرحباً بك في NexusAI، المحرك العصبي المتطور."
+    };
   }
 );

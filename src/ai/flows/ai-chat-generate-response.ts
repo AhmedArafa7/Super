@@ -31,7 +31,7 @@ export async function aiChatGenerateResponse(input: AIChatGenerateResponseInput)
 const prompt = ai.definePrompt({
   name: 'aiChatGenerateResponsePrompt',
   input: {schema: AIChatGenerateResponseInputSchema},
-  output: {schema: AIChatGenerateResponseOutputSchema},
+  // We remove output.schema here to prevent Genkit from failing when model returns raw text
   prompt: `You are a highly intelligent AI assistant for the NexusAI ecosystem. 
 Your primary engine is Llama 3.3 70B via Groq.
 Be technical, helpful, and concise. Respond in the same language as the user (prefer Arabic if the user speaks Arabic).
@@ -53,7 +53,12 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
     outputSchema: AIChatGenerateResponseOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    // Call the prompt and get the response object
+    const response = await prompt(input);
+    
+    // Manually construct the output object using the raw text from the model
+    return {
+      response: response.text || "عذراً، لم أتمكن من معالجة الطلب حالياً."
+    };
   }
 );
