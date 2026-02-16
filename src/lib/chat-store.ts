@@ -40,6 +40,7 @@ interface ChatState {
   deleteMessage: (id: string, userId: string) => Promise<void>;
   updateMessageText: (id: string, userId: string, newText: string) => Promise<void>;
   setConnected: (status: boolean) => void;
+  provideAIResponse: (id: string, userId: string, response: string, engine?: string) => Promise<void>;
   approveMessage: (id: string, userId: string, response: string, engine?: string) => Promise<void>;
 }
 
@@ -110,18 +111,27 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
+  provideAIResponse: async (id, userId, response, engine) => {
+    const { firestore } = initializeFirebase();
+    const docRef = doc(firestore, 'users', userId, 'messages', id);
+    await updateDoc(docRef, {
+      response,
+      engine: engine || 'AI Engine',
+      // Status remains 'sent' to keep it in admin queue
+    });
+  },
+
   approveMessage: async (id, userId, response, engine) => {
     const { firestore } = initializeFirebase();
     const docRef = doc(firestore, 'users', userId, 'messages', id);
     await updateDoc(docRef, {
       response,
-      engine: engine || 'Unknown',
+      engine: engine || 'Nexus Control',
       status: 'replied'
     });
   }
 }));
 
-// STANDALONE EXPORTS FOR ADMIN PANEL
 export const getStoredMessages = async (userId?: string, fetchAll = false): Promise<WizardMessage[]> => {
   const { firestore } = initializeFirebase();
   const allMessages: WizardMessage[] = [];
@@ -146,7 +156,7 @@ export const approveMessage = async (id: string, userId: string, response: strin
   const docRef = doc(firestore, 'users', userId, 'messages', id);
   await updateDoc(docRef, {
     response,
-    engine: engine || 'Unknown',
+    engine: engine || 'Nexus Control',
     status: 'replied'
   });
 };
@@ -167,10 +177,4 @@ export const editMessage = async (id: string, userId: string, newResponse: strin
     editReason: reason,
     status: 'replied'
   });
-};
-
-export const updateMessageStatus = async (id: string, userId: string, status: MessageStatus) => {
-  const { firestore } = initializeFirebase();
-  const docRef = doc(firestore, 'users', userId, 'messages', id);
-  await updateDoc(docRef, { status });
 };

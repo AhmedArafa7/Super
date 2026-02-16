@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, memo } from "react";
-import { Send, Bot, User, Sparkles, Paperclip, Mic, Loader2, Pencil, Trash2, X, FileText, Download, Square, Music, Globe, Wifi, WifiOff, MoreVertical, AlertTriangle, Cpu } from "lucide-react";
+import { Send, Bot, User, Sparkles, Paperclip, Mic, Loader2, Pencil, Trash2, X, FileText, Download, Square, Music, Globe, Wifi, WifiOff, MoreVertical, AlertTriangle, Cpu, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -90,11 +90,30 @@ const MessageItem = memo(({
         )}
       </div>
 
-      {msg.status === 'replied' && msg.response && !isAI && (
-        <div className="flex justify-start items-start gap-3 animate-in fade-in slide-in-from-left-2 duration-500">
-          <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0"><Bot className="size-4 text-indigo-400" /></div>
-          <div className={cn("max-w-[80%] message-bubble-ai p-4 border transition-all duration-500 border-white/5", highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500")}>
+      {msg.response && !isAI && (
+        <div className={cn(
+          "flex justify-start items-start gap-3 animate-in fade-in slide-in-from-left-2 duration-500",
+          msg.status === 'sent' && "opacity-40" // Faded while waiting for admin approval
+        )}>
+          <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
+            <Bot className="size-4 text-indigo-400" />
+          </div>
+          <div className={cn(
+            "max-w-[80%] message-bubble-ai p-4 border transition-all duration-500 border-white/5 relative group/reply", 
+            highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500",
+            msg.status === 'sent' && "border-indigo-500/20"
+          )}>
+            {msg.status === 'sent' && (
+              <div className="flex items-center gap-1.5 mb-2 text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+                <ShieldCheck className="size-3" /> جاري تدقيق الجودة...
+              </div>
+            )}
             <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.response}</p>
+            {msg.status === 'replied' && (
+              <div className="flex justify-end mt-2 opacity-40">
+                <Badge variant="outline" className="text-[8px] h-4 py-0 border-white/10">مؤكد من الإدارة</Badge>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -145,7 +164,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const sendMessage = useChatStore(state => state.sendMessage);
   const deleteMessage = useChatStore(state => state.deleteMessage);
   const updateMessageText = useChatStore(state => state.updateMessageText);
-  const approveMessage = useChatStore(state => state.approveMessage);
+  const provideAIResponse = useChatStore(state => state.provideAIResponse);
 
   const [input, setInput] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -191,7 +210,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         messages.slice(-5).forEach(m => {
           if (m.userId !== 'nexus-ai') {
             history.push({ role: 'user' as const, content: m.text });
-            if (m.response) {
+            if (m.response && m.status === 'replied') {
               history.push({ role: 'model' as const, content: m.response });
             }
           }
@@ -203,8 +222,8 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         });
 
         if (responseData && responseData.response) {
-          // Model engine is not displayed here, but passed to storage for admin stats
-          await approveMessage(savedMsg.id, user.id, responseData.response, responseData.engine);
+          // Send to draft (status 'sent' remains) for admin review
+          await provideAIResponse(savedMsg.id, user.id, responseData.response, responseData.engine);
         }
       }
     } catch (err: any) {

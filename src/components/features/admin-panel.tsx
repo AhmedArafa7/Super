@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, Image as ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle, Clock, GraduationCap, BookOpen, Lock, Globe, Wallet, PlusCircle, MinusCircle, ShieldCheck, Tag, Zap, Server } from "lucide-react";
+import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, Image as ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle, Clock, GraduationCap, BookOpen, Lock, Globe, Wallet, PlusCircle, MinusCircle, ShieldCheck, Tag, Zap, Server, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -40,6 +40,16 @@ export function AdminPanel() {
     try {
       const msgs = await getStoredMessages(undefined, true);
       setMessages(msgs);
+      
+      // Pre-populate responses with AI suggestions if they exist
+      const newResponses: Record<string, string> = { ...responses };
+      msgs.forEach(m => {
+        if (m.status === 'sent' && m.response && !newResponses[m.id]) {
+          newResponses[m.id] = m.response;
+        }
+      });
+      setResponses(newResponses);
+
       const allUsers = await getStoredUsers();
       setUsers(allUsers);
       const allVideos = await getStoredVideos();
@@ -53,7 +63,7 @@ export function AdminPanel() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 30000); 
+    const interval = setInterval(loadData, 10000); // Faster polling for admin
     return () => clearInterval(interval);
   }, []);
 
@@ -343,27 +353,34 @@ export function AdminPanel() {
                             <p className="text-[10px] text-muted-foreground">{new Date(m.timestamp).toLocaleString()}</p>
                           </div>
                         </div>
-                        <Badge variant="outline" className="text-[8px] h-4 border-indigo-500/30 text-indigo-400">PENDING</Badge>
+                        {m.response ? (
+                          <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30 flex items-center gap-1.5">
+                            <Sparkles className="size-3" /> AI DRAFT READY
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[8px] h-4 border-white/10 opacity-50">AWAITING AI</Badge>
+                        )}
                       </div>
                       <p className="text-sm text-slate-300 italic">"{m.text}"</p>
                       
                       <div className="space-y-3">
+                        <Label className="text-[10px] uppercase font-bold text-indigo-400 tracking-widest px-1">Neural Response Draft</Label>
                         <Textarea 
-                          placeholder="Compose neural response..." 
-                          className="bg-white/5 border-white/10 rounded-xl text-sm min-h-[80px]"
+                          placeholder="Compose or refine neural response..." 
+                          className="bg-white/5 border-white/10 rounded-xl text-sm min-h-[100px] focus-visible:ring-indigo-500"
                           value={responses[m.id] || ""}
                           onChange={(e) => setResponses({...responses, [m.id]: e.target.value})}
                         />
                         <div className="flex gap-2">
                           <Button 
-                            className="flex-1 bg-indigo-600 hover:bg-indigo-500 rounded-xl h-11 font-bold"
+                            className="flex-1 bg-indigo-600 hover:bg-indigo-500 rounded-xl h-11 font-bold shadow-lg shadow-indigo-600/20"
                             onClick={async () => {
                               await approveMessage(m.id, m.userId, responses[m.id] || "");
                               toast({ title: "Response Transmitted", description: "Neural packet sent to user node." });
                               loadData();
                             }}
                           >
-                            Transmit
+                            <Send className="size-4 mr-2" /> Transmit to User
                           </Button>
                           <Button 
                             variant="ghost" 
