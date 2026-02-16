@@ -14,13 +14,16 @@ ai.defineModel(
     label: 'Groq Llama 3.3 70B (Neural Engine)',
   },
   async (input) => {
-    const apiKey = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY;
+    // Try to get the API key from multiple possible environment variables
+    const apiKey = process.env.GROQ_API_KEY || 
+                   process.env.NEXT_PUBLIC_GROQ_API_KEY || 
+                   process.env.GROK_API_KEY; // Handling common typo
 
     if (!apiKey) {
       return {
         message: {
           role: 'model',
-          content: [{ text: "عذراً، لم يتم العثور على مفتاح البرمجة (GROQ_API_KEY). يرجى إضافة المفتاح في ملف .env الموجود في القائمة الجانبية ليعمل الذكاء الاصطناعي." }],
+          content: [{ text: "عذراً، لم يتم العثور على مفتاح البرمجة (GROQ_API_KEY). يرجى التأكد من إضافة السطر التالي في ملف .env: \nGROQ_API_KEY=your_key_here" }],
         },
       };
     }
@@ -29,8 +32,8 @@ ai.defineModel(
       apiKey: apiKey,
     });
 
-    // Genkit roles: system, user, model, tool
-    // Groq roles: system, user, assistant
+    // Transform messages for Groq compatibility
+    // Genkit uses 'model', Groq uses 'assistant'
     const messages = input.messages.map((m) => ({
       role: (m.role === 'model' ? 'assistant' : m.role) as 'system' | 'user' | 'assistant',
       content: m.content.map((c) => c.text || '').join(''),
@@ -44,6 +47,7 @@ ai.defineModel(
         max_tokens: 2048,
       });
 
+      // Return result in Genkit expected format (using 'model' role)
       return {
         message: {
           role: 'model',
@@ -55,7 +59,7 @@ ai.defineModel(
       return {
         message: {
           role: 'model',
-          content: [{ text: "عذراً، حدث خطأ في الاتصال بالعقدة العصبية (Groq). يرجى التأكد من صلاحية المفتاح في ملف .env أو استهلاك الحصة المتاحة." }],
+          content: [{ text: "عذراً، حدث خطأ أثناء الاتصال بالمحرك العصبي (Groq). يرجى التأكد من أن المفتاح صحيح وله صلاحية الوصول للموديل المطلوب." }],
         },
       };
     }

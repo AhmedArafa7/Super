@@ -21,7 +21,6 @@ export async function getWelcomeMessage(): Promise<WelcomeMessageOutput> {
 
 const prompt = ai.definePrompt({
   name: 'welcomeMessagePrompt',
-  // We remove output.schema here to handle raw text response correctly
   prompt: `You are the NexusAI Core Assistant. 
 Generate a friendly and professional welcome message in Arabic.
 Introduce the user to NexusAI's core features:
