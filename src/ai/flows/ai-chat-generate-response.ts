@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview AI Chat response generation flow using Groq Llama 3.3.
@@ -14,7 +13,7 @@ import {z} from 'genkit';
 const AIChatGenerateResponseInputSchema = z.object({
   message: z.string().describe('The user message to respond to.'),
   history: z.array(z.object({
-    role: z.enum(['user', 'assistant']),
+    role: z.enum(['user', 'model']),
     content: z.string(),
   })).optional().describe('The chat history.'),
 });

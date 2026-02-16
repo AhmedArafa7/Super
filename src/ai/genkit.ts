@@ -19,7 +19,7 @@ ai.defineModel(
     if (!apiKey) {
       return {
         message: {
-          role: 'assistant',
+          role: 'model',
           content: [{ text: "عذراً، لم يتم العثور على مفتاح البرمجة (GROQ_API_KEY). يرجى التأكد من إضافة المفتاح في إعدادات Vercel (Environment Variables) ليعمل الذكاء الاصطناعي." }],
         },
       };
@@ -29,8 +29,10 @@ ai.defineModel(
       apiKey: apiKey,
     });
 
+    // Genkit roles: system, user, model, tool
+    // Groq roles: system, user, assistant
     const messages = input.messages.map((m) => ({
-      role: m.role as 'system' | 'user' | 'assistant',
+      role: (m.role === 'model' ? 'assistant' : m.role) as 'system' | 'user' | 'assistant',
       content: m.content.map((c) => c.text || '').join(''),
     }));
 
@@ -44,7 +46,7 @@ ai.defineModel(
 
       return {
         message: {
-          role: 'assistant',
+          role: 'model',
           content: [{ text: completion.choices[0].message.content || '' }],
         },
       };
@@ -52,7 +54,7 @@ ai.defineModel(
       console.error('Groq AI Error:', error);
       return {
         message: {
-          role: 'assistant',
+          role: 'model',
           content: [{ text: "عذراً، حدث خطأ في الاتصال بالعقدة العصبية (Groq). يرجى التأكد من استهلاك الحصة المتاحة أو صحة المفتاح." }],
         },
       };

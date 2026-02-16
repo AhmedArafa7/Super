@@ -200,14 +200,12 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       if (savedMsg) {
         setIsAITyping(true);
         
-        // Contextual History for Groq
-        const history = messages.slice(-5).map(m => ({
-          role: 'user' as const,
-          content: m.text
-        }));
+        // Contextual History for Groq (Using Genkit Roles: user, model)
+        const history = [];
         messages.slice(-5).forEach(m => {
+          history.push({ role: 'user' as const, content: m.text });
           if (m.response) {
-            history.push({ role: 'assistant' as const, content: m.response });
+            history.push({ role: 'model' as const, content: m.response });
           }
         });
 
