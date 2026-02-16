@@ -70,7 +70,7 @@ export const getCollections = async (subjectId: string): Promise<Collection[]> =
   const { data, error } = await supabase.from('collections')
     .select('*')
     .eq('subject_id', subjectId)
-    .order('created_at', { ascending: true });
+    .order('order_index', { ascending: true });
   
   if (error) return [];
   return (data || []).map(c => ({
@@ -87,10 +87,11 @@ export const addCollection = async (collection: Omit<Collection, 'id' | 'created
   const payload = {
     subject_id: collection.subjectId,
     title: collection.title,
-    description: collection.description
+    description: collection.description,
+    order_index: collection.orderIndex
   };
   const { data, error } = await supabase.from('collections').insert([payload]).select().single();
-  if (error) console.warn('Resilient insert: collections saved without order_index');
+  if (error) throw error;
   return data;
 };
 
@@ -152,6 +153,6 @@ export const uploadLearningFile = async (file: File): Promise<string | null> => 
     }
   }
 
-  console.warn(`Storage Rejection: ${lastFailureReason}. Suggestion: Create a 'learning' bucket in Supabase.`);
+  console.warn(`Storage Notification: All buckets checked. Final status: ${lastFailureReason || 'Bucket not found'}`);
   return null;
 };

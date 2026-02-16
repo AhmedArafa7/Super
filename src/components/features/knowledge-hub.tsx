@@ -124,8 +124,8 @@ export function KnowledgeHub() {
         if (!uploadUrl) {
           toast({ 
             variant: "destructive", 
-            title: "Storage Error", 
-            description: "No suitable storage bucket found. Please contact an admin to set up a 'learning' bucket." 
+            title: "Storage Alert", 
+            description: "No available storage buckets. Check your Supabase configuration." 
           });
           clearInterval(progressInterval);
           setIsUploading(false);
