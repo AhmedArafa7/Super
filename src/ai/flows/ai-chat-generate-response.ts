@@ -1,7 +1,7 @@
 
 'use server';
 /**
- * @fileOverview نظام توليد الردود الذكي - يدعم التبديل التلقائي بين الموديلات.
+ * @fileOverview نظام توليد الردود الذكي - يدعم التبديل التلقائي بين الموديلات مع تحسين دعم اللغة العربية.
  */
 
 import {ai} from '@/ai/genkit';
@@ -23,7 +23,13 @@ const prompt = ai.definePrompt({
   name: 'aiChatGenerateResponsePrompt',
   input: {schema: AIChatGenerateResponseInputSchema},
   prompt: `أنت المساعد الذكي لنظام NexusAI. 
-أجب بلغة تقنية احترافية ومختصرة باللغة العربية.
+يجب أن تكون إجابتك باللغة العربية الفصحى حصراً وبأسلوب تقني احترافي.
+
+قواعد صارمة:
+1. لا تستخدم لغات غريبة (مثل التشيكية أو البولندية) في منتصف الجمل العربية.
+2. إذا اضطررت لاستخدام مصطلحات تقنية، استخدم المصطلح الإنجليزي المعروف بين قوسين بجانب الترجمة العربية.
+3. تأكد من أن بنية الجملة العربية سليمة تماماً ولا تتأثر بالكلمات الإنجليزية المدمجة.
+4. ابدأ ردك دائماً بالعربية لضمان ضبط اتجاه القراءة من اليمين إلى اليسار.
 
 سياق الدردشة السابق:
 {{#each history}}
@@ -41,7 +47,6 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
     inputSchema: AIChatGenerateResponseInputSchema,
   },
   async input => {
-    // التأكد من أن الرسالة ليست فارغة لتجنب ردود "لم تكتب شيئاً"
     if (!input.message || input.message.trim() === "") {
       return {
         response: "يبدو أنك لم تكتب نصاً في رسالتك. كيف يمكنني مساعدتك تقنياً اليوم؟",
@@ -50,21 +55,11 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
     }
 
     const hasGroq = !!(process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY);
-    const hasGemini = !!(process.env.GOOGLE_GENAI_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_GENAI_API_KEY);
     
-    // تحديد الموديل النشط بناءً على المفاتيح المتوفرة
     const modelToUse = hasGroq ? 'groq/llama-3.3-70b-versatile' : 'googleai/gemini-1.5-flash';
     const engineName = hasGroq ? 'Groq Llama 3.3' : 'Google Gemini 1.5';
 
-    if (!hasGroq && !hasGemini) {
-      return {
-        response: "عذراً، لم يتم العثور على أي مفاتيح API (Groq أو Gemini). يرجى إضافة المفاتيح في ملف .env لتنشيط المحرك العصبي.",
-        engine: "None"
-      };
-    }
-    
     try {
-      // تصحيح الاستدعاء: استخدام البرومبت المعرف مسبقاً مع الموديل المختار مباشرة
       const { text } = await prompt(input, {
         model: modelToUse
       });
@@ -76,7 +71,7 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
     } catch (err) {
       console.error("Neural Sync Error:", err);
       return {
-        response: "حدث خطأ أثناء الاتصال بالمحرك العصبي. قد يكون ذلك بسبب نفاذ حدود الاستخدام (Rate Limit).",
+        response: "حدث خطأ أثناء الاتصال بالمحرك العصبي. يرجى المحاولة مرة أخرى.",
         engine: engineName
       };
     }

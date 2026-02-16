@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, memo } from "react";
-import { Send, Bot, User, Sparkles, Paperclip, Mic, Loader2, Pencil, Trash2, X, FileText, Download, Square, Music, Globe, Wifi, WifiOff, MoreVertical, Zap, ShieldCheck } from "lucide-react";
+import { Send, Bot, User, Sparkles, Paperclip, Mic, Loader2, Pencil, Trash2, X, FileText, Download, Square, Music, Globe, Wifi, WifiOff, MoreVertical, Zap, ShieldCheck, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -79,7 +79,7 @@ const MessageItem = memo(({
               msg.status === 'queued' && "opacity-70 italic",
               highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500"
             )}>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+              <p dir="auto" className="text-sm leading-relaxed whitespace-pre-wrap text-right">{msg.text}</p>
               {msg.attachments && msg.attachments.length > 0 && <AttachmentPreview attachments={msg.attachments} />}
               <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
                 {msg.status === 'sent' && !isAI && <Loader2 className="size-2 animate-spin text-white/50" />}
@@ -93,7 +93,7 @@ const MessageItem = memo(({
               variant="outline" 
               size="sm" 
               onClick={() => onShowPreview(msg.id)}
-              className="mt-1 text-[10px] h-7 border-indigo-500/30 text-indigo-400 bg-indigo-500/5 hover:bg-indigo-500/10 rounded-lg animate-in fade-in zoom-in duration-300"
+              className="mt-1 text-[10px] h-7 border-indigo-500/30 text-indigo-400 bg-indigo-500/5 hover:bg-indigo-500/10 rounded-lg animate-in fade-in zoom-in duration-300 ml-auto"
             >
               <Zap className="size-3 mr-1 text-amber-400" /> الحصول على مسودة الرد (AI)
             </Button>
@@ -121,11 +121,11 @@ const MessageItem = memo(({
             msg.status === 'sent' && "border-indigo-500/20"
           )}>
             {msg.status === 'sent' && (
-              <div className="flex items-center gap-1.5 mb-2 text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+              <div className="flex items-center gap-1.5 mb-2 text-[10px] font-bold text-indigo-400 uppercase tracking-widest justify-end">
                 <ShieldCheck className="size-3" /> جاري تدقيق الجودة...
               </div>
             )}
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.response}</p>
+            <p dir="auto" className="text-sm leading-relaxed whitespace-pre-wrap text-right">{msg.response}</p>
             {msg.status === 'replied' && (
               <div className="flex justify-end mt-2 opacity-40">
                 <Badge variant="outline" className="text-[8px] h-4 py-0 border-white/10">مؤكد من الإدارة</Badge>
@@ -232,19 +232,19 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
       if (savedMsg) {
         setIsAITyping(true);
         
-        const history = [];
+        const history: { role: 'user' | 'model', content: string }[] = [];
         messages.slice(-5).forEach(m => {
           if (m.userId !== 'nexus-ai') {
-            history.push({ role: 'user' as const, content: m.text });
+            history.push({ role: 'user', content: m.text });
             if (m.response && m.status === 'replied') {
-              history.push({ role: 'model' as const, content: m.response });
+              history.push({ role: 'model', content: m.response });
             }
           }
         });
 
         const responseData = await aiChatGenerateResponse({
           message: userText,
-          history: history as any
+          history: history
         });
 
         if (responseData && responseData.response) {
