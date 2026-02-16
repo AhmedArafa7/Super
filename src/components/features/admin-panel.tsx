@@ -41,7 +41,6 @@ export function AdminPanel() {
       const msgs = await getStoredMessages(undefined, true);
       setMessages(msgs);
       
-      // Pre-populate responses with AI suggestions if they exist
       const newResponses: Record<string, string> = { ...responses };
       msgs.forEach(m => {
         if (m.status === 'sent' && m.response && !newResponses[m.id]) {
@@ -63,7 +62,7 @@ export function AdminPanel() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 10000); // Faster polling for admin
+    const interval = setInterval(loadData, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -361,13 +360,14 @@ export function AdminPanel() {
                           <Badge variant="outline" className="text-[8px] h-4 border-white/10 opacity-50">AWAITING AI</Badge>
                         )}
                       </div>
-                      <p className="text-sm text-slate-300 italic">"{m.text}"</p>
+                      <p dir="auto" className="text-sm text-slate-300 italic text-right">"{m.text}"</p>
                       
                       <div className="space-y-3">
                         <Label className="text-[10px] uppercase font-bold text-indigo-400 tracking-widest px-1">Neural Response Draft</Label>
                         <Textarea 
+                          dir="auto"
                           placeholder="Compose or refine neural response..." 
-                          className="bg-white/5 border-white/10 rounded-xl text-sm min-h-[100px] focus-visible:ring-indigo-500"
+                          className="bg-white/5 border-white/10 rounded-xl text-sm min-h-[100px] focus-visible:ring-indigo-500 text-right"
                           value={responses[m.id] || ""}
                           onChange={(e) => setResponses({...responses, [m.id]: e.target.value})}
                         />
@@ -418,8 +418,8 @@ export function AdminPanel() {
                           {m.status.toUpperCase()}
                         </Badge>
                       </div>
-                      <p className="text-xs text-slate-400 line-clamp-1 mb-2">Q: {m.text}</p>
-                      {m.response && <p className="text-xs text-white line-clamp-2 italic">A: {m.response}</p>}
+                      <p dir="auto" className="text-xs text-slate-400 line-clamp-1 mb-2 text-right">Q: {m.text}</p>
+                      {m.response && <p dir="auto" className="text-xs text-white line-clamp-2 italic text-right">A: {m.response}</p>}
                       {m.engine && <Badge variant="outline" className="text-[7px] mt-2 border-indigo-500/20 text-indigo-400/50">{m.engine}</Badge>}
                       
                       <div className="mt-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -432,8 +432,8 @@ export function AdminPanel() {
                               <DialogTitle>Neural Correction</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
-                              <Textarea id={`edit-${m.id}`} defaultValue={m.response || ""} className="bg-white/5 min-h-[150px]" />
-                              <Input id={`reason-${m.id}`} placeholder="Correction reason..." className="bg-white/5" />
+                              <Textarea dir="auto" id={`edit-${m.id}`} defaultValue={m.response || ""} className="bg-white/5 min-h-[150px] text-right" />
+                              <Input dir="auto" id={`reason-${m.id}`} placeholder="Correction reason..." className="bg-white/5 text-right" />
                             </div>
                             <DialogFooter>
                               <Button className="w-full bg-indigo-600" onClick={async () => {
@@ -490,7 +490,7 @@ export function AdminPanel() {
               </h3>
               <div className="space-y-6">
                 <div className="p-6 bg-indigo-500/10 border border-indigo-500/20 rounded-3xl space-y-3">
-                  <Input placeholder="Subject Title..." className="bg-white/5" value={newSubject.name} onChange={e => setNewSubject({...newSubject, name: e.target.value})} />
+                  <Input dir="auto" placeholder="Subject Title..." className="bg-white/5 text-right" value={newSubject.name} onChange={e => setNewSubject({...newSubject, name: e.target.value})} />
                   <Button className="w-full bg-indigo-600" onClick={async () => {
                     await addSubject({ title: newSubject.name, description: newSubject.description, allowedUserIds: null });
                     toast({ title: "Subject Registered" });
@@ -502,7 +502,7 @@ export function AdminPanel() {
                   <div className="space-y-2 pr-4">
                     {subjects.map(s => (
                       <div key={s.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl">
-                        <span className="font-bold text-sm">{s.title}</span>
+                        <span dir="auto" className="font-bold text-sm text-right flex-1">{s.title}</span>
                         <Button variant="ghost" size="icon" onClick={async () => { await deleteSubject(s.id); loadData(); }}>
                           <Trash2 className="size-4 text-red-400" />
                         </Button>
@@ -522,11 +522,11 @@ export function AdminPanel() {
             <div className="space-y-4 text-left">
               <div className="grid gap-2">
                 <Label>Header</Label>
-                <Input className="bg-white/5 h-12" value={broadcast.title} onChange={e => setBroadcast({...broadcast, title: e.target.value})} />
+                <Input dir="auto" className="bg-white/5 h-12 text-right" value={broadcast.title} onChange={e => setBroadcast({...broadcast, title: e.target.value})} />
               </div>
               <div className="grid gap-2">
                 <Label>Content</Label>
-                <Textarea className="bg-white/5 min-h-[150px]" value={broadcast.body} onChange={e => setBroadcast({...broadcast, body: e.target.value})} />
+                <Textarea dir="auto" className="bg-white/5 min-h-[150px] text-right" value={broadcast.body} onChange={e => setBroadcast({...broadcast, body: e.target.value})} />
               </div>
               <Button className="w-full bg-indigo-600 h-14 font-bold" onClick={handleSendBroadcast}>Initiate Broadcast</Button>
             </div>
