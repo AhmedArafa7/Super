@@ -30,6 +30,18 @@ const getYoutubeId = (url?: string) => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
+// Mapping numerical quality to YouTube aliases
+const getYoutubeQualityAlias = (quality: string) => {
+  switch (quality) {
+    case "240": return "small";
+    case "360": return "medium";
+    case "480": return "large";
+    case "720": return "hd720";
+    case "1080": return "hd1080";
+    default: return "small";
+  }
+};
+
 export function StreamHub() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -40,11 +52,9 @@ export function StreamHub() {
   const [activeView, setActiveView] = useState<'explore' | 'studio'>('explore');
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   
-  // Quality Settings Logic
   const [videoQuality, setVideoQuality] = useState<string>("240");
 
   useEffect(() => {
-    // Load saved quality preference
     const savedQuality = localStorage.getItem("nexus_stream_quality");
     if (savedQuality) {
       setVideoQuality(savedQuality);
@@ -55,8 +65,8 @@ export function StreamHub() {
     setVideoQuality(val);
     localStorage.setItem("nexus_stream_quality", val);
     toast({
-      title: "تم تحديث الجودة",
-      description: `تم ضبط جودة البث الافتراضية على ${val}p لجميع الفيديوهات.`
+      title: "تم تحديث الجودة الإجبارية",
+      description: `تم فرض جودة ${val}p لمنع استهلاك الباقة تلقائياً.`
     });
   };
 
@@ -120,7 +130,7 @@ export function StreamHub() {
       });
 
       toast({ 
-        title: "بدأ الإرسال العصبي", 
+        title: "بدأ الإرسال عصبي", 
         description: "الفيديو يرفع في الخلفية الآن. يمكنك التنقل بحرية." 
       });
       setIsModalOpen(false);
@@ -158,30 +168,33 @@ export function StreamHub() {
           <div className="flex items-center gap-2">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="h-14 w-14 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10">
+                <Button variant="outline" size="icon" className="h-14 w-14 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 relative">
                   <Settings2 className="size-6 text-indigo-400" />
+                  <Badge className="absolute -top-2 -right-2 bg-primary text-[8px] h-4 px-1">{videoQuality}p</Badge>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-64 bg-slate-900 border-white/10 p-4 rounded-2xl">
                 <div className="space-y-4">
-                  <h4 className="font-bold text-sm text-white text-right">إعدادات البث العصبي</h4>
+                  <h4 className="font-bold text-sm text-white text-right">إعدادات البث وتوفير البيانات</h4>
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest block text-right">جودة الفيديو الافتراضية</Label>
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest block text-right">جودة الفيديو (إجباري)</Label>
                     <Select value={videoQuality} onValueChange={handleQualityUpdate}>
                       <SelectTrigger className="bg-white/5 border-white/10">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-900 border-white/10 text-white">
-                        <SelectItem value="240">240p (الأقل استهلاكاً)</SelectItem>
-                        <SelectItem value="360">360p (متوازن)</SelectItem>
-                        <SelectItem value="480">480p (جودة جيدة)</SelectItem>
+                        <SelectItem value="240">240p (حفظ الباقة الأقصى)</SelectItem>
+                        <SelectItem value="360">360p (توفير متوازن)</SelectItem>
+                        <SelectItem value="480">480p (جودة متوسطة)</SelectItem>
                         <SelectItem value="720">720p (عالية HD)</SelectItem>
                         <SelectItem value="1080">1080p (فائقة FHD)</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="text-[9px] text-muted-foreground text-right italic leading-relaxed mt-2">
-                      * ملاحظة: يتم حفظ هذا التفضيل في العقدة المحلية وسيتم تطبيقه على كافة الفيديوهات تلقائياً.
-                    </p>
+                    <div className="mt-4 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
+                      <p className="text-[9px] text-indigo-200 leading-relaxed text-right">
+                        <strong>ملاحظة عصبية:</strong> نقوم بفرض هذه الجودة على المشغل لمنع يوتيوب من رفع الجودة تلقائياً واستهلاك باقتك.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </PopoverContent>
@@ -300,7 +313,7 @@ export function StreamHub() {
                       {video.source === 'youtube' ? <Youtube className="size-3 text-red-500" /> : <Radio className="size-3 text-indigo-400" />}
                       <span className="text-[9px] uppercase font-bold">{video.source === 'youtube' ? 'YouTube' : 'Nexus Clip'}</span>
                     </Badge>
-                    <Badge variant="outline" className="bg-black/40 border-white/5 text-[8px] h-5">{videoQuality}p</Badge>
+                    <Badge variant="outline" className="bg-primary/20 border-primary/30 text-[8px] h-5 text-primary font-bold">{videoQuality}p</Badge>
                   </div>
                 </div>
               </div>
@@ -339,7 +352,7 @@ export function StreamHub() {
           <DialogHeader className="sr-only">
             <DialogTitle>{selectedVideo?.title || "مشغل الفيديو"}</DialogTitle>
             <DialogDescription>
-              مشاهدة البث العصبي: {selectedVideo?.title} بواسطة {selectedVideo?.author} بجودة {videoQuality}p
+              مشاهدة البث العصبي: {selectedVideo?.title} بواسطة {selectedVideo?.author} بجودة إجبارية {videoQuality}p
             </DialogDescription>
           </DialogHeader>
           <div className="aspect-video bg-slate-900 relative">
@@ -348,6 +361,7 @@ export function StreamHub() {
             </Button>
             {selectedVideo && (
               <ReactPlayer 
+                key={`${selectedVideo.id}-${videoQuality}`}
                 url={selectedVideo.source === 'youtube' ? selectedVideo.externalUrl : selectedVideo.thumbnail} 
                 width="100%" 
                 height="100%" 
@@ -356,7 +370,9 @@ export function StreamHub() {
                 config={{
                   youtube: {
                     playerVars: { 
-                      vq: videoQuality === "1080" ? "hd1080" : videoQuality === "720" ? "hd720" : videoQuality === "480" ? "large" : "small"
+                      vq: getYoutubeQualityAlias(videoQuality),
+                      modestbranding: 1,
+                      rel: 0
                     }
                   }
                 }}
@@ -366,9 +382,14 @@ export function StreamHub() {
           <div className="p-8 bg-slate-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 flex-row-reverse">
             <div className="flex-1 text-right">
               <h2 dir="auto" className="text-3xl font-headline font-bold text-white mb-2">{selectedVideo?.title}</h2>
-              <div className="flex items-center gap-2 justify-end text-muted-foreground text-sm">
-                <span>بث عبر عقدة Nexus بجودة {videoQuality}p</span>
-                <Sparkles className="size-3 text-indigo-400" />
+              <div className="flex items-center gap-2 justify-end">
+                <Badge className="bg-primary/20 text-primary border-primary/30 font-bold uppercase tracking-widest text-[10px]">
+                  Quality Forced: {videoQuality}p
+                </Badge>
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                  <span>تم تفعيل بروتوكول توفير البيانات</span>
+                  <Sparkles className="size-3 text-indigo-400" />
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 flex-row-reverse">
