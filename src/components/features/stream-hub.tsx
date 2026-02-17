@@ -2,27 +2,22 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Play, Plus, Upload, MoreVertical, Clock, Eye, Trash2, ShieldCheck, Lock, EyeOff, CheckCircle2, AlertCircle, LayoutDashboard, Globe, Loader2, X, Zap, Share2, MessageSquare, Youtube, ExternalLink, FileVideo, Radio, Sparkles, Settings2 } from "lucide-react";
+import { Play, Plus, Upload, Trash2, Youtube, FileVideo, Radio, Settings2, Zap, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/components/auth/auth-provider";
 import { getStoredVideos, addVideo, deleteVideo, Video, Visibility, VideoSource } from "@/lib/video-store";
 import { useUploadStore } from "@/lib/upload-store";
+import { useStreamStore } from "@/lib/stream-store"; // استخدام المحرك العالمي
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
-import dynamic from "next/dynamic";
 
-const ReactPlayer = dynamic(() => import("react-player/lazy"), { ssr: false });
-
-// Helper to extract YouTube ID
 const getYoutubeId = (url?: string) => {
   if (!url) return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -30,46 +25,16 @@ const getYoutubeId = (url?: string) => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
-// Mapping numerical quality to YouTube aliases
-const getYoutubeQualityAlias = (quality: string) => {
-  switch (quality) {
-    case "240": return "small";
-    case "360": return "medium";
-    case "480": return "large";
-    case "720": return "hd720";
-    case "1080": return "hd1080";
-    default: return "small";
-  }
-};
-
 export function StreamHub() {
   const { user } = useAuth();
   const { toast } = useToast();
   const addTask = useUploadStore(state => state.addTask);
+  const { setActiveVideo, quality, setQuality } = useStreamStore();
   
   const [videos, setVideos] = useState<Video[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeView, setActiveView] = useState<'explore' | 'studio'>('explore');
-  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   
-  const [videoQuality, setVideoQuality] = useState<string>("240");
-
-  useEffect(() => {
-    const savedQuality = localStorage.getItem("nexus_stream_quality");
-    if (savedQuality) {
-      setVideoQuality(savedQuality);
-    }
-  }, []);
-
-  const handleQualityUpdate = (val: string) => {
-    setVideoQuality(val);
-    localStorage.setItem("nexus_stream_quality", val);
-    toast({
-      title: "تم تحديث الجودة الإجبارية",
-      description: `تم فرض جودة ${val}p لمنع استهلاك الباقة تلقائياً.`
-    });
-  };
-
   const [uploadSource, setUploadSource] = useState<VideoSource>('local');
   const [uploadData, setUploadData] = useState({
     title: "",
@@ -154,7 +119,7 @@ export function StreamHub() {
             StreamHub
             <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase tracking-widest">Neural v4.2</Badge>
           </h2>
-          <p className="text-muted-foreground mt-2 text-lg">بث لامركزي: ارفع فيديوهاتك أو اربط روابط يوتيوب لمساحة غير محدودة.</p>
+          <p className="text-muted-foreground mt-2 text-lg">بث لامركزي مع خاصية المشغل المستمر (Multitasking).</p>
         </div>
 
         <div className="flex items-center gap-4 flex-row-reverse">
@@ -170,7 +135,7 @@ export function StreamHub() {
               <PopoverTrigger asChild>
                 <Button variant="outline" size="icon" className="h-14 w-14 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 relative">
                   <Settings2 className="size-6 text-indigo-400" />
-                  <Badge className="absolute -top-2 -right-2 bg-primary text-[8px] h-4 px-1">{videoQuality}p</Badge>
+                  <Badge className="absolute -top-2 -right-2 bg-primary text-[8px] h-4 px-1">{quality}p</Badge>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-64 bg-slate-900 border-white/10 p-4 rounded-2xl">
@@ -178,7 +143,7 @@ export function StreamHub() {
                   <h4 className="font-bold text-sm text-white text-right">إعدادات البث وتوفير البيانات</h4>
                   <div className="space-y-2">
                     <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest block text-right">جودة الفيديو (إجباري)</Label>
-                    <Select value={videoQuality} onValueChange={handleQualityUpdate}>
+                    <Select value={quality} onValueChange={setQuality}>
                       <SelectTrigger className="bg-white/5 border-white/10">
                         <SelectValue />
                       </SelectTrigger>
@@ -190,11 +155,6 @@ export function StreamHub() {
                         <SelectItem value="1080">1080p (فائقة FHD)</SelectItem>
                       </SelectContent>
                     </Select>
-                    <div className="mt-4 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-                      <p className="text-[9px] text-indigo-200 leading-relaxed text-right">
-                        <strong>ملاحظة عصبية:</strong> نقوم بفرض هذه الجودة على المشغل لمنع يوتيوب من رفع الجودة تلقائياً واستهلاك باقتك.
-                      </p>
-                    </div>
                   </div>
                 </div>
               </PopoverContent>
@@ -293,7 +253,7 @@ export function StreamHub() {
             <div 
               key={video.id} 
               className="group flex flex-col glass border-white/5 hover:border-primary/40 rounded-[2.5rem] overflow-hidden transition-all duration-500 cursor-pointer shadow-2xl relative"
-              onClick={() => setSelectedVideo(video)}
+              onClick={() => setActiveVideo(video)}
             >
               <div className="relative aspect-video overflow-hidden bg-slate-900">
                 <Image 
@@ -313,7 +273,7 @@ export function StreamHub() {
                       {video.source === 'youtube' ? <Youtube className="size-3 text-red-500" /> : <Radio className="size-3 text-indigo-400" />}
                       <span className="text-[9px] uppercase font-bold">{video.source === 'youtube' ? 'YouTube' : 'Nexus Clip'}</span>
                     </Badge>
-                    <Badge variant="outline" className="bg-primary/20 border-primary/30 text-[8px] h-5 text-primary font-bold">{videoQuality}p</Badge>
+                    <Badge variant="outline" className="bg-primary/20 border-primary/30 text-[8px] h-5 text-primary font-bold">{quality}p</Badge>
                   </div>
                 </div>
               </div>
@@ -346,73 +306,6 @@ export function StreamHub() {
           );
         })}
       </div>
-
-      <Dialog open={!!selectedVideo} onOpenChange={(open) => !open && setSelectedVideo(null)}>
-        <DialogContent className="max-w-5xl bg-black border-white/10 p-0 overflow-hidden rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,0.8)]">
-          <DialogHeader className="sr-only">
-            <DialogTitle>{selectedVideo?.title || "مشغل الفيديو"}</DialogTitle>
-            <DialogDescription>
-              مشاهدة البث العصبي: {selectedVideo?.title} بجودة {videoQuality}p. اضغط على الزر بالأعلى أو خارج النافذة للخروج.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="aspect-video bg-slate-900 relative group/player">
-            {/* زر خروج شديد الوضوح وعالي التباين */}
-            <Button 
-              onClick={() => setSelectedVideo(null)} 
-              variant="destructive" 
-              size="icon" 
-              className="absolute top-6 right-6 z-[110] bg-red-600 hover:bg-red-500 text-white rounded-full size-12 shadow-[0_0_20px_rgba(220,38,38,0.5)] transition-all border-2 border-white scale-110"
-            >
-              <X className="size-7" />
-            </Button>
-
-            {selectedVideo && (
-              <ReactPlayer 
-                key={`${selectedVideo.id}-${videoQuality}`}
-                url={selectedVideo.source === 'youtube' ? `${selectedVideo.externalUrl}${selectedVideo.externalUrl.includes('?') ? '&' : '?'}vq=${getYoutubeQualityAlias(videoQuality)}` : selectedVideo.thumbnail} 
-                width="100%" 
-                height="100%" 
-                playing 
-                controls 
-                config={{
-                  youtube: {
-                    playerVars: { 
-                      vq: getYoutubeQualityAlias(videoQuality),
-                      modestbranding: 1,
-                      rel: 0,
-                      origin: typeof window !== 'undefined' ? window.location.origin : ''
-                    }
-                  }
-                }}
-              />
-            )}
-          </div>
-
-          <div className="p-8 bg-slate-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 flex-row-reverse border-t border-white/5">
-            <div className="flex-1 text-right">
-              <h2 dir="auto" className="text-3xl font-headline font-bold text-white mb-2">{selectedVideo?.title}</h2>
-              <div className="flex items-center gap-2 justify-end">
-                <Badge className="bg-primary/20 text-primary border-primary/30 font-bold uppercase tracking-widest text-[10px]">
-                  Quality Forced: {videoQuality}p
-                </Badge>
-                <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                  <span>تم تفعيل بروتوكول توفير البيانات</span>
-                  <Sparkles className="size-3 text-indigo-400" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 flex-row-reverse">
-              <div className="text-right">
-                <p className="text-sm font-bold text-white">@{selectedVideo?.author}</p>
-                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{selectedVideo?.source === 'youtube' ? 'YouTube Network' : 'Neural Node'}</p>
-              </div>
-              <img src={`https://picsum.photos/seed/${selectedVideo?.author}/40/40`} className="size-12 rounded-xl border border-white/10" alt={selectedVideo?.author || 'Author'} />
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

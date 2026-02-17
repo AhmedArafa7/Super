@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarHeader as SBHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
 import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard, Repeat, Loader2, CheckCircle2, AlertCircle, Sparkles, BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,8 @@ import { WalletView } from "@/components/features/wallet-view";
 import { UserDashboard } from "@/components/features/user-dashboard";
 import { OffersInbox } from "@/components/features/offers-inbox";
 import { HisnAlMuslim } from "@/components/features/hisn-al-muslim";
-import { getNotifications, AppNotification } from "@/lib/notification-store";
+import { PersistentPlayer } from "@/components/features/persistent-player"; // المشغل الجديد
+import { getNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
 import { getReceivedOffers } from "@/lib/market-store";
@@ -216,6 +217,9 @@ export function AppShell() {
           </main>
         </div>
       </div>
+      
+      {/* مشغل الفيديو العالمي - يظهر فوق كل شيء عند تفعيل فيديو */}
+      <PersistentPlayer />
     </SidebarProvider>
   );
 }
