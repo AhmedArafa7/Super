@@ -347,18 +347,26 @@ export function StreamHub() {
         })}
       </div>
 
-      <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
-        <DialogContent className="max-w-5xl bg-black border-white/10 p-0 overflow-hidden rounded-[2.5rem]">
+      <Dialog open={!!selectedVideo} onOpenChange={(open) => !open && setSelectedVideo(null)}>
+        <DialogContent className="max-w-5xl bg-black border-white/10 p-0 overflow-hidden rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,0.8)]">
           <DialogHeader className="sr-only">
             <DialogTitle>{selectedVideo?.title || "مشغل الفيديو"}</DialogTitle>
             <DialogDescription>
-              مشاهدة البث العصبي: {selectedVideo?.title} بواسطة {selectedVideo?.author} بجودة إجبارية {videoQuality}p
+              مشاهدة البث العصبي: {selectedVideo?.title} بجودة {videoQuality}p. اضغط على الزر بالأعلى أو خارج النافذة للخروج.
             </DialogDescription>
           </DialogHeader>
-          <div className="aspect-video bg-slate-900 relative">
-            <Button onClick={() => setSelectedVideo(null)} variant="ghost" size="icon" className="absolute top-4 right-4 z-50 text-white hover:bg-white/10 rounded-full">
-              <X className="size-6" />
+          
+          <div className="aspect-video bg-slate-900 relative group/player">
+            {/* زر الخروج البارز */}
+            <Button 
+              onClick={() => setSelectedVideo(null)} 
+              variant="ghost" 
+              size="icon" 
+              className="absolute top-6 right-6 z-[100] text-white bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full size-12 shadow-2xl transition-all border border-white/10"
+            >
+              <X className="size-7" />
             </Button>
+
             {selectedVideo && (
               <ReactPlayer 
                 key={`${selectedVideo.id}-${videoQuality}`}
@@ -379,7 +387,8 @@ export function StreamHub() {
               />
             )}
           </div>
-          <div className="p-8 bg-slate-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 flex-row-reverse">
+
+          <div className="p-8 bg-slate-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 flex-row-reverse border-t border-white/5">
             <div className="flex-1 text-right">
               <h2 dir="auto" className="text-3xl font-headline font-bold text-white mb-2">{selectedVideo?.title}</h2>
               <div className="flex items-center gap-2 justify-end">
@@ -392,12 +401,13 @@ export function StreamHub() {
                 </div>
               </div>
             </div>
+            
             <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 flex-row-reverse">
               <div className="text-right">
                 <p className="text-sm font-bold text-white">@{selectedVideo?.author}</p>
                 <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{selectedVideo?.source === 'youtube' ? 'YouTube Network' : 'Neural Node'}</p>
               </div>
-              <img src={`https://picsum.photos/seed/${selectedVideo?.author}/40/40`} className="size-12 rounded-xl" alt={selectedVideo?.author || 'Author'} />
+              <img src={`https://picsum.photos/seed/${selectedVideo?.author}/40/40`} className="size-12 rounded-xl border border-white/10" alt={selectedVideo?.author || 'Author'} />
             </div>
           </div>
         </DialogContent>
