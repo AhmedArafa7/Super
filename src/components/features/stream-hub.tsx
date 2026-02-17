@@ -357,12 +357,12 @@ export function StreamHub() {
           </DialogHeader>
           
           <div className="aspect-video bg-slate-900 relative group/player">
-            {/* زر الخروج البارز */}
+            {/* زر خروج شديد الوضوح وعالي التباين */}
             <Button 
               onClick={() => setSelectedVideo(null)} 
-              variant="ghost" 
+              variant="destructive" 
               size="icon" 
-              className="absolute top-6 right-6 z-[100] text-white bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full size-12 shadow-2xl transition-all border border-white/10"
+              className="absolute top-6 right-6 z-[110] bg-red-600 hover:bg-red-500 text-white rounded-full size-12 shadow-[0_0_20px_rgba(220,38,38,0.5)] transition-all border-2 border-white scale-110"
             >
               <X className="size-7" />
             </Button>
@@ -370,7 +370,7 @@ export function StreamHub() {
             {selectedVideo && (
               <ReactPlayer 
                 key={`${selectedVideo.id}-${videoQuality}`}
-                url={selectedVideo.source === 'youtube' ? selectedVideo.externalUrl : selectedVideo.thumbnail} 
+                url={selectedVideo.source === 'youtube' ? `${selectedVideo.externalUrl}${selectedVideo.externalUrl.includes('?') ? '&' : '?'}vq=${getYoutubeQualityAlias(videoQuality)}` : selectedVideo.thumbnail} 
                 width="100%" 
                 height="100%" 
                 playing 
@@ -380,7 +380,8 @@ export function StreamHub() {
                     playerVars: { 
                       vq: getYoutubeQualityAlias(videoQuality),
                       modestbranding: 1,
-                      rel: 0
+                      rel: 0,
+                      origin: typeof window !== 'undefined' ? window.location.origin : ''
                     }
                   }
                 }}
