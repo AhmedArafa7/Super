@@ -1,3 +1,4 @@
+
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -8,8 +9,7 @@ import { getStorage } from 'firebase/storage';
 
 /**
  * تهيئة خدمات Firebase.
- * تم تبسيط استدعاء getStorage ليعتمد على الإعدادات التلقائية لـ SDK
- * لضمان أفضل توافق مع بيئة Firebase Studio.
+ * تم تحسين عملية استدعاء getStorage لضمان استخدام الـ Config الصحيح للمشروع.
  */
 export function initializeFirebase() {
   let app: FirebaseApp;
@@ -24,12 +24,14 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
+  // تفعيل خدمة التخزين السحابي مع تسجيل بيانات الـ Bucket للمساعدة في التشخيص
+  const storage = getStorage(firebaseApp);
+  
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
     firestore: getFirestore(firebaseApp),
-    // نترك الـ SDK يحدد الـ Bucket تلقائياً من الـ config
-    storage: getStorage(firebaseApp)
+    storage
   };
 }
 

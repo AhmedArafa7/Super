@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle, Clock, GraduationCap, BookOpen, Lock, Globe, Wallet, PlusCircle, MinusCircle, ShieldCheck, Tag, Zap, Server, Sparkles, Loader2 } from "lucide-react";
+import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle, Clock, GraduationCap, BookOpen, Lock, Globe, Wallet, PlusCircle, MinusCircle, ShieldCheck, Tag, Zap, Server, Sparkles, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -79,9 +79,8 @@ export function AdminPanel() {
       const { storage } = initializeFirebase();
       const testRef = ref(storage, 'diagnostics/neural-test.txt');
       
-      // إضافة Timer لمنع الدوران اللانهائي في حال عدم استجابة السيرفر
       const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject({ code: 'storage/timeout', message: 'Connection timed out. Firebase Storage might be disabled or blocked.' }), 12000)
+        setTimeout(() => reject({ code: 'storage/timeout', message: 'Neural link timed out. This usually means Firebase Storage is not enabled in the console.' }), 12000)
       );
 
       await Promise.race([
@@ -97,9 +96,9 @@ export function AdminPanel() {
     } catch (err: any) {
       console.error("Storage Test Error:", err);
       let detail = err.message;
-      if (err.code === 'storage/unauthorized') detail = "Access Denied. Please ENABLE Firebase Storage in your console.";
-      if (err.code === 'storage/project-not-found') detail = "Configuration Mismatch.";
-      if (err.code === 'storage/timeout') detail = "Neural link timed out. Check your Internet or Firebase status.";
+      if (err.code === 'storage/unauthorized') detail = "Access Denied. Ensure Storage is ENABLED and Rules are set to public.";
+      if (err.code === 'storage/project-not-found') detail = "Project not found. Check firebase configuration.";
+      if (err.code === 'storage/timeout') detail = "Connection timed out. Please go to Firebase Console > Storage and click 'Get Started'.";
       
       toast({ 
         variant: "destructive", 
@@ -162,7 +161,7 @@ export function AdminPanel() {
             <ShieldAlert className="text-indigo-400" />
             Neural Console
           </h2>
-          <p className="text-muted-foreground mt-1">Global administration and neural synchronization controls.</p>
+          <p className="text-muted-foreground mt-1 text-right">Global administration and neural synchronization controls.</p>
         </div>
       </div>
 
@@ -201,7 +200,7 @@ export function AdminPanel() {
                   <Badge className="bg-green-500/20 text-green-400 border-green-500/30">ONLINE</Badge>
                 </div>
                 <div className="p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
-                  <p className="text-[10px] text-indigo-400 font-bold uppercase mb-2">Diagnostic Tools</p>
+                  <p className="text-[10px] text-indigo-400 font-bold uppercase mb-2">Storage Diagnostics</p>
                   <Button 
                     onClick={handleTestStorage}
                     disabled={isTestingStorage}
@@ -210,6 +209,9 @@ export function AdminPanel() {
                     {isTestingStorage ? <Loader2 className="size-4 animate-spin mr-2" /> : <ShieldCheck className="size-4 mr-2" />}
                     Test Storage Link
                   </Button>
+                  <p className="text-[9px] text-muted-foreground mt-3 leading-relaxed text-center">
+                    If connection fails, visit the <a href="https://console.firebase.google.com" target="_blank" className="text-indigo-400 underline inline-flex items-center gap-0.5">Firebase Console <ExternalLink className="size-2" /></a> and ensure <strong>Storage</strong> is activated.
+                  </p>
                 </div>
               </div>
             </Card>
