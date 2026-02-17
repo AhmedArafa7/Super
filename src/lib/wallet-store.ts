@@ -78,7 +78,7 @@ export const useWalletStore = create<WalletState>()(
         const snap = await getDocs(q);
         const txs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
         set({ transactions: txs });
-        return txs;
+        return txs; // نضمن إعادة البيانات للمكونات المستدعية
       } catch (err) {
         console.error('Transactions Fetch Error:', err);
         return [];
