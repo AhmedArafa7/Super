@@ -345,7 +345,7 @@ export function AdminPanel() {
                         </Button>
                         <Button 
                           size="sm" 
-                          className="bg-red-600/20 text-red-400 hover:bg-red-600/30 h-9 rounded-xl px-4 text-[10px] font-bold"
+                          className="bg-red-600/20 text-red-400 hover:bg-red-500/30 h-9 rounded-xl px-4 text-[10px] font-bold"
                           onClick={() => handleAdjustWallet(u.id, 'withdrawal')}
                         >
                           Deduct
