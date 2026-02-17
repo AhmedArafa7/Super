@@ -119,7 +119,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
       <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-row-reverse">
           <div className="size-16 rounded-[2rem] bg-primary/10 border border-primary/20 flex items-center justify-center shadow-2xl">
             <Sparkles className="size-8 text-primary animate-pulse" />
           </div>
@@ -146,7 +146,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
       </header>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 flex flex-wrap h-auto gap-1">
+        <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 flex flex-wrap h-auto gap-1 flex-row-reverse">
           <TabsTrigger value="overview" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary flex-1 sm:flex-none">
             نظرة عامة
           </TabsTrigger>
@@ -205,7 +205,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
                 حالة المحفظة العصبية
                 <WalletIcon className="text-primary" />
               </h3>
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-8 bg-white/5 p-8 rounded-[2rem] border border-white/5">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-8 bg-white/5 p-8 rounded-[2rem] border border-white/5 flex-row-reverse">
                 <div className="text-center sm:text-right">
                   <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-[0.2em] mb-2">الرصيد المتاح</p>
                   <div className="flex items-baseline gap-2 justify-center sm:justify-end">
@@ -223,9 +223,9 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
               </div>
             </Card>
 
-            <Card className="glass border-white/5 rounded-[2.5rem] p-8 flex flex-col">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-white flex items-center gap-3">
+            <Card className="glass border-white/5 rounded-[2.5rem] p-8 flex flex-col text-right">
+              <div className="flex items-center justify-between mb-6 flex-row-reverse">
+                <h3 className="text-xl font-bold text-white flex items-center gap-3 flex-row-reverse">
                   <Bell className="text-indigo-400" />
                   آخر التنبيهات
                 </h3>
@@ -331,8 +331,8 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
                 ) : (
                   <div className="divide-y divide-white/5">
                     {orders.map((order) => (
-                      <div key={order.id} className="p-6 flex items-center justify-between hover:bg-white/5 transition-colors group">
-                        <div className="text-left">
+                      <div key={order.id} className="p-6 flex items-center justify-between hover:bg-white/5 transition-colors group flex-row-reverse">
+                        <div className="text-right">
                           <p className="font-bold text-lg text-white">
                             {Math.abs(order.amount).toLocaleString()} <span className="text-[10px] text-muted-foreground uppercase">Credits</span>
                           </p>
@@ -343,7 +343,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
                             {order.type === 'purchase_hold' ? 'إيداع تأمين' : 'مكتمل'}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 flex-row-reverse">
                           <div className="text-right">
                             <p dir="auto" className="font-bold text-white text-sm">{order.description}</p>
                             <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">

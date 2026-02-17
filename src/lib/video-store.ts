@@ -1,3 +1,4 @@
+
 'use client';
 
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
@@ -11,7 +12,7 @@ export type VideoSource = 'local' | 'youtube';
 export interface Video {
   id: string;
   title: string;
-  thumbnail: string; // للملفات المحلية، هذا هو رابط الفيديو الفعلي
+  thumbnail: string; // للملفات المحلية، هذا هو رابط الفيديو الفعلي أو مصغر الفيديو
   views: string;
   author: string;
   authorId: string;
