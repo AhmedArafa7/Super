@@ -6,7 +6,7 @@ import {
   User, Package, Shield, Upload, Loader2, CheckCircle2, 
   ShoppingBag, History, CreditCard, MessageSquare, 
   Briefcase, Zap, Video, BookOpen, GraduationCap, 
-  ArrowRight, Bell, Wallet as WalletIcon, Sparkles 
+  ArrowRight, Bell, Wallet as WalletIcon, Sparkles, ShieldAlert 
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -125,7 +125,15 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
           </div>
         </div>
         <div className="flex gap-3">
-          <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30 px-4 py-2 rounded-xl text-xs font-bold">
+          <Button 
+            variant="outline" 
+            className="border-indigo-500/30 text-indigo-400 rounded-xl font-bold gap-2"
+            onClick={() => onNavigate?.("admin")}
+          >
+            <ShieldAlert className="size-4" />
+            Neural Console
+          </Button>
+          <Badge className="bg-green-500/20 text-green-400 border-green-500/30 px-4 py-2 rounded-xl text-xs font-bold">
             <Zap className="size-3 mr-2 inline" /> Node Active
           </Badge>
         </div>

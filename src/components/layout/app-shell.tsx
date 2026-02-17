@@ -32,7 +32,7 @@ type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notificati
 
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<NavItem>("chat");
+  const [activeTab, setActiveTab] = useState<NavItem>("dashboard");
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingOffersCount, setPendingOffersCount] = useState(0);
   const [highlightId, setHighlightId] = useState<string | null>(null);
@@ -71,6 +71,7 @@ export function AppShell() {
   if (!isAuthenticated) return <LoginView />;
 
   const navItems = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "chat", label: "AI Chat", icon: MessageSquare },
     { id: "stream", label: "StreamHub", icon: Video },
     { id: "market", label: "TechMarket", icon: ShoppingBag },
@@ -80,22 +81,23 @@ export function AppShell() {
     { id: "hisn", label: "حصن المسلم", icon: BookOpen },
     { id: "features", label: "Capabilities", icon: Zap },
     { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount },
+    { id: "admin", label: "Admin Panel", icon: ShieldCheck },
   ];
 
   const renderContent = () => {
     switch (activeTab) {
+      case "dashboard": return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
       case "chat": return <AIChat highlightId={highlightId} onHighlightComplete={() => setHighlightId(null)} />;
       case "stream": return <StreamHub />;
       case "market": return <TechMarket />;
       case "wallet": return <WalletView />;
       case "offers": return <OffersInbox />;
       case "features": return <Capabilities />;
-      case "admin": return user?.role === 'admin' ? <AdminPanel /> : <AIChat />;
+      case "admin": return <AdminPanel />;
       case "learning": return <KnowledgeHub />;
       case "hisn": return <HisnAlMuslim />;
       case "notifications": return <NotificationsView onSmartRoute={() => {}} />;
-      case "dashboard": return <UserDashboard />;
-      default: return <AIChat />;
+      default: return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
     }
   };
 
@@ -121,10 +123,12 @@ export function AppShell() {
                     onClick={() => setActiveTab(item.id as NavItem)}
                     className={cn(
                       "h-12 gap-4 px-4 rounded-xl transition-all flex-row-reverse justify-start",
-                      activeTab === item.id ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
+                      activeTab === item.id 
+                        ? (item.id === 'admin' ? "bg-indigo-600 text-white shadow-lg" : "bg-primary text-white shadow-lg") 
+                        : "text-muted-foreground hover:bg-white/5"
                     )}
                   >
-                    <item.icon className="size-5" />
+                    <item.icon className={cn("size-5", item.id === 'admin' && "text-indigo-400")} />
                     <span className="font-medium">{item.label}</span>
                     {item.badge !== undefined && item.badge > 0 && (
                        <Badge className="mr-auto bg-indigo-500 h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full">
@@ -134,21 +138,6 @@ export function AppShell() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              {user?.role === 'admin' && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    isActive={activeTab === 'admin'}
-                    onClick={() => setActiveTab('admin')}
-                    className={cn(
-                      "h-12 gap-4 px-4 rounded-xl transition-all flex-row-reverse justify-start",
-                      activeTab === 'admin' ? "bg-indigo-600 text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
-                    )}
-                  >
-                    <ShieldCheck className="size-5" />
-                    <span className="font-medium">Admin Panel</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
             </SidebarMenu>
 
             {uploadTasks.length > 0 && (
@@ -211,7 +200,11 @@ export function AppShell() {
                 {unreadCount > 0 && <Badge className="absolute top-2 left-2 h-4 w-4 p-0 flex items-center justify-center bg-red-500 border border-slate-900 text-[9px]">{unreadCount}</Badge>}
               </Button>
               <div className="h-8 w-px bg-white/10" />
-              <Button variant="outline" className="h-9 px-4 rounded-xl border-white/10 gap-2 text-xs font-bold text-white hover:bg-white/5 flex-row-reverse">
+              <Button 
+                variant="outline" 
+                className="h-9 px-4 rounded-xl border-white/10 gap-2 text-xs font-bold text-white hover:bg-white/5 flex-row-reverse"
+                onClick={() => setActiveTab("wallet")}
+              >
                 <Wallet className="size-4 text-primary" />
                 Neural Credits
               </Button>
