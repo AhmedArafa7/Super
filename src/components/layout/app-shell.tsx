@@ -103,12 +103,12 @@ export function AppShell() {
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen w-full bg-background hero-gradient overflow-hidden">
         <Sidebar className="border-r border-white/10 bg-slate-900/50 backdrop-blur-xl">
-          <SidebarHeader className="p-6">
-            <div className="flex items-center gap-3">
+          <SidebarHeader className="p-6 text-right">
+            <div className="flex items-center gap-3 justify-end">
+              <h1 className="font-headline font-bold text-xl tracking-tight text-white">NexusAI</h1>
               <div className="size-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
                 <Layers className="text-white size-6" />
               </div>
-              <h1 className="font-headline font-bold text-xl tracking-tight text-white">NexusAI</h1>
             </div>
           </SidebarHeader>
 
@@ -120,14 +120,14 @@ export function AppShell() {
                     isActive={activeTab === item.id}
                     onClick={() => setActiveTab(item.id as NavItem)}
                     className={cn(
-                      "h-12 gap-4 px-4 rounded-xl transition-all",
+                      "h-12 gap-4 px-4 rounded-xl transition-all flex-row-reverse justify-start",
                       activeTab === item.id ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
                     )}
                   >
                     <item.icon className="size-5" />
                     <span className="font-medium">{item.label}</span>
                     {item.badge !== undefined && item.badge > 0 && (
-                       <Badge className="ml-auto bg-indigo-500 h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full">
+                       <Badge className="mr-auto bg-indigo-500 h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full">
                         {item.badge}
                       </Badge>
                     )}
@@ -140,7 +140,7 @@ export function AppShell() {
                     isActive={activeTab === 'admin'}
                     onClick={() => setActiveTab('admin')}
                     className={cn(
-                      "h-12 gap-4 px-4 rounded-xl transition-all",
+                      "h-12 gap-4 px-4 rounded-xl transition-all flex-row-reverse justify-start",
                       activeTab === 'admin' ? "bg-indigo-600 text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
                     )}
                   >
@@ -153,21 +153,21 @@ export function AppShell() {
 
             {uploadTasks.length > 0 && (
               <div className="mt-8 px-4 space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="size-3 text-indigo-400 animate-pulse" />
+                <div className="flex items-center gap-2 mb-2 justify-end">
                   <p className="text-[10px] uppercase font-bold text-indigo-400 tracking-[0.2em]">Neural Sync Monitor</p>
+                  <Sparkles className="size-3 text-indigo-400 animate-pulse" />
                 </div>
                 {uploadTasks.map(task => (
                   <div key={task.id} className="p-3 bg-white/5 border border-white/10 rounded-2xl space-y-2 animate-in fade-in slide-in-from-bottom-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[10px] text-white font-bold truncate flex-1">{task.fileName}</p>
+                    <div className="flex items-center justify-between gap-2 flex-row-reverse">
+                      <p className="text-[10px] text-white font-bold truncate flex-1 text-right">{task.fileName}</p>
                       {task.status === 'uploading' && <Loader2 className="size-3 animate-spin text-indigo-400" />}
                       {task.status === 'preparing' && <div className="size-2 rounded-full bg-indigo-400 animate-ping" />}
                       {task.status === 'completed' && <CheckCircle2 className="size-3 text-green-400" />}
                       {task.status === 'failed' && <AlertCircle className="size-3 text-red-400" />}
                     </div>
                     <Progress value={task.progress} className="h-1.5 bg-white/5" />
-                    <div className="flex justify-between items-center text-[8px] text-muted-foreground uppercase font-bold">
+                    <div className="flex justify-between items-center text-[8px] text-muted-foreground uppercase font-bold flex-row-reverse">
                       <span>{task.status === 'preparing' ? 'Establishing Link...' : task.status}</span>
                       <span>{task.progress}%</span>
                     </div>
@@ -178,14 +178,14 @@ export function AppShell() {
           </SidebarContent>
 
           <SidebarFooter className="p-4 mt-auto border-t border-white/5">
-            <div className="flex items-center gap-3 px-2">
+            <div className="flex items-center gap-3 px-2 flex-row-reverse">
               <div 
                 className="size-10 rounded-2xl bg-indigo-900/50 border border-white/10 overflow-hidden cursor-pointer hover:border-primary/50 transition-all"
                 onClick={() => setActiveTab("dashboard")}
               >
                 <img src={user?.avatar_url || `https://picsum.photos/seed/${user?.username}/40/40`} className="size-full object-cover" alt="Profile" />
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 text-right">
                 <p dir="auto" className="text-sm font-bold truncate text-white">{user?.name}</p>
                 <p className="text-[10px] text-muted-foreground truncate capitalize">{user?.role} Node</p>
               </div>
@@ -197,21 +197,21 @@ export function AppShell() {
         </Sidebar>
 
         <div className="flex-1 flex flex-col h-screen overflow-hidden">
-          <header className="h-16 border-b border-white/5 bg-slate-900/40 backdrop-blur-md flex items-center justify-between px-6 z-20">
-            <div className="flex items-center gap-4">
+          <header className="h-16 border-b border-white/5 bg-slate-900/40 backdrop-blur-md flex items-center justify-between px-6 z-20 flex-row-reverse">
+            <div className="flex items-center gap-4 flex-row-reverse">
               <SidebarTrigger className="md:hidden" />
               <div className="relative hidden md:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                <Input placeholder="Scan Nexus..." className="w-64 pl-9 h-9 bg-white/5 border-white/10 rounded-lg text-sm" />
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input placeholder="Scan Nexus..." className="w-64 pr-9 h-9 bg-white/5 border-white/10 rounded-lg text-sm text-right" />
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-row-reverse">
               <Button variant="ghost" size="icon" className="text-muted-foreground relative" onClick={() => setActiveTab("notifications")}>
                 <Bell className="size-5" />
-                {unreadCount > 0 && <Badge className="absolute top-2 right-2 h-4 w-4 p-0 flex items-center justify-center bg-red-500 border border-slate-900 text-[9px]">{unreadCount}</Badge>}
+                {unreadCount > 0 && <Badge className="absolute top-2 left-2 h-4 w-4 p-0 flex items-center justify-center bg-red-500 border border-slate-900 text-[9px]">{unreadCount}</Badge>}
               </Button>
               <div className="h-8 w-px bg-white/10" />
-              <Button variant="outline" className="h-9 px-4 rounded-xl border-white/10 gap-2 text-xs font-bold text-white hover:bg-white/5" onClick={() => setActiveTab("wallet")}>
+              <Button variant="outline" className="h-9 px-4 rounded-xl border-white/10 gap-2 text-xs font-bold text-white hover:bg-white/5 flex-row-reverse">
                 <Wallet className="size-4 text-primary" />
                 Neural Credits
               </Button>
