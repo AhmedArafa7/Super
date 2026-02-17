@@ -1,3 +1,4 @@
+
 'use client';
 
 import { create } from 'zustand';
@@ -60,11 +61,15 @@ export const useUploadStore = create<UploadState>((set, get) => ({
 
     try {
       const { storage } = initializeFirebase();
-      // استخدام مسار نظيف لضمان عدم وجود مشاكل في الأذونات
       const storageRef = ref(storage, `${task.type}/${Date.now()}-${task.file.name}`);
       const uploadTask = uploadBytesResumable(storageRef, task.file);
 
-      console.log(`[Nexus Sync] Starting upload for: ${task.fileName}`);
+      // مراقبة الاتصال الأولي
+      const connectionTimer = setTimeout(() => {
+        if (get().tasks.find(t => t.id === id)?.progress === 0) {
+          console.warn("[Nexus Sync] Connection slow. Might be restricted by Storage Rules.");
+        }
+      }, 8000);
 
       uploadTask.on('state_changed', 
         (snapshot) => {
@@ -74,9 +79,10 @@ export const useUploadStore = create<UploadState>((set, get) => ({
           }));
         }, 
         (error: any) => {
+          clearTimeout(connectionTimer);
           console.error("[Neural Link Error Details]:", error);
           const errorMessage = error.code === 'storage/unauthorized' 
-            ? "Access Denied: Check Firebase Storage Rules."
+            ? "Access Denied: Please enable Storage in Firebase Console."
             : error.message;
           
           set(state => ({
@@ -90,6 +96,7 @@ export const useUploadStore = create<UploadState>((set, get) => ({
           });
         }, 
         async () => {
+          clearTimeout(connectionTimer);
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           
           set(state => ({

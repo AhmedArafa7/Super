@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -77,7 +78,17 @@ export function AdminPanel() {
     try {
       const { storage } = initializeFirebase();
       const testRef = ref(storage, 'diagnostics/neural-test.txt');
-      await uploadString(testRef, "NexusAI Connectivity Diagnostic: SUCCESS");
+      
+      // إضافة Timer لمنع الدوران اللانهائي في حال عدم استجابة السيرفر
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject({ code: 'storage/timeout', message: 'Connection timed out. Firebase Storage might be disabled or blocked.' }), 12000)
+      );
+
+      await Promise.race([
+        uploadString(testRef, "NexusAI Connectivity Diagnostic: SUCCESS"),
+        timeout
+      ]);
+
       toast({ 
         title: "Storage Online", 
         description: "Successfully established link with Firebase Storage." 
@@ -85,15 +96,15 @@ export function AdminPanel() {
       await deleteObject(testRef);
     } catch (err: any) {
       console.error("Storage Test Error:", err);
-      // توضيح السبب الدقيق للفشل للمستخدم
       let detail = err.message;
-      if (err.code === 'storage/unauthorized') detail = "Permissions Rejected (Check Storage Rules).";
-      if (err.code === 'storage/project-not-found') detail = "Firebase Project Mismatch.";
+      if (err.code === 'storage/unauthorized') detail = "Access Denied. Please ENABLE Firebase Storage in your console.";
+      if (err.code === 'storage/project-not-found') detail = "Configuration Mismatch.";
+      if (err.code === 'storage/timeout') detail = "Neural link timed out. Check your Internet or Firebase status.";
       
       toast({ 
         variant: "destructive", 
-        title: "Link Rejected", 
-        description: `Error: ${err.code} | ${detail}` 
+        title: "Link Failed", 
+        description: `Error: ${err.code || 'Unknown'} | ${detail}` 
       });
     } finally {
       setIsTestingStorage(false);
