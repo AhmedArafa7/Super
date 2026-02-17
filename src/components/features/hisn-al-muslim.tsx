@@ -92,14 +92,14 @@ export function HisnAlMuslim() {
   if (selectedCategory) {
     return (
       <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-2 duration-500">
-        <header className="p-6 border-b border-white/5 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <header className="p-6 border-b border-white/5 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-20 flex items-center justify-between flex-row-reverse">
+          <div className="flex items-center gap-4 flex-row-reverse">
             <Button variant="ghost" size="icon" onClick={() => setSelectedCategory(null)} className="rounded-full text-white">
-              <ArrowLeft className="size-5" />
+              <ArrowLeft className="size-5 rotate-180" />
             </Button>
-            <div>
-              <h2 dir="auto" className="text-2xl font-bold text-white text-right">{selectedCategory.title}</h2>
-              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest text-right">{categoryProgress}% مكتمل</p>
+            <div className="text-right">
+              <h2 dir="auto" className="text-2xl font-bold text-white">{selectedCategory.title}</h2>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{categoryProgress}% مكتمل</p>
             </div>
           </div>
           <div className="w-32">
@@ -116,12 +116,12 @@ export function HisnAlMuslim() {
               return (
                 <Card key={item.id} className={cn("glass border-white/5 rounded-[2.5rem] transition-all duration-500", isFinished && "opacity-50 grayscale-[0.5]")}>
                   <CardContent className="p-8 space-y-6">
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start flex-row-reverse">
                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(item.text)}><Copy className="size-4 text-muted-foreground" /></Button>
                        <Badge variant="outline" className="border-white/10 opacity-50">ID: {item.id}</Badge>
                     </div>
                     <p dir="auto" className="text-xl leading-relaxed text-right font-serif text-slate-100">{item.text}</p>
-                    <div className="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-white/5 gap-6">
+                    <div className="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-white/5 gap-6 flex-row-reverse">
                       <div className="text-right">
                         <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{item.reference || "ذكر مأثور"}</p>
                       </div>
@@ -151,7 +151,7 @@ export function HisnAlMuslim() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-12 flex flex-wrap h-auto gap-1">
+        <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-12 flex flex-wrap h-auto gap-1 flex-row-reverse">
           <TabsTrigger value="azkar" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary flex-1 sm:flex-none">الأذكار</TabsTrigger>
           <TabsTrigger value="tasbih" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary flex-1 sm:flex-none">المسبحة</TabsTrigger>
           <TabsTrigger value="names" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary flex-1 sm:flex-none">أسماء الله</TabsTrigger>
@@ -160,8 +160,8 @@ export function HisnAlMuslim() {
 
         <TabsContent value="azkar" className="space-y-12">
           <div className="relative max-w-3xl mx-auto">
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 size-6 text-muted-foreground" />
-            <Input dir="auto" placeholder="ابحث عن تصنيف..." className="w-full h-16 bg-white/5 border-white/10 rounded-[2rem] pl-16 pr-8 text-xl text-right focus-visible:ring-primary shadow-xl" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Search className="absolute right-6 top-1/2 -translate-y-1/2 size-6 text-muted-foreground" />
+            <Input dir="auto" placeholder="ابحث عن تصنيف..." className="w-full h-16 bg-white/5 border-white/10 rounded-[2rem] pr-16 pl-8 text-xl text-right focus-visible:ring-primary shadow-xl" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredCategories.map((cat) => {
@@ -219,11 +219,11 @@ export function HisnAlMuslim() {
 
         <TabsContent value="times" className="animate-in fade-in duration-500">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="glass border-white/5 rounded-[3rem] p-10 relative overflow-hidden">
+            <Card className="glass border-white/5 rounded-[3rem] p-10 relative overflow-hidden text-right">
               <div className="absolute top-0 right-0 size-64 bg-indigo-500/10 blur-[80px] -mr-32 -mt-32" />
               <div className="relative z-10 space-y-8">
                 <div className="flex items-center justify-between flex-row-reverse">
-                  <h3 className="text-2xl font-bold text-white flex items-center gap-3">مواقيت الصلاة <Clock className="text-primary" /></h3>
+                  <h3 className="text-2xl font-bold text-white flex items-center gap-3 justify-end">مواقيت الصلاة <Clock className="text-primary" /></h3>
                   <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30">Neural Sync: ON</Badge>
                 </div>
                 
@@ -235,9 +235,9 @@ export function HisnAlMuslim() {
                     { label: "المغرب", time: "18:22", active: false },
                     { label: "العشاء", time: "19:45", active: false },
                   ].map((p) => (
-                    <div key={p.label} className={cn("flex items-center justify-between p-5 rounded-2xl border transition-all", p.active ? "bg-primary/10 border-primary shadow-lg" : "bg-white/5 border-white/5 opacity-60")}>
-                      <span className="text-xl font-bold tabular-nums">{p.time}</span>
+                    <div key={p.label} className={cn("flex items-center justify-between p-5 rounded-2xl border transition-all flex-row-reverse", p.active ? "bg-primary/10 border-primary shadow-lg" : "bg-white/5 border-white/5 opacity-60")}>
                       <span dir="auto" className="font-bold text-lg">{p.label}</span>
+                      <span className="text-xl font-bold tabular-nums">{p.time}</span>
                     </div>
                   ))}
                 </div>

@@ -156,17 +156,17 @@ export function AdminPanel() {
   return (
     <div className="p-8 max-w-7xl mx-auto flex flex-col h-[calc(100vh-8rem)]">
       <div className="mb-8 flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-headline font-bold text-white tracking-tight flex items-center gap-3">
-            <ShieldAlert className="text-indigo-400" />
+        <div className="text-right">
+          <h2 className="text-3xl font-headline font-bold text-white tracking-tight flex items-center gap-3 justify-end">
             Neural Console
+            <ShieldAlert className="text-indigo-400" />
           </h2>
-          <p className="text-muted-foreground mt-1 text-right">Global administration and neural synchronization controls.</p>
+          <p className="text-muted-foreground mt-1">Global administration and neural synchronization controls.</p>
         </div>
       </div>
 
       <Tabs defaultValue="infra" className="flex-1 flex flex-col">
-        <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 w-fit overflow-x-auto">
+        <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 w-fit overflow-x-auto flex-row-reverse">
           <TabsTrigger value="infra" className="rounded-xl px-6 data-[state=active]:bg-indigo-600 flex items-center gap-2">
             <Server className="size-3" /> Infrastructure
           </TabsTrigger>
@@ -178,22 +178,22 @@ export function AdminPanel() {
 
         <TabsContent value="infra" className="flex-1 outline-none">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="glass border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden">
+            <Card className="glass border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden text-right">
               <div className="absolute top-0 right-0 size-32 bg-indigo-500/10 blur-3xl -mr-16 -mt-16" />
-              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                <Cpu className="size-5 text-indigo-400" />
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3 justify-end">
                 Neural Engine Status
+                <Cpu className="size-5 text-indigo-400" />
               </h3>
               <div className="space-y-4">
-                <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between flex-row-reverse">
+                  <div className="flex items-center gap-3 flex-row-reverse">
                     <Zap className="size-4 text-amber-400" />
                     <span className="text-sm font-medium">Groq Llama 3.3</span>
                   </div>
                   <Badge className="bg-green-500/20 text-green-400 border-green-500/30">ONLINE</Badge>
                 </div>
-                <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between flex-row-reverse">
+                  <div className="flex items-center gap-3 flex-row-reverse">
                     <Globe className="size-4 text-blue-400" />
                     <span className="text-sm font-medium">Google Gemini 1.5</span>
                   </div>
@@ -210,16 +210,16 @@ export function AdminPanel() {
                     Test Storage Link
                   </Button>
                   <p className="text-[9px] text-muted-foreground mt-3 leading-relaxed text-center">
-                    If connection fails, visit the <a href="https://console.firebase.google.com" target="_blank" className="text-indigo-400 underline inline-flex items-center gap-0.5">Firebase Console <ExternalLink className="size-2" /></a> and ensure <strong>Storage</strong> is activated.
+                    إذا فشل الفحص، اذهب لـ <a href="https://console.firebase.google.com" target="_blank" className="text-indigo-400 underline inline-flex items-center gap-0.5">Firebase Console <ExternalLink className="size-2" /></a> واضغط على <strong>Get Started</strong> في قسم <strong>Storage</strong>.
                   </p>
                 </div>
               </div>
             </Card>
 
-            <Card className="lg:col-span-2 glass border-white/10 rounded-[2.5rem] p-8">
-              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                <Activity className="size-5 text-indigo-400" />
+            <Card className="lg:col-span-2 glass border-white/10 rounded-[2.5rem] p-8 text-right">
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3 justify-end">
                 Consumption Metrics
+                <Activity className="size-5 text-indigo-400" />
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {Object.entries(stats).length === 0 ? (
@@ -231,9 +231,9 @@ export function AdminPanel() {
                   Object.entries(stats).map(([engine, count]) => (
                     <div key={engine} className="p-6 bg-white/5 rounded-3xl border border-white/5">
                       <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-1">{engine}</p>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-4xl font-black text-white">{count}</span>
+                      <div className="flex items-baseline gap-2 justify-end">
                         <span className="text-xs text-indigo-400 font-bold">Processed Packets</span>
+                        <span className="text-4xl font-black text-white">{count}</span>
                       </div>
                       <div className="mt-4 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                         <div 
@@ -251,10 +251,10 @@ export function AdminPanel() {
 
         <TabsContent value="users" className="flex-1 outline-none">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
-            <Card className="glass border-white/10 rounded-[2.5rem] p-8 h-fit">
-              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                <Plus className="size-5 text-indigo-400" />
+            <Card className="glass border-white/10 rounded-[2.5rem] p-8 h-fit text-right">
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3 justify-end">
                 Register Neural ID
+                <Plus className="size-5 text-indigo-400" />
               </h3>
               <div className="space-y-4">
                 <div className="grid gap-1.5">
@@ -271,7 +271,7 @@ export function AdminPanel() {
                   <Label>Username</Label>
                   <Input 
                     placeholder="e.g., jdoe_nexus" 
-                    className="bg-white/5 border-white/10 rounded-xl h-11"
+                    className="bg-white/5 border-white/10 rounded-xl h-11 text-right"
                     value={newUser.username}
                     onChange={(e) => setNewUser({...newUser, username: e.target.value})}
                   />
@@ -281,7 +281,7 @@ export function AdminPanel() {
                   <Input 
                     type="password"
                     placeholder="••••••••" 
-                    className="bg-white/5 border-white/10 rounded-xl h-11"
+                    className="bg-white/5 border-white/10 rounded-xl h-11 text-right"
                     value={newUser.password}
                     onChange={(e) => setNewUser({...newUser, password: e.target.value})}
                   />
@@ -296,24 +296,24 @@ export function AdminPanel() {
               </div>
             </Card>
 
-            <Card className="lg:col-span-2 glass border-white/10 rounded-[2.5rem] p-8 flex flex-col">
-              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                <Users className="size-5 text-indigo-400" />
+            <Card className="lg:col-span-2 glass border-white/10 rounded-[2.5rem] p-8 flex flex-col text-right">
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3 justify-end">
                 Active Neural Registry
+                <Users className="size-5 text-indigo-400" />
               </h3>
               <ScrollArea className="flex-1">
                 <div className="space-y-3 pr-4">
                   {users.map((u) => (
                     <div key={u.id} className="flex flex-col p-5 glass border-white/5 rounded-3xl group gap-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+                      <div className="flex items-center justify-between flex-row-reverse">
+                        <div className="flex items-center gap-4 flex-row-reverse">
                           <div className="size-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center border border-indigo-500/20">
                             {u.role === 'admin' ? <ShieldCheck className="size-6 text-indigo-400" /> : <User className="size-6 text-indigo-400" />}
                           </div>
                           <div>
-                            <div className="flex items-center gap-2">
-                              <p dir="auto" className="font-bold text-white text-base text-right">{u.name}</p>
+                            <div className="flex items-center gap-2 justify-end">
                               {u.customTag && <Badge variant="outline" className="text-[8px] border-indigo-500/30 text-indigo-400 px-1.5 h-4 uppercase">{u.customTag}</Badge>}
+                              <p dir="auto" className="font-bold text-white text-base text-right">{u.name}</p>
                             </div>
                             <span className="text-[10px] text-muted-foreground uppercase font-mono">@{u.username} • {u.role}</span>
                           </div>
@@ -328,11 +328,11 @@ export function AdminPanel() {
                         </Button>
                       </div>
 
-                      <div className="flex items-center gap-3 bg-white/5 p-3 rounded-2xl border border-white/5">
+                      <div className="flex items-center gap-3 bg-white/5 p-3 rounded-2xl border border-white/5 flex-row-reverse">
                         <Input 
                           type="number"
                           placeholder="Amount..."
-                          className="bg-transparent border-none h-9 text-sm"
+                          className="bg-transparent border-none h-9 text-sm text-right"
                           value={walletAmounts[u.id] || ""}
                           onChange={(e) => setWalletAmounts({...walletAmounts, [u.id]: e.target.value})}
                         />
@@ -361,17 +361,17 @@ export function AdminPanel() {
 
         <TabsContent value="stream" className="flex-1 outline-none">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
-            <Card className="glass border-white/10 rounded-[2.5rem] p-8 flex flex-col">
-              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                <MessageSquare className="size-5 text-indigo-400" />
+            <Card className="glass border-white/10 rounded-[2.5rem] p-8 flex flex-col text-right">
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3 justify-end">
                 Pending Authorization
+                <MessageSquare className="size-5 text-indigo-400" />
               </h3>
               <ScrollArea className="flex-1">
                 <div className="space-y-4 pr-4">
                   {messages.filter(m => m.status === 'sent').map((m) => (
                     <div key={m.id} className="p-6 bg-white/5 border border-white/5 rounded-[2rem] space-y-4 group">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-3">
+                      <div className="flex justify-between items-start flex-row-reverse">
+                        <div className="flex items-center gap-3 flex-row-reverse">
                           <div className="size-10 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 font-bold text-xs border border-indigo-500/20">
                             {m.userName.charAt(0)}
                           </div>
@@ -399,7 +399,7 @@ export function AdminPanel() {
                           value={responses[m.id] || ""}
                           onChange={(e) => setResponses({...responses, [m.id]: e.target.value})}
                         />
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-row-reverse">
                           <Button 
                             className="flex-1 bg-indigo-600 hover:bg-indigo-500 rounded-xl h-11 font-bold shadow-lg shadow-indigo-600/20"
                             onClick={async () => {
@@ -428,16 +428,16 @@ export function AdminPanel() {
               </ScrollArea>
             </Card>
 
-            <Card className="glass border-white/10 rounded-[2.5rem] p-8 flex flex-col">
-              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                <History className="size-5 text-indigo-400" />
+            <Card className="glass border-white/10 rounded-[2.5rem] p-8 flex flex-col text-right">
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3 justify-end">
                 Transmission Archive
+                <History className="size-5 text-indigo-400" />
               </h3>
               <ScrollArea className="flex-1">
                 <div className="space-y-3 pr-4">
                   {messages.filter(m => m.status === 'replied' || m.status === 'rejected').map((m) => (
                     <div key={m.id} className="p-5 border border-white/5 rounded-3xl group transition-all hover:bg-white/5">
-                      <div className="flex justify-between items-center mb-3">
+                      <div className="flex justify-between items-center mb-3 flex-row-reverse">
                         <p className="font-bold text-xs text-indigo-400">@{m.userName}</p>
                         <Badge variant="outline" className={cn(
                           "text-[8px] h-4",
@@ -450,7 +450,7 @@ export function AdminPanel() {
                       {m.response && <p dir="auto" className="text-xs text-white line-clamp-2 italic text-right">A: {m.response}</p>}
                       {m.engine && <Badge variant="outline" className="text-[7px] mt-2 border-indigo-500/20 text-indigo-400/50">{m.engine}</Badge>}
                       
-                      <div className="mt-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="mt-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button size="sm" variant="outline" className="h-8 text-[10px] rounded-lg">Adjust Response</Button>
@@ -485,23 +485,23 @@ export function AdminPanel() {
 
         <TabsContent value="content" className="flex-1 outline-none">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
-            <Card className="glass border-white/10 rounded-[2.5rem] p-8 flex flex-col">
-              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                <VideoIcon className="size-5 text-indigo-400" />
+            <Card className="glass border-white/10 rounded-[2.5rem] p-8 flex flex-col text-right">
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3 justify-end">
                 Stream Review Queue
+                <VideoIcon className="size-5 text-indigo-400" />
               </h3>
               <ScrollArea className="flex-1">
                 <div className="space-y-4 pr-4">
                   {videos.filter(v => v.status === 'pending_review').map((v) => (
                     <div key={v.id} className="p-6 bg-white/5 border border-white/5 rounded-[2rem] space-y-4">
-                      <div className="flex gap-4">
+                      <div className="flex gap-4 flex-row-reverse">
                         <img src={v.thumbnail} className="size-20 rounded-xl object-cover" />
                         <div className="flex-1">
                           <h4 dir="auto" className="font-bold text-white text-sm text-right">{v.title}</h4>
                           <p dir="auto" className="text-xs text-muted-foreground text-right">Author: {v.author}</p>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-row-reverse">
                         <Button className="flex-1 bg-green-600" onClick={() => updateVideoStatus(v.id, 'published')}>Publish</Button>
                         <Button variant="ghost" className="text-red-400" onClick={() => updateVideoStatus(v.id, 'rejected')}>Reject</Button>
                       </div>
@@ -511,10 +511,10 @@ export function AdminPanel() {
               </ScrollArea>
             </Card>
 
-            <Card className="glass border-white/10 rounded-[2.5rem] p-8 flex flex-col">
-              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                <GraduationCap className="size-5 text-indigo-400" />
+            <Card className="glass border-white/10 rounded-[2.5rem] p-8 flex flex-col text-right">
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3 justify-end">
                 Learning Path Mgmt
+                <GraduationCap className="size-5 text-indigo-400" />
               </h3>
               <div className="space-y-6">
                 <div className="p-6 bg-indigo-500/10 border border-indigo-500/20 rounded-3xl space-y-3">
@@ -529,7 +529,7 @@ export function AdminPanel() {
                 <ScrollArea className="h-64">
                   <div className="space-y-2 pr-4">
                     {subjects.map(s => (
-                      <div key={s.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl">
+                      <div key={s.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl flex-row-reverse">
                         <span dir="auto" className="font-bold text-sm text-right flex-1">{s.title}</span>
                         <Button variant="ghost" size="icon" onClick={async () => { await deleteSubject(s.id); loadData(); }}>
                           <Trash2 className="size-4 text-red-400" />
@@ -547,7 +547,7 @@ export function AdminPanel() {
           <Card className="glass border-white/10 rounded-[2.5rem] p-12 max-w-2xl mx-auto text-center">
             <Radio className="size-12 text-indigo-400 mx-auto mb-6 animate-pulse" />
             <h3 className="text-3xl font-bold text-white mb-8">Global Broadcast</h3>
-            <div className="space-y-4 text-left">
+            <div className="space-y-4 text-right">
               <div className="grid gap-2">
                 <Label>Header</Label>
                 <Input dir="auto" className="bg-white/5 h-12 text-right" value={broadcast.title} onChange={e => setBroadcast({...broadcast, title: e.target.value})} />

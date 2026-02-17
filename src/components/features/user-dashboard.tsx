@@ -123,11 +123,11 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
           <div className="size-16 rounded-[2rem] bg-primary/10 border border-primary/20 flex items-center justify-center shadow-2xl">
             <Sparkles className="size-8 text-primary animate-pulse" />
           </div>
-          <div>
-            <h2 dir="auto" className="text-4xl font-headline font-bold text-white tracking-tight text-right">
+          <div className="text-right">
+            <h2 dir="auto" className="text-4xl font-headline font-bold text-white tracking-tight">
               أهلاً بك، {user?.name}
             </h2>
-            <p className="text-muted-foreground mt-1 text-right">نظام NexusAI جاهز لتنفيذ أوامرك.</p>
+            <p className="text-muted-foreground mt-1">نظام NexusAI جاهز لتنفيذ أوامرك.</p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -148,15 +148,12 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 flex flex-wrap h-auto gap-1">
           <TabsTrigger value="overview" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary flex-1 sm:flex-none">
-            <LayoutDashboard className="size-4 mr-2" />
             نظرة عامة
           </TabsTrigger>
           <TabsTrigger value="profile" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary flex-1 sm:flex-none">
-            <User className="size-4 mr-2" />
             الملف الشخصي
           </TabsTrigger>
           <TabsTrigger value="business" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary flex-1 sm:flex-none relative">
-            <Briefcase className="size-4 mr-2" />
             مركز الأعمال
             {pendingOffersCount > 0 && (
               <Badge className="ml-2 bg-red-500 h-4 w-4 p-0 flex items-center justify-center text-[8px] rounded-full">
@@ -165,8 +162,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
             )}
           </TabsTrigger>
           <TabsTrigger value="orders" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary flex-1 sm:flex-none">
-            <Package className="size-4 mr-2" />
-            طلباتي
+            سجل العمليات
           </TabsTrigger>
         </TabsList>
 
@@ -175,7 +171,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
             <QuickActionCard 
               icon={MessageSquare} 
               title="الدردشة الذكية" 
-              desc="تواصل مع المحرك العصبي Llama 3.3 لحل مشاكلك التقنية."
+              desc="تواصل مع المحرك العصبي لحل مشاكلك التقنية."
               color="bg-blue-600"
               onClick={() => onNavigate?.("chat")}
             />
@@ -195,8 +191,8 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
             />
             <QuickActionCard 
               icon={BookOpen} 
-              title="حصن المسلم" 
-              desc="مزامنة روحية يومية مع أذكار مختارة بعناية."
+              title="عقدة الإيمان" 
+              desc="أذكار، تسبيح، ومعرفة روحية في مكان واحد."
               color="bg-emerald-600"
               onClick={() => onNavigate?.("hisn")}
             />
@@ -205,9 +201,9 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <Card className="lg:col-span-2 glass border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden">
               <div className="absolute top-0 right-0 size-64 bg-primary/5 blur-[80px] -mr-32 -mt-32" />
-              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                <WalletIcon className="text-primary" />
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3 justify-end">
                 حالة المحفظة العصبية
+                <WalletIcon className="text-primary" />
               </h3>
               <div className="flex flex-col sm:flex-row items-center justify-between gap-8 bg-white/5 p-8 rounded-[2rem] border border-white/5">
                 <div className="text-center sm:text-right">
@@ -270,9 +266,9 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
             </Card>
 
             <Card className="lg:col-span-2 glass border-white/5 rounded-[2.5rem] p-8">
-              <CardHeader className="px-0 pt-0">
-                <CardTitle className="text-right">إعدادات الهوية</CardTitle>
-                <CardDescription className="text-right">تحديث معلومات العقدة العامة الخاصة بك.</CardDescription>
+              <CardHeader className="px-0 pt-0 text-right">
+                <CardTitle>إعدادات الهوية</CardTitle>
+                <CardDescription>تحديث معلومات العقدة العامة الخاصة بك.</CardDescription>
               </CardHeader>
               <div className="space-y-6 mt-4">
                 <div className="grid gap-2">
@@ -314,12 +310,12 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
 
         <TabsContent value="orders">
           <Card className="glass border-white/5 rounded-[2.5rem] overflow-hidden">
-            <CardHeader>
+            <CardHeader className="text-right">
               <CardTitle className="flex items-center gap-2 justify-end">
                 سجل الاستحواذ
                 <History className="size-5 text-indigo-400" />
               </CardTitle>
-              <CardDescription className="text-right">سجل موثق لجميع عمليات المزامنة في المتجر.</CardDescription>
+              <CardDescription>سجل موثق لجميع عمليات المزامنة في المتجر.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="h-[500px]">
@@ -373,8 +369,4 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
 
 const ClockIcon = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-);
-
-const LayoutDashboard = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
 );
