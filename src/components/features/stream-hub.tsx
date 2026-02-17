@@ -279,6 +279,12 @@ export function StreamHub() {
 
       <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
         <DialogContent className="max-w-5xl bg-black border-white/10 p-0 overflow-hidden rounded-[2.5rem]">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{selectedVideo?.title || "مشغل الفيديو"}</DialogTitle>
+            <DialogDescription>
+              مشاهدة البث العصبي: {selectedVideo?.title} بواسطة {selectedVideo?.author}
+            </DialogDescription>
+          </DialogHeader>
           <div className="aspect-video bg-slate-900 relative">
             <Button onClick={() => setSelectedVideo(null)} variant="ghost" size="icon" className="absolute top-4 right-4 z-50 text-white hover:bg-white/10 rounded-full">
               <X className="size-6" />
