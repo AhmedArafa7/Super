@@ -17,6 +17,7 @@ import { getStoredVideos, addVideo, deleteVideo, Video, Visibility, VideoSource 
 import { useUploadStore } from "@/lib/upload-store";
 import { useStreamStore } from "@/lib/stream-store";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import Image from "next/image";
 
 const getYoutubeId = (url?: string) => {
