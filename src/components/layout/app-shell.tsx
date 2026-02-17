@@ -1,8 +1,9 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
-import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard, Repeat, Loader2, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
+import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarHeader as SBHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
+import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard, Repeat, Loader2, CheckCircle2, AlertCircle, Sparkles, BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ import { KnowledgeHub } from "@/components/features/knowledge-hub";
 import { WalletView } from "@/components/features/wallet-view";
 import { UserDashboard } from "@/components/features/user-dashboard";
 import { OffersInbox } from "@/components/features/offers-inbox";
+import { HisnAlMuslim } from "@/components/features/hisn-al-muslim";
 import { getNotifications, AppNotification } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
@@ -26,7 +28,7 @@ import { LoginView } from "@/components/auth/login-view";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
-type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers";
+type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn";
 
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -75,6 +77,7 @@ export function AppShell() {
     { id: "wallet", label: "Neural Wallet", icon: Wallet },
     { id: "offers", label: "Offers Inbox", icon: Repeat, badge: pendingOffersCount },
     { id: "learning", label: "Knowledge Hub", icon: GraduationCap },
+    { id: "hisn", label: "حصن المسلم", icon: BookOpen },
     { id: "features", label: "Capabilities", icon: Zap },
     { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount },
   ];
@@ -89,6 +92,7 @@ export function AppShell() {
       case "features": return <Capabilities />;
       case "admin": return user?.role === 'admin' ? <AdminPanel /> : <AIChat />;
       case "learning": return <KnowledgeHub />;
+      case "hisn": return <HisnAlMuslim />;
       case "notifications": return <NotificationsView onSmartRoute={() => {}} />;
       case "dashboard": return <UserDashboard />;
       default: return <AIChat />;
@@ -147,7 +151,6 @@ export function AppShell() {
               )}
             </SidebarMenu>
 
-            {/* عرض مهام الرفع الجارية في الخلفية */}
             {uploadTasks.length > 0 && (
               <div className="mt-8 px-4 space-y-4">
                 <div className="flex items-center gap-2 mb-2">
