@@ -73,15 +73,21 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
   }, [user?.id]);
 
   const loadOrders = async () => {
+    if (!user?.id) return;
     setIsLoadingOrders(true);
     try {
-      const allTx = await getTransactions(user!.id);
-      const purchaseTxs = allTx.filter(tx => 
-        tx.type === 'purchase_hold' || tx.type === 'purchase_release' || tx.type === 'purchase_refund'
-      );
-      setOrders(purchaseTxs);
+      const allTx = await getTransactions(user.id);
+      if (Array.isArray(allTx)) {
+        const purchaseTxs = allTx.filter(tx => 
+          tx.type === 'purchase_hold' || tx.type === 'purchase_release' || tx.type === 'purchase_refund'
+        );
+        setOrders(purchaseTxs);
+      } else {
+        setOrders([]);
+      }
     } catch (err) {
       console.error("Failed to load orders", err);
+      setOrders([]);
     } finally {
       setIsLoadingOrders(false);
     }

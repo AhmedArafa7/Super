@@ -38,7 +38,7 @@ interface WalletState {
   pendingTransactions: PendingTransaction[];
   isLoading: boolean;
   fetchWallet: (userId: string) => Promise<void>;
-  fetchTransactions: (userId: string) => Promise<void>;
+  fetchTransactions: (userId: string) => Promise<Transaction[]>;
   adjustFunds: (userId: string, amount: number, type: TransactionType) => Promise<boolean>;
   processOfflineQueue: (userId: string) => Promise<void>;
   removePendingTransaction: (id: string) => void;
@@ -78,8 +78,10 @@ export const useWalletStore = create<WalletState>()(
         const snap = await getDocs(q);
         const txs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
         set({ transactions: txs });
+        return txs;
       } catch (err) {
         console.error('Transactions Fetch Error:', err);
+        return [];
       }
     },
 
