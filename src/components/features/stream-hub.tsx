@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Play, Plus, Upload, MoreVertical, Clock, Eye, Trash2, ShieldCheck, Lock, EyeOff, CheckCircle2, AlertCircle, LayoutDashboard, Globe, Loader2, X, Zap, Share2, MessageSquare, Youtube, ExternalLink, FileVideo, Radio, Sparkles } from "lucide-react";
+import { Play, Plus, Upload, MoreVertical, Clock, Eye, Trash2, ShieldCheck, Lock, EyeOff, CheckCircle2, AlertCircle, LayoutDashboard, Globe, Loader2, X, Zap, Share2, MessageSquare, Youtube, ExternalLink, FileVideo, Radio, Sparkles, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/components/auth/auth-provider";
 import { getStoredVideos, addVideo, deleteVideo, Video, Visibility, VideoSource } from "@/lib/video-store";
 import { useUploadStore } from "@/lib/upload-store";
@@ -39,6 +40,26 @@ export function StreamHub() {
   const [activeView, setActiveView] = useState<'explore' | 'studio'>('explore');
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   
+  // Quality Settings Logic
+  const [videoQuality, setVideoQuality] = useState<string>("240");
+
+  useEffect(() => {
+    // Load saved quality preference
+    const savedQuality = localStorage.getItem("nexus_stream_quality");
+    if (savedQuality) {
+      setVideoQuality(savedQuality);
+    }
+  }, []);
+
+  const handleQualityUpdate = (val: string) => {
+    setVideoQuality(val);
+    localStorage.setItem("nexus_stream_quality", val);
+    toast({
+      title: "تم تحديث الجودة",
+      description: `تم ضبط جودة البث الافتراضية على ${val}p لجميع الفيديوهات.`
+    });
+  };
+
   const [uploadSource, setUploadSource] = useState<VideoSource>('local');
   const [uploadData, setUploadData] = useState({
     title: "",
@@ -134,84 +155,117 @@ export function StreamHub() {
             </TabsList>
           </Tabs>
 
-          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary text-white hover:bg-primary/90 rounded-2xl px-8 h-14 shadow-xl shadow-primary/20 font-bold text-base">
-                <Plus className="mr-2 size-6" />
-                بث جديد
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[550px] bg-slate-950 border-white/10 rounded-[2.5rem] p-8">
-              <DialogHeader>
-                <DialogTitle className="text-3xl font-headline font-bold text-white text-right">إرسال عصبي جديد</DialogTitle>
-                <DialogDescription className="text-muted-foreground text-sm text-right">
-                  اختر "رابط يوتيوب" لتجاوز قيود المساحة، أو "ملف محلي" للمقاطع الحصرية.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="grid gap-6 py-6">
-                <Tabs value={uploadSource} onValueChange={(v: any) => setUploadSource(v)} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 bg-white/5 p-1 rounded-xl flex-row-reverse">
-                    <TabsTrigger value="youtube" className="rounded-lg gap-2"><Youtube className="size-4" /> رابط يوتيوب (غير محدود)</TabsTrigger>
-                    <TabsTrigger value="local" className="rounded-lg gap-2"><FileVideo className="size-4" /> ملف محلي</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-
-                <div className="grid gap-2">
-                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">عنوان البث</Label>
-                  <Input 
-                    dir="auto"
-                    placeholder="صف موضوع البث..." 
-                    className="bg-white/5 border-white/10 rounded-xl h-12 focus-visible:ring-primary text-right"
-                    value={uploadData.title}
-                    onChange={(e) => setUploadData({ ...uploadData, title: e.target.value })}
-                  />
+          <div className="flex items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="icon" className="h-14 w-14 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10">
+                  <Settings2 className="size-6 text-indigo-400" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 bg-slate-900 border-white/10 p-4 rounded-2xl">
+                <div className="space-y-4">
+                  <h4 className="font-bold text-sm text-white text-right">إعدادات البث العصبي</h4>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest block text-right">جودة الفيديو الافتراضية</Label>
+                    <Select value={videoQuality} onValueChange={handleQualityUpdate}>
+                      <SelectTrigger className="bg-white/5 border-white/10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10 text-white">
+                        <SelectItem value="240">240p (الأقل استهلاكاً)</SelectItem>
+                        <SelectItem value="360">360p (متوازن)</SelectItem>
+                        <SelectItem value="480">480p (جودة جيدة)</SelectItem>
+                        <SelectItem value="720">720p (عالية HD)</SelectItem>
+                        <SelectItem value="1080">1080p (فائقة FHD)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[9px] text-muted-foreground text-right italic leading-relaxed mt-2">
+                      * ملاحظة: يتم حفظ هذا التفضيل في العقدة المحلية وسيتم تطبيقه على كافة الفيديوهات تلقائياً.
+                    </p>
+                  </div>
                 </div>
+              </PopoverContent>
+            </Popover>
 
-                {uploadSource === 'youtube' ? (
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary text-white hover:bg-primary/90 rounded-2xl px-8 h-14 shadow-xl shadow-primary/20 font-bold text-base">
+                  <Plus className="mr-2 size-6" />
+                  بث جديد
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[550px] bg-slate-950 border-white/10 rounded-[2.5rem] p-8">
+                <DialogHeader>
+                  <DialogTitle className="text-3xl font-headline font-bold text-white text-right">إرسال عصبي جديد</DialogTitle>
+                  <DialogDescription className="text-muted-foreground text-sm text-right">
+                    اختر "رابط يوتيوب" لتجاوز قيود المساحة، أو "ملف محلي" للمقاطع الحصرية.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="grid gap-6 py-6">
+                  <Tabs value={uploadSource} onValueChange={(v: any) => setUploadSource(v)} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 bg-white/5 p-1 rounded-xl flex-row-reverse">
+                      <TabsTrigger value="youtube" className="rounded-lg gap-2"><Youtube className="size-4" /> رابط يوتيوب (غير محدود)</TabsTrigger>
+                      <TabsTrigger value="local" className="rounded-lg gap-2"><FileVideo className="size-4" /> ملف محلي</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+
                   <div className="grid gap-2">
-                    <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">رابط يوتيوب</Label>
+                    <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">عنوان البث</Label>
                     <Input 
-                      placeholder="https://www.youtube.com/watch?v=..." 
-                      className="bg-white/5 border-white/10 rounded-xl h-12 text-right"
-                      value={uploadData.externalUrl}
-                      onChange={(e) => setUploadData({ ...uploadData, externalUrl: e.target.value })}
+                      dir="auto"
+                      placeholder="صف موضوع البث..." 
+                      className="bg-white/5 border-white/10 rounded-xl h-12 focus-visible:ring-primary text-right"
+                      value={uploadData.title}
+                      onChange={(e) => setUploadData({ ...uploadData, title: e.target.value })}
                     />
                   </div>
-                ) : (
-                  <div className="grid gap-2">
-                    <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">اختر الوسائط (1GB Limit)</Label>
-                    <div className="relative h-32 bg-white/5 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-all">
-                      <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => setUploadData({...uploadData, file: e.target.files?.[0] || null})} accept="video/*" />
-                      {uploadData.file ? (
-                        <div className="text-center">
-                          <CheckCircle2 className="size-8 text-green-400 mx-auto mb-2" />
-                          <p className="text-xs text-white font-bold truncate max-w-[250px]">{uploadData.file.name}</p>
-                          <p className="text-[10px] text-muted-foreground">{(uploadData.file.size / 1024 / 1024).toFixed(2)} MB</p>
-                        </div>
-                      ) : (
-                        <>
-                          <Upload className="size-8 text-muted-foreground mb-2" />
-                          <p className="text-xs text-muted-foreground font-bold">اضغط لمزامنة ملف محلي</p>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
 
-              <DialogFooter>
-                <Button 
-                  onClick={handleFinalizeUpload} 
-                  className="w-full bg-primary text-white hover:bg-primary/90 h-14 rounded-2xl font-bold text-lg" 
-                  disabled={!uploadData.title || (uploadSource === 'local' && !uploadData.file) || (uploadSource === 'youtube' && !uploadData.externalUrl)}
-                >
-                  <Zap className="mr-2 size-5" />
-                  بدء المزامنة العصبية
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                  {uploadSource === 'youtube' ? (
+                    <div className="grid gap-2">
+                      <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">رابط يوتيوب</Label>
+                      <Input 
+                        placeholder="https://www.youtube.com/watch?v=..." 
+                        className="bg-white/5 border-white/10 rounded-xl h-12 text-right"
+                        value={uploadData.externalUrl}
+                        onChange={(e) => setUploadData({ ...uploadData, externalUrl: e.target.value })}
+                      />
+                    </div>
+                  ) : (
+                    <div className="grid gap-2">
+                      <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">اختر الوسائط (1GB Limit)</Label>
+                      <div className="relative h-32 bg-white/5 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-all">
+                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => setUploadData({...uploadData, file: e.target.files?.[0] || null})} accept="video/*" />
+                        {uploadData.file ? (
+                          <div className="text-center">
+                            <CheckCircle2 className="size-8 text-green-400 mx-auto mb-2" />
+                            <p className="text-xs text-white font-bold truncate max-w-[250px]">{uploadData.file.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{(uploadData.file.size / 1024 / 1024).toFixed(2)} MB</p>
+                          </div>
+                        ) : (
+                          <>
+                            <Upload className="size-8 text-muted-foreground mb-2" />
+                            <p className="text-xs text-muted-foreground font-bold">اضغط لمزامنة ملف محلي</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <DialogFooter>
+                  <Button 
+                    onClick={handleFinalizeUpload} 
+                    className="w-full bg-primary text-white hover:bg-primary/90 h-14 rounded-2xl font-bold text-lg" 
+                    disabled={!uploadData.title || (uploadSource === 'local' && !uploadData.file) || (uploadSource === 'youtube' && !uploadData.externalUrl)}
+                  >
+                    <Zap className="mr-2 size-5" />
+                    بدء المزامنة العصبية
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </div>
 
@@ -241,10 +295,13 @@ export function StreamHub() {
                   </div>
                 </div>
                 <div className="absolute top-4 left-4">
-                  <Badge className="bg-black/60 backdrop-blur-md border-white/10 gap-1.5">
-                    {video.source === 'youtube' ? <Youtube className="size-3 text-red-500" /> : <Radio className="size-3 text-indigo-400" />}
-                    <span className="text-[9px] uppercase font-bold">{video.source === 'youtube' ? 'YouTube' : 'Nexus Clip'}</span>
-                  </Badge>
+                  <div className="flex gap-2">
+                    <Badge className="bg-black/60 backdrop-blur-md border-white/10 gap-1.5">
+                      {video.source === 'youtube' ? <Youtube className="size-3 text-red-500" /> : <Radio className="size-3 text-indigo-400" />}
+                      <span className="text-[9px] uppercase font-bold">{video.source === 'youtube' ? 'YouTube' : 'Nexus Clip'}</span>
+                    </Badge>
+                    <Badge variant="outline" className="bg-black/40 border-white/5 text-[8px] h-5">{videoQuality}p</Badge>
+                  </div>
                 </div>
               </div>
               
@@ -282,7 +339,7 @@ export function StreamHub() {
           <DialogHeader className="sr-only">
             <DialogTitle>{selectedVideo?.title || "مشغل الفيديو"}</DialogTitle>
             <DialogDescription>
-              مشاهدة البث العصبي: {selectedVideo?.title} بواسطة {selectedVideo?.author}
+              مشاهدة البث العصبي: {selectedVideo?.title} بواسطة {selectedVideo?.author} بجودة {videoQuality}p
             </DialogDescription>
           </DialogHeader>
           <div className="aspect-video bg-slate-900 relative">
@@ -296,6 +353,13 @@ export function StreamHub() {
                 height="100%" 
                 playing 
                 controls 
+                config={{
+                  youtube: {
+                    playerVars: { 
+                      vq: videoQuality === "1080" ? "hd1080" : videoQuality === "720" ? "hd720" : videoQuality === "480" ? "large" : "small"
+                    }
+                  }
+                }}
               />
             )}
           </div>
@@ -303,7 +367,7 @@ export function StreamHub() {
             <div className="flex-1 text-right">
               <h2 dir="auto" className="text-3xl font-headline font-bold text-white mb-2">{selectedVideo?.title}</h2>
               <div className="flex items-center gap-2 justify-end text-muted-foreground text-sm">
-                <span>بث عبر عقدة Nexus</span>
+                <span>بث عبر عقدة Nexus بجودة {videoQuality}p</span>
                 <Sparkles className="size-3 text-indigo-400" />
               </div>
             </div>
