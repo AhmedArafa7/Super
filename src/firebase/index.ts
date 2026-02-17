@@ -6,12 +6,15 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// تهيئة Firebase مع ضمان استخدام الإعدادات الصريحة لـ Storage
+/**
+ * تهيئة خدمات Firebase.
+ * تم تبسيط استدعاء getStorage ليعتمد على الإعدادات التلقائية لـ SDK
+ * لضمان أفضل توافق مع بيئة Firebase Studio.
+ */
 export function initializeFirebase() {
   let app: FirebaseApp;
   
   if (!getApps().length) {
-    // نفضل دائماً استخدام الإعدادات الصريحة لضمان ربط الـ Storage Bucket
     app = initializeApp(firebaseConfig);
   } else {
     app = getApp();
@@ -25,8 +28,8 @@ export function getSdks(firebaseApp: FirebaseApp) {
     firebaseApp,
     auth: getAuth(firebaseApp),
     firestore: getFirestore(firebaseApp),
-    // نمرر رابط الـ bucket يدوياً للتأكد من عدم حدوث انسداد في الربط
-    storage: getStorage(firebaseApp, `gs://${firebaseConfig.storageBucket}`)
+    // نترك الـ SDK يحدد الـ Bucket تلقائياً من الـ config
+    storage: getStorage(firebaseApp)
   };
 }
 

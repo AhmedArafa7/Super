@@ -2,8 +2,8 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     match /{allPaths=**} {
-      // قاعدة إنتاج مؤقتة: السماح بالوصول الكامل لضمان عمل كافة الأنظمة المدمجة في مرحلة الـ Beta
-      // سيتم تقييد القواعد لاحقاً بناءً على request.auth != null
+      // Simplified rules for Beta testing to ensure connectivity.
+      // This allows both read and write for any user.
       allow read, write: if true;
     }
   }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, Image as ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle, Clock, GraduationCap, BookOpen, Lock, Globe, Wallet, PlusCircle, MinusCircle, ShieldCheck, Tag, Zap, Server, Sparkles, Loader2 } from "lucide-react";
+import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle, Clock, GraduationCap, BookOpen, Lock, Globe, Wallet, PlusCircle, MinusCircle, ShieldCheck, Tag, Zap, Server, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -85,10 +85,15 @@ export function AdminPanel() {
       await deleteObject(testRef);
     } catch (err: any) {
       console.error("Storage Test Error:", err);
+      // توضيح السبب الدقيق للفشل للمستخدم
+      let detail = err.message;
+      if (err.code === 'storage/unauthorized') detail = "Permissions Rejected (Check Storage Rules).";
+      if (err.code === 'storage/project-not-found') detail = "Firebase Project Mismatch.";
+      
       toast({ 
         variant: "destructive", 
-        title: "Storage Unreachable", 
-        description: `Code: ${err.code || 'unknown'} | Reason: ${err.message || 'Access denied.'}` 
+        title: "Link Rejected", 
+        description: `Error: ${err.code} | ${detail}` 
       });
     } finally {
       setIsTestingStorage(false);

@@ -42,7 +42,6 @@ export const useUploadStore = create<UploadState>((set, get) => ({
 
     set(state => ({ tasks: [newTask, ...state.tasks] }));
     
-    // بدء الرفع فوراً بعد تحديث الـ State
     setTimeout(() => get().retryTask(id), 100);
     return id;
   },
@@ -61,37 +60,36 @@ export const useUploadStore = create<UploadState>((set, get) => ({
 
     try {
       const { storage } = initializeFirebase();
-      // إضافة Timestamp لضمان فرادة الملف وتجاوز مشاكل التكرار
+      // استخدام مسار نظيف لضمان عدم وجود مشاكل في الأذونات
       const storageRef = ref(storage, `${task.type}/${Date.now()}-${task.file.name}`);
       const uploadTask = uploadBytesResumable(storageRef, task.file);
 
-      console.log(`[Nexus Sync Init] Attempting to upload ${task.fileName} to ${storageRef.fullPath}`);
+      console.log(`[Nexus Sync] Starting upload for: ${task.fileName}`);
 
       uploadTask.on('state_changed', 
         (snapshot) => {
           const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-          console.log(`[Nexus Sync] Progress: ${progress}% (${snapshot.bytesTransferred} bytes)`);
-          
           set(state => ({
-            tasks: state.tasks.map(t => t.id === id ? { ...t, progress: isNaN(progress) ? 0 : progress, status: 'uploading' } : t)
+            tasks: state.tasks.map(t => t.id === id ? { ...t, progress: isNaN(progress) ? 0 : progress } : t)
           }));
         }, 
         (error: any) => {
-          console.error("[Neural Link Failure]:", error);
-          const errorInfo = `Code: ${error.code} | Message: ${error.message}`;
+          console.error("[Neural Link Error Details]:", error);
+          const errorMessage = error.code === 'storage/unauthorized' 
+            ? "Access Denied: Check Firebase Storage Rules."
+            : error.message;
           
           set(state => ({
-            tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'failed', error: errorInfo } : t)
+            tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'failed', error: errorMessage } : t)
           }));
           
           toast({ 
             variant: "destructive", 
-            title: "فشل المزامنة العصبية", 
-            description: errorInfo
+            title: "Upload Failed", 
+            description: errorMessage
           });
         }, 
         async () => {
-          console.log("[Nexus Sync] Finalizing link...");
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           
           set(state => ({
@@ -105,24 +103,17 @@ export const useUploadStore = create<UploadState>((set, get) => ({
               thumbnail: downloadURL,
               source: 'local'
             });
-          } else if (task.type === 'learning_asset') {
-             // Logic for learning asset if needed beyond the direct upload in store
           }
 
-          toast({ title: "اكتملت المزامنة", description: `الملف "${task.fileName}" متاح الآن على العقدة.` });
-          setTimeout(() => get().removeTask(id), 5000);
+          toast({ title: "Sync Successful", description: `File "${task.fileName}" is now live.` });
+          setTimeout(() => get().removeTask(id), 3000);
         }
       );
     } catch (err: any) {
-      console.error("[Upload Init Exception]:", err);
+      console.error("[Upload Exception]:", err);
       set(state => ({
         tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'failed', error: err.message } : t)
       }));
-      toast({ 
-        variant: "destructive", 
-        title: "خطأ في تهيئة المهمة", 
-        description: err.message 
-      });
     }
   }
 }));
