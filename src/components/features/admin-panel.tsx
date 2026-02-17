@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle, Clock, GraduationCap, BookOpen, Lock, Globe, Wallet, PlusCircle, MinusCircle, ShieldCheck, Tag, Zap, Server, Sparkles, Loader2, ExternalLink } from "lucide-react";
+import { Check, X, Send, User, MessageSquare, History, ShieldAlert, Cpu, Activity, Edit3, Save, Radio, BellRing, Info, AlertTriangle, Users, Key, Trash2, Plus, Download, FileText, Music, ImageIcon, Video as VideoIcon, CheckCircle2, XCircle, AlertCircle, Clock, GraduationCap, BookOpen, Lock, Globe, Wallet, PlusCircle, MinusCircle, ShieldCheck, Tag, Zap, Server, Sparkles, Loader2, ExternalLink, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,8 +21,7 @@ import { getSubjects, addSubject, deleteSubject, Subject } from "@/lib/learning-
 import { adjustFunds, Wallet as UserWallet } from "@/lib/wallet-store";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { initializeFirebase } from "@/firebase";
-import { ref, uploadString, deleteObject } from "firebase/storage";
+import { supabase } from "@/lib/supabaseClient";
 
 export function AdminPanel() {
   const { toast } = useToast();
@@ -73,37 +72,23 @@ export function AdminPanel() {
     return engineCounts;
   }, [messages]);
 
-  const handleTestStorage = async () => {
+  const handleTestExternalStorage = async () => {
     setIsTestingStorage(true);
     try {
-      const { storage } = initializeFirebase();
-      const testRef = ref(storage, 'diagnostics/neural-test.txt');
+      const { data, error } = await supabase.storage.listBuckets();
       
-      const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject({ code: 'storage/timeout', message: 'Neural link timed out. This usually means Firebase Storage is not enabled in the console.' }), 12000)
-      );
-
-      await Promise.race([
-        uploadString(testRef, "NexusAI Connectivity Diagnostic: SUCCESS"),
-        timeout
-      ]);
+      if (error) throw error;
 
       toast({ 
-        title: "Storage Online", 
-        description: "Successfully established link with Firebase Storage." 
+        title: "External Node Online", 
+        description: "Successfully linked with Supabase Vault." 
       });
-      await deleteObject(testRef);
     } catch (err: any) {
-      console.error("Storage Test Error:", err);
-      let detail = err.message;
-      if (err.code === 'storage/unauthorized') detail = "Access Denied. Ensure Storage is ENABLED and Rules are set to public.";
-      if (err.code === 'storage/project-not-found') detail = "Project not found. Check firebase configuration.";
-      if (err.code === 'storage/timeout') detail = "Connection timed out. Please go to Firebase Console > Storage and click 'Get Started'.";
-      
+      console.error("External Storage Error:", err);
       toast({ 
         variant: "destructive", 
-        title: "Link Failed", 
-        description: `Error: ${err.code || 'Unknown'} | ${detail}` 
+        title: "External Link Failed", 
+        description: `Error: ${err.message}. Ensure Supabase URL/Key are set correctly.` 
       });
     } finally {
       setIsTestingStorage(false);
@@ -181,37 +166,32 @@ export function AdminPanel() {
             <Card className="glass border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden text-right">
               <div className="absolute top-0 right-0 size-32 bg-indigo-500/10 blur-3xl -mr-16 -mt-16" />
               <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3 justify-end">
-                Neural Engine Status
-                <Cpu className="size-5 text-indigo-400" />
+                Storage Engine (External)
+                <Database className="size-5 text-indigo-400" />
               </h3>
               <div className="space-y-4">
                 <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between flex-row-reverse">
                   <div className="flex items-center gap-3 flex-row-reverse">
-                    <Zap className="size-4 text-amber-400" />
-                    <span className="text-sm font-medium">Groq Llama 3.3</span>
+                    <Database className="size-4 text-indigo-400" />
+                    <span className="text-sm font-medium">Supabase Vault</span>
                   </div>
-                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30">ONLINE</Badge>
+                  <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">EXTERNAL</Badge>
                 </div>
                 <div className="p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
-                  <p className="text-[10px] text-indigo-400 font-bold uppercase mb-2">Storage Diagnostics</p>
+                  <p className="text-[10px] text-indigo-400 font-bold uppercase mb-2">Connectivity Check</p>
                   <Button 
-                    onClick={handleTestStorage}
+                    onClick={handleTestExternalStorage}
                     disabled={isTestingStorage}
                     className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl h-11 shadow-lg shadow-indigo-600/20"
                   >
-                    {isTestingStorage ? <Loader2 className="size-4 animate-spin mr-2" /> : <ShieldCheck className="size-4 mr-2" />}
-                    Test Storage Link
+                    {isTestingStorage ? <Loader2 className="size-4 animate-spin mr-2" /> : <Database className="size-4 mr-2" />}
+                    Test Supabase Link
                   </Button>
-                  <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                    <p className="text-[9px] text-red-200 leading-relaxed text-right">
-                      <strong>تلميح لحل الـ Rejected:</strong> إذا ظهر لك Unknown Error أو Regional No-Cost في Firebase Console:
-                      <br />• قم بتحديث الصفحة (Refresh) في المتصفح.
-                      <br />• تأكد من إكمال خطوات Get Started واختيار خطة Blaze إذا تطلب الأمر (مجانية لأول 5GB).
+                  <div className="mt-4 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
+                    <p className="text-[9px] text-indigo-200 leading-relaxed text-right">
+                      <strong>ملاحظة تقنية:</strong> هذا المحرك مجاني ولا يتطلب ترقية Firebase. تأكد من إنشاء Bucket باسم <code>nexus-vault</code> في Supabase وضبطه على <code>Public</code>.
                     </p>
                   </div>
-                  <p className="text-[9px] text-muted-foreground mt-3 leading-relaxed text-center">
-                    إذا فشل الفحص، اذهب لـ <a href="https://console.firebase.google.com" target="_blank" className="text-indigo-400 underline inline-flex items-center gap-0.5">Firebase Console <ExternalLink className="size-2" /></a> واضغط على <strong>Get Started</strong> في قسم <strong>Storage</strong>.
-                  </p>
                 </div>
               </div>
             </Card>

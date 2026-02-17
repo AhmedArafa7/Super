@@ -1,8 +1,9 @@
+
 'use client';
 
 import { initializeFirebase } from '@/firebase';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc, deleteDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { supabase } from './supabaseClient';
 
 export type LearningItemType = 'video' | 'audio' | 'file' | 'quiz_json' | 'text';
 
@@ -101,17 +102,24 @@ export const addLearningItem = async (data: { subjectId: string, collectionId: s
 };
 
 export const uploadLearningFile = async (file: File, onProgress?: (pct: number) => void): Promise<string> => {
-  const { storage } = initializeFirebase();
-  // إضافة Timestamp لضمان فرادة الملف
-  const storageRef = ref(storage, `learning_assets/${Date.now()}-${file.name}`);
+  const bucketName = 'nexus-vault';
+  const filePath = `learning/${Date.now()}-${file.name}`;
   
   try {
-    const snapshot = await uploadBytes(storageRef, file);
-    const url = await getDownloadURL(snapshot.ref);
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, file);
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(filePath);
+
     onProgress?.(100);
-    return url;
+    return publicUrl;
   } catch (err) {
-    console.error("Firebase Storage Upload Error:", err);
+    console.error("Supabase Storage Upload Error:", err);
     throw err;
   }
 };
