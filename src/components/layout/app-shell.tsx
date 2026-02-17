@@ -19,10 +19,11 @@ import { WalletView } from "@/components/features/wallet-view";
 import { UserDashboard } from "@/components/features/user-dashboard";
 import { OffersInbox } from "@/components/features/offers-inbox";
 import { HisnAlMuslim } from "@/components/features/hisn-al-muslim";
-import { PersistentPlayer } from "@/components/features/persistent-player"; // المشغل الجديد
+import { PersistentPlayer } from "@/components/features/persistent-player";
 import { getNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
+import { useStreamStore } from "@/lib/stream-store"; // استيراد مخزن البث
 import { getReceivedOffers } from "@/lib/market-store";
 import { useAuth } from "@/components/auth/auth-provider";
 import { LoginView } from "@/components/auth/login-view";
@@ -40,6 +41,12 @@ export function AppShell() {
   
   const processOfflineQueue = useWalletStore(state => state.processOfflineQueue);
   const uploadTasks = useUploadStore(state => state.tasks);
+  const setCurrentTab = useStreamStore(state => state.setCurrentTab);
+
+  // مزامنة التبويب النشط مع مخزن البث
+  useEffect(() => {
+    setCurrentTab(activeTab);
+  }, [activeTab, setCurrentTab]);
 
   useEffect(() => {
     if (!isAuthenticated || !user) return;
@@ -218,7 +225,7 @@ export function AppShell() {
         </div>
       </div>
       
-      {/* مشغل الفيديو العالمي - يظهر فوق كل شيء عند تفعيل فيديو */}
+      {/* مشغل الفيديو العالمي - يدعم الآن الوضع المدمج والعائم حسب الإعدادات */}
       <PersistentPlayer />
     </SidebarProvider>
   );
