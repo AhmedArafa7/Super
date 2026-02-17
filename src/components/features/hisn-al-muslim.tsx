@@ -5,7 +5,8 @@ import React, { useState, useMemo, useEffect } from "react";
 import { 
   Search, BookOpen, ChevronRight, RotateCcw, Copy, Check, Star, 
   Moon, Sun, Heart, Zap, Globe, ArrowLeft, Share2, Sparkles, 
-  Fingerprint, Clock, Compass, Activity, ShieldCheck, RefreshCw
+  Fingerprint, Clock, Compass, Activity, ShieldCheck, RefreshCw,
+  Calendar, Target, Shield, MapPin
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,20 +17,10 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { HISN_DATA, NAMES_OF_ALLAH, HisnCategory, ZikrItem } from "@/lib/hisn-store";
 import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
-
-const getIcon = (iconName: string) => {
-  switch (iconName) {
-    case 'Sun': return Sun;
-    case 'Moon': return Moon;
-    case 'Heart': return Heart;
-    case 'Zap': return Zap;
-    case 'Globe': return Globe;
-    default: return BookOpen;
-  }
-};
+import { useToast } from "@/hooks/use-toast";
 
 export function HisnAlMuslim() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("azkar");
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<HisnCategory | null>(null);
@@ -39,6 +30,10 @@ export function HisnAlMuslim() {
   // Tasbih State
   const [tasbihCount, setTasbihCount] = useState(0);
   const [tasbihSession, setTasbihSession] = useState(0);
+  const [dailyGoal, setDailyGoal] = useState(100);
+
+  // Hijri Date (Simulated for UI)
+  const hijriDate = "١٤ رمضان ١٤٤٦ هـ";
 
   const filteredCategories = useMemo(() => {
     if (!search) return HISN_DATA;
@@ -80,7 +75,7 @@ export function HisnAlMuslim() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "تم النسخ", description: "تم نسخ النص بنجاح." });
+    toast({ title: "تم النسخ", description: "تم نسخ النص بنجاح للعقدة." });
   };
 
   const categoryProgress = useMemo(() => {
@@ -124,6 +119,7 @@ export function HisnAlMuslim() {
                     <div className="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-white/5 gap-6 flex-row-reverse">
                       <div className="text-right">
                         <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{item.reference || "ذكر مأثور"}</p>
+                        {item.description && <p dir="auto" className="text-xs text-indigo-400 mt-1">{item.description}</p>}
                       </div>
                       <Button onClick={() => handleCount(item)} disabled={isFinished} className={cn("h-20 px-12 rounded-3xl font-black text-3xl transition-all", isFinished ? "bg-green-500/20 text-green-400" : "bg-primary text-white shadow-xl shadow-primary/20")}>
                         {isFinished ? <Check className="size-10" /> : currentCount}
@@ -141,13 +137,25 @@ export function HisnAlMuslim() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto animate-in fade-in duration-700">
-      <div className="text-right mb-12">
-        <Badge className="bg-primary/20 text-primary border-primary/30 mb-4 px-4 py-1 uppercase tracking-widest font-bold text-[10px]">Neural Faith Hub</Badge>
-        <h2 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
-          عقدة الإيمان
-          <Sparkles className="text-primary size-10" />
-        </h2>
-        <p className="text-muted-foreground mt-4 text-xl">مركز العبادة الذكي: أذكار، تسبيح، ومعرفة روحية.</p>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 gap-6 flex-row-reverse">
+        <div className="text-right">
+          <Badge className="bg-primary/20 text-primary border-primary/30 mb-4 px-4 py-1 uppercase tracking-widest font-bold text-[10px]">Neural Faith Hub</Badge>
+          <h2 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
+            عقدة الإيمان
+            <Sparkles className="text-primary size-10" />
+          </h2>
+          <p className="text-muted-foreground mt-2 text-xl">مركز العبادة الذكي: أذكار، تسبيح، ومعرفة روحية.</p>
+        </div>
+        
+        <div className="bg-white/5 border border-white/10 p-4 rounded-[2rem] flex items-center gap-4 flex-row-reverse">
+          <div className="size-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400">
+            <Calendar className="size-6" />
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">التاريخ الهجري</p>
+            <p className="text-lg font-bold text-white">{hijriDate}</p>
+          </div>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -161,11 +169,11 @@ export function HisnAlMuslim() {
         <TabsContent value="azkar" className="space-y-12">
           <div className="relative max-w-3xl mx-auto">
             <Search className="absolute right-6 top-1/2 -translate-y-1/2 size-6 text-muted-foreground" />
-            <Input dir="auto" placeholder="ابحث عن تصنيف..." className="w-full h-16 bg-white/5 border-white/10 rounded-[2rem] pr-16 pl-8 text-xl text-right focus-visible:ring-primary shadow-xl" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input dir="auto" placeholder="ابحث عن ذكر أو تصنيف..." className="w-full h-16 bg-white/5 border-white/10 rounded-[2rem] pr-16 pl-8 text-xl text-right focus-visible:ring-primary shadow-xl" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredCategories.map((cat) => {
-              const CategoryIcon = getIcon(cat.icon);
+              const CategoryIcon = cat.icon === 'Sun' ? Sun : cat.icon === 'Moon' ? Moon : cat.icon === 'Globe' ? Globe : BookOpen;
               return (
                 <Card key={cat.id} className="group glass border-white/5 rounded-[3rem] overflow-hidden hover:border-primary/40 transition-all duration-500 cursor-pointer shadow-2xl relative" onClick={() => setSelectedCategory(cat)}>
                   <div className="absolute top-0 right-0 size-32 bg-primary/5 blur-3xl -mr-16 -mt-16" />
@@ -187,21 +195,30 @@ export function HisnAlMuslim() {
           <div className="max-w-2xl mx-auto flex flex-col items-center gap-12 py-12">
             <div className="relative group">
               <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full scale-150 animate-pulse" />
-              <button onClick={handleTasbih} className="relative size-72 bg-white/5 backdrop-blur-3xl border-2 border-white/10 rounded-full flex flex-col items-center justify-center shadow-2xl active:scale-95 transition-transform group-hover:border-primary/50">
+              <button onClick={handleTasbih} className="relative size-72 bg-white/5 backdrop-blur-xl border-2 border-white/10 rounded-full flex flex-col items-center justify-center shadow-2xl active:scale-95 transition-transform group-hover:border-primary/50">
                 <span className="text-[10px] uppercase font-black tracking-[0.3em] text-primary mb-2">Neural Counter</span>
                 <span className="text-8xl font-black text-white tracking-tighter tabular-nums">{tasbihSession}</span>
                 <p className="text-muted-foreground mt-4 text-xs font-bold uppercase">اضغط للتسبيح</p>
               </button>
             </div>
             
-            <div className="grid grid-cols-2 gap-6 w-full max-w-md">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-md">
               <Card className="glass border-white/5 rounded-[2rem] p-6 text-center">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-1">المجموع الكلي</p>
                 <p className="text-3xl font-black text-white tabular-nums">{tasbihCount}</p>
               </Card>
-              <Button variant="outline" className="h-full rounded-[2rem] border-white/5 text-red-400 hover:bg-red-500/10 gap-2" onClick={() => setTasbihSession(0)}>
-                <RotateCcw className="size-5" /> تصفير الجلسة
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button variant="outline" className="h-14 rounded-2xl border-white/5 text-red-400 hover:bg-red-500/10 gap-2" onClick={() => setTasbihSession(0)}>
+                  <RotateCcw className="size-5" /> تصفير الجلسة
+                </Button>
+                <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 flex items-center justify-between flex-row-reverse">
+                  <div className="flex items-center gap-2 flex-row-reverse">
+                    <Target className="size-4 text-primary" />
+                    <span className="text-xs font-bold text-white">الهدف اليومي</span>
+                  </div>
+                  <span className="text-sm font-bold text-primary">{dailyGoal}</span>
+                </div>
+              </div>
             </div>
           </div>
         </TabsContent>
@@ -224,7 +241,9 @@ export function HisnAlMuslim() {
               <div className="relative z-10 space-y-8">
                 <div className="flex items-center justify-between flex-row-reverse">
                   <h3 className="text-2xl font-bold text-white flex items-center gap-3 justify-end">مواقيت الصلاة <Clock className="text-primary" /></h3>
-                  <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30">Neural Sync: ON</Badge>
+                  <div className="flex items-center gap-2 bg-indigo-500/20 text-indigo-400 px-3 py-1 rounded-full text-[10px] font-bold">
+                    <MapPin className="size-3" /> مكة المكرمة
+                  </div>
                 </div>
                 
                 <div className="space-y-4">
@@ -259,7 +278,7 @@ export function HisnAlMuslim() {
       <div className="mt-20 p-12 glass rounded-[3.5rem] border-white/5 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" />
         <h3 className="text-2xl font-bold text-white mb-4 relative z-10">﴿أَلا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ﴾</h3>
-        <p className="text-muted-foreground text-sm relative z-10">تم تطوير "عقدة الإيمان" لتكون رفيقك الدائم في رحلة الصفاء الروحي.</p>
+        <p className="text-muted-foreground text-sm relative z-10">تم تطوير "عقدة الإيمان" لتكون رفيقك الدائم في رحلة الصفاء الروحي عبر بروتوكول NexusAI.</p>
       </div>
     </div>
   );

@@ -192,13 +192,6 @@ export function AdminPanel() {
                   </div>
                   <Badge className="bg-green-500/20 text-green-400 border-green-500/30">ONLINE</Badge>
                 </div>
-                <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between flex-row-reverse">
-                  <div className="flex items-center gap-3 flex-row-reverse">
-                    <Globe className="size-4 text-blue-400" />
-                    <span className="text-sm font-medium">Google Gemini 1.5</span>
-                  </div>
-                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30">ONLINE</Badge>
-                </div>
                 <div className="p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
                   <p className="text-[10px] text-indigo-400 font-bold uppercase mb-2">Storage Diagnostics</p>
                   <Button 
@@ -209,6 +202,13 @@ export function AdminPanel() {
                     {isTestingStorage ? <Loader2 className="size-4 animate-spin mr-2" /> : <ShieldCheck className="size-4 mr-2" />}
                     Test Storage Link
                   </Button>
+                  <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                    <p className="text-[9px] text-red-200 leading-relaxed text-right">
+                      <strong>تلميح لحل الـ Rejected:</strong> إذا ظهر لك Unknown Error أو Regional No-Cost في Firebase Console:
+                      <br />• قم بتحديث الصفحة (Refresh) في المتصفح.
+                      <br />• تأكد من إكمال خطوات Get Started واختيار خطة Blaze إذا تطلب الأمر (مجانية لأول 5GB).
+                    </p>
+                  </div>
                   <p className="text-[9px] text-muted-foreground mt-3 leading-relaxed text-center">
                     إذا فشل الفحص، اذهب لـ <a href="https://console.firebase.google.com" target="_blank" className="text-indigo-400 underline inline-flex items-center gap-0.5">Firebase Console <ExternalLink className="size-2" /></a> واضغط على <strong>Get Started</strong> في قسم <strong>Storage</strong>.
                   </p>
@@ -259,10 +259,10 @@ export function AdminPanel() {
               <div className="space-y-4">
                 <div className="grid gap-1.5">
                   <Label>Full Name</Label>
-                  <Input 
+                  <input 
                     dir="auto"
                     placeholder="e.g., John Doe" 
-                    className="bg-white/5 border-white/10 rounded-xl h-11 text-right"
+                    className="flex h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-right focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     value={newUser.name}
                     onChange={(e) => setNewUser({...newUser, name: e.target.value})}
                   />
