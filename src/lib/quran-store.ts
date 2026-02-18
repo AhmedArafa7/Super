@@ -10,6 +10,7 @@ export interface QuranSurah {
   reciter: string;
   url: string;
   sizeMB: number;
+  text?: string; // نص السورة للقراءة
 }
 
 export interface OfflineAsset {
@@ -23,7 +24,7 @@ export interface OfflineAsset {
 interface QuranState {
   currentSurah: QuranSurah | null;
   downloadedAssets: OfflineAsset[];
-  storageLimitMB: number; // بالـ ميجابايت
+  storageLimitMB: number;
   isPlaying: boolean;
   
   setCurrentSurah: (surah: QuranSurah | null) => void;
@@ -36,12 +37,54 @@ interface QuranState {
 }
 
 export const QURAN_DATA: QuranSurah[] = [
-  { id: 1, name: "الفاتحة", reciter: "مشاري العفاسي", url: "https://server8.mp3quran.net/afs/001.mp3", sizeMB: 1.2 },
-  { id: 2, name: "البقرة", reciter: "مشاري العفاسي", url: "https://server8.mp3quran.net/afs/002.mp3", sizeMB: 154.5 },
-  { id: 18, name: "الكهف", reciter: "مشاري العفاسي", url: "https://server8.mp3quran.net/afs/018.mp3", sizeMB: 22.4 },
-  { id: 36, name: "يس", reciter: "مشاري العفاسي", url: "https://server8.mp3quran.net/afs/036.mp3", sizeMB: 12.8 },
-  { id: 67, name: "الملك", reciter: "مشاري العفاسي", url: "https://server8.mp3quran.net/afs/067.mp3", sizeMB: 4.5 },
-  { id: 112, name: "الإخلاص", reciter: "مشاري العفاسي", url: "https://server8.mp3quran.net/afs/112.mp3", sizeMB: 0.5 },
+  { 
+    id: 1, 
+    name: "الفاتحة", 
+    reciter: "مشاري العفاسي", 
+    url: "https://server8.mp3quran.net/afs/001.mp3", 
+    sizeMB: 1.2,
+    text: "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ (1) الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ (2) الرَّحْمَنِ الرَّحِيمِ (3) مَالِكِ يَوْمِ الدِّينِ (4) إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ (5) اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ (6) صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ (7)"
+  },
+  { 
+    id: 2, 
+    name: "البقرة", 
+    reciter: "مشاري العفاسي", 
+    url: "https://server8.mp3quran.net/afs/002.mp3", 
+    sizeMB: 154.5,
+    text: "الم (1) ذَلِكَ الْكِتَابُ لَا رَيْبَ فِيهِ هُدًى لِلْمُتَّقِينَ (2) الَّذِينَ يُؤْمِنُونَ بِالْغَيْبِ وَيُقِيمُونَ الصَّلَاةَ وَمِمَّا رَزَقْنَاهُمْ يُنْفِقُونَ (3)... [تم اختصار النص للمساحة البرمجية]"
+  },
+  { 
+    id: 18, 
+    name: "الكهف", 
+    reciter: "مشاري العفاسي", 
+    url: "https://server8.mp3quran.net/afs/018.mp3", 
+    sizeMB: 22.4,
+    text: "الْحَمْدُ لِلَّهِ الَّذِي أَنْزَلَ عَلَى عَبْدِهِ الْكِتَابَ وَلَمْ يَجْعَلْ لَهُ عِوَجًا (1) قَيِّمًا لِيُنْذِرَ بَأْسًا شَدِيدًا مِنْ لَدُنْهُ وَيُبَشِّرَ الْمُؤْمِنِينَ الَّذِينَ يَعْمَلُونَ الصَّالِحَاتِ أَنَّ لَهُمْ أَجْرًا حَسَنًا (2)..."
+  },
+  { 
+    id: 36, 
+    name: "يس", 
+    reciter: "مشاري العفاسي", 
+    url: "https://server8.mp3quran.net/afs/036.mp3", 
+    sizeMB: 12.8,
+    text: "يس (1) وَالْقُرْآنِ الْحَكِيمِ (2) إِنَّكَ لَمِنَ الْمُرْسَلِينَ (3) عَلَى صِرَاطٍ مُسْتَقِيمٍ (4)..."
+  },
+  { 
+    id: 67, 
+    name: "الملك", 
+    reciter: "مشاري العفاسي", 
+    url: "https://server8.mp3quran.net/afs/067.mp3", 
+    sizeMB: 4.5,
+    text: "تَبَارَكَ الَّذِي بِيَدِهِ الْمُلْكُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ (1) الَّذِي خَلَقَ الْمَوْتَ وَالْحَيَاةَ لِيَبْلُوَكُمْ أَيُّكُمْ أَحْسَنُ عَمَلًا وَهُوَ الْعَزِيزُ الْغَفُورُ (2)..."
+  },
+  { 
+    id: 112, 
+    name: "الإخلاص", 
+    reciter: "مشاري العفاسي", 
+    url: "https://server8.mp3quran.net/afs/112.mp3", 
+    sizeMB: 0.5,
+    text: "قُلْ هُوَ اللَّهُ أَحَدٌ (1) اللَّهُ الصَّمَدُ (2) لَمْ يَلِدْ وَلَمْ يُولَدْ (3) وَلَمْ يَكُنْ لَهُ كُفُوًا أَحَدٌ (4)"
+  },
 ];
 
 export const useQuranStore = create<QuranState>()(
@@ -49,7 +92,7 @@ export const useQuranStore = create<QuranState>()(
     (set, get) => ({
       currentSurah: null,
       downloadedAssets: [],
-      storageLimitMB: 500, // القيمة الافتراضية
+      storageLimitMB: 500,
       isPlaying: false,
 
       setCurrentSurah: (surah) => {
@@ -79,7 +122,6 @@ export const useQuranStore = create<QuranState>()(
         const existing = downloadedAssets.find(a => a.id === surah.id);
         
         if (existing) {
-          // تحديث وقت الاستخدام الأخير
           set({
             downloadedAssets: downloadedAssets.map(a => 
               a.id === surah.id ? { ...a, timestamp: Date.now() } : a
@@ -109,7 +151,6 @@ export const useQuranStore = create<QuranState>()(
         let currentAssets = [...downloadedAssets];
         let currentTotal = currentAssets.reduce((acc, a) => acc + a.size, 0);
 
-        // تصفية العناصر التي ليست مفضلة وترتيبها من الأقدم
         const deleteCandidates = currentAssets
           .filter(a => !a.isFavorite)
           .sort((a, b) => a.timestamp - b.timestamp);

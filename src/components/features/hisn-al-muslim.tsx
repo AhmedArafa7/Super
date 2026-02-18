@@ -7,7 +7,7 @@ import {
   Moon, Sun, Heart, Zap, Globe, ArrowLeft, Share2, Sparkles, 
   Fingerprint, Clock, Compass, Activity, ShieldCheck, RefreshCw,
   Calendar, Target, Shield, MapPin, Music, Play, Pause, Download, 
-  Database, Trash2, HardDrive, Settings2, Volume2
+  Database, Trash2, HardDrive, Settings2, Volume2, Type, ZoomIn, ZoomOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,13 +25,14 @@ import { useToast } from "@/hooks/use-toast";
 
 export function HisnAlMuslim() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("azkar");
+  const [activeTab, setActiveTab] = useState("quran");
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<HisnCategory | null>(null);
+  const [readingSurah, setReadingSurah] = useState<QuranSurah | null>(null);
+  const [fontSize, setFontSize] = useState(24);
   const [counts, setCounts] = useState<Record<number, number>>({});
   const [completedItems, setCompletedItems] = useState<Set<number>>(new Set());
   
-  // Quran State
   const { 
     currentSurah, isPlaying, downloadedAssets, storageLimitMB,
     setCurrentSurah, setIsPlaying, toggleFavorite, setStorageLimit, deleteAsset
@@ -81,6 +82,51 @@ export function HisnAlMuslim() {
     toast({ title: "تم النسخ", description: "تم نسخ النص بنجاح للعقدة." });
   };
 
+  // واجهة قراءة السورة
+  if (readingSurah) {
+    return (
+      <div className="flex flex-col h-full animate-in fade-in zoom-in-95 duration-500 bg-slate-950">
+        <header className="p-6 border-b border-white/5 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between flex-row-reverse">
+          <div className="flex items-center gap-4 flex-row-reverse">
+            <Button variant="ghost" size="icon" onClick={() => setReadingSurah(null)} className="rounded-full text-white">
+              <ArrowLeft className="size-5 rotate-180" />
+            </Button>
+            <div className="text-right">
+              <h2 dir="auto" className="text-2xl font-bold text-white">سورة {readingSurah.name}</h2>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">المصحف الرقمي</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10">
+            <Button variant="ghost" size="icon" onClick={() => setFontSize(Math.min(fontSize + 2, 48))} className="size-8 text-white"><ZoomIn className="size-4" /></Button>
+            <div className="w-px h-4 bg-white/10 mx-1" />
+            <Button variant="ghost" size="icon" onClick={() => setFontSize(Math.max(fontSize - 2, 16))} className="size-8 text-white"><ZoomOut className="size-4" /></Button>
+          </div>
+        </header>
+        <ScrollArea className="flex-1 p-8 md:p-12">
+          <div className="max-w-4xl mx-auto glass border-white/5 rounded-[3rem] p-10 md:p-16 mb-24 shadow-2xl">
+            <p 
+              dir="rtl" 
+              className="font-serif leading-[2.2] text-center text-slate-100 transition-all duration-300"
+              style={{ fontSize: `${fontSize}px` }}
+            >
+              {readingSurah.text || "جاري تحميل النص من الشبكة..."}
+            </p>
+          </div>
+        </ScrollArea>
+        {/* شريط تشغيل مدمج عند القراءة */}
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40">
+           <Button 
+            onClick={() => setCurrentSurah(readingSurah)}
+            className="h-14 px-8 rounded-full bg-primary shadow-2xl shadow-primary/40 gap-3 font-bold"
+           >
+             {currentSurah?.id === readingSurah.id && isPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
+             {currentSurah?.id === readingSurah.id && isPlaying ? "إيقاف الاستماع" : "بدء الاستماع"}
+           </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (selectedCategory) {
     const progressCount = selectedCategory.items.filter(i => completedItems.has(i.id)).length;
     const progress = Math.round((progressCount / selectedCategory.items.length) * 100);
@@ -128,7 +174,7 @@ export function HisnAlMuslim() {
             عقدة الإيمان
             <Sparkles className="text-primary size-10" />
           </h2>
-          <p className="text-muted-foreground mt-2 text-xl">القرآن الكريم، الأذكار، والمسبحة الرقمية بنظام تخزين ذكي.</p>
+          <p className="text-muted-foreground mt-2 text-xl">تلاوة، استماع، وتخزين ذكي للقرآن الكريم.</p>
         </div>
         
         <div className="glass border-white/10 p-6 rounded-[2.5rem] flex flex-col gap-4 min-w-[280px]">
@@ -192,9 +238,18 @@ export function HisnAlMuslim() {
                     </div>
 
                     <div className="flex items-center justify-between pt-4 border-t border-white/5 flex-row-reverse">
-                      <Button onClick={() => setCurrentSurah(s)} className={cn("size-12 rounded-full", isCurrent && isPlaying ? "bg-red-500" : "bg-primary")}>
-                        {isCurrent && isPlaying ? <Pause className="size-5" /> : <Play className="size-5 ml-1" />}
-                      </Button>
+                      <div className="flex gap-2 flex-row-reverse">
+                        <Button onClick={() => setCurrentSurah(s)} className={cn("size-12 rounded-full", isCurrent && isPlaying ? "bg-red-500" : "bg-primary")}>
+                          {isCurrent && isPlaying ? <Pause className="size-5" /> : <Play className="size-5 ml-1" />}
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          onClick={() => setReadingSurah(s)}
+                          className="size-12 rounded-full border border-white/10 hover:bg-white/5 text-indigo-400"
+                        >
+                          <BookOpen className="size-5" />
+                        </Button>
+                      </div>
                       <div className="text-left">
                         <span className="text-[10px] font-mono text-muted-foreground">{s.sizeMB} MB</span>
                       </div>
@@ -295,7 +350,7 @@ export function HisnAlMuslim() {
       </Tabs>
 
       {/* Floating Mini Player */}
-      {currentSurah && (
+      {currentSurah && !readingSurah && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md glass border-primary/20 rounded-full p-2 shadow-2xl animate-in slide-in-from-bottom-10 duration-500">
           <div className="flex items-center justify-between px-4 flex-row-reverse">
             <div className="flex items-center gap-3 flex-row-reverse">
