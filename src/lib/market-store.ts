@@ -127,6 +127,13 @@ export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'status' | 'cu
   return docRef.id;
 };
 
+export const updateMarketItem = async (itemId: string, updates: Partial<MarketItem>) => {
+  const { firestore } = initializeFirebase();
+  const itemRef = doc(firestore, 'products', itemId);
+  await updateDoc(itemRef, updates);
+  return true;
+};
+
 export const addMarketOffer = async (productId: string, sellerId: string, itemTitle: string, offer: any) => {
   const { firestore } = initializeFirebase();
   await addDoc(collection(firestore, 'offers'), { 

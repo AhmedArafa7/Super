@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -7,7 +6,7 @@ import {
   Repeat, Tag, Cpu, Globe, Layers, BookOpen, 
   Terminal, ShieldCheck, Zap, ChevronRight, LayoutGrid,
   Laptop, Boxes, Briefcase, GraduationCap, Download, Play, MonitorSmartphone,
-  FileCode, CheckCircle2, Upload, Info, MessageCircle
+  FileCode, CheckCircle2, Upload, Info, MessageCircle, Edit3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +22,7 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  getMarketItems, addMarketItem, MarketItem, 
+  getMarketItems, addMarketItem, updateMarketItem, MarketItem, 
   MainCategory, SUB_CATEGORIES, AppVersionStatus
 } from "@/lib/market-store";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -51,6 +50,9 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
   const [items, setItems] = useState<MarketItem[]>([]);
   const [activeView, setActiveView] = useState<'buy' | 'mine'>('buy');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<MarketItem | null>(null);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -75,14 +77,41 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
     versionStatus: "final" as AppVersionStatus
   });
 
-  // مزامنة الفئة عند فتح المودال لتبسيط التجربة
   const handleOpenAddModal = () => {
-    setNewListing(prev => ({
-      ...prev,
+    setNewListing({
+      title: "",
+      description: "",
+      price: 0,
       mainCategory: mainCat !== 'all' ? mainCat : 'digital_assets',
-      subCategory: SUB_CATEGORIES.find(s => s.parent === (mainCat !== 'all' ? mainCat : 'digital_assets'))?.id || "ai_models"
-    }));
+      subCategory: SUB_CATEGORIES.find(s => s.parent === (mainCat !== 'all' ? mainCat : 'digital_assets'))?.id || "ai_models",
+      imageUrl: "",
+      stockQuantity: 1,
+      isLaunchable: false,
+      launchUrl: "",
+      downloadUrl: "",
+      buildFile: null,
+      versionStatus: "final"
+    });
     setIsAddModalOpen(true);
+  };
+
+  const handleOpenEditModal = (item: MarketItem) => {
+    setEditingItem(item);
+    setNewListing({
+      title: item.title,
+      description: item.description,
+      price: item.price,
+      mainCategory: item.mainCategory,
+      subCategory: item.subCategory,
+      imageUrl: item.imageUrl || "",
+      stockQuantity: item.stockQuantity,
+      isLaunchable: item.isLaunchable || false,
+      launchUrl: item.launchUrl || "",
+      downloadUrl: item.downloadUrl || "",
+      buildFile: null,
+      versionStatus: item.versionStatus || "final"
+    });
+    setIsEditModalOpen(true);
   };
 
   const availableSubs = useMemo(() => 
@@ -133,29 +162,48 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
       });
 
       setIsAddModalOpen(false);
-      
-      // التبديل التلقائي لتبويب "أصولي" ليرى المستخدم ما رفعه
       setActiveView('mine');
       loadData(false);
-      
       toast({ title: "Listing Authorized", description: "Your asset is now live on the network." });
-      
-      setNewListing({
-        title: "",
-        description: "",
-        price: 0,
-        mainCategory: "digital_assets",
-        subCategory: "ai_models",
-        imageUrl: "",
-        stockQuantity: 1,
-        isLaunchable: false,
-        launchUrl: "",
-        downloadUrl: "",
-        buildFile: null,
-        versionStatus: "final"
-      });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Authorization Failed", description: err.message });
+    } finally {
+      setIsSubmitting(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleUpdateListing = async () => {
+    if (!editingItem) return;
+    setIsSubmitting(true);
+    setUploadProgress(0);
+
+    try {
+      let downloadUrl = newListing.downloadUrl;
+
+      if (newListing.mainCategory === 'software' && newListing.buildFile) {
+        toast({ title: "Updating Build", description: "Uploading new binary version..." });
+        downloadUrl = await uploadLearningFile(newListing.buildFile, (pct) => setUploadProgress(pct));
+      }
+
+      await updateMarketItem(editingItem.id, {
+        title: newListing.title,
+        description: newListing.description,
+        price: newListing.price,
+        mainCategory: newListing.mainCategory,
+        subCategory: newListing.subCategory,
+        stockQuantity: newListing.stockQuantity,
+        versionStatus: newListing.versionStatus,
+        launchUrl: newListing.launchUrl,
+        downloadUrl: downloadUrl,
+        isLaunchable: !!newListing.launchUrl
+      });
+
+      setIsEditModalOpen(false);
+      loadData(false);
+      toast({ title: "Sync Complete", description: "Asset properties updated across the network." });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Update Failed", description: err.message });
     } finally {
       setIsSubmitting(false);
       setUploadProgress(0);
@@ -217,131 +265,9 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
                 </TabsList>
               </Tabs>
               
-              <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                <Button onClick={handleOpenAddModal} className="bg-primary rounded-xl px-6 h-12 shadow-lg shadow-primary/20 flex-1 md:flex-none font-bold">
-                  <Plus className="mr-2 size-5" /> إضافة منتج
-                </Button>
-                <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 sm:max-w-[650px] overflow-y-auto max-h-[90vh]">
-                  <DialogHeader>
-                    <DialogTitle className="text-2xl font-bold text-right text-white">إطلاق عقدة منتج جديد</DialogTitle>
-                  </DialogHeader>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
-                    <div className="space-y-4 md:col-span-2">
-                      <div className="grid gap-2">
-                        <Label className="text-right">عنوان المنتج</Label>
-                        <Input dir="auto" placeholder="الاسم التقني..." value={newListing.title} onChange={e => setNewListing({...newListing, title: e.target.value})} className="bg-white/5 border-white/10 text-right" />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label className="text-right">الوصف العصبي</Label>
-                        <Textarea dir="auto" placeholder="اشرح قدرات هذا المنتج..." value={newListing.description} onChange={e => setNewListing({...newListing, description: e.target.value})} className="bg-white/5 border-white/10 text-right min-h-[100px]" />
-                      </div>
-                    </div>
-                    
-                    <div className="grid gap-2">
-                      <Label className="text-right">القطاع</Label>
-                      <Select value={newListing.mainCategory} onValueChange={(v: any) => setNewListing({...newListing, mainCategory: v})}>
-                        <SelectTrigger className="bg-white/5 border-white/10 text-right flex-row-reverse"><SelectValue /></SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-white/10 text-white">
-                          {MAIN_CATEGORIES.filter(c => c.id !== 'all').map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label className="text-right">البروتوكول الفرعي</Label>
-                      <Select value={newListing.subCategory} onValueChange={(v: any) => setNewListing({...newListing, subCategory: v})}>
-                        <SelectTrigger className="bg-white/5 border-white/10 text-right flex-row-reverse"><SelectValue /></SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-white/10 text-white">
-                          {SUB_CATEGORIES.filter(s => s.parent === newListing.mainCategory).map(s => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {newListing.mainCategory === 'software' && (
-                      <div className="md:col-span-2 space-y-6 border-t border-white/5 pt-6">
-                        <div className="flex items-center justify-between flex-row-reverse">
-                          <Label className="text-primary font-bold block text-right">إرسال حزمة البرمجيات</Label>
-                          <div className="flex items-center gap-2 flex-row-reverse">
-                            <Label className="text-[10px] text-muted-foreground uppercase font-bold">الحالة:</Label>
-                            <Select value={newListing.versionStatus} onValueChange={(v: any) => setNewListing({...newListing, versionStatus: v})}>
-                              <SelectTrigger className="h-8 w-28 bg-white/5 border-white/10 text-[10px] font-bold"><SelectValue /></SelectTrigger>
-                              <SelectContent className="bg-slate-900 border-white/10 text-white">
-                                <SelectItem value="final">نسخة نهائية</SelectItem>
-                                <SelectItem value="beta">إصدار Beta</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="grid gap-2">
-                            <Label className="text-xs text-right">رابط المعاينة الحية (Internal)</Label>
-                            <Input placeholder="https://..." value={newListing.launchUrl} onChange={e => setNewListing({...newListing, launchUrl: e.target.value, isLaunchable: !!e.target.value})} className="bg-white/5 border-white/10 text-right" />
-                          </div>
-                          <div className="grid gap-2">
-                            <Label className="text-xs text-right">رابط تحميل خارجي (اختياري)</Label>
-                            <Input placeholder="https://storage.link/..." value={newListing.downloadUrl} onChange={e => setNewListing({...newListing, downloadUrl: e.target.value})} className="bg-white/5 border-white/10 text-right" />
-                          </div>
-                        </div>
-
-                        <div className="space-y-3">
-                          <Label className="text-xs text-right block">أو ارفع ملف البناء مباشرة (EXE, APK, ZIP)</Label>
-                          <div className="relative h-24 bg-indigo-500/5 border-2 border-dashed border-indigo-500/20 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-500/10 transition-all group">
-                            <input 
-                              type="file" 
-                              className="absolute inset-0 opacity-0 cursor-pointer" 
-                              onChange={e => setNewListing({...newListing, buildFile: e.target.files?.[0] || null})}
-                              accept=".apk,.exe,.zip,.rar,.ipa"
-                            />
-                            {newListing.buildFile ? (
-                              <div className="flex items-center gap-2 text-green-400">
-                                <CheckCircle2 className="size-5" />
-                                <span className="text-sm font-bold truncate max-w-[200px]">{newListing.buildFile.name}</span>
-                              </div>
-                            ) : (
-                              <>
-                                <Upload className="size-6 text-indigo-400 group-hover:scale-110 transition-transform mb-1" />
-                                <p className="text-[10px] text-muted-foreground">اضغط لرفع ملف البناء المباشر</p>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="grid gap-2">
-                      <Label className="text-right">التقييم (Credits)</Label>
-                      <Input type="number" value={newListing.price} onChange={e => setNewListing({...newListing, price: Number(e.target.value)})} className="bg-white/5 border-white/10 text-right" />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label className="text-right">الكمية المتوفرة</Label>
-                      <Input type="number" value={newListing.stockQuantity} onChange={e => setNewListing({...newListing, stockQuantity: Number(e.target.value)})} className="bg-white/5 border-white/10 text-right" />
-                    </div>
-                  </div>
-
-                  {isSubmitting && (
-                    <div className="space-y-2 mb-6">
-                      <div className="flex justify-between text-[10px] uppercase font-bold text-indigo-400">
-                        <span>جاري رفع البيانات للعقدة</span>
-                        <span>{Math.round(uploadProgress)}%</span>
-                      </div>
-                      <Progress value={uploadProgress} className="h-1 bg-white/5" />
-                    </div>
-                  )}
-
-                  <DialogFooter>
-                    <Button 
-                      onClick={handleAddListing} 
-                      disabled={isSubmitting || !newListing.title}
-                      className="w-full bg-primary h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20"
-                    >
-                      {isSubmitting ? <Loader2 className="size-5 animate-spin mr-2" /> : <Zap className="size-5 mr-2" />}
-                      تأكيد الإطلاق
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <Button onClick={handleOpenAddModal} className="bg-primary rounded-xl px-6 h-12 shadow-lg shadow-primary/20 flex-1 md:flex-none font-bold">
+                <Plus className="mr-2 size-5" /> إضافة منتج
+              </Button>
             </div>
           </div>
 
@@ -455,24 +381,33 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
                             )}
                           </div>
                         ) : (
-                          <div className="flex gap-2">
-                            {item.isLaunchable && item.launchUrl && (
-                              <Button 
-                                onClick={() => onLaunchApp?.(item.launchUrl!, item.title)}
-                                className="flex-1 bg-green-600 hover:bg-green-500 rounded-xl font-bold gap-2"
-                              >
-                                <Play className="size-4" /> تشغيل
-                              </Button>
-                            )}
-                            {item.downloadUrl && (
-                              <Button 
-                                onClick={() => handleDownload(item.downloadUrl!, item.title)}
-                                variant="outline" 
-                                className="flex-1 border-white/10 rounded-xl font-bold gap-2"
-                              >
-                                <Download className="size-4" /> تحميل
-                              </Button>
-                            )}
+                          <div className="flex flex-col gap-2">
+                            <div className="flex gap-2">
+                              {item.isLaunchable && item.launchUrl && (
+                                <Button 
+                                  onClick={() => onLaunchApp?.(item.launchUrl!, item.title)}
+                                  className="flex-1 bg-green-600 hover:bg-green-500 rounded-xl font-bold gap-2"
+                                >
+                                  <Play className="size-4" /> تشغيل
+                                </Button>
+                              )}
+                              {item.downloadUrl && (
+                                <Button 
+                                  onClick={() => handleDownload(item.downloadUrl!, item.title)}
+                                  variant="outline" 
+                                  className="flex-1 border-white/10 rounded-xl font-bold gap-2"
+                                >
+                                  <Download className="size-4" /> تحميل
+                                </Button>
+                              )}
+                            </div>
+                            <Button 
+                              onClick={() => handleOpenEditModal(item)}
+                              variant="ghost" 
+                              className="w-full bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 rounded-xl h-10 font-bold gap-2 border border-indigo-500/20"
+                            >
+                              <Edit3 className="size-4" /> تعديل العقدة
+                            </Button>
                           </div>
                         )}
                         <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest text-center">
@@ -487,6 +422,132 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
           </div>
         </ScrollArea>
       </main>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={isAddModalOpen || isEditModalOpen} onOpenChange={(open) => { if (!open) { setIsAddModalOpen(false); setIsEditModalOpen(false); } }}>
+        <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 sm:max-w-[650px] overflow-y-auto max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-right text-white">
+              {isEditModalOpen ? "تحديث بيانات الأصل" : "إطلاق عقدة منتج جديد"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
+            <div className="space-y-4 md:col-span-2">
+              <div className="grid gap-2">
+                <Label className="text-right">عنوان المنتج</Label>
+                <Input dir="auto" placeholder="الاسم التقني..." value={newListing.title} onChange={e => setNewListing({...newListing, title: e.target.value})} className="bg-white/5 border-white/10 text-right" />
+              </div>
+              <div className="grid gap-2">
+                <Label className="text-right">الوصف العصبي</Label>
+                <Textarea dir="auto" placeholder="اشرح قدرات هذا المنتج..." value={newListing.description} onChange={e => setNewListing({...newListing, description: e.target.value})} className="bg-white/5 border-white/10 text-right min-h-[100px]" />
+              </div>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label className="text-right">القطاع</Label>
+              <Select value={newListing.mainCategory} onValueChange={(v: any) => setNewListing({...newListing, mainCategory: v})}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-right flex-row-reverse"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10 text-white">
+                  {MAIN_CATEGORIES.filter(c => c.id !== 'all').map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label className="text-right">البروتوكول الفرعي</Label>
+              <Select value={newListing.subCategory} onValueChange={(v: any) => setNewListing({...newListing, subCategory: v})}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-right flex-row-reverse"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10 text-white">
+                  {SUB_CATEGORIES.filter(s => s.parent === newListing.mainCategory).map(s => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {newListing.mainCategory === 'software' && (
+              <div className="md:col-span-2 space-y-6 border-t border-white/5 pt-6">
+                <div className="flex items-center justify-between flex-row-reverse">
+                  <Label className="text-primary font-bold block text-right">إرسال حزمة البرمجيات</Label>
+                  <div className="flex items-center gap-2 flex-row-reverse">
+                    <Label className="text-[10px] text-muted-foreground uppercase font-bold">الحالة:</Label>
+                    <Select value={newListing.versionStatus} onValueChange={(v: any) => setNewListing({...newListing, versionStatus: v})}>
+                      <SelectTrigger className="h-8 w-28 bg-white/5 border-white/10 text-[10px] font-bold"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10 text-white">
+                        <SelectItem value="final">نسخة نهائية</SelectItem>
+                        <SelectItem value="beta">إصدار Beta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label className="text-xs text-right">رابط المعاينة الحية (Internal)</Label>
+                    <Input placeholder="https://..." value={newListing.launchUrl} onChange={e => setNewListing({...newListing, launchUrl: e.target.value, isLaunchable: !!e.target.value})} className="bg-white/5 border-white/10 text-right" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label className="text-xs text-right">رابط تحميل خارجي (اختياري)</Label>
+                    <Input placeholder="https://storage.link/..." value={newListing.downloadUrl} onChange={e => setNewListing({...newListing, downloadUrl: e.target.value})} className="bg-white/5 border-white/10 text-right" />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-xs text-right block">أو ارفع ملف بناء جديد (ZIP, APK, EXE)</Label>
+                  <div className="relative h-24 bg-indigo-500/5 border-2 border-dashed border-indigo-500/20 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-500/10 transition-all group">
+                    <input 
+                      type="file" 
+                      className="absolute inset-0 opacity-0 cursor-pointer" 
+                      onChange={e => setNewListing({...newListing, buildFile: e.target.files?.[0] || null})}
+                      accept=".apk,.exe,.zip,.rar,.ipa"
+                    />
+                    {newListing.buildFile ? (
+                      <div className="flex items-center gap-2 text-green-400">
+                        <CheckCircle2 className="size-5" />
+                        <span className="text-sm font-bold truncate max-w-[200px]">{newListing.buildFile.name}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="size-6 text-indigo-400 group-hover:scale-110 transition-transform mb-1" />
+                        <p className="text-[10px] text-muted-foreground">اضغط لرفع ملف البناء المباشر</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="grid gap-2">
+              <Label className="text-right">التقييم (Credits)</Label>
+              <Input type="number" value={newListing.price} onChange={e => setNewListing({...newListing, price: Number(e.target.value)})} className="bg-white/5 border-white/10 text-right" />
+            </div>
+
+            <div className="grid gap-2">
+              <Label className="text-right">الكمية المتوفرة</Label>
+              <Input type="number" value={newListing.stockQuantity} onChange={e => setNewListing({...newListing, stockQuantity: Number(e.target.value)})} className="bg-white/5 border-white/10 text-right" />
+            </div>
+          </div>
+
+          {isSubmitting && (
+            <div className="space-y-2 mb-6">
+              <div className="flex justify-between text-[10px] uppercase font-bold text-indigo-400">
+                <span>جاري مزامنة البيانات</span>
+                <span>{Math.round(uploadProgress)}%</span>
+              </div>
+              <Progress value={uploadProgress} className="h-1 bg-white/5" />
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button 
+              onClick={isEditModalOpen ? handleUpdateListing : handleAddListing} 
+              disabled={isSubmitting || !newListing.title}
+              className="w-full bg-primary h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20"
+            >
+              {isSubmitting ? <Loader2 className="size-5 animate-spin mr-2" /> : <Zap className="size-5 mr-2" />}
+              {isEditModalOpen ? "حفظ التغييرات العصبية" : "تأكيد الإطلاق"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
