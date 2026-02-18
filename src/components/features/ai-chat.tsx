@@ -35,7 +35,6 @@ import { textToNeuralSpeech } from "@/ai/flows/ai-audio-flows";
 
 const MAX_FILE_SIZE = 1.5 * 1024 * 1024;
 
-// [SIMPLIFIED_NAMING]: الالتزام بالأسماء السيادية المحجوبة الإصدارات
 const AVAILABLE_MODELS = [
   { group: 'Nexus Core', items: [
     { id: 'googleai/gemini-1.5-flash', label: 'Gemini Flash', desc: 'سرعة فائقة للمهام اليومية' },
@@ -157,7 +156,6 @@ const MessageItem = memo(({
                   {isSpeaking ? <Loader2 className="size-3 animate-spin" /> : <Volume2 className="size-3" />}
                   {audioUrl ? "إعادة النطق" : "نطق الرد"}
                 </Button>
-                {/* [SIMPLIFIED_NAMING]: عرض الأسماء المبسطة فقط (Flash, Thinking, Pro) */}
                 <div className="flex items-center gap-2 opacity-40 text-[9px] font-mono tracking-tighter">
                   <Zap className="size-3 text-indigo-400" />
                   <span>{msg.engine}</span>
@@ -237,7 +235,6 @@ export function AIChat() {
           engine: "Imagen 4.0",
           optimizedText: userText
         });
-        toast({ title: "تم التوليد", description: "الصورة جاهزة في العقدة البصرية." });
       } else {
         const visionData = currentAttachments.find(a => a.type === 'image')?.url;
         const res = await aiChatGenerateResponse({
@@ -259,7 +256,7 @@ export function AIChat() {
         });
       }
     } catch (err) {
-      toast({ variant: "destructive", title: "Neural Link Error", description: "تعذر الاتصال بالنخاع حالياً. " + (err as Error).message });
+      toast({ variant: "destructive", title: "Neural Link Error", description: "تعذر الاتصال بالنخاع حالياً." });
     } finally {
       setIsAITyping(false);
     }
@@ -268,7 +265,7 @@ export function AIChat() {
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || file.size > MAX_FILE_SIZE) {
-      toast({ variant: "destructive", title: "الملف كبير جداً", description: "الحد الأقصى هو 1.5MB للصور." });
+      toast({ variant: "destructive", title: "الملف كبير جداً", description: "الحد الأقصى هو 1.5MB." });
       return;
     }
     const reader = new FileReader();
@@ -288,7 +285,6 @@ export function AIChat() {
   const handleEditInit = (msg: WizardMessage) => {
     setEditingMsg(msg);
     setInput(msg.originalText || msg.text);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
@@ -300,7 +296,7 @@ export function AIChat() {
               <EmptyState 
                 icon={Sparkles} 
                 title="نظام NexusAI v5.5" 
-                description="أنا الآن أدعم الرؤية الحاسوبية، التحسين الصامت للأوامر، وتكامل Nexus Vault لتخزين الملفات الضخمة. كيف يمكنني خدمتك تقنياً اليوم؟" 
+                description="أنا الآن أدعم الرؤية، التحسين الصامت، والمزامنة مع الخزنة المركزية. كيف يمكنني خدمتك؟" 
               />
             )}
             {messages.map(m => (
@@ -320,90 +316,56 @@ export function AIChat() {
           </div>
         </ScrollArea>
 
-        {editingMsg && (
-          <div className="px-10 py-2 bg-indigo-500/10 border-y border-indigo-500/20 flex justify-between items-center animate-in slide-in-from-bottom-2">
-            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-              <Pencil className="size-3" /> جاري تعديل الطلب القديم...
-            </p>
-            <Button variant="ghost" size="icon" className="size-6 text-red-400" onClick={() => { setEditingMsg(null); setInput(""); }}>
-              <X className="size-4" />
-            </Button>
-          </div>
-        )}
-
         <div className="p-8 bg-white/5 border-t border-white/5">
           <div className="relative flex items-center gap-4">
-            {/* أيقونات الترس والوسائط جهة اليسار وفق بروتوكول نكسوس */}
             <div className="flex items-center gap-2">
               <input type="file" ref={fileInputRef} className="hidden" onChange={handleFile} accept="image/*" />
               <Button 
                 onClick={() => fileInputRef.current?.click()} 
                 variant="ghost" 
                 size="icon" 
-                className="size-14 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:text-indigo-400 transition-all shadow-inner"
+                className="size-14 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10"
               >
-                <ImageIcon className="size-6" />
+                <ImageIcon className="size-6 text-indigo-400" />
               </Button>
               
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="size-14 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:text-indigo-400 transition-all shadow-inner"
-                  >
-                    <Settings2 className="size-6" />
+                  <Button variant="ghost" size="icon" className="size-14 rounded-2xl bg-white/5 border border-white/10">
+                    <Settings2 className="size-6 text-indigo-400" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[350px] bg-slate-950 border-white/10 p-6 rounded-[2.5rem] shadow-2xl overflow-hidden">
+                <PopoverContent className="w-[350px] bg-slate-950 border-white/10 p-6 rounded-[2.5rem]">
                   <div className="space-y-6">
                     <div className="flex items-center justify-between flex-row-reverse">
-                      <h4 className="font-bold text-sm text-white">إعدادات النخاع العصبى</h4>
+                      <h4 className="font-bold text-sm text-white">إعدادات النخاع</h4>
                       <Cpu className="size-4 text-indigo-400" />
                     </div>
-                    
                     <div className="space-y-4">
                       <div className="flex items-center justify-between flex-row-reverse p-4 bg-white/5 rounded-2xl border border-white/5">
                         <div className="text-right">
                           <Label className="text-xs font-bold text-white">الوضع التلقائي الذكي</Label>
-                          <p className="text-[9px] text-muted-foreground">تحسين الأوامر واختيار أفضل موديل تلقائياً</p>
+                          <p className="text-[9px] text-muted-foreground">اختيار أفضل موديل تلقائياً</p>
                         </div>
                         <Switch checked={autoMode} onCheckedChange={setAutoMode} />
                       </div>
-
                       {!autoMode && (
-                        <div className="space-y-4 pt-4 border-t border-white/5">
-                          <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest block text-right">اختيار المحرك اليدوي</Label>
-                          <ScrollArea className="h-[300px] pr-2">
-                            <div className="space-y-6">
-                              {AVAILABLE_MODELS.map((group) => (
-                                <div key={group.group} className="space-y-2">
-                                  <p className="text-[9px] text-indigo-400 uppercase font-black px-2">{group.group}</p>
-                                  <div className="grid gap-1.5">
-                                    {group.items.map(m => (
-                                      <Button 
-                                        key={m.id}
-                                        variant="ghost" 
-                                        size="sm" 
-                                        onClick={() => setSelectedManualModel(m.id)}
-                                        className={cn(
-                                          "w-full justify-between h-auto py-3 px-4 rounded-xl text-xs flex-row-reverse text-right items-center transition-all",
-                                          selectedManualModel === m.id ? "bg-primary/20 text-white ring-1 ring-primary/50" : "bg-white/5 text-muted-foreground hover:bg-white/10"
-                                        )}
-                                      >
-                                        <div className="flex flex-col gap-0.5">
-                                          <span className="font-bold">{m.label}</span>
-                                          <span className="text-[8px] opacity-60">{m.desc}</span>
-                                        </div>
-                                        {selectedManualModel === m.id && <Check className="size-3 text-primary" />}
-                                      </Button>
-                                    ))}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </ScrollArea>
-                        </div>
+                        <ScrollArea className="h-[200px]">
+                          <div className="grid gap-2">
+                            {AVAILABLE_MODELS.flatMap(g => g.items).map(m => (
+                              <Button 
+                                key={m.id} 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => setSelectedManualModel(m.id)}
+                                className={cn("justify-between flex-row-reverse text-right", selectedManualModel === m.id && "bg-primary/20")}
+                              >
+                                <span>{m.label}</span>
+                                {selectedManualModel === m.id && <Check className="size-3" />}
+                              </Button>
+                            ))}
+                          </div>
+                        </ScrollArea>
                       )}
                     </div>
                   </div>
@@ -415,21 +377,13 @@ export function AIChat() {
               value={input} 
               onChange={e => setInput(e.target.value)} 
               onKeyDown={e => e.key === 'Enter' && handleSend()}
-              placeholder={editingMsg ? "أدخل التعديلات الجديدة..." : "تخيل مدينة مستقبلية... أو حلل هذه الصورة..."} 
-              className="h-14 bg-white/5 border-white/10 rounded-2xl px-8 text-right text-lg focus-visible:ring-primary shadow-inner flex-1"
+              placeholder={editingMsg ? "تعديل الطلب..." : "تخيل شيئاً... أو حلل هذه الصورة..."} 
+              className="h-14 bg-white/5 border-white/10 rounded-2xl px-8 text-right flex-1"
               dir="auto"
             />
 
-            <Button 
-              onClick={handleSend} 
-              disabled={isAITyping || (!input.trim() && attachments.length === 0)} 
-              size="icon" 
-              className={cn(
-                "size-14 rounded-2xl shadow-2xl transition-all duration-500",
-                editingMsg ? "bg-indigo-600 shadow-indigo-600/20" : "bg-primary shadow-primary/20"
-              )}
-            >
-              {isAITyping ? <Loader2 className="animate-spin" /> : editingMsg ? <RefreshCcwIcon className="size-6" /> : <Wand2 className="size-6" />}
+            <Button onClick={handleSend} disabled={isAITyping} size="icon" className="size-14 rounded-2xl bg-primary">
+              {isAITyping ? <Loader2 className="animate-spin" /> : <Wand2 className="size-6" />}
             </Button>
           </div>
         </div>
@@ -437,7 +391,3 @@ export function AIChat() {
     </div>
   );
 }
-
-const RefreshCcwIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
-);

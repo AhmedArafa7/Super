@@ -11,77 +11,84 @@ export interface QuranSurah {
   reciter: string;
   url: string;
   sizeMB: number;
-  text?: string; 
+  englishName?: string;
+  numberOfAyahs?: number;
 }
 
 interface QuranState {
+  surahs: QuranSurah[];
   currentSurah: QuranSurah | null;
   isPlaying: boolean;
+  isLoading: boolean;
   
+  fetchSurahs: () => Promise<void>;
   setCurrentSurah: (surah: QuranSurah | null) => void;
   setIsPlaying: (playing: boolean) => void;
+  downloadToLocal: (surah: QuranSurah) => Promise<void>;
 }
 
-const SURAH_NAMES = [
-  "الفاتحة", "البقرة", "آل عمران", "النساء", "المائدة", "الأنعام", "الأعراف", "الأنفال", "التوبة", "يونس",
-  "هود", "يوسف", "الرعد", "إبراهيم", "الحجر", "النحل", "الإسراء", "الكهف", "مريم", "طه",
-  "الأنبياء", "الحج", "المؤمنون", "النور", "الفرقان", "الشعراء", "النمل", "القصص", "العنكبوت", "الروم",
-  "لقمان", "السجدة", "الأحزاب", "سبأ", "فاطر", "يس", "الصافات", "ص", "الزمر", "غافر",
-  "فصلت", "الشورى", "الزخرف", "الدخان", "الجاثية", "الأحقاف", "محمد", "الفتح", "الحجرات", "ق",
-  "الذاريات", "الطور", "النجم", "القمر", "الرحمن", "الواقعة", "الحديد", "المجادلة", "الحشر", "الممتحنة",
-  "الصف", "الجمعة", "المنافقون", "التغابن", "الطلاق", "التحريم", "الملك", "القلم", "الحاقة", "المعارج",
-  "نوح", "الجن", "المزمل", "المدثر", "القيامة", "الإنسان", "المرسلات", "النبأ", "النازعات", "عبس",
-  "التكوير", "الانفطار", "المطففين", "الانشقاق", "البروج", "الطارق", "الأعلى", "الغاشية", "الفجر", "البلد",
-  "الشمس", "الليل", "الضحى", "الشرح", "التين", "العلق", "القدر", "البينة", "الزلزلة", "العاديات",
-  "القارعة", "التكاثر", "العصر", "الهمزة", "الفيل", "قريش", "الماعون", "الكوثر", "الكافرون", "النصر",
-  "المسد", "الإخلاص", "الفلق", "الناس"
-];
-
-// توليد قائمة الـ 114 سورة آلياً مع أحجام منطقية (Heuristic calculation)
-export const QURAN_DATA: QuranSurah[] = SURAH_NAMES.map((name, index) => {
-  const id = index + 1;
-  const paddedId = id.toString().padStart(3, '0');
-  
-  // منطق أحجام الملفات المنطقي (تقديري بناءً على طول السور)
-  let sizeMB = 5;
-  if (id === 1) sizeMB = 1.2; // الفاتحة قصيرة جداً
-  else if (id === 2) sizeMB = 145; // البقرة طويلة جداً
-  else if (id === 3) sizeMB = 95;  // آل عمران
-  else if (id === 4) sizeMB = 105; // النساء
-  else if (id < 10) sizeMB = 60;
-  else if (id < 30) sizeMB = 35;
-  else if (id > 100) sizeMB = 1.5; // السور القصيرة في الجزء الثلاثين
-  else sizeMB = 12;
-
-  return {
-    id,
-    name,
-    reciter: "مشاري العفاسي",
-    url: `https://server8.mp3quran.net/afs/${paddedId}.mp3`,
-    sizeMB,
-    text: id === 1 ? "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ (1) الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ (2) الرَّحْمَنِ الرَّحِيمِ (3) مَالِكِ يَوْمِ الدِّينِ (4) إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ (5) اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ (6) صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ (7)" : undefined
-  };
-});
-
+/**
+ * @fileOverview محرك القرآن الكريم - يعمل عبر API خارجي مع دعم التحميل الفيزيائي للجهاز.
+ */
 export const useQuranStore = create<QuranState>()(
   persist(
     (set, get) => ({
+      surahs: [],
       currentSurah: null,
       isPlaying: false,
+      isLoading: false,
+
+      fetchSurahs: async () => {
+        set({ isLoading: true });
+        try {
+          // جلب البيانات من AlQuran API
+          const response = await fetch('https://api.alquran.cloud/v1/surah');
+          const data = await response.json();
+          
+          if (data.code === 200) {
+            const mapped: QuranSurah[] = data.data.map((s: any) => ({
+              id: s.number,
+              name: s.name,
+              englishName: s.englishName,
+              numberOfAyahs: s.numberOfAyahs,
+              reciter: "مشاري العفاسي",
+              // رابط البث من mp3quran
+              url: `https://server8.mp3quran.net/afs/${s.number.toString().padStart(3, '0')}.mp3`,
+              // تقدير المساحة بناءً على عدد الآيات
+              sizeMB: Number((s.numberOfAyahs * 0.5).toFixed(1))
+            }));
+            set({ surahs: mapped, isLoading: false });
+          }
+        } catch (err) {
+          console.error("API Sync Failed:", err);
+          set({ isLoading: false });
+        }
+      },
 
       setCurrentSurah: (surah) => {
         set({ currentSurah: surah, isPlaying: !!surah });
-        if (surah) {
+      },
+
+      setIsPlaying: (isPlaying) => set({ isPlaying }),
+
+      downloadToLocal: async (surah) => {
+        try {
+          const cache = await caches.open('nexus-quran-cache');
+          const response = await fetch(surah.url);
+          if (!response.ok) throw new Error("Network response was not ok");
+          
+          await cache.put(surah.url, response);
+          
           useGlobalStorage.getState().addAsset({
             id: `quran-${surah.id}`,
             type: 'quran',
             title: surah.name,
             sizeMB: surah.sizeMB
           });
+        } catch (err) {
+          console.error("Download Failed:", err);
         }
-      },
-
-      setIsPlaying: (isPlaying) => set({ isPlaying }),
+      }
     }),
     { name: 'nexus-quran-prefs' }
   )
