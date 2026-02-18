@@ -131,14 +131,16 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
           </div>
         </div>
         <div className="flex gap-3">
-          <Button 
-            variant="outline" 
-            className="border-indigo-500/30 text-indigo-400 rounded-xl font-bold gap-2"
-            onClick={() => onNavigate?.("admin")}
-          >
-            <ShieldAlert className="size-4" />
-            Neural Console
-          </Button>
+          {user?.role === 'admin' && (
+            <Button 
+              variant="outline" 
+              className="border-indigo-500/30 text-indigo-400 rounded-xl font-bold gap-2"
+              onClick={() => onNavigate?.("admin")}
+            >
+              <ShieldAlert className="size-4" />
+              Neural Console
+            </Button>
+          )}
           <Badge className="bg-green-500/20 text-green-400 border-green-500/30 px-4 py-2 rounded-xl text-xs font-bold">
             <Zap className="size-3 mr-2 inline" /> Node Active
           </Badge>
@@ -262,7 +264,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
               </div>
               <h3 dir="auto" className="text-xl font-bold text-white">{user?.name}</h3>
               <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">@{user?.username}</p>
-              <Badge variant="outline" className="mt-4 border-indigo-500/30 text-indigo-400 capitalize">{user?.role} Node</Badge>
+              {/* [SECURITY_PROTOCOL]: حجب التصنيف عن المستخدم ليبقى سراً إدارياً */}
             </Card>
 
             <Card className="lg:col-span-2 glass border-white/5 rounded-[2.5rem] p-8">

@@ -1,7 +1,7 @@
 
 {
   "project": "NexusAI Ecosystem",
-  "last_sync": "2024-05-20T12:00:00Z",
+  "last_sync": "2024-05-20T14:30:00Z",
   "version": "4.6.0",
   "feature_history": [
     {
@@ -9,6 +9,12 @@
       "name": "Self-Registration Protocol",
       "status": "Active",
       "description": "Allows new users to create nodes and automatically receive starting credits."
+    },
+    {
+      "id": "FEAT-010",
+      "name": "Silent Classification",
+      "status": "Active",
+      "description": "User roles (user/admin) are hidden from everyone except the system admin."
     },
     {
       "id": "FEAT-001",
