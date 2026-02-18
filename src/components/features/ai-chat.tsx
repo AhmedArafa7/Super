@@ -35,6 +35,7 @@ import { textToNeuralSpeech } from "@/ai/flows/ai-audio-flows";
 
 const MAX_FILE_SIZE = 1.5 * 1024 * 1024;
 
+// [SIMPLIFIED_NAMING]: الالتزام بالأسماء السيادية المحجوبة الإصدارات
 const AVAILABLE_MODELS = [
   { group: 'Nexus Core', items: [
     { id: 'googleai/gemini-1.5-flash', label: 'Gemini Flash', desc: 'سرعة فائقة للمهام اليومية' },
@@ -115,7 +116,7 @@ const MessageItem = memo(({
               
               {showOptimized && (
                 <div className="w-full animate-in fade-in slide-in-from-top-1 duration-300">
-                  {/* الخط الأبيض الفاصل السيادي */}
+                  {/* [UI_DIVIDER]: الخط الأبيض الفاصل السيادي */}
                   <div className="h-px bg-white/40 w-full mb-2" /> 
                   <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-right backdrop-blur-sm">
                     <p className="text-[9px] text-indigo-400 font-black uppercase mb-1 tracking-[0.2em]">النص المحسن عصبيًا</p>
@@ -332,6 +333,7 @@ export function AIChat() {
 
         <div className="p-8 bg-white/5 border-t border-white/5">
           <div className="relative flex items-center gap-4">
+            {/* أيقونات الترس والوسائط جهة اليسار وفق بروتوكول نكسوس */}
             <div className="flex items-center gap-2">
               <input type="file" ref={fileInputRef} className="hidden" onChange={handleFile} accept="image/*" />
               <Button 

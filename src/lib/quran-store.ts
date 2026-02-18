@@ -37,16 +37,28 @@ const SURAH_NAMES = [
   "المسد", "الإخلاص", "الفلق", "الناس"
 ];
 
-// توليد قائمة الـ 114 سورة آلياً
+// توليد قائمة الـ 114 سورة آلياً مع أحجام منطقية (Heuristic calculation)
 export const QURAN_DATA: QuranSurah[] = SURAH_NAMES.map((name, index) => {
   const id = index + 1;
   const paddedId = id.toString().padStart(3, '0');
+  
+  // منطق أحجام الملفات المنطقي (تقديري بناءً على طول السور)
+  let sizeMB = 5;
+  if (id === 1) sizeMB = 1.2; // الفاتحة قصيرة جداً
+  else if (id === 2) sizeMB = 145; // البقرة طويلة جداً
+  else if (id === 3) sizeMB = 95;  // آل عمران
+  else if (id === 4) sizeMB = 105; // النساء
+  else if (id < 10) sizeMB = 60;
+  else if (id < 30) sizeMB = 35;
+  else if (id > 100) sizeMB = 1.5; // السور القصيرة في الجزء الثلاثين
+  else sizeMB = 12;
+
   return {
     id,
     name,
     reciter: "مشاري العفاسي",
     url: `https://server8.mp3quran.net/afs/${paddedId}.mp3`,
-    sizeMB: id < 3 ? 150 : (id < 20 ? 40 : 5), // تقدير تقريبي للمساحة
+    sizeMB,
     text: id === 1 ? "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ (1) الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ (2) الرَّحْمَنِ الرَّحِيمِ (3) مَالِكِ يَوْمِ الدِّينِ (4) إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ (5) اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ (6) صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ (7)" : undefined
   };
 });
