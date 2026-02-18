@@ -6,7 +6,7 @@ import {
   MessageSquare, ShieldAlert, Badge as BadgeIcon, Send, 
   ArrowRight, User as UserIcon, RefreshCcw, CheckCircle2, 
   Video, BarChart3, Users, Zap, XCircle, MessageCircle, 
-  Eye, ShieldCheck, Activity
+  Eye, ShieldCheck, Activity, BookOpen, Trash2, Database
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { getStoredMessages, approveMessage, rejectMessage, WizardMessage } from "@/lib/chat-store";
 import { getStoredUsers, User } from "@/lib/auth-store";
 import { getStoredVideos, updateVideoStatus, Video as VideoType } from "@/lib/video-store";
+import { getSubjects, deleteSubject, Subject } from "@/lib/learning-store";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ export function AdminPanel() {
   const [messages, setMessages] = useState<WizardMessage[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [videos, setVideos] = useState<VideoType[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [optimizedEdits, setOptimizedEdits] = useState<Record<string, string>>({});
   const [videoFeedback, setVideoFeedback] = useState<Record<string, string>>({});
@@ -34,14 +36,16 @@ export function AdminPanel() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [msgs, allUsers, allVideos] = await Promise.all([
+      const [msgs, allUsers, allVideos, allSubjects] = await Promise.all([
         getStoredMessages(undefined, true),
         getStoredUsers(),
-        getStoredVideos()
+        getStoredVideos(),
+        getSubjects()
       ]);
       setMessages(msgs || []);
       setUsers(allUsers || []);
       setVideos(allVideos || []);
+      setSubjects(allSubjects || []);
     } catch (err) {
       console.error("Admin Load Error:", err);
     } finally {
@@ -59,8 +63,16 @@ export function AdminPanel() {
     { label: "العقد البشرية", value: users.length, icon: Users, color: "text-blue-400" },
     { label: "رسائل المعالجة", value: messages.length, icon: MessageCircle, color: "text-indigo-400" },
     { label: "بثوث معلقة", value: videos.filter(v => v.status === 'pending_review').length, icon: Video, color: "text-amber-400" },
-    { label: "كفاءة النظام", value: "99.9%", icon: Activity, color: "text-green-400" },
+    { label: "مسارات المعرفة", value: subjects.length, icon: BookOpen, color: "text-emerald-400" },
   ];
+
+  const handleDeleteSubject = async (id: string) => {
+    if (confirm("هل أنت متأكد من حذف هذا المسار التعليمي؟ سيتم حذف كافة الدروس الملحقة به.")) {
+      await deleteSubject(id);
+      toast({ title: "Subject Terminated", description: "Knowledge node removed from ecosystem." });
+      loadData();
+    }
+  };
 
   return (
     <div className="p-8 max-w-7xl mx-auto flex flex-col min-h-screen gap-8">
@@ -71,9 +83,9 @@ export function AdminPanel() {
             Neural Admin Console
             <ShieldAlert className="text-indigo-400 size-10" />
           </h2>
-          <p className="text-muted-foreground mt-1">إدارة البروتوكولات، مراجعة المحتوى، وتجويد الذاكرة العصبية.</p>
+          <p className="text-muted-foreground mt-1">إدارة البروتوكولات، مراجعة المحتوى، وتجويد الذاكرة العصبية للنظام.</p>
         </div>
-        <Button variant="ghost" size="icon" onClick={loadData} disabled={isLoading} className="size-12 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10">
+        <Button variant="ghost" size="icon" onClick={loadData} disabled={isLoading} className="size-12 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-all">
           <RefreshCcw className={cn("size-5", isLoading && "animate-spin")} />
         </Button>
       </div>
@@ -98,13 +110,16 @@ export function AdminPanel() {
 
       <Tabs defaultValue="chat" className="flex-1 flex flex-col">
         <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 w-fit flex-row-reverse self-end">
-          <TabsTrigger value="chat" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-indigo-600 font-bold gap-2">
+          <TabsTrigger value="chat" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-indigo-600 font-bold gap-2">
             <MessageSquare className="size-4" /> مسار الدردشة
           </TabsTrigger>
-          <TabsTrigger value="media" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-indigo-600 font-bold gap-2">
+          <TabsTrigger value="media" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-indigo-600 font-bold gap-2">
             <Video className="size-4" /> مراجعة البث
           </TabsTrigger>
-          <TabsTrigger value="users" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-indigo-600 font-bold gap-2">
+          <TabsTrigger value="knowledge" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-indigo-600 font-bold gap-2">
+            <Database className="size-4" /> إدارة المعرفة
+          </TabsTrigger>
+          <TabsTrigger value="users" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-indigo-600 font-bold gap-2">
             <Users className="size-4" /> سجل المستخدمين
           </TabsTrigger>
         </TabsList>
@@ -270,6 +285,42 @@ export function AdminPanel() {
               ))
             )}
           </div>
+        </TabsContent>
+
+        {/* Knowledge Management Tab */}
+        <TabsContent value="knowledge" className="flex-1 outline-none">
+          <Card className="glass border-white/10 rounded-[3rem] p-8">
+            <div className="flex justify-between items-center mb-8 flex-row-reverse">
+              <h3 className="text-xl font-bold text-white flex items-center gap-3 flex-row-reverse">
+                <Database className="text-indigo-400" />
+                مستودع المعرفة المؤسسية
+              </h3>
+              <Badge className="bg-indigo-500/20 text-indigo-400">{subjects.length} Global Subjects</Badge>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {subjects.map((s) => (
+                <div key={s.id} className="p-6 bg-white/5 border border-white/5 rounded-[2rem] flex flex-col gap-4 text-right group hover:border-indigo-500/30 transition-all">
+                  <div className="flex justify-between items-start flex-row-reverse">
+                    <div className="size-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/10">
+                      <BookOpen className="size-6" />
+                    </div>
+                    <Button variant="ghost" size="icon" className="text-red-400/40 hover:text-red-400" onClick={() => handleDeleteSubject(s.id)}>
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                  <div>
+                    <h4 dir="auto" className="font-bold text-white text-lg">{s.title}</h4>
+                    <p dir="auto" className="text-xs text-muted-foreground line-clamp-2 mt-1">{s.description}</p>
+                  </div>
+                  <div className="pt-4 border-t border-white/5 flex items-center justify-between flex-row-reverse">
+                    <Badge variant="outline" className="text-[8px] uppercase">{s.allowedUserIds ? "Restricted" : "Public Access"}</Badge>
+                    <span className="text-[10px] text-muted-foreground">ID: {s.id.substring(0,8)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
         </TabsContent>
 
         {/* User Registry Tab */}
