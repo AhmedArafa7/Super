@@ -34,7 +34,7 @@ export const SUB_CATEGORIES: SubCategory[] = [
   // Education
   { id: 'datasets', label: 'Datasets', parent: 'education' },
   { id: 'courses', label: 'Knowledge Packs', parent: 'education' },
-  // Software (New)
+  // Software
   { id: 'web_apps', label: 'Web Applications', parent: 'software' },
   { id: 'desktop_tools', label: 'Desktop Executables', parent: 'software' },
   { id: 'mobile_nodes', label: 'Mobile Deployment', parent: 'software' },
@@ -117,12 +117,13 @@ export const getMarketItems = async (
 
 export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'status' | 'currency' | 'ownerId' | 'createdAt'>) => {
   const { firestore } = initializeFirebase();
-  await addDoc(collection(firestore, 'products'), { 
+  const docRef = await addDoc(collection(firestore, 'products'), { 
     ...item, 
     status: 'active', 
     currency: 'Credits',
     createdAt: new Date().toISOString() 
   });
+  return docRef.id;
 };
 
 export const addMarketOffer = async (productId: string, sellerId: string, itemTitle: string, offer: any) => {
