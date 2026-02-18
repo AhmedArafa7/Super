@@ -2,15 +2,14 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, setSession, getSession } from '@/lib/auth-store';
+import { User, setSession, getSession, addUser, getStoredUsers } from '@/lib/auth-store';
 import { initializeFirebase } from '@/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<boolean>;
+  register: (username: string, name: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -29,19 +28,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    // Simple logic for MVP: Check against our "users" collection
-    const { firestore } = initializeFirebase();
-    const { getStoredUsers } = await import('@/lib/auth-store');
-    const allUsers = await getStoredUsers();
-    
-    const found = allUsers.find(u => u.username === username);
-    if (found) {
-      // In real app, check password hash. Here we trust the Nexus node.
-      setSession(found);
-      setUser(found);
-      return true;
+    try {
+      const allUsers = await getStoredUsers();
+      const found = allUsers.find(u => u.username === username);
+      if (found) {
+        // In real app, check password hash. Here we trust the Nexus node.
+        setSession(found);
+        setUser(found);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("Login Error:", err);
+      return false;
     }
-    return false;
+  };
+
+  const register = async (username: string, name: string): Promise<boolean> => {
+    try {
+      const allUsers = await getStoredUsers();
+      const exists = allUsers.find(u => u.username === username);
+      if (exists) return false;
+
+      const newUser = await addUser({
+        username,
+        name,
+        role: 'user',
+        avatarUrl: `https://picsum.photos/seed/${username}/100/100`
+      });
+
+      setSession(newUser);
+      setUser(newUser);
+      return true;
+    } catch (err) {
+      console.error("Registration Error:", err);
+      return false;
+    }
   };
 
   const logout = () => {
@@ -50,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, isLoading: loading }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, register, logout, isLoading: loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );

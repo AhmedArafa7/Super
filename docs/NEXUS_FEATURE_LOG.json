@@ -1,8 +1,15 @@
+
 {
   "project": "NexusAI Ecosystem",
   "last_sync": "2024-05-20T12:00:00Z",
-  "version": "4.5.0",
+  "version": "4.6.0",
   "feature_history": [
+    {
+      "id": "FEAT-009",
+      "name": "Self-Registration Protocol",
+      "status": "Active",
+      "description": "Allows new users to create nodes and automatically receive starting credits."
+    },
     {
       "id": "FEAT-001",
       "name": "Silent Neural Optimizer",
