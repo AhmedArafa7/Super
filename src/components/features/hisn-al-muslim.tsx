@@ -41,7 +41,6 @@ export function HisnAlMuslim() {
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // تصفية الحالات عند تغيير التبويب لضمان عدم تداخل الواجهات وظهور المحتوى
   useEffect(() => {
     setSelectedCategory(null);
     setReadingSurah(null);
@@ -264,7 +263,8 @@ export function HisnAlMuslim() {
             <TabsContent key="tasbih" value="tasbih" className="focus-visible:ring-0">
               <motion.div key="tasbih-view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto flex flex-col items-center gap-12 py-12 text-center">
                 <div className="relative group">
-                  <motion.div className="absolute inset-0 bg-primary/20 blur-[120px] rounded-full" animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }} transition={{ duration: 4, repeat: Infinity }} />
+                  {/* [FIX_ANIMATION_ERROR]: استخدام animate-pulse لضمان الاستقرار ومنع خطأ iterationCount */}
+                  <div className="absolute inset-0 bg-primary/20 blur-[120px] rounded-full animate-pulse" />
                   <button onClick={handleTasbih} className="relative size-80 bg-white/5 backdrop-blur-3xl border-4 border-white/10 rounded-full flex flex-col items-center justify-center shadow-2xl active:scale-95 transition-all">
                     <span className="text-9xl font-black text-white tabular-nums mb-2">{tasbihCount}</span>
                     <p className="text-muted-foreground text-xs font-bold uppercase tracking-[0.2em]">اضغط للتسبيح</p>

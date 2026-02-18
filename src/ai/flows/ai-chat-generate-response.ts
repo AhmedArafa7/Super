@@ -116,12 +116,13 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
         model: modelToUse as any
       });
       
-      // [SIMPLIFIED_NAMING]: استخلاص الأسماء المبسطة للموديلات لحجب أرقام الإصدارات
+      // [SIMPLIFIED_NAMING]: استخلاص الأسماء المبسطة للموديلات لحجب أرقام الإصدارات وفق طلب المستخدم
       let engineName = "Neural Engine";
       if (modelToUse.includes('gemini-1.5-pro')) engineName = "Gemini Pro";
       else if (modelToUse.includes('gemini-2.0')) engineName = "Gemini Thinking";
       else if (modelToUse.includes('gemini-1.5-flash')) engineName = "Gemini Flash";
       else if (modelToUse.includes('llama-3.3')) engineName = "Llama 3.3 70B";
+      else if (modelToUse.includes('groq')) engineName = "Groq Node";
       else engineName = "Nexus Engine";
 
       return {
