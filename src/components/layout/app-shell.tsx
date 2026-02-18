@@ -1,13 +1,14 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
-import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard, Repeat, Loader2, CheckCircle2, AlertCircle, Sparkles, BookOpen, Rocket } from "lucide-react";
+import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard, Repeat, Loader2, CheckCircle2, AlertCircle, Sparkles, BookOpen, Rocket, MonitorSmartphone, Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AIChat } from "@/components/features/ai-chat";
 import { StreamHub } from "@/components/features/stream-hub";
 import { TechMarket } from "@/components/features/tech-market";
@@ -25,17 +26,16 @@ import { getNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
 import { useStreamStore } from "@/lib/stream-store"; 
+import { useSidebarStore, NavItemId } from "@/lib/sidebar-store";
 import { getReceivedOffers } from "@/lib/market-store";
 import { useAuth } from "@/components/auth/auth-provider";
 import { LoginView } from "@/components/auth/login-view";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
-type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn" | "launcher";
-
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<NavItem>("dashboard");
+  const [activeTab, setActiveTab] = useState<NavItemId>("dashboard");
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingOffersCount, setPendingOffersCount] = useState(0);
   const [highlightId, setHighlightId] = useState<string | null>(null);
@@ -43,6 +43,10 @@ export function AppShell() {
   const processOfflineQueue = useWalletStore(state => state.processOfflineQueue);
   const uploadTasks = useUploadStore(state => state.tasks);
   const setCurrentTab = useStreamStore(state => state.setCurrentTab);
+  
+  const { pinnedItems, togglePin, isPinned } = useSidebarStore();
+
+  const [launchedApp, setLaunchedApp] = useState<{url: string, title: string} | null>(null);
 
   useEffect(() => {
     setCurrentTab(activeTab);
@@ -68,8 +72,7 @@ export function AppShell() {
       }
     };
     window.addEventListener('online', handleOnline);
-    if (navigator.onLine && user?.id) processOfflineQueue(user.id);
-
+    
     return () => {
       window.removeEventListener('notifications-update', updateCount);
       window.removeEventListener('online', handleOnline);
@@ -78,28 +81,43 @@ export function AppShell() {
 
   if (!isAuthenticated) return <LoginView />;
 
-  const navItems = [
+  const ALL_NAV_ITEMS = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "chat", label: "AI Chat", icon: MessageSquare },
     { id: "stream", label: "StreamHub", icon: Video },
-    { id: "launcher", label: "App Launcher", icon: Rocket },
     { id: "market", label: "TechMarket", icon: ShoppingBag },
     { id: "wallet", label: "Neural Wallet", icon: Wallet },
     { id: "offers", label: "Offers Inbox", icon: Repeat, badge: pendingOffersCount },
     { id: "learning", label: "Knowledge Hub", icon: GraduationCap },
     { id: "hisn", label: "حصن المسلم", icon: BookOpen },
+    { id: "launcher", label: "App Launcher", icon: Rocket },
     { id: "features", label: "Capabilities", icon: Zap },
     { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount },
     { id: "admin", label: "Admin Panel", icon: ShieldCheck },
   ];
 
+  const sidebarItems = ALL_NAV_ITEMS.filter(item => isPinned(item.id as NavItemId));
+
   const renderContent = () => {
+    if (launchedApp) {
+      return (
+        <div className="flex flex-col h-full bg-black animate-in fade-in duration-500">
+          <header className="h-14 border-b border-white/5 bg-slate-900 flex items-center justify-between px-6 shrink-0 flex-row-reverse">
+            <h2 className="text-sm font-bold text-white">{launchedApp.title}</h2>
+            <Button variant="destructive" size="sm" onClick={() => setLaunchedApp(null)} className="h-8 rounded-lg px-4 font-bold text-xs gap-2">
+              <X className="size-3" /> إغلاق العقدة
+            </Button>
+          </header>
+          <iframe src={launchedApp.url} className="flex-1 w-full border-none bg-white" />
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case "dashboard": return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
       case "chat": return <AIChat highlightId={highlightId} onHighlightComplete={() => setHighlightId(null)} />;
       case "stream": return <StreamHub />;
-      case "launcher": return <AppLauncher />;
-      case "market": return <TechMarket />;
+      case "market": return <TechMarket onLaunchApp={(url, title) => setLaunchedApp({url, title})} />;
       case "wallet": return <WalletView />;
       case "offers": return <OffersInbox />;
       case "features": return <Capabilities />;
@@ -107,6 +125,7 @@ export function AppShell() {
       case "learning": return <KnowledgeHub />;
       case "hisn": return <HisnAlMuslim />;
       case "notifications": return <NotificationsView onSmartRoute={() => {}} />;
+      case "launcher": return <AppLauncher />;
       default: return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
     }
   };
@@ -126,14 +145,14 @@ export function AppShell() {
 
           <SidebarContent className="px-3">
             <SidebarMenu className="gap-2">
-              {navItems.map((item) => (
+              {sidebarItems.map((item) => (
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton
-                    isActive={activeTab === item.id}
-                    onClick={() => setActiveTab(item.id as NavItem)}
+                    isActive={activeTab === item.id && !launchedApp}
+                    onClick={() => { setActiveTab(item.id as NavItemId); setLaunchedApp(null); }}
                     className={cn(
                       "h-12 gap-4 px-4 rounded-xl transition-all flex-row-reverse justify-start",
-                      activeTab === item.id 
+                      (activeTab === item.id && !launchedApp)
                         ? (item.id === 'admin' ? "bg-indigo-600 text-white shadow-lg" : "bg-primary text-white shadow-lg") 
                         : "text-muted-foreground hover:bg-white/5"
                     )}
@@ -150,6 +169,45 @@ export function AppShell() {
               ))}
             </SidebarMenu>
 
+            <div className="mt-8 px-4">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" className="w-full border border-dashed border-white/10 h-12 rounded-xl text-[10px] uppercase font-bold text-muted-foreground hover:bg-white/5 gap-3 flex-row-reverse">
+                    <MonitorSmartphone className="size-4 text-primary" />
+                    Customize Sidebar
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Configure Neural Sidebar</DialogTitle>
+                    <DialogDescription>Toggle sections to pin them to your primary navigation.</DialogDescription>
+                  </DialogHeader>
+                  <ScrollArea className="max-h-[400px] mt-4">
+                    <div className="grid grid-cols-1 gap-2 pr-4">
+                      {ALL_NAV_ITEMS.filter(i => i.id !== 'dashboard').map((item) => (
+                        <div key={item.id} className="flex items-center justify-between p-4 glass border-white/5 rounded-2xl hover:bg-white/5 transition-all flex-row-reverse">
+                          <div className="flex items-center gap-3 flex-row-reverse">
+                            <div className="size-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                              <item.icon className="size-5" />
+                            </div>
+                            <span className="font-bold text-sm text-white">{item.label}</span>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant={isPinned(item.id as NavItemId) ? "default" : "outline"}
+                            className={cn("rounded-lg h-8 px-4", isPinned(item.id as NavItemId) ? "bg-primary" : "border-white/10")}
+                            onClick={() => togglePin(item.id as NavItemId)}
+                          >
+                            {isPinned(item.id as NavItemId) ? "Unpin" : "Pin"}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </DialogContent>
+              </Dialog>
+            </div>
+
             {uploadTasks.length > 0 && (
               <div className="mt-8 px-4 space-y-4">
                 <div className="flex items-center gap-2 mb-2 justify-end">
@@ -157,19 +215,12 @@ export function AppShell() {
                   <Sparkles className="size-3 text-indigo-400 animate-pulse" />
                 </div>
                 {uploadTasks.map(task => (
-                  <div key={task.id} className="p-3 bg-white/5 border border-white/10 rounded-2xl space-y-2 animate-in fade-in slide-in-from-bottom-2">
+                  <div key={task.id} className="p-3 bg-white/5 border border-white/10 rounded-2xl space-y-2">
                     <div className="flex items-center justify-between gap-2 flex-row-reverse">
                       <p className="text-[10px] text-white font-bold truncate flex-1 text-right">{task.fileName}</p>
-                      {task.status === 'uploading' && <Loader2 className="size-3 animate-spin text-indigo-400" />}
-                      {task.status === 'preparing' && <div className="size-2 rounded-full bg-indigo-400 animate-ping" />}
                       {task.status === 'completed' && <CheckCircle2 className="size-3 text-green-400" />}
-                      {task.status === 'failed' && <AlertCircle className="size-3 text-red-400" />}
                     </div>
-                    <Progress value={task.progress} className="h-1.5 bg-white/5" />
-                    <div className="flex justify-between items-center text-[8px] text-muted-foreground uppercase font-bold flex-row-reverse">
-                      <span>{task.status === 'preparing' ? 'Establishing Link...' : task.status}</span>
-                      <span>{task.progress}%</span>
-                    </div>
+                    <Progress value={task.progress} className="h-1 bg-white/5" />
                   </div>
                 ))}
               </div>
@@ -180,7 +231,7 @@ export function AppShell() {
             <div className="flex items-center gap-3 px-2 flex-row-reverse">
               <div 
                 className="size-10 rounded-2xl bg-indigo-900/50 border border-white/10 overflow-hidden cursor-pointer hover:border-primary/50 transition-all"
-                onClick={() => setActiveTab("dashboard")}
+                onClick={() => { setActiveTab("dashboard"); setLaunchedApp(null); }}
               >
                 <img src={user?.avatar_url || `https://picsum.photos/seed/${user?.username}/40/40`} className="size-full object-cover" alt="Profile" />
               </div>
@@ -205,7 +256,7 @@ export function AppShell() {
               </div>
             </div>
             <div className="flex items-center gap-4 flex-row-reverse">
-              <Button variant="ghost" size="icon" className="text-muted-foreground relative" onClick={() => setActiveTab("notifications")}>
+              <Button variant="ghost" size="icon" className="text-muted-foreground relative" onClick={() => { setActiveTab("notifications"); setLaunchedApp(null); }}>
                 <Bell className="size-5" />
                 {unreadCount > 0 && <Badge className="absolute top-2 left-2 h-4 w-4 p-0 flex items-center justify-center bg-red-500 border border-slate-900 text-[9px]">{unreadCount}</Badge>}
               </Button>
@@ -213,7 +264,7 @@ export function AppShell() {
               <Button 
                 variant="outline" 
                 className="h-9 px-4 rounded-xl border-white/10 gap-2 text-xs font-bold text-white hover:bg-white/5 flex-row-reverse"
-                onClick={() => setActiveTab("wallet")}
+                onClick={() => { setActiveTab("wallet"); setLaunchedApp(null); }}
               >
                 <Wallet className="size-4 text-primary" />
                 Neural Credits

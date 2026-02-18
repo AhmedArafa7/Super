@@ -6,7 +6,7 @@ import {
   Search, Filter, Wallet, Loader2, Plus, ShoppingBag, 
   Repeat, Tag, Cpu, Globe, Layers, BookOpen, 
   Terminal, ShieldCheck, Zap, ChevronRight, LayoutGrid,
-  Laptop, Boxes, Briefcase, GraduationCap
+  Laptop, Boxes, Briefcase, GraduationCap, Download, Play, MonitorSmartphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,9 +38,10 @@ const MAIN_CATEGORIES = [
   { id: 'services', label: 'Services', icon: Briefcase },
   { id: 'tools', label: 'AI Tools', icon: Terminal },
   { id: 'education', label: 'Knowledge', icon: GraduationCap },
+  { id: 'software', label: 'Apps & Nodes', icon: MonitorSmartphone },
 ];
 
-export function TechMarket() {
+export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title: string) => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -61,7 +62,10 @@ export function TechMarket() {
     mainCategory: "digital_assets" as MainCategory,
     subCategory: "ai_models",
     imageUrl: "",
-    stockQuantity: 1
+    stockQuantity: 1,
+    isLaunchable: false,
+    launchUrl: "",
+    downloadUrl: ""
   });
 
   const availableSubs = useMemo(() => 
@@ -104,6 +108,12 @@ export function TechMarket() {
     }
   };
 
+  const handleDownload = (url: string, title: string) => {
+    if (!url) return;
+    toast({ title: "Neural Download Initiated", description: `Fetching binary for ${title}...` });
+    window.open(url, '_blank');
+  };
+
   const filteredItems = items.filter(item => {
     if (activeView === 'mine') return item.sellerId === user?.id;
     return item.sellerId !== user?.id && item.status === 'active';
@@ -111,7 +121,6 @@ export function TechMarket() {
 
   return (
     <div className="flex h-full bg-slate-950/50">
-      {/* Category Sidebar */}
       <aside className="w-64 border-r border-white/5 bg-slate-900/20 backdrop-blur-xl flex flex-col hidden lg:flex">
         <div className="p-6 border-b border-white/5">
           <h2 className="text-xs font-bold text-indigo-400 uppercase tracking-[0.2em] mb-4">Market Clusters</h2>
@@ -139,14 +148,13 @@ export function TechMarket() {
           <div className="space-y-4">
             <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
               <p className="text-[10px] text-muted-foreground leading-relaxed">
-                All acquisitions are secured by <span className="text-primary font-bold text-[8px]">ESCROW v4.2</span>
+                Software nodes are verified by <span className="text-primary font-bold text-[8px]">NEXUS-SHIELD</span>
               </p>
             </div>
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
         <header className="p-8 border-b border-white/5 bg-slate-900/10">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
@@ -155,7 +163,7 @@ export function TechMarket() {
                 TechMarket
                 <Badge variant="outline" className="text-[10px] border-primary/30 text-primary uppercase">v4.2</Badge>
               </h1>
-              <p className="text-muted-foreground mt-1">Decentralized exchange for the Nexus ecosystem.</p>
+              <p className="text-muted-foreground mt-1">Decentralized exchange for items and software nodes.</p>
             </div>
             
             <div className="flex items-center gap-3 w-full md:w-auto">
@@ -172,9 +180,9 @@ export function TechMarket() {
                     <Plus className="mr-2 size-5" /> New Listing
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-slate-900 border-white/10 rounded-[2.5rem] p-8 sm:max-w-[600px]">
+                <DialogContent className="bg-slate-900 border-white/10 rounded-[2.5rem] p-8 sm:max-w-[650px] overflow-y-auto max-h-[90vh]">
                   <DialogHeader>
-                    <DialogTitle className="text-2xl font-bold">Transmit Neural Asset</DialogTitle>
+                    <DialogTitle className="text-2xl font-bold">Transmit Asset Node</DialogTitle>
                   </DialogHeader>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
                     <div className="space-y-4 md:col-span-2">
@@ -207,6 +215,22 @@ export function TechMarket() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {newListing.mainCategory === 'software' && (
+                      <div className="md:col-span-2 space-y-4 border-t border-white/5 pt-4">
+                        <Label className="text-primary font-bold">App Delivery Methods</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid gap-2">
+                            <Label className="text-xs">Live Preview URL (Internal Launch)</Label>
+                            <Input placeholder="https://..." value={newListing.launchUrl} onChange={e => setNewListing({...newListing, launchUrl: e.target.value, isLaunchable: !!e.target.value})} className="bg-white/5 border-white/10" />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label className="text-xs">Download URL (Binary File)</Label>
+                            <Input placeholder="https://storage.link/..." value={newListing.downloadUrl} onChange={e => setNewListing({...newListing, downloadUrl: e.target.value})} className="bg-white/5 border-white/10" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="grid gap-2">
                       <Label>Valuation (Credits)</Label>
@@ -276,7 +300,7 @@ export function TechMarket() {
               <EmptyState 
                 icon={Search} 
                 title="Global Scan: Zero Results" 
-                description="The neural registry returned no matches for your current parameters. Try widening your cluster search." 
+                description="The neural registry returned no matches for your current parameters." 
                 className="py-24"
               />
             ) : (
@@ -298,9 +322,7 @@ export function TechMarket() {
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
                     </div>
                     <CardContent className="p-7">
-                      <div className="flex justify-between items-start mb-3">
-                        <h3 dir="auto" className="text-xl font-bold text-white line-clamp-1 text-right flex-1">{item.title}</h3>
-                      </div>
+                      <h3 dir="auto" className="text-xl font-bold text-white line-clamp-1 text-right mb-2">{item.title}</h3>
                       <p dir="auto" className="text-xs text-muted-foreground line-clamp-2 mb-6 text-right leading-relaxed h-8">
                         {item.description}
                       </p>
@@ -309,18 +331,38 @@ export function TechMarket() {
                         <span className="text-primary font-bold text-xs uppercase">Credits</span>
                       </div>
                       
-                      <div className="flex items-center justify-between gap-3 border-t border-white/5 pt-6 mt-2">
-                        <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">
-                          {item.stockQuantity} nodes active
-                        </p>
-                        {item.sellerId !== user?.id && (
+                      <div className="flex flex-col gap-3 border-t border-white/5 pt-6 mt-2">
+                        {item.sellerId !== user?.id ? (
                           <div className="flex gap-2">
                             <MakeOfferModal item={item} />
-                            <Button className="bg-primary rounded-xl px-6 h-11 font-bold shadow-lg shadow-primary/20">
+                            <Button className="flex-1 bg-primary rounded-xl font-bold shadow-lg shadow-primary/20">
                               Acquire
                             </Button>
                           </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            {item.isLaunchable && item.launchUrl && (
+                              <Button 
+                                onClick={() => onLaunchApp?.(item.launchUrl!, item.title)}
+                                className="flex-1 bg-green-600 hover:bg-green-500 rounded-xl font-bold gap-2"
+                              >
+                                <Play className="size-4" /> Run Node
+                              </Button>
+                            )}
+                            {item.downloadUrl && (
+                              <Button 
+                                onClick={() => handleDownload(item.downloadUrl!, item.title)}
+                                variant="outline" 
+                                className="flex-1 border-white/10 rounded-xl font-bold gap-2"
+                              >
+                                <Download className="size-4" /> Download
+                              </Button>
+                            )}
+                          </div>
                         )}
+                        <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest text-center">
+                          {item.stockQuantity} instances available
+                        </p>
                       </div>
                     </CardContent>
                   </Card>

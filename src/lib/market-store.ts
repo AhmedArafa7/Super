@@ -6,8 +6,8 @@ import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, ad
 
 export type MarketItemStatus = 'active' | 'sold' | 'reserved' | 'archived';
 
-// نظام التصنيفات الهرمي الجديد
-export type MainCategory = 'all' | 'electronics' | 'digital_assets' | 'services' | 'tools' | 'education';
+// نظام التصنيفات الهرمي المطور ليشمل التطبيقات
+export type MainCategory = 'all' | 'electronics' | 'digital_assets' | 'services' | 'tools' | 'education' | 'software';
 
 export interface SubCategory {
   id: string;
@@ -34,6 +34,10 @@ export const SUB_CATEGORIES: SubCategory[] = [
   // Education
   { id: 'datasets', label: 'Datasets', parent: 'education' },
   { id: 'courses', label: 'Knowledge Packs', parent: 'education' },
+  // Software (New)
+  { id: 'web_apps', label: 'Web Applications', parent: 'software' },
+  { id: 'desktop_tools', label: 'Desktop Executables', parent: 'software' },
+  { id: 'mobile_nodes', label: 'Mobile Deployment', parent: 'software' },
 ];
 
 export interface MarketItem {
@@ -50,6 +54,11 @@ export interface MarketItem {
   status: MarketItemStatus;
   currency: string;
   createdAt: string;
+  // App Specific Properties
+  isLaunchable?: boolean;
+  launchUrl?: string;
+  downloadUrl?: string;
+  framework?: string;
 }
 
 export interface MarketOffer {
