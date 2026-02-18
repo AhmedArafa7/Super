@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AIChat } from "@/components/features/ai-chat";
 import { StreamHub } from "@/components/features/stream-hub";
@@ -90,7 +91,6 @@ export function AppShell() {
     { id: "offers", label: "Offers Inbox", icon: Repeat, badge: pendingOffersCount },
     { id: "learning", label: "Knowledge Hub", icon: GraduationCap },
     { id: "hisn", label: "حصن المسلم", icon: BookOpen },
-    { id: "launcher", label: "App Launcher", icon: Rocket },
     { id: "features", label: "Capabilities", icon: Zap },
     { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount },
     { id: "admin", label: "Admin Panel", icon: ShieldCheck },
@@ -125,7 +125,6 @@ export function AppShell() {
       case "learning": return <KnowledgeHub />;
       case "hisn": return <HisnAlMuslim />;
       case "notifications": return <NotificationsView onSmartRoute={() => {}} />;
-      case "launcher": return <AppLauncher />;
       default: return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
     }
   };
