@@ -1,10 +1,10 @@
-
 'use client';
 
 import { initializeFirebase } from '@/firebase';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc, where } from 'firebase/firestore';
 
 export type MarketItemStatus = 'active' | 'sold' | 'reserved' | 'archived';
+export type AppVersionStatus = 'final' | 'beta';
 
 // نظام التصنيفات الهرمي المطور ليشمل التطبيقات
 export type MainCategory = 'all' | 'electronics' | 'digital_assets' | 'services' | 'tools' | 'education' | 'software';
@@ -59,6 +59,7 @@ export interface MarketItem {
   launchUrl?: string;
   downloadUrl?: string;
   framework?: string;
+  versionStatus?: AppVersionStatus;
 }
 
 export interface MarketOffer {

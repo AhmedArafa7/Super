@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -7,7 +6,7 @@ import {
   Repeat, Tag, Cpu, Globe, Layers, BookOpen, 
   Terminal, ShieldCheck, Zap, ChevronRight, LayoutGrid,
   Laptop, Boxes, Briefcase, GraduationCap, Download, Play, MonitorSmartphone,
-  FileCode, CheckCircle2, Upload
+  FileCode, CheckCircle2, Upload, Info, MessageCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +23,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { 
   getMarketItems, addMarketItem, MarketItem, 
-  MainCategory, SUB_CATEGORIES 
+  MainCategory, SUB_CATEGORIES, AppVersionStatus
 } from "@/lib/market-store";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MakeOfferModal } from "./make-offer-modal";
@@ -71,7 +70,8 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
     isLaunchable: false,
     launchUrl: "",
     downloadUrl: "",
-    buildFile: null as File | null
+    buildFile: null as File | null,
+    versionStatus: "final" as AppVersionStatus
   });
 
   const availableSubs = useMemo(() => 
@@ -136,7 +136,8 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
         isLaunchable: false,
         launchUrl: "",
         downloadUrl: "",
-        buildFile: null
+        buildFile: null,
+        versionStatus: "final"
       });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Authorization Failed", description: err.message });
@@ -245,7 +246,19 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
 
                     {newListing.mainCategory === 'software' && (
                       <div className="md:col-span-2 space-y-6 border-t border-white/5 pt-6">
-                        <Label className="text-primary font-bold block text-right">إرسال حزمة البرمجيات</Label>
+                        <div className="flex items-center justify-between flex-row-reverse">
+                          <Label className="text-primary font-bold block text-right">إرسال حزمة البرمجيات</Label>
+                          <div className="flex items-center gap-2 flex-row-reverse">
+                            <Label className="text-[10px] text-muted-foreground uppercase font-bold">الحالة:</Label>
+                            <Select value={newListing.versionStatus} onValueChange={(v: any) => setNewListing({...newListing, versionStatus: v})}>
+                              <SelectTrigger className="h-8 w-28 bg-white/5 border-white/10 text-[10px] font-bold"><SelectValue /></SelectTrigger>
+                              <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                <SelectItem value="final">نسخة نهائية</SelectItem>
+                                <SelectItem value="beta">إصدار Beta</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="grid gap-2">
@@ -374,10 +387,18 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8 pb-20">
                 {filteredItems.map((item) => (
                   <Card key={item.id} className="group glass rounded-[2.5rem] overflow-hidden border-white/5 hover:border-indigo-500/40 transition-all duration-500 hover:translate-y-[-4px] shadow-2xl relative">
-                    <div className="absolute top-0 left-0 p-4 z-10">
+                    <div className="absolute top-0 left-0 p-4 z-10 flex flex-col gap-2">
                       <Badge className="bg-black/60 backdrop-blur-md border-white/10 text-[8px] uppercase tracking-tighter">
                         {SUB_CATEGORIES.find(s => s.id === item.subCategory)?.label || item.subCategory}
                       </Badge>
+                      {item.mainCategory === 'software' && (
+                        <Badge className={cn(
+                          "backdrop-blur-md border-white/10 text-[8px] uppercase tracking-tighter font-black",
+                          item.versionStatus === 'beta' ? "bg-amber-500/80 text-white" : "bg-green-500/80 text-white"
+                        )}>
+                          {item.versionStatus === 'beta' ? 'BETA' : 'FINAL'}
+                        </Badge>
+                      )}
                     </div>
                     <div className="relative aspect-square overflow-hidden bg-slate-900">
                       <Image 
@@ -400,11 +421,25 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
                       
                       <div className="flex flex-col gap-3 border-t border-white/5 pt-6 mt-2">
                         {item.sellerId !== user?.id ? (
-                          <div className="flex gap-2">
-                            <MakeOfferModal item={item} />
-                            <Button className="flex-1 bg-primary rounded-xl font-bold shadow-lg shadow-primary/20">
-                              استحواذ
-                            </Button>
+                          <div className="space-y-2">
+                            <div className="flex gap-2">
+                              <MakeOfferModal 
+                                item={item} 
+                                trigger={
+                                  <Button variant="outline" className="flex-1 rounded-xl h-12 border-white/10 hover:bg-white/5 font-bold gap-2">
+                                    <MessageCircle className="size-4" /> تواصل
+                                  </Button>
+                                }
+                              />
+                              <Button className="flex-1 bg-primary rounded-xl font-bold shadow-lg shadow-primary/20">
+                                استحواذ
+                              </Button>
+                            </div>
+                            {item.versionStatus === 'beta' && (
+                              <p className="text-[9px] text-amber-400 text-center font-bold flex items-center justify-center gap-1">
+                                <Info className="size-2" /> شارك رأيك التقني مع المطور
+                              </p>
+                            )}
                           </div>
                         ) : (
                           <div className="flex gap-2">
