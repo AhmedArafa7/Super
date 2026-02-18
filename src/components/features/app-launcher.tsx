@@ -23,6 +23,7 @@ const FrameworkIcon = ({ framework }: { framework: AppFramework }) => {
     case 'angular': return <div className="size-6 bg-red-600 rounded flex items-center justify-center text-[10px] font-bold text-white shadow-lg">A</div>;
     case 'react': return <div className="size-6 bg-blue-500 rounded flex items-center justify-center text-[10px] font-bold text-white shadow-lg">R</div>;
     case 'html': return <div className="size-6 bg-orange-500 rounded flex items-center justify-center text-[10px] font-bold text-white shadow-lg">H5</div>;
+    case 'nextjs': return <div className="size-6 bg-black border border-white/20 rounded flex items-center justify-center text-[10px] font-bold text-white shadow-lg">N</div>;
     default: return <Code2 className="size-4" />;
   }
 };
@@ -74,15 +75,21 @@ export function AppLauncher() {
               <h2 dir="auto" className="text-sm font-bold text-white">{activeProject.title}</h2>
               <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest flex items-center gap-2 justify-end">
                 <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
-                Live Neural Instance
+                Live Production Node
               </p>
             </div>
           </div>
           
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className="border-white/10 text-indigo-400 capitalize">{activeProject.framework} Node</Badge>
-            <Button variant="outline" size="sm" className="h-8 rounded-lg border-white/10 text-[10px] font-bold" onClick={() => window.open(activeProject.url, '_blank')}>
-              <ExternalLink className="size-3 mr-1" /> Open in New Tab
+            <Badge variant="outline" className="border-white/10 text-indigo-400 capitalize hidden sm:flex">{activeProject.framework} Framework</Badge>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-9 rounded-xl border-white/10 text-[10px] font-bold bg-white/5 hover:bg-primary hover:text-white transition-all" 
+              onClick={() => window.open(activeProject.url, '_blank')}
+            >
+              <ExternalLink className="size-3 mr-1.5" />
+              زيارة الموقع الأصلي
             </Button>
           </div>
         </header>
@@ -92,7 +99,7 @@ export function AppLauncher() {
             src={activeProject.url} 
             className="absolute inset-0 size-full border-none"
             title={activeProject.title}
-            sandbox="allow-scripts allow-same-origin allow-forms"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           />
         </div>
       </div>
@@ -108,16 +115,16 @@ export function AppLauncher() {
             منصة التطبيقات
             <Rocket className="text-primary size-10" />
           </h1>
-          <p className="text-muted-foreground text-lg">شغل تطبيقات Angular, React و HTML مباشرة داخل بيئتك الخاصة.</p>
+          <p className="text-muted-foreground text-lg">شغل تطبيقاتك السحابية (Production) مباشرة داخل بيئة NexusAI الآمنة.</p>
         </div>
       </header>
 
       <div className="relative max-w-2xl ml-auto">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
-        <Input 
+        <input 
           dir="auto"
           placeholder="ابحث عن تطبيق أو تقنية..." 
-          className="w-full h-14 bg-white/5 border-white/10 rounded-2xl pr-12 pl-6 text-right focus-visible:ring-primary shadow-2xl"
+          className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pr-12 pl-6 text-right focus:outline-none focus:ring-2 focus:ring-primary shadow-2xl text-white"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -158,21 +165,23 @@ export function AppLauncher() {
                     <Laptop className="size-4 text-indigo-400" />
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">المطور</p>
-                    <p className="text-xs font-bold text-white">@{project.author}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">الحالة</p>
+                    <p className="text-xs font-bold text-green-400">Production</p>
                   </div>
                 </div>
                 
-                {project.access === 'paid' ? (
-                  <div className="text-right">
-                    <span className="text-2xl font-black text-indigo-400">{project.price}</span>
-                    <span className="text-[10px] text-muted-foreground ml-1 font-bold">CREDITS</span>
-                  </div>
-                ) : (
-                  <Button variant="ghost" className="text-primary hover:bg-primary/10 rounded-xl font-bold gap-2 flex-row-reverse px-4" onClick={() => handleLaunch(project)}>
-                    <Zap className="size-4" /> تشغيل الآن
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {project.access === 'paid' ? (
+                    <div className="text-right">
+                      <span className="text-2xl font-black text-indigo-400">{project.price}</span>
+                      <span className="text-[10px] text-muted-foreground ml-1 font-bold">CREDITS</span>
+                    </div>
+                  ) : (
+                    <Button variant="ghost" className="text-primary hover:bg-primary/10 rounded-xl font-bold gap-2 flex-row-reverse px-4" onClick={() => handleLaunch(project)}>
+                      <Zap className="size-4" /> تشغيل حي
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -182,9 +191,9 @@ export function AppLauncher() {
       <div className="p-12 glass rounded-[3rem] border-white/5 relative overflow-hidden text-center">
         <div className="absolute top-0 right-0 size-64 bg-primary/5 blur-[100px] -mr-32 -mt-32" />
         <ShieldCheck className="size-12 text-primary mx-auto mb-6" />
-        <h3 className="text-2xl font-bold text-white mb-4">بيئة تشغيل آمنة E2EE</h3>
+        <h3 className="text-2xl font-bold text-white mb-4">تكامل سحابي كامل</h3>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          يتم تشغيل كافة التطبيقات داخل "عقدة معزولة" (Sandboxed Node) لضمان أمان بياناتك وخصوصية تصفحك أثناء تجربة المشاريع البرمجية.
+          يتم جلب المواقع الخارجية ومواقع البرودكشن عبر بروتوكولات آمنة، مما يتيح لك تحويل أي رابط ويب إلى "عقدة تطبيقية" نشطة داخل نظامك.
         </p>
       </div>
     </div>
