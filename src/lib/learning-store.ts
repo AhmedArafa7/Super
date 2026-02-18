@@ -32,11 +32,17 @@ export interface Subject {
   allowedUserIds: string[] | null;
 }
 
-export const getSubjects = async (userId?: string): Promise<Subject[]> => {
+/**
+ * جلب المواد التعليمية مع دعم صلاحيات الأدمن لرؤية كل شيء.
+ */
+export const getSubjects = async (userId?: string, isAdmin = false): Promise<Subject[]> => {
   const { firestore } = initializeFirebase();
   try {
     const snap = await getDocs(collection(firestore, 'subjects'));
     const subjects = snap.docs.map(d => ({ id: d.id, ...d.data() } as Subject));
+    
+    if (isAdmin) return subjects;
+
     return subjects.filter(s => {
       if (!s.allowedUserIds || s.allowedUserIds.length === 0) return true;
       return userId && s.allowedUserIds.includes(userId);

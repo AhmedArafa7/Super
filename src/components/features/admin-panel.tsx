@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -7,7 +8,7 @@ import {
   Video, BarChart3, Users, Zap, XCircle, MessageCircle, 
   Eye, ShieldCheck, Activity, BookOpen, Trash2, Database,
   Wallet, Repeat, Bell, AlertTriangle, Radio, History, Tag, CreditCard,
-  FileVideo, ArrowUpRight, DollarSign, Play
+  FileVideo, ArrowUpRight, DollarSign, Play, Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,11 +51,12 @@ export function AdminPanel() {
   const loadData = async () => {
     setIsLoading(true);
     try {
+      // نمرر true لـ getSubjects للإشارة إلى صلاحية الأدمن
       const [msgs, allUsers, allVideos, allSubjects, allOffers, allTxs] = await Promise.all([
         getStoredMessages(undefined, true),
         getStoredUsers(),
         getStoredVideos(),
-        getSubjects(),
+        getSubjects(undefined, true), 
         getAllOffersAdmin(),
         getAllTransactionsAdmin()
       ]);
@@ -74,7 +76,7 @@ export function AdminPanel() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 30000); // Auto-sync every 30s
+    const interval = setInterval(loadData, 30000); 
     return () => clearInterval(interval);
   }, []);
 
@@ -109,6 +111,13 @@ export function AdminPanel() {
     toast({ title: "Media Protocol Updated", description: `Video has been ${status}.` });
     loadData();
   };
+
+  const renderEmptyState = (icon: React.ElementType, title: string) => (
+    <div className="flex flex-col items-center justify-center py-32 opacity-40 border-2 border-dashed border-white/5 rounded-[3rem] text-center w-full">
+      {React.createElement(icon, { className: "size-16 mb-4" })}
+      <p className="text-xl font-bold">{title}</p>
+    </div>
+  );
 
   return (
     <div className="p-8 max-w-7xl mx-auto flex flex-col min-h-screen gap-10 animate-in fade-in duration-700">
@@ -156,18 +165,13 @@ export function AdminPanel() {
         </TabsList>
 
         <TabsContent value="chat" className="flex-1 outline-none space-y-8">
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 opacity-40 border-2 border-dashed border-white/5 rounded-[3rem]">
-              <MessageSquare className="size-16 mb-4" />
-              <p className="text-xl">لا توجد رسائل معلقة للمراجعة.</p>
-            </div>
-          ) : (
+          {messages.length === 0 ? renderEmptyState(MessageSquare, "لا توجد رسائل معلقة للمراجعة.") : (
             messages.map((m) => (
               <Card key={m.id} className="glass border-white/10 rounded-[3rem] overflow-hidden p-10 space-y-8 shadow-2xl relative">
                 <div className="absolute top-0 right-0 size-64 bg-indigo-500/5 blur-[100px] -mr-32 -mt-32 pointer-events-none" />
                 <div className="flex justify-between items-center flex-row-reverse relative z-10">
                   <div className="flex items-center gap-5 flex-row-reverse">
-                    <div className="size-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 font-black text-xl border border-indigo-500/20 shadow-inner">{m.userName?.charAt(0).toUpperCase()}</div>
+                    <div className="size-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 font-black text-xl border border-indigo-500/20 shadow-inner">{(m.userName || "?").charAt(0).toUpperCase()}</div>
                     <div className="text-right">
                       <p className="font-bold text-xl text-white">@{m.userName}</p>
                       <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{new Date(m.timestamp).toLocaleString()}</p>
@@ -241,41 +245,44 @@ export function AdminPanel() {
 
         <TabsContent value="media" className="flex-1 outline-none space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {videos.filter(v => v.status === 'pending_review').map((v) => (
-              <Card key={v.id} className="glass border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col shadow-2xl">
+            {videos.map((v) => (
+              <Card key={v.id} className={cn("glass border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col shadow-2xl transition-all", v.status === 'pending_review' ? "ring-2 ring-amber-500/50" : "opacity-80 hover:opacity-100")}>
                 <div className="relative aspect-video">
-                  <img src={v.thumbnail} className="size-full object-cover opacity-60" alt={v.title} />
+                  <img src={v.thumbnail} className="size-full object-cover" alt={v.title} />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                     <Play className="text-white size-12" />
                   </div>
-                  <Badge className="absolute top-4 left-4 bg-amber-500/80 backdrop-blur-md border-white/10 uppercase text-[8px] font-bold">Needs Review</Badge>
+                  {v.status === 'pending_review' && (
+                    <Badge className="absolute top-4 left-4 bg-amber-500/80 backdrop-blur-md border-white/10 uppercase text-[8px] font-bold">Needs Review</Badge>
+                  )}
+                  {v.status === 'published' && (
+                    <Badge className="absolute top-4 left-4 bg-green-500/80 backdrop-blur-md border-white/10 uppercase text-[8px] font-bold">Published</Badge>
+                  )}
                 </div>
                 <CardContent className="p-8 flex-1 flex flex-col">
                   <h3 dir="auto" className="font-bold text-xl text-white mb-2 text-right">{v.title}</h3>
                   <p className="text-xs text-muted-foreground text-right mb-6">المؤلف: @{v.author}</p>
                   
-                  <Textarea 
-                    dir="auto"
-                    placeholder="ملاحظات المراجعة..." 
-                    className="bg-white/5 border-white/10 rounded-xl mb-6 text-right text-xs min-h-[80px]"
-                    value={videoFeedback[v.id] || ""}
-                    onChange={(e) => setVideoFeedback({...videoFeedback, [v.id]: e.target.value})}
-                  />
-
-                  <div className="mt-auto flex gap-3 flex-row-reverse">
-                    <Button className="flex-1 bg-green-600 hover:bg-green-500 rounded-xl font-bold h-11" onClick={() => handleVideoAction(v.id, 'published')}>قبول</Button>
-                    <Button variant="ghost" className="flex-1 text-red-400 hover:bg-red-500/10 rounded-xl font-bold h-11" onClick={() => handleVideoAction(v.id, 'rejected')}>رفض</Button>
-                  </div>
+                  {v.status === 'pending_review' && (
+                    <>
+                      <Textarea 
+                        dir="auto"
+                        placeholder="ملاحظات المراجعة..." 
+                        className="bg-white/5 border-white/10 rounded-xl mb-6 text-right text-xs min-h-[80px]"
+                        value={videoFeedback[v.id] || ""}
+                        onChange={(e) => setVideoFeedback({...videoFeedback, [v.id]: e.target.value})}
+                      />
+                      <div className="mt-auto flex gap-3 flex-row-reverse">
+                        <Button className="flex-1 bg-green-600 hover:bg-green-500 rounded-xl font-bold h-11" onClick={() => handleVideoAction(v.id, 'published')}>قبول</Button>
+                        <Button variant="ghost" className="flex-1 text-red-400 hover:bg-red-500/10 rounded-xl font-bold h-11" onClick={() => handleVideoAction(v.id, 'rejected')}>رفض</Button>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             ))}
           </div>
-          {videos.filter(v => v.status === 'pending_review').length === 0 && (
-            <div className="text-center py-32 glass border-dashed border-2 border-white/5 rounded-[3rem] opacity-40">
-              <FileVideo className="size-16 mx-auto mb-4" />
-              <p className="text-xl">لا توجد بثوث بانتظار المراجعة.</p>
-            </div>
-          )}
+          {videos.length === 0 && renderEmptyState(FileVideo, "لا توجد بثوث مسجلة في النظام.")}
         </TabsContent>
 
         <TabsContent value="market" className="flex-1 outline-none">
@@ -285,37 +292,39 @@ export function AdminPanel() {
               <Badge className="bg-indigo-500/20 text-indigo-400 px-6 py-1.5 rounded-full font-bold">{offers.length} عروض نشطة</Badge>
             </div>
             <ScrollArea className="h-[650px]">
-              <div className="divide-y divide-white/5">
-                {offers.map((offer) => (
-                  <div key={offer.id} className="p-8 flex items-center justify-between hover:bg-white/5 transition-all flex-row-reverse group">
-                    <div className="text-right flex items-center gap-6 flex-row-reverse">
-                      <div className="size-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner group-hover:scale-110 transition-transform">
-                        {offer.type === 'price' ? <DollarSign className="size-7" /> : <Repeat className="size-7" />}
+              {offers.length === 0 ? renderEmptyState(Repeat, "لا توجد عروض أو مفاوضات حالية.") : (
+                <div className="divide-y divide-white/5">
+                  {offers.map((offer) => (
+                    <div key={offer.id} className="p-8 flex items-center justify-between hover:bg-white/5 transition-all flex-row-reverse group">
+                      <div className="text-right flex items-center gap-6 flex-row-reverse">
+                        <div className="size-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner group-hover:scale-110 transition-transform">
+                          {offer.type === 'price' ? <DollarSign className="size-7" /> : <Repeat className="size-7" />}
+                        </div>
+                        <div>
+                          <p className="font-bold text-xl text-white">{offer.itemTitle}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            <span className="text-indigo-400 font-bold">@{offer.buyerName}</span> 
+                            <ArrowUpRight className="inline size-3 mx-2 opacity-40" /> 
+                            @{offer.sellerId.substring(0,8)}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-xl text-white">{offer.itemTitle}</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          <span className="text-indigo-400 font-bold">@{offer.buyerName}</span> 
-                          <ArrowUpRight className="inline size-3 mx-2 opacity-40" /> 
-                          @{offer.sellerId.substring(0,8)}
-                        </p>
+                      <div className="flex items-center gap-10">
+                        <div className="text-center px-6 py-3 bg-black/40 rounded-2xl border border-white/5 shadow-inner">
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Value Protocol</p>
+                          <p className="text-lg font-black text-indigo-400">{offer.type === 'price' ? `${offer.value?.toLocaleString()} Credits` : 'Neural Swap'}</p>
+                        </div>
+                        <Badge variant="outline" className={cn("text-[10px] h-8 px-5 rounded-xl uppercase font-black tracking-widest", 
+                          offer.status === 'pending' ? "text-amber-400 border-amber-500/20 bg-amber-500/5" : 
+                          offer.status === 'accepted' ? "text-green-400 border-green-500/20 bg-green-500/5" : 
+                          "text-red-400 border-red-500/20 bg-red-500/5")}>
+                          {offer.status}
+                        </Badge>
                       </div>
                     </div>
-                    <div className="flex items-center gap-10">
-                      <div className="text-center px-6 py-3 bg-black/40 rounded-2xl border border-white/5 shadow-inner">
-                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Value Protocol</p>
-                        <p className="text-lg font-black text-indigo-400">{offer.type === 'price' ? `${offer.value?.toLocaleString()} Credits` : 'Neural Swap'}</p>
-                      </div>
-                      <Badge variant="outline" className={cn("text-[10px] h-8 px-5 rounded-xl uppercase font-black tracking-widest", 
-                        offer.status === 'pending' ? "text-amber-400 border-amber-500/20 bg-amber-500/5" : 
-                        offer.status === 'accepted' ? "text-green-400 border-green-500/20 bg-green-500/5" : 
-                        "text-red-400 border-red-500/20 bg-red-500/5")}>
-                        {offer.status}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </ScrollArea>
           </Card>
         </TabsContent>
@@ -327,25 +336,27 @@ export function AdminPanel() {
               <Badge className="bg-emerald-500/20 text-emerald-400 px-6 py-1.5 rounded-full font-bold">{allTransactions.length} حركات موثقة</Badge>
             </div>
             <ScrollArea className="h-[650px]">
-              <div className="divide-y divide-white/5">
-                {allTransactions.map((tx) => (
-                  <div key={tx.id} className="p-8 flex items-center justify-between hover:bg-white/5 transition-all flex-row-reverse">
-                    <div className="text-right">
-                      <p className="font-bold text-white text-lg">{tx.description}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 flex items-center gap-2 justify-end">
-                        <ClockIcon className="size-3" />
-                        {new Date(tx.timestamp).toLocaleString()}
-                      </p>
+              {allTransactions.length === 0 ? renderEmptyState(Wallet, "لم يتم رصد أي حركات مالية في النظام بعد.") : (
+                <div className="divide-y divide-white/5">
+                  {allTransactions.map((tx) => (
+                    <div key={tx.id} className="p-8 flex items-center justify-between hover:bg-white/5 transition-all flex-row-reverse">
+                      <div className="text-right">
+                        <p className="font-bold text-white text-lg">{tx.description}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 flex items-center gap-2 justify-end">
+                          <Clock className="size-3" />
+                          {new Date(tx.timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <p className={cn("font-black text-2xl tracking-tighter", tx.amount > 0 ? "text-green-400" : "text-red-400")}>
+                          {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
+                        </p>
+                        <Badge className="bg-white/5 border border-white/10 text-[9px] h-6 px-3 uppercase font-bold">{tx.type.replace('_', ' ')}</Badge>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-6">
-                      <p className={cn("font-black text-2xl tracking-tighter", tx.amount > 0 ? "text-green-400" : "text-red-400")}>
-                        {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
-                      </p>
-                      <Badge className="bg-white/5 border border-white/10 text-[9px] h-6 px-3 uppercase font-bold">{tx.type.replace('_', ' ')}</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </ScrollArea>
           </Card>
         </TabsContent>
@@ -380,52 +391,56 @@ export function AdminPanel() {
         </TabsContent>
 
         <TabsContent value="knowledge" className="flex-1 outline-none">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {subjects.map((s) => (
-              <Card key={s.id} className="p-10 glass border-white/5 rounded-[3rem] text-right space-y-6 hover:border-indigo-500/30 transition-all group relative overflow-hidden shadow-2xl">
-                <div className="absolute top-0 right-0 size-32 bg-indigo-500/5 blur-3xl -mr-16 -mt-16 group-hover:bg-indigo-500/10 transition-all" />
-                <div className="flex justify-between flex-row-reverse relative z-10">
-                  <div className="size-16 rounded-[1.5rem] bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/10 shadow-inner"><BookOpen className="size-8" /></div>
-                  <Button variant="ghost" size="icon" className="size-12 text-red-400/40 hover:text-red-400 hover:bg-red-500/10 rounded-2xl transition-all" onClick={async () => { if(confirm("حذف عقدة المعرفة بالكامل؟")) { await deleteSubject(s.id); loadData(); } }}>
-                    <Trash2 className="size-6" />
-                  </Button>
-                </div>
-                <div className="relative z-10">
-                  <h4 className="font-black text-2xl text-white mb-2">{s.title}</h4>
-                  <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">{s.description}</p>
-                </div>
-                <div className="pt-6 border-t border-white/5 flex items-center justify-between flex-row-reverse relative z-10">
-                  <Badge variant="outline" className="border-indigo-500/20 text-indigo-400 uppercase text-[8px] font-bold">Subject Node</Badge>
-                  <span className="text-[10px] text-muted-foreground font-mono">ID: {s.id.substring(0,8)}</span>
-                </div>
-              </Card>
-            ))}
-          </div>
+          {subjects.length === 0 ? renderEmptyState(BookOpen, "لم يتم العثور على أي عقد معرفية في النظام.") : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {subjects.map((s) => (
+                <Card key={s.id} className="p-10 glass border-white/5 rounded-[3rem] text-right space-y-6 hover:border-indigo-500/30 transition-all group relative overflow-hidden shadow-2xl">
+                  <div className="absolute top-0 right-0 size-32 bg-indigo-500/5 blur-3xl -mr-16 -mt-16 group-hover:bg-indigo-500/10 transition-all" />
+                  <div className="flex justify-between flex-row-reverse relative z-10">
+                    <div className="size-16 rounded-[1.5rem] bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/10 shadow-inner"><BookOpen className="size-8" /></div>
+                    <Button variant="ghost" size="icon" className="size-12 text-red-400/40 hover:text-red-400 hover:bg-red-500/10 rounded-2xl transition-all" onClick={async () => { if(confirm("حذف عقدة المعرفة بالكامل؟")) { await deleteSubject(s.id); loadData(); } }}>
+                      <Trash2 className="size-6" />
+                    </Button>
+                  </div>
+                  <div className="relative z-10">
+                    <h4 className="font-black text-2xl text-white mb-2">{s.title}</h4>
+                    <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">{s.description}</p>
+                  </div>
+                  <div className="pt-6 border-t border-white/5 flex items-center justify-between flex-row-reverse relative z-10">
+                    <Badge variant="outline" className="border-indigo-500/20 text-indigo-400 uppercase text-[8px] font-bold">
+                      {s.allowedUserIds ? "Restricted" : "Public"}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground font-mono">ID: {s.id.substring(0,8)}</span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="users" className="flex-1 outline-none">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {users.map((u) => (
-              <Card key={u.id} className="p-8 glass border-white/5 rounded-[2.5rem] flex items-center justify-between flex-row-reverse group hover:border-indigo-500/30 transition-all shadow-xl">
-                <div className="flex items-center gap-5 flex-row-reverse">
-                  <div className="size-16 rounded-[1.5rem] bg-indigo-500/10 flex items-center justify-center text-2xl font-black text-indigo-400 border border-indigo-500/10 shadow-inner group-hover:scale-110 transition-transform">{u.name?.charAt(0).toUpperCase()}</div>
-                  <div className="text-right">
-                    <p className="font-black text-xl text-white">{u.name}</p>
-                    <p className="text-xs text-muted-foreground font-mono">@{u.username}</p>
+          {users.length === 0 ? renderEmptyState(Users, "لا يوجد مستخدمون مسجلون حالياً.") : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {users.map((u) => (
+                <Card key={u.id} className="p-8 glass border-white/5 rounded-[2.5rem] flex items-center justify-between flex-row-reverse group hover:border-indigo-500/30 transition-all shadow-xl">
+                  <div className="flex items-center gap-5 flex-row-reverse">
+                    <div className="size-16 rounded-[1.5rem] bg-indigo-500/10 flex items-center justify-center text-2xl font-black text-indigo-400 border border-indigo-500/10 shadow-inner group-hover:scale-110 transition-transform">
+                      {(u.name || u.username || "?").charAt(0).toUpperCase()}
+                    </div>
+                    <div className="text-right">
+                      <p className="font-black text-xl text-white">{u.name || u.username}</p>
+                      <p className="text-xs text-muted-foreground font-mono">@{u.username}</p>
+                    </div>
                   </div>
-                </div>
-                <Badge variant="outline" className={cn("capitalize h-8 px-4 rounded-xl border-indigo-500/20 font-bold", u.role === 'admin' ? "text-indigo-400 bg-indigo-500/10" : "text-slate-400")}>
-                  {u.role}
-                </Badge>
-              </Card>
-            ))}
-          </div>
+                  <Badge variant="outline" className={cn("capitalize h-8 px-4 rounded-xl border-indigo-500/20 font-bold", u.role === 'admin' ? "text-indigo-400 bg-indigo-500/10" : "text-slate-400")}>
+                    {u.role}
+                  </Badge>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
   );
 }
-
-const ClockIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-);
