@@ -66,12 +66,12 @@ const MessageItem = memo(({
               "p-4 transition-all duration-300 shadow-lg relative message-bubble-user min-w-[120px]",
               highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500"
             )}>
-              {/* النص الأصلي */}
+              {/* النص الأصلي للمستخدم */}
               <p dir="auto" className="text-sm leading-relaxed whitespace-pre-wrap text-right text-white">
                 {msg.originalText || msg.text}
               </p>
               
-              {/* سهم التحسين العصبي */}
+              {/* سهم التحسين العصبي (يظهر فقط إذا كان هناك تحسين) */}
               {hasOptimization && (
                 <div className="mt-2 pt-2 border-t border-white/10 flex flex-col items-end">
                   <button 
@@ -104,7 +104,7 @@ const MessageItem = memo(({
         </div>
       </div>
 
-      {/* 2. فقاعة الـ AI (تظهر فقط بعد الموافقة جهة اليسار) */}
+      {/* 2. فقاعة الـ AI (تظهر فقط بعد الرد جهة اليسار) */}
       {isReplied ? (
         <div className="flex items-start gap-3 justify-start animate-in slide-in-from-left-4 duration-500">
           <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
@@ -354,23 +354,40 @@ export function AIChat({ highlightId }: AIChatProps) {
         )}
 
         <div className="p-4 bg-white/5 border-t border-white/5">
-          <div className="relative">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-              placeholder="اكتب رسالتك هنا..."
-              disabled={isAITyping}
-              dir="auto"
-              className="w-full h-14 bg-white/5 border-white/10 rounded-2xl pl-12 pr-28 text-sm text-white text-right"
-            />
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+          <div className="relative flex items-center gap-3">
+            {/* أزرار الوسائط جهة اليسار */}
+            <div className="flex items-center gap-2">
               <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileSelect} />
-              <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="icon" className="text-muted-foreground hover:text-indigo-400"><Paperclip className="size-4" /></Button>
-              <Button onClick={handleSend} disabled={isAITyping || (!input.trim() && pendingAttachments.length === 0)} size="icon" className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
-                {isSending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="icon" className="text-muted-foreground hover:text-indigo-400 size-12 rounded-2xl bg-white/5 border border-white/5 transition-all">
+                <Paperclip className="size-5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-indigo-400 size-12 rounded-2xl bg-white/5 border border-white/5 transition-all">
+                <Mic className="size-5" />
               </Button>
             </div>
+            
+            {/* مربع النص في المنتصف */}
+            <div className="relative flex-1">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+                placeholder="اكتب رسالتك هنا..."
+                disabled={isAITyping}
+                dir="auto"
+                className="w-full h-14 bg-white/5 border-white/10 rounded-2xl px-6 text-sm text-white text-right focus-visible:ring-primary focus-visible:bg-white/10 transition-all"
+              />
+            </div>
+
+            {/* زر الإرسال جهة اليمين */}
+            <Button 
+              onClick={handleSend} 
+              disabled={isAITyping || (!input.trim() && pendingAttachments.length === 0)} 
+              size="icon" 
+              className="size-14 bg-primary hover:bg-primary/90 rounded-2xl shadow-lg shadow-primary/20 shrink-0 transition-transform active:scale-95"
+            >
+              {isSending ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5" />}
+            </Button>
           </div>
         </div>
       </div>
