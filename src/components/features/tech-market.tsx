@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -74,6 +75,16 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
     versionStatus: "final" as AppVersionStatus
   });
 
+  // مزامنة الفئة عند فتح المودال لتبسيط التجربة
+  const handleOpenAddModal = () => {
+    setNewListing(prev => ({
+      ...prev,
+      mainCategory: mainCat !== 'all' ? mainCat : 'digital_assets',
+      subCategory: SUB_CATEGORIES.find(s => s.parent === (mainCat !== 'all' ? mainCat : 'digital_assets'))?.id || "ai_models"
+    }));
+    setIsAddModalOpen(true);
+  };
+
   const availableSubs = useMemo(() => 
     SUB_CATEGORIES.filter(s => s.parent === newListing.mainCategory),
   [newListing.mainCategory]);
@@ -110,7 +121,6 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
     try {
       let downloadUrl = newListing.downloadUrl;
 
-      // إذا كان هناك ملف بناء مرفوع
       if (newListing.mainCategory === 'software' && newListing.buildFile) {
         toast({ title: "Uploading Build", description: "Transmitting binary to Nexus Vault..." });
         downloadUrl = await uploadLearningFile(newListing.buildFile, (pct) => setUploadProgress(pct));
@@ -123,8 +133,13 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
       });
 
       setIsAddModalOpen(false);
+      
+      // التبديل التلقائي لتبويب "أصولي" ليرى المستخدم ما رفعه
+      setActiveView('mine');
       loadData(false);
+      
       toast({ title: "Listing Authorized", description: "Your asset is now live on the network." });
+      
       setNewListing({
         title: "",
         description: "",
@@ -203,11 +218,9 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
               </Tabs>
               
               <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-primary rounded-xl px-6 h-12 shadow-lg shadow-primary/20 flex-1 md:flex-none font-bold">
-                    <Plus className="mr-2 size-5" /> إضافة منتج
-                  </Button>
-                </DialogTrigger>
+                <Button onClick={handleOpenAddModal} className="bg-primary rounded-xl px-6 h-12 shadow-lg shadow-primary/20 flex-1 md:flex-none font-bold">
+                  <Plus className="mr-2 size-5" /> إضافة منتج
+                </Button>
                 <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 sm:max-w-[650px] overflow-y-auto max-h-[90vh]">
                   <DialogHeader>
                     <DialogTitle className="text-2xl font-bold text-right text-white">إطلاق عقدة منتج جديد</DialogTitle>
@@ -380,7 +393,7 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
               <EmptyState 
                 icon={Search} 
                 title="نتائج البحث فارغة" 
-                description="لم يتم العثور على أصول تطابق معايير البحث الحالية." 
+                description={activeView === 'buy' ? "لم يتم العثور على أصول للبيع تناسب معاييرك." : "لم تقم برفع أي أصول في هذا القسم بعد."} 
                 className="py-24"
               />
             ) : (
