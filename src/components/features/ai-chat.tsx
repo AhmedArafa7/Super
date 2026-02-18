@@ -77,6 +77,7 @@ const MessageItem = memo(({
 
   return (
     <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
+      {/* رسالة المستخدم */}
       <div className="flex items-start gap-3 justify-end group relative">
         <div className="absolute right-full top-0 mr-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
           <DropdownMenu>
@@ -101,6 +102,7 @@ const MessageItem = memo(({
             <p dir="auto" className="text-sm leading-relaxed whitespace-pre-wrap text-right">{msg.originalText || msg.text}</p>
           </div>
           
+          {/* [UI_TRANSPARENCY]: بروتوكول الشفافية - عرض التحسين العصبي */}
           {msg.optimizedText && msg.optimizedText !== msg.originalText && (
             <div className="w-full mt-1 flex flex-col items-end gap-2">
               <button 
@@ -113,7 +115,7 @@ const MessageItem = memo(({
               
               {showOptimized && (
                 <div className="w-full animate-in fade-in slide-in-from-top-1 duration-300">
-                  <div className="h-px bg-white/40 w-full mb-2" />
+                  <div className="h-px bg-white/40 w-full mb-2" /> {/* الخط الفاصل الأبيض */}
                   <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-right backdrop-blur-sm">
                     <p className="text-[9px] text-indigo-400 font-black uppercase mb-1 tracking-[0.2em]">النص المحسن عصبيًا</p>
                     <p dir="auto" className="text-xs text-indigo-100/70 italic leading-relaxed">{msg.optimizedText}</p>
@@ -138,6 +140,7 @@ const MessageItem = memo(({
         </div>
       </div>
 
+      {/* رد الـ AI */}
       {msg.status === 'replied' && (
         <div className="flex items-start gap-3 justify-start animate-in slide-in-from-left-4 duration-500">
           <div className="size-10 rounded-2xl glass flex items-center justify-center mt-1 shrink-0 border border-primary/20 shadow-inner">
@@ -154,7 +157,7 @@ const MessageItem = memo(({
                 </Button>
                 <div className="flex items-center gap-2 opacity-40 text-[9px] font-mono tracking-tighter">
                   <Zap className="size-3 text-indigo-400" />
-                  <span>{msg.engine}</span>
+                  <span>{msg.engine}</span> {/* يعرض الاسم المبسط للمحرك */}
                 </div>
               </div>
               
@@ -422,7 +425,7 @@ export function AIChat() {
                 editingMsg ? "bg-indigo-600 shadow-indigo-600/20" : "bg-primary shadow-primary/20"
               )}
             >
-              {isAITyping ? <Loader2 className="animate-spin" /> : editingMsg ? <RefreshCcw className="size-6" /> : <Wand2 className="size-6" />}
+              {isAITyping ? <Loader2 className="animate-spin" /> : editingMsg ? <RefreshCcwIcon className="size-6" /> : <Wand2 className="size-6" />}
             </Button>
           </div>
         </div>
@@ -431,6 +434,6 @@ export function AIChat() {
   );
 }
 
-const RefreshCcw = ({ className }: { className?: string }) => (
+const RefreshCcwIcon = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
 );

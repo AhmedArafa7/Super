@@ -22,6 +22,16 @@ import Image from "next/image";
 
 const VAULT_FOLDER_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
+/**
+ * دالة مساعدة لاستخراج ID الفيديو من روابط يوتيوب.
+ */
+const getYoutubeId = (url?: string) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
 export function StreamHub() {
   const { user } = useAuth();
   const { toast } = useToast();
