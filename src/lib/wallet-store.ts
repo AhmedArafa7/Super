@@ -177,9 +177,12 @@ export const useWalletStore = create<WalletState>()(
 
 export const getAllTransactionsAdmin = async (): Promise<Transaction[]> => {
   const { firestore } = initializeFirebase();
-  const q = query(collectionGroup(firestore, 'transactions'), orderBy('timestamp', 'desc'));
+  // إزالة orderBy لتجنب خطأ الفهرس المفقود في collectionGroup
+  const q = query(collectionGroup(firestore, 'transactions'));
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
+  const txs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
+  // الترتيب في جانب العميل لضمان عمل الواجهة فوراً
+  return txs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
 export const selectTotalPendingDebt = (state: { pendingTransactions: PendingTransaction[] }) => 

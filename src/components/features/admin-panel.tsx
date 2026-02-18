@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -8,7 +7,7 @@ import {
   Video, BarChart3, Users, Zap, XCircle, MessageCircle, 
   Eye, ShieldCheck, Activity, BookOpen, Trash2, Database,
   Wallet, Repeat, Bell, AlertTriangle, Radio, History, Tag, CreditCard,
-  FileVideo, ArrowUpRight, DollarSign
+  FileVideo, ArrowUpRight, DollarSign, Play
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
