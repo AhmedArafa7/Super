@@ -2,7 +2,8 @@
 'use client';
 
 import { create } from 'zustand';
-import { supabase } from '@/lib/supabaseClient';
+import { initializeFirebase } from '@/firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { toast } from '@/hooks/use-toast';
 
 export type UploadStatus = 'preparing' | 'uploading' | 'completed' | 'failed';
@@ -55,57 +56,60 @@ export const useUploadStore = create<UploadState>((set, get) => ({
     if (!task) return;
 
     set(state => ({
-      tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'uploading', progress: 10 } : t)
+      tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'uploading', progress: 5 } : t)
     }));
 
     try {
-      const bucketName = 'nexus-vault';
+      const { storage } = initializeFirebase();
       const filePath = `${task.type}/${Date.now()}-${task.file.name}`;
+      const storageRef = ref(storage, filePath);
+      
+      const uploadTask = uploadBytesResumable(storageRef, task.file);
 
-      // ملاحظة: الرفع في Supabase عبر JS SDK لا يدعم Progress natively بشكل رائع مثل Firebase
-      // لذا سنقوم بمحاكاتها أو استخدام الـ Storage API بشكل مباشر لاحقاً
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, task.file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      uploadTask.on('state_changed', 
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          set(state => ({
+            tasks: state.tasks.map(t => t.id === id ? { ...t, progress } : t)
+          }));
+        }, 
+        (error) => {
+          console.error("[Neural Link Drop]:", error);
+          set(state => ({
+            tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'failed', error: error.message } : t)
+          }));
+          toast({ 
+            variant: "destructive", 
+            title: "فشل الإرسال العصبي", 
+            description: "حدث اضطراب في الاتصال بحاوية التخزين."
+          });
+        }, 
+        async () => {
+          const publicUrl = await getDownloadURL(uploadTask.snapshot.ref);
+          
+          set(state => ({
+            tasks: state.tasks.map(t => t.id === id ? { ...t, progress: 100, status: 'completed' } : t)
+          }));
 
-      if (error) throw error;
+          if (task.type === 'video') {
+            const { addVideo } = await import('./video-store');
+            await addVideo({
+              ...task.metadata,
+              thumbnail: publicUrl,
+              source: 'local'
+            });
+          }
 
-      set(state => ({
-        tasks: state.tasks.map(t => t.id === id ? { ...t, progress: 100, status: 'completed' } : t)
-      }));
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
-
-      if (task.type === 'video') {
-        const { addVideo } = await import('./video-store');
-        await addVideo({
-          ...task.metadata,
-          thumbnail: publicUrl,
-          source: 'local'
-        });
-      }
-
-      toast({ title: "مزامنة ناجحة", description: `تم رفع "${task.fileName}" عبر العقدة الخارجية.` });
-      setTimeout(() => get().removeTask(id), 3000);
+          toast({ title: "مزامنة ناجحة", description: `تم رفع "${task.fileName}" إلى النخاع.` });
+          setTimeout(() => get().removeTask(id), 3000);
+        }
+      );
 
     } catch (err: any) {
-      console.error("[External Sync Error]:", err);
-      const errorMessage = err.message || "فشل الاتصال بالعقدة الخارجية.";
-      
+      console.error("[Critical Storage Failure]:", err);
       set(state => ({
-        tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'failed', error: errorMessage } : t)
+        tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'failed', error: err.message } : t)
       }));
-      
-      toast({ 
-        variant: "destructive", 
-        title: "فشل الرفع الخارجي", 
-        description: "تأكد من إعدادات URL و Key في العقدة الخارجية."
-      });
     }
   }
 }));

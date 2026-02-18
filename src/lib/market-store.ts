@@ -1,8 +1,9 @@
+
 'use client';
 
 import { initializeFirebase } from '@/firebase';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc, where, collectionGroup } from 'firebase/firestore';
-import { supabase } from './supabaseClient';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 export type MarketItemStatus = 'active' | 'sold' | 'reserved' | 'archived';
 export type AppVersionStatus = 'final' | 'beta';
@@ -135,26 +136,28 @@ export const updateMarketItem = async (itemId: string, updates: Partial<MarketIt
 };
 
 export const uploadMarketImage = async (file: File, onProgress?: (pct: number) => void): Promise<string> => {
-  const bucketName = 'nexus-vault';
+  const { storage } = initializeFirebase();
   const filePath = `market/images/${Date.now()}-${file.name}`;
+  const storageRef = ref(storage, filePath);
   
-  try {
-    const { error } = await supabase.storage
-      .from(bucketName)
-      .upload(filePath, file);
-
-    if (error) throw error;
-
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(filePath);
-
-    onProgress?.(100);
-    return publicUrl;
-  } catch (err) {
-    console.error("Market Image Upload Error:", err);
-    throw err;
-  }
+  return new Promise((resolve, reject) => {
+    const uploadTask = uploadBytesResumable(storageRef, file);
+    
+    uploadTask.on('state_changed', 
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        onProgress?.(progress);
+      }, 
+      (error) => {
+        console.error("Firebase Storage Upload Error:", error);
+        reject(error);
+      }, 
+      async () => {
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        resolve(downloadURL);
+      }
+    );
+  });
 };
 
 export const addMarketOffer = async (productId: string, sellerId: string, itemTitle: string, offer: any) => {

@@ -1,13 +1,14 @@
 
-import { createClient } from '@supabase/supabase-js';
-
 /**
- * @fileOverview المحرك العصبي للتخزين الخارجي.
- * نستخدم Supabase كبديل مجاني لـ Firebase Storage لتجنب قيود المناطق الجغرافية.
+ * @fileOverview [DEPRECATED] - المحرك العصبي للتخزين الخارجي القديم.
+ * تم إيقاف استخدام Supabase والتحول إلى Firebase Storage لضمان التوافق مع بروتوكول نكسوس الأصلي.
  */
 
-// ملاحظة: هذه القيم تجريبية، يجب على المستخدم استبدالها بقيمه الخاصة من لوحة تحكم Supabase
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-project-id.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = {
+  storage: {
+    from: () => ({
+      upload: () => Promise.reject(new Error("Supabase is deprecated. Use Firebase Storage.")),
+      getPublicUrl: () => ({ data: { publicUrl: "" } })
+    })
+  }
+} as any;
