@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
@@ -40,7 +41,7 @@ export function HisnAlMuslim() {
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // تصفية الحالات عند تغيير التبويب لضمان عدم تداخل الواجهات
+  // تصفية الحالات عند تغيير التبويب لضمان عدم تداخل الواجهات وظهور المحتوى
   useEffect(() => {
     setSelectedCategory(null);
     setReadingSurah(null);
@@ -152,7 +153,7 @@ export function HisnAlMuslim() {
                   </Card>
                 </motion.div>
               ) : (
-                <motion.div key="list-mode" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                <motion.div key="list-mode" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                   <div className="relative max-w-3xl mx-auto mb-12">
                     <Search className="absolute right-6 top-1/2 -translate-y-1/2 size-6 text-muted-foreground" />
                     <Input dir="auto" placeholder="ابحث عن سورة بالاسم..." className="w-full h-16 bg-white/5 border-white/10 rounded-[2rem] pr-16 pl-8 text-xl text-right shadow-2xl" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -220,7 +221,7 @@ export function HisnAlMuslim() {
                   </div>
                 </motion.div>
               ) : (
-                <motion.div key="category-list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <motion.div key="category-list" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <div className="relative max-w-3xl mx-auto mb-12">
                     <Search className="absolute right-6 top-1/2 -translate-y-1/2 size-6 text-muted-foreground" />
                     <Input dir="auto" placeholder="البحث في الأذكار..." className="w-full h-16 bg-white/5 border-white/10 rounded-[2rem] pr-16 pl-8 text-xl text-right shadow-2xl" value={search} onChange={(e) => setSearch(e.target.value)} />

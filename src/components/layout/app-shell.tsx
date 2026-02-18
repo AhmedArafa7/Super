@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -237,7 +238,7 @@ export function AppShell() {
               </div>
               <div className="flex-1 min-w-0 text-right">
                 <p dir="auto" className="text-sm font-bold truncate text-white">{user?.name}</p>
-                <p className="text-[10px] text-muted-foreground truncate capitalize">{user?.role} Node</p>
+                <p className="text-[10px] text-muted-foreground truncate capitalize">Nexus Node</p>
               </div>
               <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-white" onClick={logout}>
                 <LogOut className="size-4" />

@@ -18,10 +18,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getStoredMessages, approveMessage, rejectMessage, WizardMessage } from "@/lib/chat-store";
-import { getStoredUsers, User, addUser, UserRole } from "@/lib/auth-store";
+import { getStoredUsers, User, addUser, UserRole, updateUserProfile } from "@/lib/auth-store";
 import { getStoredVideos, updateVideoStatus, Video as VideoType } from "@/lib/video-store";
 import { getSubjects, deleteSubject, Subject } from "@/lib/learning-store";
 import { getAllOffersAdmin, MarketOffer } from "@/lib/market-store";
@@ -86,7 +86,6 @@ export function AdminPanel() {
     return () => clearInterval(interval);
   }, []);
 
-  // [DELETION_PREVENTION_PROTOCOL]: ميزة إضافة المستخدمين هي صلاحية حصرية للأدمن. لا تمسح هذا الكود.
   const handleCreateUser = async () => {
     if (!newUser.name || !newUser.username) return;
     setIsCreatingUser(true);
@@ -105,6 +104,16 @@ export function AdminPanel() {
       toast({ variant: "destructive", title: "Registration Failed", description: "Could not register node in Firestore." });
     } finally {
       setIsCreatingUser(false);
+    }
+  };
+
+  const handleUpdateUserRole = async (userId: string, role: UserRole) => {
+    try {
+      await updateUserProfile(userId, { role });
+      toast({ title: "Role Re-calibrated", description: "Node authorization levels updated." });
+      loadData();
+    } catch (err) {
+      toast({ variant: "destructive", title: "Update Failed", description: "Could not sync role change." });
     }
   };
 
@@ -493,19 +502,31 @@ export function AdminPanel() {
           {users.length === 0 ? renderEmptyState(Users, "لا يوجد مستخدمون مسجلون حالياً.") : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {users.map((u) => (
-                <Card key={u.id} className="p-8 glass border-white/5 rounded-[2.5rem] flex items-center justify-between flex-row-reverse group hover:border-indigo-500/30 transition-all shadow-xl">
-                  <div className="flex items-center gap-5 flex-row-reverse">
-                    <div className="size-16 rounded-[1.5rem] bg-indigo-500/10 flex items-center justify-center text-2xl font-black text-indigo-400 border border-indigo-500/10 shadow-inner group-hover:scale-110 transition-transform">
-                      {(u.name || u.username || "?").charAt(0).toUpperCase()}
-                    </div>
-                    <div className="text-right">
-                      <p className="font-black text-xl text-white">{u.name || u.username}</p>
-                      <p className="text-xs text-muted-foreground font-mono">@{u.username}</p>
+                <Card key={u.id} className="p-8 glass border-white/5 rounded-[2.5rem] flex flex-col gap-6 group hover:border-indigo-500/30 transition-all shadow-xl">
+                  <div className="flex items-center justify-between flex-row-reverse">
+                    <div className="flex items-center gap-5 flex-row-reverse">
+                      <div className="size-16 rounded-[1.5rem] bg-indigo-500/10 flex items-center justify-center text-2xl font-black text-indigo-400 border border-indigo-500/10 shadow-inner group-hover:scale-110 transition-transform">
+                        {(u.name || u.username || "?").charAt(0).toUpperCase()}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-black text-xl text-white">{u.name || u.username}</p>
+                        <p className="text-xs text-muted-foreground font-mono">@{u.username}</p>
+                      </div>
                     </div>
                   </div>
-                  <Badge variant="outline" className={cn("capitalize h-8 px-4 rounded-xl border-indigo-500/20 font-bold", u.role === 'admin' ? "text-indigo-400 bg-indigo-500/10" : "text-slate-400")}>
-                    {u.role}
-                  </Badge>
+                  
+                  <div className="pt-4 border-t border-white/5 flex items-center justify-between flex-row-reverse">
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">صلاحية النخاع</Label>
+                    <Select defaultValue={u.role} onValueChange={(v: UserRole) => handleUpdateUserRole(u.id, v)}>
+                      <SelectTrigger className="h-9 w-32 bg-white/5 border-white/10 text-[10px] font-bold rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10 text-white">
+                        <SelectItem value="user">User Node</SelectItem>
+                        <SelectItem value="admin">System Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </Card>
               ))}
             </div>

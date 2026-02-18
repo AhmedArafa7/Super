@@ -1,20 +1,26 @@
 
 {
   "project": "NexusAI Ecosystem",
-  "last_sync": "2024-05-20T14:30:00Z",
+  "last_sync": "2024-05-20T16:00:00Z",
   "version": "4.6.0",
   "feature_history": [
+    {
+      "id": "FEAT-011",
+      "name": "Admin Registry: Role Management",
+      "status": "Active",
+      "description": "Admin can now re-classify any node (User/Admin) directly from the registry console."
+    },
+    {
+      "id": "FEAT-010",
+      "name": "Silent Classification Protocol",
+      "status": "Active",
+      "description": "User roles are hidden in the sidebar and dashboard, visible only to authorized admin nodes."
+    },
     {
       "id": "FEAT-009",
       "name": "Self-Registration Protocol",
       "status": "Active",
       "description": "Allows new users to create nodes and automatically receive starting credits."
-    },
-    {
-      "id": "FEAT-010",
-      "name": "Silent Classification",
-      "status": "Active",
-      "description": "User roles (user/admin) are hidden from everyone except the system admin."
     },
     {
       "id": "FEAT-001",
@@ -39,30 +45,6 @@
       "name": "Neural Admin Console",
       "status": "Active",
       "description": "Centralized management for Chat QA, Media Review, Registry, and Knowledge Hub."
-    },
-    {
-      "id": "FEAT-005",
-      "name": "Market Oversight (Audit)",
-      "status": "Restored",
-      "description": "Admin capability to monitor global market negotiations and offers."
-    },
-    {
-      "id": "FEAT-006",
-      "name": "Financial Pulsar",
-      "status": "Restored",
-      "description": "Global transaction monitoring for system credit liquidity oversight."
-    },
-    {
-      "id": "FEAT-007",
-      "name": "App Launcher & Sandbox",
-      "status": "Restored",
-      "description": "Secure iframe-based environment to run production-ready web apps within the ecosystem."
-    },
-    {
-      "id": "FEAT-008",
-      "name": "Global System Broadcast",
-      "status": "Restored",
-      "description": "Admin tool to send critical notifications to all nodes in the ecosystem."
     }
   ],
   "technical_protocols": {
