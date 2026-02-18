@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
@@ -22,12 +23,16 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
+/**
+ * @fileOverview [STABILITY_ANCHOR: FAITH_HUB_V2]
+ * واجهة عقدة الإيمان - تدعم تشغيل القرآن عبر API والمزامنة الفيزيائية المحلية.
+ */
+
 export function HisnAlMuslim() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("quran");
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<HisnCategory | null>(null);
-  const [readingSurah, setReadingSurah] = useState<QuranSurah | null>(null);
   const [fontSize, setFontSize] = useState(24);
   const [counts, setCounts] = useState<Record<number, number>>({});
   const [isDownloading, setIsDownloading] = useState<number | null>(null);
@@ -38,7 +43,7 @@ export function HisnAlMuslim() {
   const { surahs, currentSurah, isPlaying, isLoading, fetchSurahs, setCurrentSurah, setIsPlaying, downloadToLocal } = useQuranStore();
   const { cachedAssets, storageLimitMB, removeAsset, getTotalUsedSpace } = useGlobalStorage();
 
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (surahs.length === 0) fetchSurahs();
@@ -46,23 +51,39 @@ export function HisnAlMuslim() {
 
   useEffect(() => {
     setSelectedCategory(null);
-    setReadingSurah(null);
     setSearch("");
   }, [activeTab]);
 
-  // منطق التحكم الصارم في مشغل الصوت لضمان استجابة Pause/Play
+  // [STABILITY_ANCHOR: AUDIO_CONTROL_PROTOCOL]
+  // منطق التحكم الصارم في مشغل الصوت لضمان استجابة Pause/Play فوراً
   useEffect(() => {
-    if (audioRef.current) {
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.onended = () => setIsPlaying(false);
+    }
+
+    const audio = audioRef.current;
+
+    if (currentSurah) {
+      if (audio.src !== currentSurah.url) {
+        audio.src = currentSurah.url;
+      }
+      
       if (isPlaying) {
-        audioRef.current.play().catch((err) => {
-          console.error("Audio Play Error:", err);
+        audio.play().catch(e => {
+          console.error("Audio Node Error:", e);
           setIsPlaying(false);
         });
       } else {
-        audioRef.current.pause();
+        audio.pause();
       }
     }
-  }, [isPlaying, currentSurah?.id]);
+
+    return () => {
+      // إيقاف الصوت عند مغادرة المكون لضمان عدم التداخل
+      if (audio) audio.pause();
+    };
+  }, [isPlaying, currentSurah]);
 
   const handleTogglePlay = (s: QuranSurah) => {
     if (currentSurah?.id === s.id) {
@@ -77,7 +98,7 @@ export function HisnAlMuslim() {
     setIsDownloading(s.id);
     await downloadToLocal(s);
     setIsDownloading(null);
-    toast({ title: "مزامنة فيزيائية ناجحة", description: `سورة ${s.name} محفوظة الآن في ذاكرة الجهاز.` });
+    toast({ title: "مزامنة فيزيائية ناجحة", description: `سورة ${s.name} محفوظة الآن في ذاكرة العقدة المحلية.` });
   };
 
   const usedStorage = getTotalUsedSpace();
@@ -92,12 +113,12 @@ export function HisnAlMuslim() {
     setTasbihCount(prev => prev + 1);
     if ('vibrate' in navigator) navigator.vibrate(20);
     if ((tasbihCount + 1) % tasbihTarget === 0) {
-      toast({ title: "اكتملت الدورة", description: `لقد أتممت ${tasbihTarget} تسبيحة بنجاح.` });
+      toast({ title: "اكتملت الدورة العصبية", description: `لقد أتممت ${tasbihTarget} تسبيحة بنجاح.` });
     }
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto flex flex-col min-h-screen animate-in fade-in duration-700">
+    <div className="p-8 max-w-7xl mx-auto flex flex-col min-h-screen animate-in fade-in duration-700 font-sans">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 gap-6 flex-row-reverse">
         <div className="text-right">
           <Badge className="bg-primary/20 text-primary border-primary/30 mb-4 px-4 py-1 uppercase font-bold text-[10px] tracking-widest">Neural Faith Hub</Badge>
@@ -105,14 +126,14 @@ export function HisnAlMuslim() {
             عقدة الإيمان
             <Sparkles className="text-primary size-10" />
           </h2>
-          <p className="text-muted-foreground mt-2 text-xl max-w-2xl text-right">تواصل روحي عميق عبر تقنيات المزامنة والـ API في نظام نكسوس.</p>
+          <p className="text-muted-foreground mt-2 text-xl max-w-2xl text-right">تواصل روحي عميق عبر بروتوكولات المزامنة والـ API السيادية.</p>
         </div>
         
         <div className="glass border-white/10 p-6 rounded-[2.5rem] flex flex-col gap-4 min-w-[280px]">
           <div className="flex items-center justify-between flex-row-reverse">
             <div className="flex items-center gap-2 flex-row-reverse">
               <HardDrive className="size-4 text-indigo-400" />
-              <span className="text-[10px] uppercase font-bold text-white">الذاكرة العصبية المحلية</span>
+              <span className="text-[10px] uppercase font-bold text-white">الذاكرة الفيزيائية المحلية</span>
             </div>
             <span className="text-[10px] font-mono text-indigo-400">{usedStorage.toFixed(1)} / {storageLimitMB} MB</span>
           </div>
@@ -134,7 +155,7 @@ export function HisnAlMuslim() {
             <TabsContent key="quran" value="quran" className="space-y-8 focus-visible:ring-0">
               <div className="relative max-w-3xl mx-auto mb-12">
                 <Search className="absolute right-6 top-1/2 -translate-y-1/2 size-6 text-muted-foreground" />
-                <Input dir="auto" placeholder="ابحث عن سورة بالاسم (مزامنة API)..." className="w-full h-16 bg-white/5 border-white/10 rounded-[2rem] pr-16 pl-8 text-xl text-right shadow-2xl" value={search} onChange={(e) => setSearch(e.target.value)} />
+                <Input dir="auto" placeholder="ابحث عن سورة بالاسم (مزامنة عصبية)..." className="w-full h-16 bg-white/5 border-white/10 rounded-[2rem] pr-16 pl-8 text-xl text-right shadow-2xl" value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
 
               {isLoading ? (
@@ -143,16 +164,17 @@ export function HisnAlMuslim() {
                   <p className="text-muted-foreground animate-pulse font-bold text-right">جاري مزامنة السور من الـ API العالمي...</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
                   {filteredQuran.map((s) => {
                     const isCached = cachedAssets.some(a => a.id === `quran-${s.id}`);
+                    const isActive = currentSurah?.id === s.id;
                     return (
-                      <Card key={s.id} className="group glass border-white/5 rounded-[2.5rem] overflow-hidden transition-all duration-500 hover:border-primary/40">
+                      <Card key={s.id} className={cn("group glass border-white/5 rounded-[2.5rem] overflow-hidden transition-all duration-500 hover:border-primary/40", isActive && "ring-2 ring-primary/50 border-primary/20")}>
                         <CardContent className="p-6">
                           <div className="flex items-center justify-between mb-6 flex-row-reverse">
                             <div className="size-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary font-black text-lg">{s.id}</div>
                             <Badge variant="outline" className={cn("text-[8px] uppercase font-bold border-white/5", isCached ? "text-green-400 opacity-100" : "opacity-50")}>
-                              {isCached ? "عقدة فيزيائية (Offline)" : "سحابي (API)"}
+                              {isCached ? "عقدة فيزيائية (Offline)" : "سحابي (Streaming)"}
                             </Badge>
                           </div>
                           <div className="text-right mb-8">
@@ -161,8 +183,8 @@ export function HisnAlMuslim() {
                           </div>
                           <div className="flex items-center justify-between pt-4 border-t border-white/5 flex-row-reverse">
                             <div className="flex gap-2 flex-row-reverse">
-                              <Button onClick={() => handleTogglePlay(s)} className={cn("size-14 rounded-[1.25rem] shadow-lg transition-all", currentSurah?.id === s.id && isPlaying ? "bg-red-500 scale-110" : "bg-primary")}>
-                                {currentSurah?.id === s.id && isPlaying ? <Pause className="size-6" /> : <Play className="size-6 ml-1" />}
+                              <Button onClick={() => handleTogglePlay(s)} className={cn("size-14 rounded-[1.25rem] shadow-lg transition-all", isActive && isPlaying ? "bg-red-500 scale-110" : "bg-primary")}>
+                                {isActive && isPlaying ? <Pause className="size-6" /> : <Play className="size-6 ml-1" />}
                               </Button>
                               <Button 
                                 variant="ghost" 
@@ -207,7 +229,7 @@ export function HisnAlMuslim() {
                   <Button variant="ghost" onClick={() => setSelectedCategory(null)} className="rounded-xl gap-2 text-indigo-400 hover:text-indigo-300 hover:bg-white/5 mb-4 flex-row-reverse">
                     <ArrowLeft className="size-4 rotate-180" /> العودة للأقسام
                   </Button>
-                  <div className="space-y-6">
+                  <div className="space-y-6 pb-20">
                     {selectedCategory.items.map((item) => (
                       <Card key={item.id} className="glass border-white/5 rounded-[2.5rem] p-8 text-right space-y-6 shadow-2xl hover:border-primary/20 transition-all">
                         <p style={{ fontSize: `${fontSize}px` }} className="text-white leading-loose font-medium font-serif">{item.text}</p>
@@ -288,7 +310,7 @@ export function HisnAlMuslim() {
                     <Progress value={storagePercentage} className="h-2 bg-white/5" />
                   </div>
                   <div className="p-6 bg-white/5 rounded-[2rem] border border-white/5">
-                    <p className="text-xs text-muted-foreground leading-relaxed">عند وصول الذاكرة للحد الأقصى، سيقوم النظام تلقائياً بمسح أقدم الملفات غير المفضلة لتوفير مساحة للعقد الجديدة.</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">عند وصول الذاكرة للحد الأقصى، سيقوم النظام تلقائياً بمسح أقدم الأصول غير المفضلة لتوفير مساحة للعقد الجديدة.</p>
                   </div>
                 </Card>
 
@@ -306,7 +328,7 @@ export function HisnAlMuslim() {
                     <div className="flex items-center justify-between pt-6 border-t border-white/5 flex-row-reverse">
                       <div className="text-right">
                         <p className="text-sm font-bold">التنبيهات العصبية</p>
-                        <p className="text-[10px] text-muted-foreground">إرسال إشعارات الأذكار والمواعيد</p>
+                        <p className="text-[10px] text-muted-foreground">إرسال إشعارات الأذكار والمزامنة</p>
                       </div>
                       <Badge variant="outline" className="text-green-400 border-green-500/20 bg-green-500/5 uppercase text-[8px] font-bold">نشط</Badge>
                     </div>
@@ -316,7 +338,7 @@ export function HisnAlMuslim() {
 
               <Card className="glass border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
                 <div className="p-8 border-b border-white/5 text-right">
-                  <h3 className="text-xl font-bold text-white">الأصول المخزنة في الذاكرة الحية</h3>
+                  <h3 className="text-xl font-bold text-white">الأصول المزامنة في الذاكرة الحية</h3>
                 </div>
                 <ScrollArea className="h-80">
                   <div className="divide-y divide-white/5">
@@ -350,7 +372,6 @@ export function HisnAlMuslim() {
           )}
         </AnimatePresence>
       </Tabs>
-      <audio ref={audioRef} src={currentSurah?.url} onEnded={() => setIsPlaying(false)} />
     </div>
   );
 }

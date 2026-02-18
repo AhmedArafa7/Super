@@ -1,8 +1,15 @@
+
 'use client';
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useGlobalStorage } from './global-storage-store';
+
+/**
+ * @fileOverview [STABILITY_ANCHOR: QURAN_ENGINE_V1]
+ * محرك القرآن الكريم - يعمل عبر API خارجي مع دعم التحميل الفيزيائي للجهاز.
+ * يتم تخزين الملفات فعلياً في ذاكرة المتصفح (Cache API) لضمان العمل أوفلاين.
+ */
 
 export interface QuranSurah {
   id: number;
@@ -26,10 +33,6 @@ interface QuranState {
   downloadToLocal: (surah: QuranSurah) => Promise<void>;
 }
 
-/**
- * @fileOverview محرك القرآن الكريم - يعمل عبر API خارجي مع دعم التحميل الفيزيائي للجهاز.
- * يتم تخزين الملفات فعلياً في ذاكرة المتصفح (Cache API) لضمان العمل أوفلاين.
- */
 export const useQuranStore = create<QuranState>()(
   persist(
     (set, get) => ({
@@ -38,10 +41,10 @@ export const useQuranStore = create<QuranState>()(
       isPlaying: false,
       isLoading: false,
 
+      // [STABILITY_ANCHOR: API_SYNC_PROTOCOL]
       fetchSurahs: async () => {
         set({ isLoading: true });
         try {
-          // جلب البيانات من AlQuran API العالمي
           const response = await fetch('https://api.alquran.cloud/v1/surah');
           const data = await response.json();
           
@@ -52,15 +55,15 @@ export const useQuranStore = create<QuranState>()(
               englishName: s.englishName,
               numberOfAyahs: s.numberOfAyahs,
               reciter: "مشاري العفاسي",
-              // رابط البث المباشر
               url: `https://server8.mp3quran.net/afs/${s.number.toString().padStart(3, '0')}.mp3`,
-              // تقدير المساحة المنطقي: حوالي 0.5MB لكل آية في المتوسط
+              // [STABILITY_ANCHOR: LOGICAL_SIZE_ESTIMATION]
+              // تقدير المساحة المنطقي: حوالي 0.4MB لكل آية في المتوسط لضمان الدقة التقنية
               sizeMB: Number((s.numberOfAyahs * 0.4).toFixed(1))
             }));
             set({ surahs: mapped, isLoading: false });
           }
         } catch (err) {
-          console.error("API Sync Failed:", err);
+          console.error("Neural API Sync Failed:", err);
           set({ isLoading: false });
         }
       },
@@ -71,19 +74,15 @@ export const useQuranStore = create<QuranState>()(
 
       setIsPlaying: (isPlaying) => set({ isPlaying }),
 
+      // [STABILITY_ANCHOR: PHYSICAL_CACHE_STORAGE]
       downloadToLocal: async (surah) => {
         try {
-          // فتح حاوية التخزين الفيزيائي للمتصفح
           const cache = await caches.open('nexus-quran-physical-cache');
-          
-          // محاولة تحميل الملف فعلياً من السيرفر
           const response = await fetch(surah.url);
-          if (!response.ok) throw new Error("Network response was not ok");
+          if (!response.ok) throw new Error("Network response rejected by source.");
           
-          // تخزين الملف في الذاكرة المحلية
           await cache.put(surah.url, response);
           
-          // تسجيل الأصل في مراقب التخزين العالمي لنكسوس
           useGlobalStorage.getState().addAsset({
             id: `quran-${surah.id}`,
             type: 'quran',
@@ -91,7 +90,7 @@ export const useQuranStore = create<QuranState>()(
             sizeMB: surah.sizeMB
           });
         } catch (err) {
-          console.error("Physical Download Failed:", err);
+          console.error("Physical Node Download Failed:", err);
         }
       }
     }),

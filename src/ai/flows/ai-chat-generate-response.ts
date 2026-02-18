@@ -1,6 +1,8 @@
+
 'use server';
 /**
- * @fileOverview المحرك العصبي المتطور v5.5 - يدعم الرؤية، الأدوات، التحسين الصامت، وتكامل Nexus Vault.
+ * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V5.5]
+ * المحرك العصبي المتطور - يدعم الرؤية، الأدوات، التحسين الصامت، وتكامل Nexus Vault.
  */
 
 import {ai} from '@/ai/genkit';
@@ -9,30 +11,7 @@ import { googleAI } from '@genkit-ai/google-genai';
 
 const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
-// 1. تعريف أدوات النظام (Tools)
-const getSystemStats = ai.defineTool(
-  {
-    name: 'getSystemStats',
-    description: 'جلب إحصائيات النظام الحية وموقع خزنة التخزين الضخمة.',
-    inputSchema: z.object({}),
-    outputSchema: z.object({
-      activeNodes: z.number(),
-      totalMessages: z.number(),
-      vaultUrl: z.string(),
-      status: z.string()
-    }),
-  },
-  async () => {
-    return { 
-      activeNodes: 124, 
-      totalMessages: 5420, 
-      vaultUrl: VAULT_URL,
-      status: 'Operational' 
-    };
-  }
-);
-
-// 2. بروتوكول التحسين الصامت (Silent Optimizer)
+// [STABILITY_ANCHOR: SILENT_OPTIMIZER_LOGIC]
 const optimizePrompt = ai.definePrompt({
   name: 'optimizePrompt',
   input: {schema: z.object({ message: z.string() })},
@@ -66,7 +45,6 @@ export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerat
 
 const responsePrompt = ai.definePrompt({
   name: 'aiChatGenerateResponsePrompt',
-  tools: [getSystemStats],
   input: {schema: z.object({ 
     message: z.string(),
     imageDataUri: z.string().optional(),
@@ -98,13 +76,11 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
   },
   async input => {
     try {
-      // تحديد الموديل المطلوب استخدامه
       let modelToUse = input.isAutoMode ? 'googleai/gemini-1.5-flash' : (input.manualModel || 'googleai/gemini-1.5-flash');
       
       let finalPrompt = input.message;
       let optimizedText = null;
 
-      // تنفيذ بروتوكول التحسين الصامت فقط في الوضع التلقائي
       if (input.isAutoMode) {
         try {
           const { text: optimized } = await optimizePrompt({ message: input.message });
@@ -113,7 +89,7 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
             optimizedText = optimized;
           }
         } catch (optErr) {
-          console.error("Optimization failed, using original message", optErr);
+          console.error("Neural Optimization Drop:", optErr);
         }
       }
       
@@ -125,7 +101,8 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
         model: modelToUse as any
       });
       
-      // [SIMPLIFIED_NAMING]: استخلاص الأسماء المبسطة للموديلات لحجب أرقام الإصدارات وفق بروتوكول نكسوس
+      // [STABILITY_ANCHOR: SOVEREIGN_NAMING_CONVENTION]
+      // الالتزام بالأسماء المبسطة وحجب أرقام الإصدارات التقنية
       let engineName = "Neural Engine";
       if (modelToUse.includes('gemini-1.5-pro')) engineName = "Gemini Pro";
       else if (modelToUse.includes('gemini-2.0') || modelToUse.includes('thinking')) engineName = "Gemini Thinking";
