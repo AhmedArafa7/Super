@@ -5,9 +5,36 @@ import { initializeFirebase } from '@/firebase';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc, where } from 'firebase/firestore';
 
 export type MarketItemStatus = 'active' | 'sold' | 'reserved' | 'archived';
-export type MarketCategory = 'all' | 'ai_tools' | 'hardware' | 'services' | 'digital_assets';
-export type OfferStatus = 'pending' | 'accepted' | 'rejected';
-export type OfferType = 'price' | 'trade';
+
+// نظام التصنيفات الهرمي الجديد
+export type MainCategory = 'all' | 'electronics' | 'digital_assets' | 'services' | 'tools' | 'education';
+
+export interface SubCategory {
+  id: string;
+  label: string;
+  parent: MainCategory;
+}
+
+export const SUB_CATEGORIES: SubCategory[] = [
+  // Electronics
+  { id: 'hardware', label: 'Hardware & Circuits', parent: 'electronics' },
+  { id: 'sensors', label: 'Sensors & IoT', parent: 'electronics' },
+  { id: 'peripherals', label: 'Peripherals', parent: 'electronics' },
+  // Digital Assets
+  { id: 'ai_models', label: 'AI Models', parent: 'digital_assets' },
+  { id: 'scripts', label: 'Scripts & Automation', parent: 'digital_assets' },
+  { id: 'templates', label: 'Design Templates', parent: 'digital_assets' },
+  // Services
+  { id: 'dev_ops', label: 'Cloud & DevOps', parent: 'services' },
+  { id: 'neural_training', label: 'Neural Training', parent: 'services' },
+  { id: 'consulting', label: 'Technical Consulting', parent: 'services' },
+  // Tools
+  { id: 'ai_agents', label: 'Autonomous Agents', parent: 'tools' },
+  { id: 'plugins', label: 'IDE Plugins', parent: 'tools' },
+  // Education
+  { id: 'datasets', label: 'Datasets', parent: 'education' },
+  { id: 'courses', label: 'Knowledge Packs', parent: 'education' },
+];
 
 export interface MarketItem {
   id: string;
@@ -15,12 +42,14 @@ export interface MarketItem {
   description: string;
   price: number;
   sellerId: string;
-  ownerId: string; // Used for negotiations
+  ownerId: string; 
   imageUrl?: string;
-  category: MarketCategory;
+  mainCategory: MainCategory;
+  subCategory: string;
   stockQuantity: number;
   status: MarketItemStatus;
   currency: string;
+  createdAt: string;
 }
 
 export interface MarketOffer {
@@ -30,10 +59,10 @@ export interface MarketOffer {
   buyerId: string;
   buyerName: string;
   sellerId: string;
-  type: OfferType;
+  type: 'price' | 'trade';
   value?: number;
   details?: string;
-  status: OfferStatus;
+  status: 'pending' | 'accepted' | 'rejected';
   timestamp: string;
 }
 
@@ -41,24 +70,33 @@ export const getMarketItems = async (
   offset: number = 0, 
   limitSize: number = 12, 
   search?: string, 
-  category?: MarketCategory
+  mainCat?: MainCategory,
+  subCat?: string
 ): Promise<{ items: MarketItem[], hasMore: boolean }> => {
   const { firestore } = initializeFirebase();
-  let q = query(collection(firestore, 'products'), orderBy('title'));
+  let q = query(collection(firestore, 'products'), orderBy('createdAt', 'desc'));
   
   const snap = await getDocs(q);
   let items = snap.docs.map(d => ({ 
     id: d.id, 
     ...d.data(),
-    ownerId: d.data().sellerId // Map sellerId to ownerId for components that expect it
+    ownerId: d.data().sellerId 
   } as MarketItem));
   
-  if (category && category !== 'all') {
-    items = items.filter(i => i.category === category);
+  if (mainCat && mainCat !== 'all') {
+    items = items.filter(i => i.mainCategory === mainCat);
+  }
+
+  if (subCat && subCat !== 'all_subs') {
+    items = items.filter(i => i.subCategory === subCat);
   }
   
   if (search) {
-    items = items.filter(i => i.title.toLowerCase().includes(search.toLowerCase()));
+    const s = search.toLowerCase();
+    items = items.filter(i => 
+      i.title.toLowerCase().includes(s) || 
+      i.description.toLowerCase().includes(s)
+    );
   }
 
   const paginated = items.slice(offset, offset + limitSize);
@@ -68,7 +106,7 @@ export const getMarketItems = async (
   };
 };
 
-export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'status' | 'currency' | 'ownerId'>) => {
+export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'status' | 'currency' | 'ownerId' | 'createdAt'>) => {
   const { firestore } = initializeFirebase();
   await addDoc(collection(firestore, 'products'), { 
     ...item, 
@@ -99,9 +137,8 @@ export const getReceivedOffers = async (userId: string): Promise<MarketOffer[]> 
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
-export const respondToOffer = async (offerId: string, status: OfferStatus, buyerId: string, itemTitle: string) => {
+export const respondToOffer = async (offerId: string, status: 'accepted' | 'rejected', buyerId: string, itemTitle: string) => {
   const { firestore } = initializeFirebase();
   await updateDoc(doc(firestore, 'offers', offerId), { status });
-  // Add logic for wallet transfers if accepted
   return true;
 };
