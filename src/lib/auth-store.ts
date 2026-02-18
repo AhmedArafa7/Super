@@ -4,7 +4,7 @@
 import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
 
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'admin' | 'employee' | 'user';
 
 export interface User {
   id: string;
@@ -13,6 +13,7 @@ export interface User {
   role: UserRole;
   avatarUrl?: string;
   customTag?: string;
+  canManageCredits?: boolean; // الصلاحية المالية المستقلة
 }
 
 const SESSION_KEY = 'nexus_session';
@@ -38,7 +39,6 @@ export const getStoredUsers = async (): Promise<User[]> => {
 
 /**
  * [DELETION_PREVENTION_PROTOCOL]: إضافة المستخدمين تتم حصراً عبر هذا التابع من قبل الأدمن.
- * لا تقم بتعديل الرصيد الافتتاحي إلا بأمر صريح من المستخدم.
  */
 export const addUser = async (userData: Omit<User, 'id'>) => {
   const { firestore } = initializeFirebase();
@@ -46,8 +46,7 @@ export const addUser = async (userData: Omit<User, 'id'>) => {
   const user = { ...userData, id: newUserRef.id };
   await setDoc(newUserRef, user);
   
-  // [DELETION_PREVENTION_PROTOCOL]: تأكد من إنشاء محفظة لكل مستخدم جديد.
-  // تم تحديد الرصيد الافتتاحي بـ 1000 بناءً على طلب سابق، لكن العملية الآن يدوية.
+  // إنشاء محفظة لكل مستخدم جديد برصيد افتتاحي
   await setDoc(doc(firestore, `users/${user.id}/wallet/main`), {
     balance: 1000,
     frozenBalance: 0,

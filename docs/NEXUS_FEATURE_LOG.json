@@ -1,14 +1,20 @@
 
 {
   "project": "NexusAI Ecosystem",
-  "last_sync": "2024-05-20T16:00:00Z",
-  "version": "4.6.0",
+  "last_sync": "2024-05-20T18:00:00Z",
+  "version": "4.7.0",
   "feature_history": [
+    {
+      "id": "FEAT-012",
+      "name": "Hierarchical Power Protocol",
+      "status": "Active",
+      "description": "3-tier roles: User, Employee, Admin. Financial authority (canManageCredits) is now a separate privilege granted only by the root node."
+    },
     {
       "id": "FEAT-011",
       "name": "Admin Registry: Role Management",
       "status": "Active",
-      "description": "Admin can now re-classify any node (User/Admin) directly from the registry console."
+      "description": "Admin can now re-classify any node (User/Employee/Admin) directly from the registry console."
     },
     {
       "id": "FEAT-010",
@@ -21,30 +27,6 @@
       "name": "Self-Registration Protocol",
       "status": "Active",
       "description": "Allows new users to create nodes and automatically receive starting credits."
-    },
-    {
-      "id": "FEAT-001",
-      "name": "Silent Neural Optimizer",
-      "status": "Active",
-      "description": "Silent prompt refinement using Groq Llama 3.3 for technical requests."
-    },
-    {
-      "id": "FEAT-002",
-      "name": "Holographic Chat UI",
-      "status": "Active",
-      "description": "Transparent UI showing original vs optimized prompts with inline editing."
-    },
-    {
-      "id": "FEAT-003",
-      "name": "Neural Faith Hub",
-      "status": "Active",
-      "description": "Integrated Quran (Audio/Reading), Azkar, and Haptic Tasbih with Smart Cache."
-    },
-    {
-      "id": "FEAT-004",
-      "name": "Neural Admin Console",
-      "status": "Active",
-      "description": "Centralized management for Chat QA, Media Review, Registry, and Knowledge Hub."
     }
   ],
   "technical_protocols": {

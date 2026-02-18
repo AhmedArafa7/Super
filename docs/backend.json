@@ -9,9 +9,10 @@
         "id": { "type": "string" },
         "username": { "type": "string" },
         "full_name": { "type": "string" },
-        "role": { "type": "string", "enum": ["admin", "user"] },
+        "role": { "type": "string", "enum": ["admin", "employee", "user"] },
         "avatar_url": { "type": "string" },
-        "custom_tag": { "type": "string" }
+        "custom_tag": { "type": "string" },
+        "canManageCredits": { "type": "boolean", "description": "Independent authority to distribute credits, granted by the root admin." }
       }
     },
     "Video": {

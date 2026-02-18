@@ -3,34 +3,35 @@
 
 import React, { useState, useEffect } from "react";
 import { 
-  MessageSquare, ShieldAlert, Badge as BadgeIcon, Send, 
-  ArrowRight, User as UserIcon, RefreshCcw, CheckCircle2, 
-  Video, BarChart3, Users, Zap, XCircle, MessageCircle, 
-  Eye, ShieldCheck, Activity, BookOpen, Trash2, Database,
-  Wallet, Repeat, Bell, AlertTriangle, Radio, History, Tag, CreditCard,
-  FileVideo, ArrowUpRight, DollarSign, Play, Clock, Plus, UserPlus, Shield
+  MessageSquare, ShieldAlert, Send, RefreshCcw, CheckCircle2, 
+  Video, Users, MessageCircle, Zap, XCircle, BookOpen, Trash2, 
+  Database, Wallet, Radio, Tag, CreditCard, Play, Plus, UserPlus, 
+  Shield, DollarSign, Clock, ArrowUpRight, AlertTriangle, Lock, Unlock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { getStoredMessages, approveMessage, rejectMessage, WizardMessage } from "@/lib/chat-store";
 import { getStoredUsers, User, addUser, UserRole, updateUserProfile } from "@/lib/auth-store";
 import { getStoredVideos, updateVideoStatus, Video as VideoType } from "@/lib/video-store";
 import { getSubjects, deleteSubject, Subject } from "@/lib/learning-store";
 import { getAllOffersAdmin, MarketOffer } from "@/lib/market-store";
-import { getAllTransactionsAdmin, Transaction } from "@/lib/wallet-store";
+import { getAllTransactionsAdmin, Transaction, adjustFunds } from "@/lib/wallet-store";
 import { addNotification } from "@/lib/notification-store";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/components/auth/auth-provider";
 import { cn } from "@/lib/utils";
 
 export function AdminPanel() {
+  const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<WizardMessage[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -40,12 +41,17 @@ export function AdminPanel() {
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // New User State
+  // User Management State
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', username: '', role: 'user' as UserRole });
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
-  // States for Editing
+  // Credit Addition State
+  const [creditTarget, setCreditTarget] = useState<User | null>(null);
+  const [creditAmount, setCreditAmount] = useState("");
+  const [isAddingCredits, setIsAddingCredits] = useState(false);
+
+  // Editing States
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [optimizedEdits, setOptimizedEdits] = useState<Record<string, string>>({});
   const [videoFeedback, setVideoFeedback] = useState<Record<string, string>>({});
@@ -94,7 +100,8 @@ export function AdminPanel() {
         name: newUser.name,
         username: newUser.username,
         role: newUser.role,
-        avatarUrl: `https://picsum.photos/seed/${newUser.username}/100/100`
+        avatarUrl: `https://picsum.photos/seed/${newUser.username}/100/100`,
+        canManageCredits: false
       });
       toast({ title: "Node Registered", description: `User ${newUser.name} is now part of the ecosystem.` });
       setNewUser({ name: '', username: '', role: 'user' });
@@ -117,12 +124,33 @@ export function AdminPanel() {
     }
   };
 
-  const stats = [
-    { label: "العقد البشرية", value: users.length, icon: Users, color: "text-blue-400", bg: "bg-blue-500/10" },
-    { label: "رسائل المعالجة", value: messages.length, icon: MessageCircle, color: "text-indigo-400", bg: "bg-indigo-500/10" },
-    { label: "بثوث معلقة", value: videos.filter(v => v.status === 'pending_review').length, icon: FileVideo, color: "text-amber-400", bg: "bg-amber-500/10" },
-    { label: "سيولة النظام", value: allTransactions.reduce((acc, tx) => acc + (tx.amount > 0 ? tx.amount : 0), 0).toLocaleString(), icon: DollarSign, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-  ];
+  const handleToggleCreditAuthority = async (userId: string, currentStatus: boolean) => {
+    try {
+      await updateUserProfile(userId, { canManageCredits: !currentStatus });
+      toast({ title: "Authority Updated", description: "Credit management permission toggled." });
+      loadData();
+    } catch (err) {
+      toast({ variant: "destructive", title: "Update Failed", description: "Permission sync failed." });
+    }
+  };
+
+  const handleAddCredits = async () => {
+    if (!creditTarget || !creditAmount || isNaN(Number(creditAmount))) return;
+    setIsAddingCredits(true);
+    try {
+      const success = await adjustFunds(creditTarget.id, Number(creditAmount), 'deposit');
+      if (success) {
+        toast({ title: "Credits Injected", description: `Successfully added ${creditAmount} credits to @${creditTarget.username}` });
+        setCreditTarget(null);
+        setCreditAmount("");
+        loadData();
+      }
+    } catch (err) {
+      toast({ variant: "destructive", title: "Injection Failed", description: "Credit node rejected the request." });
+    } finally {
+      setIsAddingCredits(false);
+    }
+  };
 
   const handleSendBroadcast = async () => {
     if (!broadcastTitle || !broadcastMsg) return;
@@ -165,29 +193,11 @@ export function AdminPanel() {
             Admin Neural Console
             <ShieldAlert className="text-indigo-400 size-12" />
           </h2>
-          <p className="text-muted-foreground mt-2 text-lg">نظام الرقابة والتحكم المركزي في نسيج نكسوس.</p>
+          <p className="text-muted-foreground mt-2 text-lg">نظام الرقابة والتحكم المركزي - المستوى السيادي.</p>
         </div>
         <Button variant="outline" size="icon" onClick={loadData} disabled={isLoading} className="size-14 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-all shadow-xl">
           <RefreshCcw className={cn("size-6 text-indigo-400", isLoading && "animate-spin")} />
         </Button>
-      </div>
-
-      {/* Stats Pulse */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((s, i) => (
-          <Card key={i} className="glass border-white/5 rounded-[2rem] overflow-hidden relative group">
-            <div className={cn("absolute top-0 right-0 size-32 blur-3xl -mr-16 -mt-16 opacity-20 transition-all group-hover:opacity-40", s.bg)} />
-            <CardContent className="p-8 flex items-center justify-between flex-row-reverse relative z-10">
-              <div className={cn("size-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5", s.color)}>
-                <s.icon className="size-7" />
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-[0.2em] mb-1">{s.label}</p>
-                <p className="text-3xl font-black text-white">{s.value}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
       </div>
 
       <Tabs defaultValue="chat" className="flex-1 flex flex-col">
@@ -291,9 +301,6 @@ export function AdminPanel() {
                   </div>
                   {v.status === 'pending_review' && (
                     <Badge className="absolute top-4 left-4 bg-amber-500/80 backdrop-blur-md border-white/10 uppercase text-[8px] font-bold">Needs Review</Badge>
-                  )}
-                  {v.status === 'published' && (
-                    <Badge className="absolute top-4 left-4 bg-green-500/80 backdrop-blur-md border-white/10 uppercase text-[8px] font-bold">Published</Badge>
                   )}
                 </div>
                 <CardContent className="p-8 flex-1 flex flex-col">
@@ -484,6 +491,7 @@ export function AdminPanel() {
                       <SelectTrigger className="bg-white/5 border-white/10 h-12 rounded-xl flex-row-reverse"><SelectValue /></SelectTrigger>
                       <SelectContent className="bg-slate-900 border-white/10 text-white">
                         <SelectItem value="user">User Node</SelectItem>
+                        <SelectItem value="employee">Staff / Employee</SelectItem>
                         <SelectItem value="admin">System Admin</SelectItem>
                       </SelectContent>
                     </Select>
@@ -513,19 +521,39 @@ export function AdminPanel() {
                         <p className="text-xs text-muted-foreground font-mono">@{u.username}</p>
                       </div>
                     </div>
+                    {/* زر إضافة الرصيد - يظهر فقط لمن لديه الصلاحية */}
+                    {currentUser?.canManageCredits && (
+                      <Button variant="ghost" size="icon" className="size-10 bg-indigo-500/10 rounded-full text-indigo-400" onClick={() => setCreditTarget(u)}>
+                        <Plus className="size-5" />
+                      </Button>
+                    )}
                   </div>
                   
-                  <div className="pt-4 border-t border-white/5 flex items-center justify-between flex-row-reverse">
-                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">صلاحية النخاع</Label>
-                    <Select defaultValue={u.role} onValueChange={(v: UserRole) => handleUpdateUserRole(u.id, v)}>
-                      <SelectTrigger className="h-9 w-32 bg-white/5 border-white/10 text-[10px] font-bold rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-900 border-white/10 text-white">
-                        <SelectItem value="user">User Node</SelectItem>
-                        <SelectItem value="admin">System Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="pt-4 border-t border-white/5 space-y-4">
+                    <div className="flex items-center justify-between flex-row-reverse">
+                      <Label className="text-[10px] uppercase font-bold text-muted-foreground">صلاحية النخاع</Label>
+                      <Select defaultValue={u.role} onValueChange={(v: UserRole) => handleUpdateUserRole(u.id, v)}>
+                        <SelectTrigger className="h-9 w-32 bg-white/5 border-white/10 text-[10px] font-bold rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-white/10 text-white">
+                          <SelectItem value="user">User Node</SelectItem>
+                          <SelectItem value="employee">Employee</SelectItem>
+                          <SelectItem value="admin">System Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* صلاحية إدارة الرصيد - يراها ويتحكم بها المدير الأعلى فقط */}
+                    {currentUser?.canManageCredits && u.role === 'admin' && (
+                      <div className="flex items-center justify-between flex-row-reverse">
+                        <div className="flex items-center gap-2 flex-row-reverse">
+                          <Label className="text-[10px] uppercase font-bold text-muted-foreground">صلاحية الائتمان</Label>
+                          {u.canManageCredits ? <Unlock className="size-3 text-green-400" /> : <Lock className="size-3 text-red-400" />}
+                        </div>
+                        <Switch checked={!!u.canManageCredits} onCheckedChange={() => handleToggleCreditAuthority(u.id, !!u.canManageCredits)} />
+                      </div>
+                    )}
                   </div>
                 </Card>
               ))}
@@ -533,6 +561,37 @@ export function AdminPanel() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* مودال إضافة الرصيد */}
+      <Dialog open={!!creditTarget} onOpenChange={(open) => !open && setCreditTarget(null)}>
+        <DialogContent className="bg-slate-900 border-white/10 rounded-[2rem] p-8 sm:max-w-sm text-right">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold flex items-center justify-end gap-3">
+              حقن رصيد ائتماني
+              <DollarSign className="text-emerald-400" />
+            </DialogTitle>
+            <DialogDescription className="text-right">أنت تقوم بتوزيع سيولة Credits للمستخدم @{creditTarget?.username}.</DialogDescription>
+          </DialogHeader>
+          <div className="py-6 space-y-4">
+            <div className="grid gap-2">
+              <Label className="px-1 text-xs font-bold text-muted-foreground uppercase">كمية الرصيد</Label>
+              <Input 
+                type="number" 
+                placeholder="0.00" 
+                className="h-14 bg-white/5 border-white/10 rounded-xl text-center text-2xl font-black text-emerald-400" 
+                value={creditAmount}
+                onChange={e => setCreditAmount(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleAddCredits} disabled={isAddingCredits || !creditAmount} className="w-full h-14 bg-emerald-600 rounded-xl font-bold text-lg shadow-lg">
+              {isAddingCredits ? <RefreshCcw className="animate-spin mr-2" /> : <Zap className="mr-2" />}
+              تأكيد الحق المالي
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
