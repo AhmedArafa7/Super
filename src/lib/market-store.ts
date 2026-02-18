@@ -2,11 +2,11 @@
 
 import { initializeFirebase } from '@/firebase';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc, where } from 'firebase/firestore';
+import { supabase } from './supabaseClient';
 
 export type MarketItemStatus = 'active' | 'sold' | 'reserved' | 'archived';
 export type AppVersionStatus = 'final' | 'beta';
 
-// نظام التصنيفات الهرمي المطور ليشمل التطبيقات
 export type MainCategory = 'all' | 'electronics' | 'digital_assets' | 'services' | 'tools' | 'education' | 'software';
 
 export interface SubCategory {
@@ -16,25 +16,19 @@ export interface SubCategory {
 }
 
 export const SUB_CATEGORIES: SubCategory[] = [
-  // Electronics
   { id: 'hardware', label: 'Hardware & Circuits', parent: 'electronics' },
   { id: 'sensors', label: 'Sensors & IoT', parent: 'electronics' },
   { id: 'peripherals', label: 'Peripherals', parent: 'electronics' },
-  // Digital Assets
   { id: 'ai_models', label: 'AI Models', parent: 'digital_assets' },
   { id: 'scripts', label: 'Scripts & Automation', parent: 'digital_assets' },
   { id: 'templates', label: 'Design Templates', parent: 'digital_assets' },
-  // Services
   { id: 'dev_ops', label: 'Cloud & DevOps', parent: 'services' },
   { id: 'neural_training', label: 'Neural Training', parent: 'services' },
   { id: 'consulting', label: 'Technical Consulting', parent: 'services' },
-  // Tools
   { id: 'ai_agents', label: 'Autonomous Agents', parent: 'tools' },
   { id: 'plugins', label: 'IDE Plugins', parent: 'tools' },
-  // Education
   { id: 'datasets', label: 'Datasets', parent: 'education' },
   { id: 'courses', label: 'Knowledge Packs', parent: 'education' },
-  // Software
   { id: 'web_apps', label: 'Web Applications', parent: 'software' },
   { id: 'desktop_tools', label: 'Desktop Executables', parent: 'software' },
   { id: 'mobile_nodes', label: 'Mobile Deployment', parent: 'software' },
@@ -54,7 +48,6 @@ export interface MarketItem {
   status: MarketItemStatus;
   currency: string;
   createdAt: string;
-  // App Specific Properties
   isLaunchable?: boolean;
   launchUrl?: string;
   downloadUrl?: string;
@@ -132,6 +125,29 @@ export const updateMarketItem = async (itemId: string, updates: Partial<MarketIt
   const itemRef = doc(firestore, 'products', itemId);
   await updateDoc(itemRef, updates);
   return true;
+};
+
+export const uploadMarketImage = async (file: File, onProgress?: (pct: number) => void): Promise<string> => {
+  const bucketName = 'nexus-vault';
+  const filePath = `market/images/${Date.now()}-${file.name}`;
+  
+  try {
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, file);
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(filePath);
+
+    onProgress?.(100);
+    return publicUrl;
+  } catch (err) {
+    console.error("Market Image Upload Error:", err);
+    throw err;
+  }
 };
 
 export const addMarketOffer = async (productId: string, sellerId: string, itemTitle: string, offer: any) => {

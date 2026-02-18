@@ -6,7 +6,7 @@ import {
   Repeat, Tag, Cpu, Globe, Layers, BookOpen, 
   Terminal, ShieldCheck, Zap, ChevronRight, LayoutGrid,
   Laptop, Boxes, Briefcase, GraduationCap, Download, Play, MonitorSmartphone,
-  FileCode, CheckCircle2, Upload, Info, MessageCircle, Edit3
+  FileCode, CheckCircle2, Upload, Info, MessageCircle, Edit3, ArrowLeft, Image as ImageIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { 
   getMarketItems, addMarketItem, updateMarketItem, MarketItem, 
-  MainCategory, SUB_CATEGORIES, AppVersionStatus
+  MainCategory, SUB_CATEGORIES, AppVersionStatus, uploadMarketImage
 } from "@/lib/market-store";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MakeOfferModal } from "./make-offer-modal";
@@ -49,6 +49,8 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
   
   const [items, setItems] = useState<MarketItem[]>([]);
   const [activeView, setActiveView] = useState<'buy' | 'mine'>('buy');
+  const [viewingItem, setViewingItem] = useState<MarketItem | null>(null);
+  
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MarketItem | null>(null);
@@ -69,6 +71,7 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
     mainCategory: "digital_assets" as MainCategory,
     subCategory: "ai_models",
     imageUrl: "",
+    imageFile: null as File | null,
     stockQuantity: 1,
     isLaunchable: false,
     launchUrl: "",
@@ -85,6 +88,7 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
       mainCategory: mainCat !== 'all' ? mainCat : 'digital_assets',
       subCategory: SUB_CATEGORIES.find(s => s.parent === (mainCat !== 'all' ? mainCat : 'digital_assets'))?.id || "ai_models",
       imageUrl: "",
+      imageFile: null,
       stockQuantity: 1,
       isLaunchable: false,
       launchUrl: "",
@@ -104,6 +108,7 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
       mainCategory: item.mainCategory,
       subCategory: item.subCategory,
       imageUrl: item.imageUrl || "",
+      imageFile: null,
       stockQuantity: item.stockQuantity,
       isLaunchable: item.isLaunchable || false,
       launchUrl: item.launchUrl || "",
@@ -148,17 +153,24 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
     setUploadProgress(0);
 
     try {
-      let downloadUrl = newListing.downloadUrl;
+      let finalImageUrl = newListing.imageUrl;
+      let finalDownloadUrl = newListing.downloadUrl;
+
+      if (newListing.imageFile) {
+        toast({ title: "Uploading Image", description: "Transmitting asset visual to Vault..." });
+        finalImageUrl = await uploadMarketImage(newListing.imageFile, (pct) => setUploadProgress(pct * 0.5));
+      }
 
       if (newListing.mainCategory === 'software' && newListing.buildFile) {
         toast({ title: "Uploading Build", description: "Transmitting binary to Nexus Vault..." });
-        downloadUrl = await uploadLearningFile(newListing.buildFile, (pct) => setUploadProgress(pct));
+        finalDownloadUrl = await uploadLearningFile(newListing.buildFile, (pct) => setUploadProgress(50 + pct * 0.5));
       }
 
       await addMarketItem({ 
         ...newListing, 
         sellerId: user.id,
-        downloadUrl: downloadUrl 
+        imageUrl: finalImageUrl,
+        downloadUrl: finalDownloadUrl 
       });
 
       setIsAddModalOpen(false);
@@ -179,11 +191,15 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
     setUploadProgress(0);
 
     try {
-      let downloadUrl = newListing.downloadUrl;
+      let finalImageUrl = newListing.imageUrl;
+      let finalDownloadUrl = newListing.downloadUrl;
+
+      if (newListing.imageFile) {
+        finalImageUrl = await uploadMarketImage(newListing.imageFile, (pct) => setUploadProgress(pct * 0.5));
+      }
 
       if (newListing.mainCategory === 'software' && newListing.buildFile) {
-        toast({ title: "Updating Build", description: "Uploading new binary version..." });
-        downloadUrl = await uploadLearningFile(newListing.buildFile, (pct) => setUploadProgress(pct));
+        finalDownloadUrl = await uploadLearningFile(newListing.buildFile, (pct) => setUploadProgress(50 + pct * 0.5));
       }
 
       await updateMarketItem(editingItem.id, {
@@ -192,15 +208,20 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
         price: newListing.price,
         mainCategory: newListing.mainCategory,
         subCategory: newListing.subCategory,
+        imageUrl: finalImageUrl,
         stockQuantity: newListing.stockQuantity,
         versionStatus: newListing.versionStatus,
         launchUrl: newListing.launchUrl,
-        downloadUrl: downloadUrl,
+        downloadUrl: finalDownloadUrl,
         isLaunchable: !!newListing.launchUrl
       });
 
       setIsEditModalOpen(false);
       loadData(false);
+      if (viewingItem?.id === editingItem.id) {
+        const { items: updated } = await getMarketItems(0, 1, editingItem.title);
+        if (updated.length > 0) setViewingItem(updated[0]);
+      }
       toast({ title: "Sync Complete", description: "Asset properties updated across the network." });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Update Failed", description: err.message });
@@ -220,6 +241,131 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
     if (activeView === 'mine') return item.sellerId === user?.id;
     return item.sellerId !== user?.id && item.status === 'active';
   });
+
+  if (viewingItem) {
+    const isOwner = viewingItem.sellerId === user?.id;
+    return (
+      <div className="flex-1 flex flex-col bg-slate-950/50 animate-in fade-in duration-500">
+        <header className="p-6 border-b border-white/5 bg-slate-900/20 backdrop-blur-xl flex items-center justify-between flex-row-reverse">
+          <Button variant="ghost" className="rounded-xl gap-2 text-white" onClick={() => setViewingItem(null)}>
+            <ArrowLeft className="size-4 rotate-180" /> العودة للسجل
+          </Button>
+          <div className="text-right">
+            <h2 dir="auto" className="text-xl font-bold text-white">{viewingItem.title}</h2>
+            <p className="text-xs text-muted-foreground uppercase tracking-widest">معاينة تفاصيل العقدة</p>
+          </div>
+        </header>
+
+        <ScrollArea className="flex-1">
+          <div className="max-w-6xl mx-auto p-8 grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <div className="space-y-6">
+              <div className="relative aspect-square rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl group">
+                <Image 
+                  src={viewingItem.imageUrl || `https://picsum.photos/seed/${viewingItem.id}/800/800`} 
+                  alt={viewingItem.title} 
+                  fill 
+                  className="object-cover transition-transform duration-1000 group-hover:scale-105"
+                />
+                <div className="absolute top-6 left-6 flex flex-col gap-3">
+                  <Badge className="bg-black/60 backdrop-blur-md border-white/10 px-4 py-1.5 text-xs font-bold uppercase">
+                    {SUB_CATEGORIES.find(s => s.id === viewingItem.subCategory)?.label || viewingItem.subCategory}
+                  </Badge>
+                  {viewingItem.mainCategory === 'software' && (
+                    <Badge className={cn(
+                      "backdrop-blur-md border-white/10 px-4 py-1.5 text-xs font-black uppercase",
+                      viewingItem.versionStatus === 'beta' ? "bg-amber-500/80" : "bg-green-500/80"
+                    )}>
+                      {viewingItem.versionStatus === 'beta' ? 'BETA' : 'FINAL'}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col space-y-8 text-right">
+              <div className="space-y-4">
+                <h1 dir="auto" className="text-5xl font-black text-white tracking-tighter leading-tight">{viewingItem.title}</h1>
+                <div className="flex items-center justify-end gap-4">
+                   <div className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-2xl">
+                      <span className="text-3xl font-black text-indigo-400">{viewingItem.price?.toLocaleString()}</span>
+                      <span className="text-xs font-bold text-muted-foreground uppercase">Credits</span>
+                   </div>
+                   <Badge variant="outline" className="h-10 px-4 rounded-xl border-white/10 text-muted-foreground">
+                      STOCK: {viewingItem.stockQuantity}
+                   </Badge>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold text-primary uppercase tracking-[0.3em]">Neural Description</h3>
+                <p dir="auto" className="text-lg text-slate-300 leading-relaxed whitespace-pre-wrap italic">
+                  "{viewingItem.description}"
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-8 border-t border-white/5">
+                {!isOwner ? (
+                  <>
+                    <MakeOfferModal 
+                      item={viewingItem} 
+                      trigger={
+                        <Button variant="outline" className="h-16 rounded-2xl border-white/10 hover:bg-white/5 font-bold text-lg gap-3">
+                          <MessageCircle className="size-6 text-indigo-400" /> تقديم عرض
+                        </Button>
+                      }
+                    />
+                    <Button className="h-16 bg-primary rounded-2xl font-bold text-lg shadow-2xl shadow-primary/20">
+                      استحواذ الآن
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    {viewingItem.isLaunchable && viewingItem.launchUrl && (
+                      <Button 
+                        onClick={() => onLaunchApp?.(viewingItem.launchUrl!, viewingItem.title)}
+                        className="h-16 bg-green-600 hover:bg-green-500 rounded-2xl font-bold text-lg gap-3"
+                      >
+                        <Play className="size-6" /> تشغيل العقدة
+                      </Button>
+                    )}
+                    {viewingItem.downloadUrl && (
+                      <Button 
+                        onClick={() => handleDownload(viewingItem.downloadUrl!, viewingItem.title)}
+                        variant="outline" 
+                        className="h-16 border-white/10 rounded-2xl font-bold text-lg gap-3"
+                      >
+                        <Download className="size-6 text-indigo-400" /> تحميل المصدر
+                      </Button>
+                    )}
+                    <Button 
+                      onClick={() => handleOpenEditModal(viewingItem)}
+                      variant="ghost" 
+                      className="col-span-full h-14 bg-white/5 hover:bg-white/10 rounded-2xl font-bold gap-3 border border-white/5"
+                    >
+                      <Edit3 className="size-5" /> تعديل بيانات العقدة
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              <div className="p-6 bg-white/5 rounded-3xl border border-white/5 flex items-center justify-between flex-row-reverse">
+                <div className="flex items-center gap-4 flex-row-reverse">
+                  <div className="size-12 rounded-2xl bg-slate-800 border border-white/10 overflow-hidden">
+                    <img src={`https://picsum.photos/seed/${viewingItem.sellerId}/60/60`} className="size-full object-cover" />
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">المالك / المطور</p>
+                    <p className="font-bold text-white">@{viewingItem.sellerId.substring(0, 8)}</p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="border-indigo-500/20 text-indigo-400">VERIFIED NODE</Badge>
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full bg-slate-950/50">
@@ -325,7 +471,7 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8 pb-20">
                 {filteredItems.map((item) => (
-                  <Card key={item.id} className="group glass rounded-[2.5rem] overflow-hidden border-white/5 hover:border-indigo-500/40 transition-all duration-500 hover:translate-y-[-4px] shadow-2xl relative">
+                  <Card key={item.id} onClick={() => setViewingItem(item)} className="group glass rounded-[2.5rem] overflow-hidden border-white/5 hover:border-indigo-500/40 transition-all duration-500 hover:translate-y-[-4px] shadow-2xl relative cursor-pointer">
                     <div className="absolute top-0 left-0 p-4 z-10 flex flex-col gap-2">
                       <Badge className="bg-black/60 backdrop-blur-md border-white/10 text-[8px] uppercase tracking-tighter">
                         {SUB_CATEGORIES.find(s => s.id === item.subCategory)?.label || item.subCategory}
@@ -365,44 +511,20 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
                               <MakeOfferModal 
                                 item={item} 
                                 trigger={
-                                  <Button variant="outline" className="flex-1 rounded-xl h-12 border-white/10 hover:bg-white/5 font-bold gap-2">
+                                  <Button variant="outline" onClick={(e) => e.stopPropagation()} className="flex-1 rounded-xl h-12 border-white/10 hover:bg-white/5 font-bold gap-2">
                                     <MessageCircle className="size-4" /> تواصل
                                   </Button>
                                 }
                               />
                               <Button className="flex-1 bg-primary rounded-xl font-bold shadow-lg shadow-primary/20">
-                                استحواذ
+                                تفاصيل
                               </Button>
                             </div>
-                            {item.versionStatus === 'beta' && (
-                              <p className="text-[9px] text-amber-400 text-center font-bold flex items-center justify-center gap-1">
-                                <Info className="size-2" /> شارك رأيك التقني مع المطور
-                              </p>
-                            )}
                           </div>
                         ) : (
                           <div className="flex flex-col gap-2">
-                            <div className="flex gap-2">
-                              {item.isLaunchable && item.launchUrl && (
-                                <Button 
-                                  onClick={() => onLaunchApp?.(item.launchUrl!, item.title)}
-                                  className="flex-1 bg-green-600 hover:bg-green-500 rounded-xl font-bold gap-2"
-                                >
-                                  <Play className="size-4" /> تشغيل
-                                </Button>
-                              )}
-                              {item.downloadUrl && (
-                                <Button 
-                                  onClick={() => handleDownload(item.downloadUrl!, item.title)}
-                                  variant="outline" 
-                                  className="flex-1 border-white/10 rounded-xl font-bold gap-2"
-                                >
-                                  <Download className="size-4" /> تحميل
-                                </Button>
-                              )}
-                            </div>
                             <Button 
-                              onClick={() => handleOpenEditModal(item)}
+                              onClick={(e) => { e.stopPropagation(); handleOpenEditModal(item); }}
                               variant="ghost" 
                               className="w-full bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 rounded-xl h-10 font-bold gap-2 border border-indigo-500/20"
                             >
@@ -423,7 +545,6 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
         </ScrollArea>
       </main>
 
-      {/* Add/Edit Dialog */}
       <Dialog open={isAddModalOpen || isEditModalOpen} onOpenChange={(open) => { if (!open) { setIsAddModalOpen(false); setIsEditModalOpen(false); } }}>
         <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 sm:max-w-[650px] overflow-y-auto max-h-[90vh]">
           <DialogHeader>
@@ -440,6 +561,29 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
               <div className="grid gap-2">
                 <Label className="text-right">الوصف العصبي</Label>
                 <Textarea dir="auto" placeholder="اشرح قدرات هذا المنتج..." value={newListing.description} onChange={e => setNewListing({...newListing, description: e.target.value})} className="bg-white/5 border-white/10 text-right min-h-[100px]" />
+              </div>
+            </div>
+
+            <div className="md:col-span-2 space-y-3">
+              <Label className="text-right block">صورة المنتج المخصصة</Label>
+              <div className="relative h-32 bg-white/5 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-all group">
+                <input 
+                  type="file" 
+                  className="absolute inset-0 opacity-0 cursor-pointer" 
+                  onChange={e => setNewListing({...newListing, imageFile: e.target.files?.[0] || null})}
+                  accept="image/*"
+                />
+                {newListing.imageFile ? (
+                  <div className="flex items-center gap-3 text-green-400 font-bold">
+                    <CheckCircle2 className="size-6" />
+                    <span className="text-sm truncate max-w-[250px]">{newListing.imageFile.name}</span>
+                  </div>
+                ) : (
+                  <>
+                    <ImageIcon className="size-8 text-muted-foreground group-hover:scale-110 transition-transform mb-2" />
+                    <p className="text-xs text-muted-foreground">اضغط لرفع صورة العقدة</p>
+                  </>
+                )}
               </div>
             </div>
             
