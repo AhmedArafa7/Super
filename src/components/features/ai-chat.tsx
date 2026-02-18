@@ -41,10 +41,11 @@ const AVAILABLE_MODELS = [
     { id: 'googleai/gemini-1.5-pro', label: 'Gemini 1.5 Pro', desc: 'تحليل عميق ومعقد' },
     { id: 'googleai/gemini-2.0-flash-exp', label: 'Gemini 2.0 Flash (Next-Gen)', desc: 'أحدث التقنيات' },
   ]},
-  { group: 'Groq Engine (Speed)', items: [
-    { id: 'groq/llama-3.3-70b-versatile', label: 'Llama 3.3 70B', desc: 'قوة الموديلات المفتوحة' },
+  { group: 'Groq Engine (High Speed)', items: [
+    { id: 'groq/llama-3.3-70b-versatile', label: 'Llama 3.3 70B', desc: 'أقوى موديل مفتوح' },
     { id: 'groq/llama-3.1-8b-instant', label: 'Llama 3.1 8B', desc: 'سرعة البرق' },
     { id: 'groq/mixtral-8x7b-32768', label: 'Mixtral 8x7B', desc: 'ذكي في المنطق' },
+    { id: 'groq/llama-3.2-11b-vision-preview', label: 'Llama 3.2 Vision', desc: 'قدرات بصرية متقدمة' },
   ]}
 ];
 

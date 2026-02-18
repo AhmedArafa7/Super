@@ -6,7 +6,8 @@ import {
   MessageSquare, ShieldAlert, Send, RefreshCcw, CheckCircle2, 
   Video, Users, MessageCircle, Zap, XCircle, BookOpen, Trash2, 
   Database, Wallet, Radio, Tag, CreditCard, Play, Plus, UserPlus, 
-  Shield, DollarSign, Clock, ArrowUpRight, AlertTriangle, Lock, Unlock
+  Shield, DollarSign, Clock, ArrowUpRight, AlertTriangle, Lock, Unlock,
+  FileVideo, Repeat
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
