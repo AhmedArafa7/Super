@@ -2,13 +2,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { MessageSquare, ShieldAlert, Badge, Send, ArrowRight, User as UserIcon, RefreshCcw } from "lucide-react";
+import { MessageSquare, ShieldAlert, Badge as BadgeIcon, Send, ArrowRight, User as UserIcon, RefreshCcw, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { getStoredMessages, approveMessage, rejectMessage, WizardMessage } from "@/lib/chat-store";
 import { getStoredUsers, User } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
@@ -60,8 +61,8 @@ export function AdminPanel() {
 
       <Tabs defaultValue="stream" className="flex-1 flex flex-col">
         <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 w-fit flex-row-reverse">
-          <TabsTrigger value="stream" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">Chat Flow</TabsTrigger>
-          <TabsTrigger value="users" className="rounded-xl px-6 data-[state=active]:bg-indigo-600">Registry</TabsTrigger>
+          <TabsTrigger value="stream" className="rounded-xl px-6 data-[state=active]:bg-indigo-600 font-bold">Chat Flow</TabsTrigger>
+          <TabsTrigger value="users" className="rounded-xl px-6 data-[state=active]:bg-indigo-600 font-bold">Registry</TabsTrigger>
         </TabsList>
 
         <TabsContent value="stream" className="flex-1 outline-none">
@@ -139,7 +140,7 @@ export function AdminPanel() {
                             loadData();
                           }}
                         >
-                          <Send className="size-4 mr-2" /> Approve & Transmit
+                          <CheckCircle2 className="size-4 mr-2" /> Approve & Transmit
                         </Button>
                         <Button 
                           variant="ghost" 

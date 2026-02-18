@@ -162,7 +162,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       engine: data.engine || "System",
       optimizedText: data.optimizedText || null,
       selectedModel: data.selectedModel || null,
-      status: 'replied' // يظهر للمستخدم فوراً
+      status: 'replied' 
     };
 
     Object.keys(updates).forEach(key => {

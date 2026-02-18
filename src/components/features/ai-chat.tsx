@@ -42,7 +42,7 @@ const MessageItem = memo(({
 
   return (
     <div className="flex flex-col gap-4 w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
-      {/* 1. فقاعة المستخدم (دائماً جهة اليمين) */}
+      {/* 1. فقاعة المستخدم (أقصى اليمين) */}
       <div className="flex items-start gap-3 justify-end group relative">
         <div className="flex flex-col gap-2 items-end max-w-[85%]">
           <div className="flex items-start gap-2">
@@ -66,12 +66,10 @@ const MessageItem = memo(({
               "p-4 transition-all duration-300 shadow-lg relative message-bubble-user min-w-[120px]",
               highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500"
             )}>
-              {/* النص الأصلي للمستخدم */}
               <p dir="auto" className="text-sm leading-relaxed whitespace-pre-wrap text-right text-white">
                 {msg.originalText || msg.text}
               </p>
               
-              {/* سهم التحسين العصبي */}
               {hasOptimization && (
                 <div className="mt-2 pt-2 border-t border-white/10 flex flex-col items-end">
                   <button 
@@ -79,7 +77,7 @@ const MessageItem = memo(({
                     className="flex items-center gap-1 text-[10px] text-white/70 hover:text-white transition-colors"
                   >
                     {showOptimized ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-                    عرض التحسين العصبي
+                    رؤية التحسين العصبي
                   </button>
                   {showOptimized && (
                     <div className="mt-2 w-full animate-in slide-in-from-top-1 duration-300">
@@ -104,7 +102,7 @@ const MessageItem = memo(({
         </div>
       </div>
 
-      {/* 2. فقاعة الـ AI (تظهر فقط بعد الرد) */}
+      {/* 2. فقاعة الـ AI (تظهر فقط عند اكتمال الرد) */}
       {isReplied ? (
         <div className="flex items-start gap-3 justify-start animate-in slide-in-from-left-4 duration-500">
           <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
@@ -126,7 +124,7 @@ const MessageItem = memo(({
         <div className="flex justify-start pl-11">
           <div className="flex gap-1.5 p-2 bg-white/5 rounded-full border border-white/5 px-4 items-center">
             <span className="size-1.5 bg-indigo-400/40 rounded-full animate-pulse" />
-            <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">بانتظار مراجعة نكسوس...</span>
+            <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">جاري المعالجة عصبياً...</span>
           </div>
         </div>
       )}
@@ -377,6 +375,7 @@ export function AIChat({ highlightId }: AIChatProps) {
             </div>
           )}
           <div className="relative flex items-center gap-3">
+            {/* اليسار: أزرار الوسائط */}
             <div className="flex items-center gap-2">
               <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileSelect} />
               <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="icon" className="text-muted-foreground hover:text-indigo-400 size-12 rounded-2xl bg-white/5 border border-white/5 transition-all">
@@ -387,6 +386,7 @@ export function AIChat({ highlightId }: AIChatProps) {
               </Button>
             </div>
             
+            {/* المنتصف: حقل الإدخال */}
             <div className="relative flex-1">
               <Input
                 value={input}
@@ -399,6 +399,7 @@ export function AIChat({ highlightId }: AIChatProps) {
               />
             </div>
 
+            {/* اليمين: زر الإرسال */}
             <Button 
               onClick={handleSend} 
               disabled={isAITyping || (!input.trim() && pendingAttachments.length === 0)} 

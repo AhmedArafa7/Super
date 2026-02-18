@@ -133,7 +133,7 @@ export function HisnAlMuslim() {
           {activeTab === 'quran' && (
             <TabsContent key="quran" value="quran" className="space-y-8 focus-visible:ring-0">
               {readingSurah ? (
-                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col gap-6">
+                <motion.div key="reading-mode" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col gap-6">
                   <header className="p-6 glass border-white/5 rounded-[2rem] flex items-center justify-between flex-row-reverse">
                     <div className="flex items-center gap-4 flex-row-reverse">
                       <Button variant="ghost" size="icon" onClick={() => setReadingSurah(null)} className="rounded-full text-white">
@@ -153,7 +153,7 @@ export function HisnAlMuslim() {
                   </Card>
                 </motion.div>
               ) : (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                <motion.div key="list-mode" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                   <div className="relative max-w-3xl mx-auto mb-12">
                     <Search className="absolute right-6 top-1/2 -translate-y-1/2 size-6 text-muted-foreground" />
                     <Input dir="auto" placeholder="ابحث عن سورة بالاسم..." className="w-full h-16 bg-white/5 border-white/10 rounded-[2rem] pr-16 pl-8 text-xl text-right shadow-2xl" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -195,7 +195,7 @@ export function HisnAlMuslim() {
           {activeTab === 'azkar' && (
             <TabsContent key="azkar" value="azkar" className="space-y-12 focus-visible:ring-0">
               {selectedCategory ? (
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-6">
+                <motion.div key="category-items" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-6">
                   <header className="p-6 glass border-white/5 rounded-[2rem] flex items-center justify-between flex-row-reverse">
                     <div className="flex items-center gap-4 flex-row-reverse">
                       <Button variant="ghost" size="icon" onClick={() => setSelectedCategory(null)} className="rounded-full text-white">
@@ -221,7 +221,7 @@ export function HisnAlMuslim() {
                   </div>
                 </motion.div>
               ) : (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <motion.div key="category-list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   <div className="relative max-w-3xl mx-auto mb-12">
                     <Search className="absolute right-6 top-1/2 -translate-y-1/2 size-6 text-muted-foreground" />
                     <Input dir="auto" placeholder="البحث في الأذكار..." className="w-full h-16 bg-white/5 border-white/10 rounded-[2rem] pr-16 pl-8 text-xl text-right shadow-2xl" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -247,7 +247,7 @@ export function HisnAlMuslim() {
 
           {activeTab === 'names' && (
             <TabsContent key="names" value="names" className="focus-visible:ring-0">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              <motion.div key="names-grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                 {NAMES_OF_ALLAH.map((name) => (
                   <Card key={name.id} className="glass border-white/5 rounded-3xl hover:border-primary/40 transition-all group">
                     <CardContent className="p-6 flex flex-col items-center gap-4">
@@ -262,7 +262,7 @@ export function HisnAlMuslim() {
 
           {activeTab === 'tasbih' && (
             <TabsContent key="tasbih" value="tasbih" className="focus-visible:ring-0">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto flex flex-col items-center gap-12 py-12 text-center">
+              <motion.div key="tasbih-view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto flex flex-col items-center gap-12 py-12 text-center">
                 <div className="relative group">
                   <motion.div className="absolute inset-0 bg-primary/20 blur-[120px] rounded-full" animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }} transition={{ duration: 4, repeat: Infinity }} />
                   <button onClick={handleTasbih} className="relative size-80 bg-white/5 backdrop-blur-3xl border-4 border-white/10 rounded-full flex flex-col items-center justify-center shadow-2xl active:scale-95 transition-all">
@@ -279,7 +279,7 @@ export function HisnAlMuslim() {
 
           {activeTab === 'storage' && (
             <TabsContent key="storage" value="storage" className="focus-visible:ring-0">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <motion.div key="storage-view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <Card className="glass border-white/5 rounded-[3rem] p-10 text-right">
                   <h3 className="text-2xl font-bold text-white mb-8 flex items-center gap-3 justify-end">تخصيص الذاكرة العصبية <Settings2 className="text-indigo-400" /></h3>
                   <div className="space-y-10">
@@ -315,6 +315,7 @@ export function HisnAlMuslim() {
           )}
         </AnimatePresence>
       </Tabs>
+      <audio ref={audioRef} src={currentSurah?.url} />
     </div>
   );
 }
