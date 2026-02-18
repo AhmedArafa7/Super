@@ -6,10 +6,12 @@ import {
   MessageSquare, ShieldAlert, Badge as BadgeIcon, Send, 
   ArrowRight, User as UserIcon, RefreshCcw, CheckCircle2, 
   Video, BarChart3, Users, Zap, XCircle, MessageCircle, 
-  Eye, ShieldCheck, Activity, BookOpen, Trash2, Database
+  Eye, ShieldCheck, Activity, BookOpen, Trash2, Database,
+  Wallet, Repeat, Bell, AlertTriangle, Radio
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -19,6 +21,7 @@ import { getStoredMessages, approveMessage, rejectMessage, WizardMessage } from 
 import { getStoredUsers, User } from "@/lib/auth-store";
 import { getStoredVideos, updateVideoStatus, Video as VideoType } from "@/lib/video-store";
 import { getSubjects, deleteSubject, Subject } from "@/lib/learning-store";
+import { addNotification } from "@/lib/notification-store";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +35,11 @@ export function AdminPanel() {
   const [optimizedEdits, setOptimizedEdits] = useState<Record<string, string>>({});
   const [videoFeedback, setVideoFeedback] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  // Broadcast State
+  const [broadcastTitle, setBroadcastTitle] = useState("");
+  const [broadcastMsg, setBroadcastMsg] = useState("");
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -65,6 +73,24 @@ export function AdminPanel() {
     { label: "بثوث معلقة", value: videos.filter(v => v.status === 'pending_review').length, icon: Video, color: "text-amber-400" },
     { label: "مسارات المعرفة", value: subjects.length, icon: BookOpen, color: "text-emerald-400" },
   ];
+
+  const handleSendBroadcast = async () => {
+    if (!broadcastTitle || !broadcastMsg) return;
+    setIsBroadcasting(true);
+    try {
+      addNotification({
+        type: 'system_broadcast',
+        title: broadcastTitle,
+        message: broadcastMsg,
+        priority: 'critical'
+      });
+      toast({ title: "Broadcast Transmitted", description: "All active nodes have received the system update." });
+      setBroadcastTitle("");
+      setBroadcastMsg("");
+    } finally {
+      setIsBroadcasting(false);
+    }
+  };
 
   const handleDeleteSubject = async (id: string) => {
     if (confirm("هل أنت متأكد من حذف هذا المسار التعليمي؟ سيتم حذف كافة الدروس الملحقة به.")) {
@@ -115,6 +141,9 @@ export function AdminPanel() {
           </TabsTrigger>
           <TabsTrigger value="media" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-indigo-600 font-bold gap-2">
             <Video className="size-4" /> مراجعة البث
+          </TabsTrigger>
+          <TabsTrigger value="broadcast" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-red-600 font-bold gap-2">
+            <Radio className="size-4" /> بث نظامي
           </TabsTrigger>
           <TabsTrigger value="knowledge" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-indigo-600 font-bold gap-2">
             <Database className="size-4" /> إدارة المعرفة
@@ -285,6 +314,54 @@ export function AdminPanel() {
               ))
             )}
           </div>
+        </TabsContent>
+
+        {/* Global Broadcast Tab */}
+        <TabsContent value="broadcast" className="flex-1 outline-none">
+          <Card className="glass border-red-500/20 rounded-[3rem] p-10 max-w-3xl mx-auto overflow-hidden relative">
+            <div className="absolute top-0 right-0 size-40 bg-red-500/5 blur-3xl -mr-20 -mt-20" />
+            <div className="relative z-10 space-y-8">
+              <div className="text-right">
+                <h3 className="text-2xl font-bold text-white flex items-center gap-3 justify-end">
+                  بث رسالة نظام شاملة
+                  <AlertTriangle className="text-red-400" />
+                </h3>
+                <p className="text-muted-foreground text-sm mt-1">سيتم إرسال هذا التنبيه لكافة المستخدمين المسجلين في العقدة.</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  <Label className="text-right text-[10px] uppercase font-bold text-muted-foreground">عنوان التنبيه</Label>
+                  <Input 
+                    dir="auto"
+                    placeholder="مثال: ترقية البروتوكول v4.5"
+                    className="bg-white/5 border-white/10 text-right h-12 rounded-xl focus-visible:ring-red-500"
+                    value={broadcastTitle}
+                    onChange={(e) => setBroadcastTitle(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label className="text-right text-[10px] uppercase font-bold text-muted-foreground">محتوى الرسالة</Label>
+                  <Textarea 
+                    dir="auto"
+                    placeholder="اكتب تفاصيل التحديث أو التنبيه هنا..."
+                    className="bg-white/5 border-white/10 text-right min-h-[150px] rounded-2xl focus-visible:ring-red-500"
+                    value={broadcastMsg}
+                    onChange={(e) => setBroadcastMsg(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <Button 
+                onClick={handleSendBroadcast}
+                disabled={isBroadcasting || !broadcastTitle || !broadcastMsg}
+                className="w-full h-14 bg-red-600 hover:bg-red-500 rounded-2xl font-bold text-lg shadow-xl shadow-red-600/20"
+              >
+                {isBroadcasting ? <RefreshCcw className="animate-spin size-5 mr-2" /> : <Send className="size-5 mr-2" />}
+                إطلاق البث الموحد
+              </Button>
+            </div>
+          </Card>
         </TabsContent>
 
         {/* Knowledge Management Tab */}
