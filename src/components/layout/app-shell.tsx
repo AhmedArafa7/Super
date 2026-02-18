@@ -133,7 +133,7 @@ export function AppShell() {
           <div className="flex-1 w-full bg-slate-950 relative">
             <iframe 
               src={launchedApp.url} 
-              className="absolute inset-0 size-full border-none bg-slate-50" 
+              className="absolute inset-0 size-full border-none bg-white" 
               sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
               allow="autoplay; encrypted-media; picture-in-picture"
               title={launchedApp.title}

@@ -26,8 +26,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useChatStore, WizardMessage, Attachment } from "@/lib/chat-store";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/components/auth/provider"; // Note: Fixed import from previous turns context if needed
-import { useAuth as useNexusAuth } from "@/components/auth/auth-provider";
+import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/ui/empty-state";
 import { aiChatGenerateResponse } from "@/ai/flows/ai-chat-generate-response";
@@ -104,7 +103,7 @@ const MessageItem = memo(({
           </div>
           
           {/* [UI_TRANSPARENCY]: بروتوكول الشفافية السيادي - عرض التحسين العصبي */}
-          {msg.optimizedText && msg.optimizedText !== msg.originalText && (
+          {msg.optimizedText && msg.optimizedText.trim() !== msg.originalText?.trim() && (
             <div className="w-full mt-1 flex flex-col items-end gap-2">
               <button 
                 onClick={() => setShowOptimized(!showOptimized)}
@@ -178,7 +177,7 @@ const MessageItem = memo(({
 });
 
 export function AIChat() {
-  const { user } = useNexusAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const { 
     messages, sendMessage, provideAIResponse, loadMessages, 
