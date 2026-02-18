@@ -24,18 +24,22 @@ export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerat
 const optimizerPrompt = ai.definePrompt({
   name: 'optimizePrompt',
   input: {schema: z.object({ message: z.string() })},
-  prompt: `أنت خبير في هندسة المطالبات (Prompt Engineering). 
-مهمتك هي تحسين الرسالة التالية الموجهة لمساعد ذكي لتكون أكثر وضوحاً ودقة تقنية.
-حافظ على جوهر طلب المستخدم ولكن اجعله بصيغة احترافية.
-الرسالة: {{{message}}}
-المطالبة المحسنة (بالعربية فقط):`,
+  prompt: `أنت محرك تحويل المطالبات الصامت. 
+مهمتك:
+1. إذا كانت الرسالة عبارة عن تحية (مثل: سلام، مرحبا، السلام عليكم) أو دردشة عابرة، أعد الرسالة كما هي تماماً دون تغيير.
+2. إذا كانت الرسالة طلباً تقنياً أو سؤالاً، قم بإعادة صياغتها لتكون أكثر دقة ووضوحاً واحترافية.
+3. ممنوع منعاً باتاً إضافة أي شرح أو مقدمات مثل "سأقوم بتحسين رسالتك".
+4. أخرج النص المحسن فقط.
+
+الرسالة الأصلية: {{{message}}}
+النص الناتج:`,
 });
 
 const routerPrompt = ai.definePrompt({
   name: 'routePrompt',
   input: {schema: z.object({ message: z.string() })},
   prompt: `بناءً على الرسالة التالية، اختر أنسب محرك للرد:
-- 'googleai/gemini-1.5-flash' للطلبات الإبداعية، العامة، أو التي تتطلب تحليل صور/وسائط.
+- 'googleai/gemini-1.5-flash' للطلبات الإبداعية، العامة، التحيات، أو التي تتطلب تحليل صور/وسائط.
 - 'groq/llama-3.3-70b-versatile' للطلبات المنطقية، التقنية البحتة، أو البرمجية التي تتطلب سرعة فائقة.
 
 الرسالة: {{{message}}}
@@ -48,16 +52,18 @@ const responsePrompt = ai.definePrompt({
     message: z.string(),
     history: z.array(z.object({ role: z.enum(['user', 'model']), content: z.string() })).optional()
   })},
-  prompt: `أنت المساعد الذكي الرسمي لنظام NexusAI.
-أجب على الرسالة التالية باحترافية عالية باللغة العربية الفصحى.
+  prompt: `أنت مساعد NexusAI الذكي. أنت ودود، محترف، ومباشر.
+أجب على الرسالة التالية باللغة العربية الفصحى. 
+إذا كانت الرسالة تحية، رد بتحية أجمل منها وكن مستعداً للمساعدة.
+إذا كانت طلباً تقنياً، قدم حلاً دقيقاً ومختصراً.
 
-سياق الدردشة:
+سياق الدردشة السابق (استخدمه للفهم فقط):
 {{#each history}}
   {{role}}: {{{content}}}
 {{/each}}
 
-المستخدم: {{{message}}}
-الرد:`,
+رسالة المستخدم الحالية: {{{message}}}
+الرد الحكيم:`,
 });
 
 const aiChatGenerateResponseFlow = ai.defineFlow(
@@ -67,27 +73,30 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
   },
   async input => {
     if (!input.message?.trim()) {
-      return { response: "يرجى كتابة رسالة.", engine: "System" };
-    }
-
-    // 1. تحسين المطالبة (Prompt Optimization) باستخدام Groq دائماً لسرعته
-    const { text: optimizedText } = await optimizerPrompt({ message: input.message }, {
-      model: 'groq/llama-3.3-70b-versatile'
-    });
-
-    const finalPrompt = optimizedText || input.message;
-
-    // 2. تحديد الموديل
-    let modelToUse = input.manualModel || 'googleai/gemini-1.5-flash';
-    
-    if (input.isAutoMode) {
-      const { text: routedModel } = await routerPrompt({ message: finalPrompt }, {
-        model: 'groq/llama-3.3-70b-versatile'
-      });
-      modelToUse = routedModel?.trim() || 'googleai/gemini-1.5-flash';
+      return { response: "يرجى كتابة رسالة للبدء.", engine: "System" };
     }
 
     try {
+      // 1. تحسين المطالبة (بدون ثرثرة)
+      const { text: optimizedText } = await optimizerPrompt({ message: input.message }, {
+        model: 'groq/llama-3.3-70b-versatile'
+      });
+
+      const finalPrompt = optimizedText?.trim() || input.message;
+
+      // 2. تحديد الموديل
+      let modelToUse = input.manualModel || 'googleai/gemini-1.5-flash';
+      
+      if (input.isAutoMode) {
+        const { text: routedModel } = await routerPrompt({ message: finalPrompt }, {
+          model: 'groq/llama-3.3-70b-versatile'
+        });
+        modelToUse = routedModel?.trim().toLowerCase().includes('llama') 
+          ? 'groq/llama-3.3-70b-versatile' 
+          : 'googleai/gemini-1.5-flash';
+      }
+
+      // 3. توليد الرد النهائي
       const { text: responseText } = await responsePrompt({ 
         message: finalPrompt, 
         history: input.history 
@@ -96,15 +105,15 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
       });
       
       return {
-        response: responseText || "عذراً، فشل توليد الرد.",
+        response: responseText || "عذراً، لم أستطع معالجة الرد حالياً.",
         engine: modelToUse,
-        optimizedText: finalPrompt,
+        optimizedText: finalPrompt !== input.message ? finalPrompt : undefined,
         selectedModel: modelToUse
       };
     } catch (err) {
       console.error("Neural Sync Error:", err);
       return {
-        response: "حدث خطأ عصبي. يرجى المحاولة لاحقاً.",
+        response: "نعتذر، حدث اضطراب في الاتصال بالمحرك العصبي. يرجى المحاولة بعد لحظات.",
         engine: "Error"
       };
     }

@@ -39,81 +39,82 @@ const MessageItem = memo(({
   onEdit: (m: WizardMessage) => void; 
   onDelete: (id: string) => void;
 }) => {
-  const isAI = msg.userId === 'nexus-ai' || !!msg.response;
+  const isAI = !!msg.response;
   const [showOptimized, setShowOptimized] = useState(false);
 
+  // لا نعرض زر التحسين إذا لم يتغير النص أو إذا كان الرد من الـ AI نفسه
+  const hasMeaningfulOptimization = !msg.response && msg.optimizedText && msg.optimizedText !== msg.originalText && msg.optimizedText !== msg.text;
+
   return (
-    <React.Fragment>
-      <div className={cn("flex items-start gap-3 group relative", !msg.response ? "justify-end" : "justify-start animate-in fade-in slide-in-from-left-2 duration-500")}>
-        {msg.response && (
-          <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
-            <Bot className="size-4 text-indigo-400" />
-          </div>
-        )}
-        
-        <div className={cn("flex flex-col items-start gap-2", !msg.response ? "max-w-[85%]" : "max-w-[80%]")}>
-          <div className="flex items-start gap-2 w-full">
-            {!msg.response && (
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-8 text-muted-foreground"><MoreVertical className="size-4" /></Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-slate-900 border-white/10">
-                    <DropdownMenuItem onClick={() => onEdit(msg)} className="gap-2 text-white">
-                      <Pencil className="size-4" /> تعديل الطلب
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDelete(msg.id)} className="gap-2 text-red-400">
-                      <Trash2 className="size-4" /> سحب الطلب
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+    <div className={cn("flex items-start gap-3 group relative", !isAI ? "justify-end" : "justify-start animate-in fade-in slide-in-from-left-2 duration-500")}>
+      {isAI && (
+        <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
+          <Bot className="size-4 text-indigo-400" />
+        </div>
+      )}
+      
+      <div className={cn("flex flex-col gap-2", !isAI ? "items-end max-w-[85%]" : "items-start max-w-[80%]")}>
+        <div className="flex items-start gap-2 w-full">
+          {!isAI && (
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="size-8 text-muted-foreground"><MoreVertical className="size-4" /></Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-slate-900 border-white/10">
+                  <DropdownMenuItem onClick={() => onEdit(msg)} className="gap-2 text-white">
+                    <Pencil className="size-4" /> تعديل الطلب
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onDelete(msg.id)} className="gap-2 text-red-400">
+                    <Trash2 className="size-4" /> سحب الطلب
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+
+          <div className={cn(
+            "p-4 transition-all duration-300 shadow-lg relative",
+            !isAI ? "message-bubble-user" : "message-bubble-ai border border-white/5",
+            highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500"
+          )}>
+            <p dir="auto" className="text-sm leading-relaxed whitespace-pre-wrap text-right text-white">
+              {msg.response || msg.originalText || msg.text}
+            </p>
+            
+            {hasMeaningfulOptimization && (
+              <div className="mt-2 pt-2 border-t border-white/10">
+                <button 
+                  onClick={() => setShowOptimized(!showOptimized)}
+                  className="flex items-center gap-1 text-[9px] text-white/60 hover:text-white transition-colors ml-auto"
+                >
+                  {showOptimized ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                  عرض التحسين العصبي
+                </button>
+                {showOptimized && (
+                  <div className="mt-2 animate-in slide-in-from-top-1 duration-300">
+                    <p dir="auto" className="text-[11px] text-indigo-200 italic leading-relaxed text-right">
+                      {msg.optimizedText}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
-            <div className={cn(
-              "flex-1 p-4 transition-all duration-300 shadow-lg relative",
-              !msg.response ? "message-bubble-user" : "message-bubble-ai border border-white/5",
-              highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500"
-            )}>
-              <p dir="auto" className="text-sm leading-relaxed whitespace-pre-wrap text-right">
-                {msg.response || msg.originalText || msg.text}
-              </p>
-              
-              {!msg.response && msg.optimizedText && (
-                <div className="mt-2 pt-2 border-t border-white/10">
-                  <button 
-                    onClick={() => setShowOptimized(!showOptimized)}
-                    className="flex items-center gap-1 text-[9px] text-white/60 hover:text-white transition-colors"
-                  >
-                    {showOptimized ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-                    عرض التحسين العصبي
-                  </button>
-                  {showOptimized && (
-                    <div className="mt-2 animate-in slide-in-from-top-1 duration-300">
-                      <p dir="auto" className="text-[11px] text-indigo-200 italic leading-relaxed text-right">
-                        {msg.optimizedText}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {msg.attachments && msg.attachments.length > 0 && <AttachmentPreview attachments={msg.attachments} />}
-              <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
-                <span className="text-[10px]">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
+            {msg.attachments && msg.attachments.length > 0 && <AttachmentPreview attachments={msg.attachments} />}
+            <div className="flex items-center justify-end gap-1 mt-2 opacity-40">
+              <span className="text-[9px]">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
           </div>
         </div>
-
-        {!msg.response && (
-          <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
-            <User className="size-4 text-indigo-400" />
-          </div>
-        )}
       </div>
-    </React.Fragment>
+
+      {!isAI && (
+        <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
+          <User className="size-4 text-indigo-400" />
+        </div>
+      )}
+    </div>
   );
 });
 
@@ -158,12 +159,9 @@ export function AIChat({ highlightId }: AIChatProps) {
   const loadMessages = useChatStore(state => state.loadMessages);
   const sendMessage = useChatStore(state => state.sendMessage);
   const deleteMessage = useChatStore(state => state.deleteMessage);
-  const updateMessageText = useChatStore(state => state.updateMessageText);
   const provideAIResponse = useChatStore(state => state.provideAIResponse);
 
   const [input, setInput] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingText, setEditingText] = useState("");
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [isAITyping, setIsAITyping] = useState(false);
   
@@ -178,7 +176,10 @@ export function AIChat({ highlightId }: AIChatProps) {
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+      const scrollArea = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollArea) {
+        scrollArea.scrollTo({ top: scrollArea.scrollHeight, behavior: "smooth" });
+      }
     }
   }, [messages.length, isAITyping]);
 
@@ -196,13 +197,14 @@ export function AIChat({ highlightId }: AIChatProps) {
       if (savedMsg) {
         setIsAITyping(true);
         
+        // جلب آخر 5 رسائل للسياق لضمان ردود مترابطة
         const history: { role: 'user' | 'model', content: string }[] = [];
         messages.slice(-5).forEach(m => {
-          if (m.userId !== 'nexus-ai') {
+          if (m.status === 'replied' && m.response) {
             history.push({ role: 'user', content: m.originalText || m.text });
-            if (m.response && m.status === 'replied') {
-              history.push({ role: 'model', content: m.response });
-            }
+            history.push({ role: 'model', content: m.response });
+          } else if (m.id === savedMsg.id) {
+            // تجاهل الرسالة الحالية لأنها ستمرر كمعامل منفصل
           }
         });
 
@@ -223,7 +225,8 @@ export function AIChat({ highlightId }: AIChatProps) {
         }
       }
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Neural Link Error", description: "Fell reach AI engine." });
+      console.error(err);
+      toast({ variant: "destructive", title: "فشل الاتصال", description: "تعذر الوصول للمحرك العصبي حالياً." });
     } finally {
       setIsAITyping(false);
     }
@@ -255,26 +258,26 @@ export function AIChat({ highlightId }: AIChatProps) {
     <div className="flex flex-col h-full max-w-5xl mx-auto pt-8 pb-4 px-4">
       <div className="flex-1 overflow-hidden flex flex-col glass rounded-3xl mb-4 relative shadow-2xl">
         <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-row-reverse">
             <div className="size-10 bg-indigo-500/20 rounded-full flex items-center justify-center border border-indigo-500/30">
               <Bot className={cn("size-5 text-indigo-400", isAITyping && "animate-pulse")} />
             </div>
-            <div>
+            <div className="text-right">
               <p className="font-bold text-sm">Nexus Neural Link</p>
-              <p className="text-[10px] text-green-400 flex items-center gap-1">
-                <Wifi className="size-2.5" /> {isAITyping ? "Processing..." : "Ready"}
+              <p className={cn("text-[10px] flex items-center gap-1 justify-end", isAITyping ? "text-indigo-400" : "text-green-400")}>
+                {isAITyping ? "جاري المعالجة..." : "متصل بالشبكة"} <Wifi className="size-2.5" />
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 bg-black/20 p-2 rounded-2xl border border-white/5">
-            <div className="flex items-center gap-2">
-              <Label className="text-[10px] uppercase font-bold text-muted-foreground">Auto</Label>
+          <div className="flex items-center gap-4 bg-black/20 p-2 rounded-2xl border border-white/5 flex-row-reverse">
+            <div className="flex items-center gap-2 flex-row-reverse">
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground">تلقائي</Label>
               <Switch checked={autoMode} onCheckedChange={setAutoMode} />
             </div>
             {!autoMode && (
               <Select value={selectedManualModel} onValueChange={setSelectedManualModel}>
-                <SelectTrigger className="h-8 bg-white/5 border-white/10 text-[10px] w-32">
+                <SelectTrigger className="h-8 bg-white/5 border-white/10 text-[10px] w-32 flex-row-reverse">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-900 border-white/10 text-white">
@@ -291,8 +294,8 @@ export function AIChat({ highlightId }: AIChatProps) {
             {messages.length === 0 && !isAITyping ? (
               <EmptyState 
                 icon={Zap}
-                title="Neural Link Idle"
-                description="Start a secure session with the NexusAI core."
+                title="نظام نكسوس بانتظارك"
+                description="ابدأ جلسة آمنة الآن مع المحرك العصبي العالمي."
                 className="mt-12"
               />
             ) : (
@@ -302,7 +305,7 @@ export function AIChat({ highlightId }: AIChatProps) {
                     key={msg.id} 
                     msg={msg} 
                     highlightId={highlightId} 
-                    onEdit={(m) => { setEditingId(m.id); setEditingText(m.originalText || m.text); }}
+                    onEdit={(m) => { setInput(m.originalText || m.text); deleteMessage(m.id, user?.id || ''); }}
                     onDelete={(id) => deleteMessage(id, user?.id || '')}
                   />
                 ))}
@@ -321,20 +324,41 @@ export function AIChat({ highlightId }: AIChatProps) {
           </div>
         </ScrollArea>
 
+        {pendingAttachments.length > 0 && (
+          <div className="px-4 py-2 border-t border-white/5 bg-black/40">
+            <div className="flex flex-wrap gap-2">
+              {pendingAttachments.map(att => (
+                <div key={att.id} className="relative group">
+                  <div className="size-12 rounded-lg border border-white/10 overflow-hidden bg-white/5">
+                    {att.type === 'image' ? <img src={att.url} className="size-full object-cover" /> : <FileText className="size-full p-3 text-indigo-400" />}
+                  </div>
+                  <button 
+                    onClick={() => setPendingAttachments(prev => prev.filter(a => a.id !== att.id))}
+                    className="absolute -top-1 -right-1 bg-red-500 rounded-full size-4 flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="size-2" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="p-4 bg-white/5 border-t border-white/5">
           <div className="relative">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Transmit to core..."
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+              placeholder="اكتب رسالتك هنا..."
               disabled={isAITyping}
-              className="w-full h-14 bg-white/5 border-white/10 rounded-2xl pl-12 pr-28 text-sm text-white"
+              dir="auto"
+              className="w-full h-14 bg-white/5 border-white/10 rounded-2xl pl-12 pr-28 text-sm text-white text-right"
             />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
               <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileSelect} />
-              <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="icon"><Paperclip className="size-4" /></Button>
-              <Button onClick={handleSend} disabled={isAITyping} size="icon" className="bg-primary">
+              <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="icon" className="text-muted-foreground hover:text-indigo-400"><Paperclip className="size-4" /></Button>
+              <Button onClick={handleSend} disabled={isAITyping || (!input.trim() && pendingAttachments.length === 0)} size="icon" className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
                 {isSending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
               </Button>
             </div>
