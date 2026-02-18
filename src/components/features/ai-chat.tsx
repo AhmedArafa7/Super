@@ -5,7 +5,8 @@ import React, { useState, useRef, useEffect, memo } from "react";
 import { 
   Send, Bot, User, Sparkles, Paperclip, Mic, Loader2, Pencil, 
   Trash2, X, FileText, Download, MoreVertical, Zap, ChevronDown, 
-  ChevronUp, ImageIcon, Volume2, Wand2, Settings2, Check, Cpu
+  ChevronUp, ImageIcon, Volume2, Wand2, Settings2, Check, Cpu,
+  BrainCircuit, ZapOff, Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,8 +16,6 @@ import {
   DropdownMenuContent, 
   DropdownMenuItem, 
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel
 } from "@/components/ui/dropdown-menu";
 import { 
   Popover,
@@ -35,6 +34,19 @@ import { generateNeuralImage } from "@/ai/flows/ai-media-generation";
 import { textToNeuralSpeech } from "@/ai/flows/ai-audio-flows";
 
 const MAX_FILE_SIZE = 1.5 * 1024 * 1024;
+
+const AVAILABLE_MODELS = [
+  { group: 'Google AI (Core)', items: [
+    { id: 'googleai/gemini-1.5-flash', label: 'Gemini 1.5 Flash', desc: 'متوازن وسريع' },
+    { id: 'googleai/gemini-1.5-pro', label: 'Gemini 1.5 Pro', desc: 'تحليل عميق ومعقد' },
+    { id: 'googleai/gemini-2.0-flash-exp', label: 'Gemini 2.0 Flash (Next-Gen)', desc: 'أحدث التقنيات' },
+  ]},
+  { group: 'Groq Engine (Speed)', items: [
+    { id: 'groq/llama-3.3-70b-versatile', label: 'Llama 3.3 70B', desc: 'قوة الموديلات المفتوحة' },
+    { id: 'groq/llama-3.1-8b-instant', label: 'Llama 3.1 8B', desc: 'سرعة البرق' },
+    { id: 'groq/mixtral-8x7b-32768', label: 'Mixtral 8x7B', desc: 'ذكي في المنطق' },
+  ]}
+];
 
 const MessageItem = memo(({ 
   msg, 
@@ -64,7 +76,6 @@ const MessageItem = memo(({
 
   return (
     <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
-      {/* فقاعة المستخدم */}
       <div className="flex items-start gap-3 justify-end group relative">
         <div className="absolute right-full top-0 mr-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
           <DropdownMenu>
@@ -89,7 +100,6 @@ const MessageItem = memo(({
             <p dir="auto" className="text-sm leading-relaxed whitespace-pre-wrap text-right">{msg.originalText || msg.text}</p>
           </div>
           
-          {/* بروتوكول التحسين العصبي */}
           {msg.optimizedText && msg.optimizedText !== msg.originalText && (
             <div className="w-full mt-1 flex flex-col items-end gap-2">
               <button 
@@ -127,7 +137,6 @@ const MessageItem = memo(({
         </div>
       </div>
 
-      {/* فقاعة الـ AI */}
       {msg.status === 'replied' && (
         <div className="flex items-start gap-3 justify-start animate-in slide-in-from-left-4 duration-500">
           <div className="size-10 rounded-2xl glass flex items-center justify-center mt-1 shrink-0 border border-primary/20 shadow-inner">
@@ -315,22 +324,6 @@ export function AIChat() {
           </div>
         )}
 
-        {attachments.length > 0 && (
-          <div className="px-10 py-4 bg-black/20 flex gap-3">
-            {attachments.map(a => (
-              <div key={a.id} className="relative size-20 rounded-2xl overflow-hidden border-2 border-primary/40 shadow-2xl group">
-                <img src={a.url} className="size-full object-cover" alt="attachment" />
-                <button 
-                  onClick={() => setAttachments([])} 
-                  className="absolute inset-0 bg-red-500/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                >
-                  <X className="size-6 text-white" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
         <div className="p-8 bg-white/5 border-t border-white/5">
           <div className="relative flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -354,7 +347,7 @@ export function AIChat() {
                     <Settings2 className="size-6" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 bg-slate-900 border-white/10 p-6 rounded-[2rem] shadow-2xl">
+                <PopoverContent className="w-[350px] bg-slate-950 border-white/10 p-6 rounded-[2.5rem] shadow-2xl overflow-hidden">
                   <div className="space-y-6">
                     <div className="flex items-center justify-between flex-row-reverse">
                       <h4 className="font-bold text-sm text-white">إعدادات النخاع العصبى</h4>
@@ -362,7 +355,7 @@ export function AIChat() {
                     </div>
                     
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between flex-row-reverse">
+                      <div className="flex items-center justify-between flex-row-reverse p-4 bg-white/5 rounded-2xl border border-white/5">
                         <div className="text-right">
                           <Label className="text-xs font-bold text-white">الوضع التلقائي الذكي</Label>
                           <p className="text-[9px] text-muted-foreground">تحسين الأوامر واختيار أفضل موديل تلقائياً</p>
@@ -371,28 +364,37 @@ export function AIChat() {
                       </div>
 
                       {!autoMode && (
-                        <div className="space-y-2 pt-4 border-t border-white/5">
+                        <div className="space-y-4 pt-4 border-t border-white/5">
                           <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest block text-right">اختيار المحرك اليدوي</Label>
-                          <div className="grid gap-2">
-                            {[
-                              { id: 'googleai/gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
-                              { id: 'groq/llama-3.3-70b-versatile', label: 'Groq Llama 3.3 70B' }
-                            ].map(m => (
-                              <Button 
-                                key={m.id}
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => setSelectedManualModel(m.id)}
-                                className={cn(
-                                  "w-full justify-between h-9 rounded-xl px-4 text-xs flex-row-reverse",
-                                  selectedManualModel === m.id ? "bg-primary text-white" : "bg-white/5 text-muted-foreground"
-                                )}
-                              >
-                                {m.label}
-                                {selectedManualModel === m.id && <Check className="size-3" />}
-                              </Button>
-                            ))}
-                          </div>
+                          <ScrollArea className="h-[300px] pr-2">
+                            <div className="space-y-6">
+                              {AVAILABLE_MODELS.map((group) => (
+                                <div key={group.group} className="space-y-2">
+                                  <p className="text-[9px] text-indigo-400 uppercase font-black px-2">{group.group}</p>
+                                  <div className="grid gap-1.5">
+                                    {group.items.map(m => (
+                                      <Button 
+                                        key={m.id}
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={() => setSelectedManualModel(m.id)}
+                                        className={cn(
+                                          "w-full justify-between h-auto py-3 px-4 rounded-xl text-xs flex-row-reverse text-right items-center transition-all",
+                                          selectedManualModel === m.id ? "bg-primary/20 text-white ring-1 ring-primary/50" : "bg-white/5 text-muted-foreground hover:bg-white/10"
+                                        )}
+                                      >
+                                        <div className="flex flex-col gap-0.5">
+                                          <span className="font-bold">{m.label}</span>
+                                          <span className="text-[8px] opacity-60">{m.desc}</span>
+                                        </div>
+                                        {selectedManualModel === m.id && <Check className="size-3 text-primary" />}
+                                      </Button>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </ScrollArea>
                         </div>
                       )}
                     </div>

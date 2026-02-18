@@ -116,9 +116,18 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
         model: modelToUse as any
       });
       
+      // استخلاص اسم المحرك للعرض في الواجهة
+      let engineName = "Neural Engine";
+      if (modelToUse.includes('gemini-1.5-pro')) engineName = "Gemini 1.5 Pro (Deep Neural)";
+      else if (modelToUse.includes('gemini-2.0')) engineName = "Gemini 2.0 Flash (Next-Gen)";
+      else if (modelToUse.includes('llama-3.3')) engineName = "Groq Llama 3.3 70B (SOTA)";
+      else if (modelToUse.includes('llama-3.1-8b')) engineName = "Groq Llama 3.1 8B (Lightning)";
+      else if (modelToUse.includes('mixtral')) engineName = "Groq Mixtral 8x7B (Logic)";
+      else engineName = "Gemini 1.5 Flash (Core)";
+
       return {
         response: responseText || "تمت المعالجة عصبياً.",
-        engine: modelToUse.includes('groq') ? "Groq Llama 3.3 70B (Neural Engine)" : "Gemini 1.5 Flash (Core Engine)",
+        engine: engineName,
         optimizedText: optimizedText,
         selectedModel: modelToUse
       };
