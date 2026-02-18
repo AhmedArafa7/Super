@@ -21,7 +21,11 @@ export interface WizardMessage {
   id: string;
   userId: string;
   userName: string;
-  text: string;
+  text: string; // النص النهائي المستخدم
+  originalText: string; // نص المستخدم الأصلي
+  optimizedText?: string; // النص بعد تحسين الـ AI
+  selectedModel?: string; // الموديل الذي تم استخدامه
+  isAutoMode: boolean;
   response: string | null;
   engine?: string;
   status: MessageStatus;
@@ -35,12 +39,16 @@ interface ChatState {
   isLoading: boolean;
   isConnected: boolean;
   isSending: boolean;
+  autoMode: boolean;
+  selectedManualModel: string;
   loadMessages: (userId: string) => void;
   sendMessage: (text: string, userId: string, userName: string, attachments?: Attachment[]) => Promise<WizardMessage | null>;
   deleteMessage: (id: string, userId: string) => Promise<void>;
   updateMessageText: (id: string, userId: string, newText: string) => Promise<void>;
   setConnected: (status: boolean) => void;
-  provideAIResponse: (id: string, userId: string, response: string, engine?: string) => Promise<void>;
+  setAutoMode: (enabled: boolean) => void;
+  setSelectedManualModel: (model: string) => void;
+  provideAIResponse: (id: string, userId: string, data: { response: string, engine: string, optimizedText?: string, selectedModel?: string }) => Promise<void>;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -48,8 +56,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isLoading: false,
   isConnected: true,
   isSending: false,
+  autoMode: true,
+  selectedManualModel: 'googleai/gemini-1.5-flash',
 
   setConnected: (status) => set({ isConnected: status }),
+  setAutoMode: (autoMode) => set({ autoMode }),
+  setSelectedManualModel: (selectedManualModel) => set({ selectedManualModel }),
 
   loadMessages: (userId) => {
     set({ isLoading: true });
@@ -69,6 +81,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   sendMessage: async (text, userId, userName, attachments) => {
     const { firestore } = initializeFirebase();
+    const { autoMode, selectedManualModel } = get();
     set({ isSending: true });
 
     try {
@@ -76,6 +89,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         userId,
         userName,
         text,
+        originalText: text,
+        isAutoMode: autoMode,
+        selectedModel: autoMode ? 'Auto Selecting...' : selectedManualModel,
         response: null,
         status: 'sent',
         timestamp: new Date().toISOString(),
@@ -110,30 +126,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  provideAIResponse: async (id, userId, response, engine) => {
+  provideAIResponse: async (id, userId, data) => {
     const { firestore } = initializeFirebase();
     const docRef = doc(firestore, 'users', userId, 'messages', id);
     await updateDoc(docRef, {
-      response,
-      engine: engine || 'AI Engine'
+      response: data.response,
+      engine: data.engine,
+      optimizedText: data.optimizedText,
+      selectedModel: data.selectedModel
     });
   }
 }));
 
-// وظائف مستقلة للأدمن
 export const getStoredMessages = async (userId?: string, fetchAll = false): Promise<WizardMessage[]> => {
   const { firestore } = initializeFirebase();
   const allMessages: WizardMessage[] = [];
   
   if (fetchAll) {
     try {
-      // استخدام collectionGroup لجلب كافة الرسائل من كافة المستخدمين مرة واحدة
       const q = query(collectionGroup(firestore, 'messages'));
       const snap = await getDocs(q);
       snap.forEach(d => {
         const data = d.data();
-        const pathParts = d.ref.path.split('/');
-        allMessages.push({ id: d.id, ...data, userId: data.userId || pathParts[1] } as WizardMessage);
+        allMessages.push({ id: d.id, ...data } as WizardMessage);
       });
     } catch (e) {
       console.error("Admin Fetch Error:", e);

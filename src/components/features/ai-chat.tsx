@@ -2,13 +2,16 @@
 "use client";
 
 import React, { useState, useRef, useEffect, memo } from "react";
-import { Send, Bot, User, Sparkles, Paperclip, Mic, Loader2, Pencil, Trash2, X, FileText, Download, Square, Music, Globe, Wifi, WifiOff, MoreVertical, Zap, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Send, Bot, User, Sparkles, Paperclip, Mic, Loader2, Pencil, Trash2, X, FileText, Download, Square, Music, Globe, Wifi, WifiOff, MoreVertical, Zap, ShieldCheck, AlertTriangle, ChevronDown, ChevronUp, Cpu, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useChatStore, WizardMessage, Attachment } from "@/lib/chat-store";
 import { clearAllUnreadNotifications } from "@/lib/notification-store";
 import { cn } from "@/lib/utils";
@@ -29,42 +32,37 @@ const MessageItem = memo(({
   msg, 
   highlightId, 
   onEdit, 
-  onDelete,
-  onShowPreview,
-  isPreviewVisible
+  onDelete
 }: { 
   msg: WizardMessage; 
   highlightId: string | null; 
   onEdit: (m: WizardMessage) => void; 
   onDelete: (id: string) => void;
-  onShowPreview: (id: string) => void;
-  isPreviewVisible: boolean;
 }) => {
-  const isAI = msg.userId === 'nexus-ai';
+  const isAI = msg.userId === 'nexus-ai' || !!msg.response;
+  const [showOptimized, setShowOptimized] = useState(false);
 
   return (
     <React.Fragment>
-      <div className={cn("flex items-start gap-3 group relative", !isAI ? "justify-end" : "justify-start animate-in fade-in slide-in-from-left-2 duration-500")}>
-        {isAI && (
+      <div className={cn("flex items-start gap-3 group relative", !msg.response ? "justify-end" : "justify-start animate-in fade-in slide-in-from-left-2 duration-500")}>
+        {msg.response && (
           <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
             <Bot className="size-4 text-indigo-400" />
           </div>
         )}
         
-        <div className={cn("flex flex-col items-start gap-2", !isAI ? "max-w-[85%]" : "max-w-[80%]")}>
+        <div className={cn("flex flex-col items-start gap-2", !msg.response ? "max-w-[85%]" : "max-w-[80%]")}>
           <div className="flex items-start gap-2 w-full">
-            {!isAI && (
+            {!msg.response && (
               <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="size-8 text-muted-foreground"><MoreVertical className="size-4" /></Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-slate-900 border-white/10">
-                    {msg.status !== 'replied' && (
-                      <DropdownMenuItem onClick={() => onEdit(msg)} className="gap-2 text-white">
-                        <Pencil className="size-4" /> تعديل الطلب
-                      </DropdownMenuItem>
-                    )}
+                    <DropdownMenuItem onClick={() => onEdit(msg)} className="gap-2 text-white">
+                      <Pencil className="size-4" /> تعديل الطلب
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onDelete(msg.id)} className="gap-2 text-red-400">
                       <Trash2 className="size-4" /> سحب الطلب
                     </DropdownMenuItem>
@@ -74,66 +72,47 @@ const MessageItem = memo(({
             )}
 
             <div className={cn(
-              "flex-1 p-4 transition-all duration-300 shadow-lg",
-              !isAI ? "message-bubble-user" : "message-bubble-ai border border-white/5",
-              msg.status === 'queued' && "opacity-70 italic",
+              "flex-1 p-4 transition-all duration-300 shadow-lg relative",
+              !msg.response ? "message-bubble-user" : "message-bubble-ai border border-white/5",
               highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500"
             )}>
-              <p dir="auto" className="text-sm leading-relaxed whitespace-pre-wrap text-right">{msg.text}</p>
+              <p dir="auto" className="text-sm leading-relaxed whitespace-pre-wrap text-right">
+                {msg.response || msg.originalText || msg.text}
+              </p>
+              
+              {!msg.response && msg.optimizedText && (
+                <div className="mt-2 pt-2 border-t border-white/10">
+                  <button 
+                    onClick={() => setShowOptimized(!showOptimized)}
+                    className="flex items-center gap-1 text-[9px] text-white/60 hover:text-white transition-colors"
+                  >
+                    {showOptimized ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                    عرض التحسين العصبي
+                  </button>
+                  {showOptimized && (
+                    <div className="mt-2 animate-in slide-in-from-top-1 duration-300">
+                      <p dir="auto" className="text-[11px] text-indigo-200 italic leading-relaxed text-right">
+                        {msg.optimizedText}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {msg.attachments && msg.attachments.length > 0 && <AttachmentPreview attachments={msg.attachments} />}
               <div className="flex items-center justify-end gap-1 mt-2 opacity-60">
-                {msg.status === 'sent' && !isAI && <Loader2 className="size-2 animate-spin text-white/50" />}
                 <span className="text-[10px]">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
             </div>
           </div>
-
-          {msg.response && !isAI && msg.status === 'sent' && !isPreviewVisible && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => onShowPreview(msg.id)}
-              className="mt-1 text-[10px] h-7 border-indigo-500/30 text-indigo-400 bg-indigo-500/5 hover:bg-indigo-500/10 rounded-lg animate-in fade-in zoom-in duration-300 ml-auto"
-            >
-              <Zap className="size-3 mr-1 text-amber-400" /> الحصول على مسودة الرد (AI)
-            </Button>
-          )}
         </div>
 
-        {!isAI && (
+        {!msg.response && (
           <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
             <User className="size-4 text-indigo-400" />
           </div>
         )}
       </div>
-
-      {msg.response && !isAI && (isPreviewVisible || msg.status === 'replied') && (
-        <div className={cn(
-          "flex justify-start items-start gap-3 animate-in fade-in slide-in-from-left-2 duration-500",
-          msg.status === 'sent' && "opacity-40"
-        )}>
-          <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
-            <Bot className="size-4 text-indigo-400" />
-          </div>
-          <div className={cn(
-            "max-w-[80%] message-bubble-ai p-4 border transition-all duration-500 border-white/5 relative group/reply", 
-            highlightId === msg.id && "animate-highlight ring-2 ring-indigo-500",
-            msg.status === 'sent' && "border-indigo-500/20"
-          )}>
-            {msg.status === 'sent' && (
-              <div className="flex items-center gap-1.5 mb-2 text-[10px] font-bold text-indigo-400 uppercase tracking-widest justify-end">
-                <ShieldCheck className="size-3" /> جاري تدقيق الجودة...
-              </div>
-            )}
-            <p dir="auto" className="text-sm leading-relaxed whitespace-pre-wrap text-right">{msg.response}</p>
-            {msg.status === 'replied' && (
-              <div className="flex justify-end mt-2 opacity-40">
-                <Badge variant="outline" className="text-[8px] h-4 py-0 border-white/10">مؤكد من الإدارة</Badge>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </React.Fragment>
   );
 });
@@ -148,10 +127,6 @@ const AttachmentPreview = memo(({ attachments }: { attachments: Attachment[] }) 
           <div className="size-10 rounded-lg overflow-hidden bg-white/5 shrink-0 relative">
             <img src={att.url} alt={att.name} className="size-full object-cover" />
           </div>
-        ) : att.type === 'audio' ? (
-          <div className="size-10 rounded-lg bg-indigo-500/20 flex items-center justify-center shrink-0">
-            <Music className="size-5 text-indigo-400" />
-          </div>
         ) : (
           <div className="size-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
             <FileText className="size-5 text-indigo-400" />
@@ -159,7 +134,6 @@ const AttachmentPreview = memo(({ attachments }: { attachments: Attachment[] }) 
         )}
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-bold text-white truncate">{att.name}</p>
-          <p className="text-[9px] text-muted-foreground">{att.size}</p>
         </div>
         <a href={att.url} download={att.name} className="p-1 hover:bg-white/5 rounded-lg transition-colors">
           <Download className="size-3 text-muted-foreground" />
@@ -168,15 +142,19 @@ const AttachmentPreview = memo(({ attachments }: { attachments: Attachment[] }) 
     ))}
   </div>
 ));
-AttachmentPreview.displayName = "AttachmentPreview";
 
-export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
+export function AIChat({ highlightId }: AIChatProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   
   const messages = useChatStore(state => state.messages);
   const isConnected = useChatStore(state => state.isConnected);
   const isSending = useChatStore(state => state.isSending);
+  const autoMode = useChatStore(state => state.autoMode);
+  const setAutoMode = useChatStore(state => state.setAutoMode);
+  const selectedManualModel = useChatStore(state => state.selectedManualModel);
+  const setSelectedManualModel = useChatStore(state => state.setSelectedManualModel);
+  
   const loadMessages = useChatStore(state => state.loadMessages);
   const sendMessage = useChatStore(state => state.sendMessage);
   const deleteMessage = useChatStore(state => state.deleteMessage);
@@ -187,15 +165,10 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [isAITyping, setIsAITyping] = useState(false);
-  const [previewIds, setPreviewIds] = useState<Set<string>>(new Set());
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -204,22 +177,13 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   }, [user?.id, loadMessages]);
 
   useEffect(() => {
-    if (scrollRef.current && !highlightId) {
+    if (scrollRef.current) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
-  }, [messages.length, highlightId, isAITyping, previewIds]);
-
-  const togglePreview = (id: string) => {
-    setPreviewIds(prev => {
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-  };
+  }, [messages.length, isAITyping]);
 
   const handleSend = async () => {
-    const hasContent = input?.trim() || pendingAttachments?.length > 0;
-    if (!hasContent || !user?.id || isSending || isUploading) return;
+    if ((!input.trim() && pendingAttachments.length === 0) || !user?.id || isSending) return;
 
     const userText = input;
     setInput(""); 
@@ -235,7 +199,7 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
         const history: { role: 'user' | 'model', content: string }[] = [];
         messages.slice(-5).forEach(m => {
           if (m.userId !== 'nexus-ai') {
-            history.push({ role: 'user', content: m.text });
+            history.push({ role: 'user', content: m.originalText || m.text });
             if (m.response && m.status === 'replied') {
               history.push({ role: 'model', content: m.response });
             }
@@ -244,20 +208,22 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
 
         const responseData = await aiChatGenerateResponse({
           message: userText,
+          isAutoMode: autoMode,
+          manualModel: autoMode ? undefined : selectedManualModel,
           history: history
         });
 
         if (responseData && responseData.response) {
-          await provideAIResponse(savedMsg.id, user.id, responseData.response, responseData.engine);
+          await provideAIResponse(savedMsg.id, user.id, {
+            response: responseData.response,
+            engine: responseData.engine,
+            optimizedText: responseData.optimizedText,
+            selectedModel: responseData.selectedModel
+          });
         }
       }
     } catch (err: any) {
-      console.error('Neural Link Error:', err);
-      toast({ 
-        variant: "destructive", 
-        title: "خطأ في الربط العصبي", 
-        description: "فشل الوصول لمحرك الذكاء الاصطناعي." 
-      });
+      toast({ variant: "destructive", title: "Neural Link Error", description: "Fell reach AI engine." });
     } finally {
       setIsAITyping(false);
     }
@@ -266,106 +232,27 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-
-    setIsUploading(true);
-    setUploadProgress(0);
     
-    try {
-      const newAttachments: Attachment[] = [];
-      for (const file of files) {
-        if (file.size > MAX_FILE_SIZE) {
-          toast({ variant: "destructive", title: "حجم الملف كبير", description: `الملف ${file.name} يتجاوز 1.5 ميجا.` });
-          continue;
-        }
-
-        const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve) => {
-          reader.onload = () => {
-            setUploadProgress(prev => Math.min(prev + (100 / files.length), 95));
-            resolve(reader.result as string);
-          };
-          reader.readAsDataURL(file);
-        });
-
-        newAttachments.push({
-          id: Math.random().toString(36).substring(2, 9),
-          name: file.name,
-          type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('audio/') ? 'audio' : 'file',
-          url: base64,
-          size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-          mimeType: file.type
-        });
-      }
-      setUploadProgress(100);
-      setTimeout(() => {
-        setPendingAttachments(prev => [...prev, ...newAttachments]);
-        setIsUploading(false);
-        setUploadProgress(0);
-      }, 400);
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "فشل الرفع", description: err.message });
-      setIsUploading(false);
-      setUploadProgress(0);
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      const chunks: Blob[] = [];
-      mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-      mediaRecorder.onstop = async () => {
-        setIsUploading(true);
-        setUploadProgress(20);
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setUploadProgress(100);
-          setTimeout(() => {
-            setPendingAttachments(prev => [...prev, {
-              id: Math.random().toString(36).substring(2, 9),
-              name: `Voice Packet ${new Date().toLocaleTimeString()}.webm`,
-              type: 'audio',
-              url: reader.result as string,
-              size: (blob.size / 1024 / 1024).toFixed(2) + ' MB',
-              mimeType: blob.type
-            }]);
-            setIsUploading(false);
-            setUploadProgress(0);
-          }, 400);
-        };
-        reader.readAsDataURL(blob);
-        stream.getTracks().forEach(track => track.stop());
-      };
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (err) {
-      toast({ variant: "destructive", title: "تم رفض الوصول للميكروفون", description: "مطلوب صلاحية الوصول للميكروفون." });
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
+    for (const file of files) {
+      if (file.size > MAX_FILE_SIZE) continue;
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+      setPendingAttachments(prev => [...prev, {
+        id: Math.random().toString(36).substring(2, 9),
+        name: file.name,
+        type: file.type.startsWith('image/') ? 'image' : 'file',
+        url: base64,
+        size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+        mimeType: file.type
+      }]);
     }
   };
 
   return (
-    <div className="flex flex-col h-full max-w-5xl mx-auto pt-8 pb-4 px-4 sm:px-6 lg:px-8">
-      {!isConnected && (
-        <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-          <AlertTriangle className="size-5 text-amber-400 shrink-0" />
-          <p className="text-xs text-amber-200/80">
-            <strong>فقدان المزامنة:</strong> الاتصال بالعقدة السحابية مقطوع.
-          </p>
-        </div>
-      )}
-
+    <div className="flex flex-col h-full max-w-5xl mx-auto pt-8 pb-4 px-4">
       <div className="flex-1 overflow-hidden flex flex-col glass rounded-3xl mb-4 relative shadow-2xl">
         <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
           <div className="flex items-center gap-3">
@@ -373,19 +260,29 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
               <Bot className={cn("size-5 text-indigo-400", isAITyping && "animate-pulse")} />
             </div>
             <div>
-              <p className="font-bold text-sm">Nexus AI Assistant</p>
-              <div className="flex items-center gap-2">
-                {isConnected ? (
-                  <p className="text-[10px] text-green-400 flex items-center gap-1">
-                    <Wifi className="size-2.5" /> {isAITyping ? "جاري المعالجة..." : "متصل والأنظمة نشطة"}
-                  </p>
-                ) : (
-                  <p className="text-[10px] text-red-400 flex items-center gap-1">
-                    <WifiOff className="size-2.5" /> غير متصل بالعقدة
-                  </p>
-                )}
-              </div>
+              <p className="font-bold text-sm">Nexus Neural Link</p>
+              <p className="text-[10px] text-green-400 flex items-center gap-1">
+                <Wifi className="size-2.5" /> {isAITyping ? "Processing..." : "Ready"}
+              </p>
             </div>
+          </div>
+
+          <div className="flex items-center gap-4 bg-black/20 p-2 rounded-2xl border border-white/5">
+            <div className="flex items-center gap-2">
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground">Auto</Label>
+              <Switch checked={autoMode} onCheckedChange={setAutoMode} />
+            </div>
+            {!autoMode && (
+              <Select value={selectedManualModel} onValueChange={setSelectedManualModel}>
+                <SelectTrigger className="h-8 bg-white/5 border-white/10 text-[10px] w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10 text-white">
+                  <SelectItem value="googleai/gemini-1.5-flash">Gemini Flash</SelectItem>
+                  <SelectItem value="groq/llama-3.3-70b-versatile">Groq Llama</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
 
@@ -393,9 +290,9 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
           <div className="space-y-6">
             {messages.length === 0 && !isAITyping ? (
               <EmptyState 
-                icon={Sparkles}
-                title="تيار عصبي فارغ"
-                description="ابدأ جلسة آمنة مع نظام NexusAI المتطور. لا تتردد في طرح أي سؤال تقني."
+                icon={Zap}
+                title="Neural Link Idle"
+                description="Start a secure session with the NexusAI core."
                 className="mt-12"
               />
             ) : (
@@ -405,10 +302,8 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
                     key={msg.id} 
                     msg={msg} 
                     highlightId={highlightId} 
-                    onEdit={(m) => { setEditingId(m.id); setEditingText(m.text); }}
+                    onEdit={(m) => { setEditingId(m.id); setEditingText(m.originalText || m.text); }}
                     onDelete={(id) => deleteMessage(id, user?.id || '')}
-                    onShowPreview={togglePreview}
-                    isPreviewVisible={previewIds.has(msg.id)}
                   />
                 ))}
                 {isAITyping && (
@@ -426,76 +321,24 @@ export function AIChat({ highlightId, onHighlightComplete }: AIChatProps) {
           </div>
         </ScrollArea>
 
-        {editingId && (
-          <div className="absolute inset-x-0 bottom-0 z-30 p-4 bg-slate-900/95 border-t border-indigo-500/30 backdrop-blur-xl animate-in slide-in-from-bottom duration-300">
-            <div className="max-w-3xl mx-auto space-y-4">
-              <div className="flex justify-between items-center">
-                <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">تعديل الطلب العصبي</p>
-                <Button variant="ghost" size="icon" onClick={() => setEditingId(null)} className="size-6"><X className="size-4" /></Button>
-              </div>
-              <Textarea 
-                autoFocus 
-                value={editingText} 
-                onChange={(e) => setEditingText(e.target.value)} 
-                className="bg-white/5 border-white/10 min-h-[100px] rounded-2xl text-white" 
-              />
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" className="rounded-xl text-white" onClick={() => setEditingId(null)}>إلغاء</Button>
-                <Button onClick={async () => { await updateMessageText(editingId, user?.id || '', editingText); setEditingId(null); }} className="bg-indigo-500 rounded-xl px-8">حفظ التعديل</Button>
-              </div>
+        <div className="p-4 bg-white/5 border-t border-white/5">
+          <div className="relative">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              placeholder="Transmit to core..."
+              disabled={isAITyping}
+              className="w-full h-14 bg-white/5 border-white/10 rounded-2xl pl-12 pr-28 text-sm text-white"
+            />
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+              <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileSelect} />
+              <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="icon"><Paperclip className="size-4" /></Button>
+              <Button onClick={handleSend} disabled={isAITyping} size="icon" className="bg-primary">
+                {isSending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              </Button>
             </div>
           </div>
-        )}
-
-        <div className="p-4 bg-white/5 border-t border-white/5">
-          {isRecording ? (
-            <div className="h-14 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-between px-6">
-              <div className="flex items-center gap-3"><div className="size-2 rounded-full bg-red-500 animate-pulse" /><span className="text-sm font-bold text-red-400">جاري التقاط الصوت...</span></div>
-              <Button onClick={stopRecording} size="icon" className="bg-red-500"><Square className="size-4" /></Button>
-            </div>
-          ) : (
-            <div className="relative">
-              {isUploading && (
-                <div className="absolute -top-12 left-0 right-0 p-2 glass border-t border-indigo-500/30 rounded-t-xl space-y-1">
-                  <div className="flex justify-between text-[8px] uppercase font-bold tracking-widest text-indigo-400">
-                    <span>جاري رفع البيانات</span>
-                    <span>{Math.round(uploadProgress)}%</span>
-                  </div>
-                  <Progress value={uploadProgress} className="h-1 bg-white/5" />
-                </div>
-              )}
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder={isUploading ? "جاري المعالجة..." : isAITyping ? "Nexus يفكر..." : "أرسل رسالة للعقدة..."}
-                disabled={isUploading || isSending || isAITyping}
-                className="w-full h-14 bg-white/5 border-white/10 focus-visible:ring-indigo-500 rounded-2xl pl-12 pr-28 text-sm text-white"
-              />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileSelect} />
-                <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="icon" disabled={isUploading || isSending || isAITyping}><Paperclip className="size-4" /></Button>
-                <Button onClick={startRecording} variant="ghost" size="icon" disabled={isUploading || isSending || isAITyping}><Mic className="size-4" /></Button>
-                <Button onClick={handleSend} disabled={(!input.trim() && pendingAttachments.length === 0) || isUploading || isSending || isAITyping} size="icon" className="bg-primary shadow-lg shadow-primary/20">
-                  {isSending || isAITyping ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-                </Button>
-              </div>
-            </div>
-          )}
-          
-          {pendingAttachments.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3 animate-in fade-in slide-in-from-top-2">
-              {pendingAttachments.map((att) => (
-                <div key={att.id} className="glass border border-indigo-500/20 rounded-lg px-2 py-1 flex items-center gap-2">
-                  <span className="text-[10px] text-white/80 max-w-[100px] truncate">{att.name}</span>
-                  <span className="text-[8px] text-muted-foreground">({att.size})</span>
-                  <button onClick={() => setPendingAttachments(p => p.filter(a => a.id !== att.id))} className="text-red-400 hover:text-red-300">
-                    <X className="size-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>
