@@ -1,15 +1,15 @@
-
 'use client';
 
 import { create } from 'zustand';
 import { initializeFirebase } from '@/firebase';
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc, collectionGroup } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
 
 export type TransactionType = 'deposit' | 'withdrawal' | 'purchase_hold' | 'purchase_release' | 'purchase_refund';
 
 export interface Transaction {
   id: string;
+  userId?: string;
   amount: number;
   type: TransactionType;
   status: 'pending' | 'completed' | 'failed';
@@ -78,7 +78,7 @@ export const useWalletStore = create<WalletState>()(
         const snap = await getDocs(q);
         const txs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
         set({ transactions: txs });
-        return txs; // نضمن إعادة البيانات للمكونات المستدعية
+        return txs;
       } catch (err) {
         console.error('Transactions Fetch Error:', err);
         return [];
@@ -174,6 +174,13 @@ export const useWalletStore = create<WalletState>()(
     }
   })
 );
+
+export const getAllTransactionsAdmin = async (): Promise<Transaction[]> => {
+  const { firestore } = initializeFirebase();
+  const q = query(collectionGroup(firestore, 'transactions'), orderBy('timestamp', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
+};
 
 export const selectTotalPendingDebt = (state: { pendingTransactions: PendingTransaction[] }) => 
   state.pendingTransactions.reduce((acc, curr) => acc + curr.price, 0);

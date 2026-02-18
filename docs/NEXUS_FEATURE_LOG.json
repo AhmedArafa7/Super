@@ -1,4 +1,3 @@
-
 {
   "project": "NexusAI Ecosystem",
   "last_sync": "2024-05-20T12:00:00Z",
@@ -20,31 +19,31 @@
       "id": "FEAT-003",
       "name": "Neural Faith Hub",
       "status": "Active",
-      "description": "Integrated Quran (Audio/Reading), Azkar, and Haptic Tasbih."
+      "description": "Integrated Quran (Audio/Reading), Azkar, and Haptic Tasbih with Smart Cache."
     },
     {
       "id": "FEAT-004",
-      "name": "Smart Neural Cache",
-      "status": "Active",
-      "description": "Automated storage cleaning based on user limits and priority assets."
-    },
-    {
-      "id": "FEAT-005",
-      "name": "Admin Neural Console",
+      "name": "Neural Admin Console",
       "status": "Active",
       "description": "Centralized management for Chat QA, Media Review, Registry, and Knowledge Hub."
     },
     {
-      "id": "FEAT-006",
-      "name": "TechMarket & Wallet",
-      "status": "Active",
-      "description": "Decentralized asset trading with escrow protocols and offline transaction syncing."
-    },
-    {
-      "id": "FEAT-007",
+      "id": "FEAT-005",
       "name": "Market Oversight (Audit)",
       "status": "Restored",
       "description": "Admin capability to monitor global market negotiations and offers."
+    },
+    {
+      "id": "FEAT-006",
+      "name": "Financial Pulsar",
+      "status": "Restored",
+      "description": "Global transaction monitoring for system credit liquidity oversight."
+    },
+    {
+      "id": "FEAT-007",
+      "name": "App Launcher & Sandbox",
+      "status": "Restored",
+      "description": "Secure iframe-based environment to run production-ready web apps within the ecosystem."
     },
     {
       "id": "FEAT-008",
@@ -55,7 +54,7 @@
   ],
   "technical_protocols": {
     "rendering": "NextJS 15 App Router",
-    "database": "Firebase Firestore",
+    "database": "Firebase Firestore + collectionGroup Queries",
     "ai_engines": ["Google Gemini 1.5 Flash", "Groq Llama 3.3 70B"],
     "styling": "Tailwind CSS + ShadCN UI",
     "state": "Zustand + Local Persistence"

@@ -1,7 +1,6 @@
-
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
 import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard, Repeat, Loader2, CheckCircle2, AlertCircle, Sparkles, BookOpen, Rocket, MonitorSmartphone, Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -87,6 +86,7 @@ export function AppShell() {
     { id: "chat", label: "AI Chat", icon: MessageSquare },
     { id: "stream", label: "StreamHub", icon: Video },
     { id: "market", label: "TechMarket", icon: ShoppingBag },
+    { id: "launcher", label: "App Launcher", icon: Rocket },
     { id: "wallet", label: "Neural Wallet", icon: Wallet },
     { id: "offers", label: "Offers Inbox", icon: Repeat, badge: pendingOffersCount },
     { id: "learning", label: "Knowledge Hub", icon: GraduationCap },
@@ -118,6 +118,7 @@ export function AppShell() {
       case "chat": return <AIChat highlightId={highlightId} onHighlightComplete={() => setHighlightId(null)} />;
       case "stream": return <StreamHub />;
       case "market": return <TechMarket onLaunchApp={(url, title) => setLaunchedApp({url, title})} />;
+      case "launcher": return <AppLauncher />;
       case "wallet": return <WalletView />;
       case "offers": return <OffersInbox />;
       case "features": return <Capabilities />;

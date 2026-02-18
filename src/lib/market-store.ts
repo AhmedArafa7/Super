@@ -1,7 +1,7 @@
 'use client';
 
 import { initializeFirebase } from '@/firebase';
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc, where, collectionGroup } from 'firebase/firestore';
 import { supabase } from './supabaseClient';
 
 export type MarketItemStatus = 'active' | 'sold' | 'reserved' | 'archived';
@@ -107,6 +107,13 @@ export const getMarketItems = async (
     items: paginated,
     hasMore: items.length > (offset + limitSize)
   };
+};
+
+export const getAllOffersAdmin = async (): Promise<MarketOffer[]> => {
+  const { firestore } = initializeFirebase();
+  const q = query(collection(firestore, 'offers'), orderBy('timestamp', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as MarketOffer));
 };
 
 export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'status' | 'currency' | 'ownerId' | 'createdAt'>) => {
