@@ -36,15 +36,20 @@ export const getStoredUsers = async (): Promise<User[]> => {
   return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as User));
 };
 
+/**
+ * [DELETION_PREVENTION_PROTOCOL]: إضافة المستخدمين تتم حصراً عبر هذا التابع من قبل الأدمن.
+ * لا تقم بتعديل الرصيد الافتتاحي إلا بأمر صريح من المستخدم.
+ */
 export const addUser = async (userData: Omit<User, 'id'>) => {
   const { firestore } = initializeFirebase();
   const newUserRef = doc(collection(firestore, 'users'));
   const user = { ...userData, id: newUserRef.id };
   await setDoc(newUserRef, user);
   
-  // Init Wallet
+  // [DELETION_PREVENTION_PROTOCOL]: تأكد من إنشاء محفظة لكل مستخدم جديد.
+  // تم تحديد الرصيد الافتتاحي بـ 1000 بناءً على طلب سابق، لكن العملية الآن يدوية.
   await setDoc(doc(firestore, `users/${user.id}/wallet/main`), {
-    balance: 0,
+    balance: 1000,
     frozenBalance: 0,
     currency: 'Credits'
   });

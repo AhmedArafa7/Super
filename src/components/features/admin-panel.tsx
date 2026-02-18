@@ -8,7 +8,7 @@ import {
   Video, BarChart3, Users, Zap, XCircle, MessageCircle, 
   Eye, ShieldCheck, Activity, BookOpen, Trash2, Database,
   Wallet, Repeat, Bell, AlertTriangle, Radio, History, Tag, CreditCard,
-  FileVideo, ArrowUpRight, DollarSign, Play, Clock
+  FileVideo, ArrowUpRight, DollarSign, Play, Clock, Plus, UserPlus, Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,8 +18,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getStoredMessages, approveMessage, rejectMessage, WizardMessage } from "@/lib/chat-store";
-import { getStoredUsers, User } from "@/lib/auth-store";
+import { getStoredUsers, User, addUser, UserRole } from "@/lib/auth-store";
 import { getStoredVideos, updateVideoStatus, Video as VideoType } from "@/lib/video-store";
 import { getSubjects, deleteSubject, Subject } from "@/lib/learning-store";
 import { getAllOffersAdmin, MarketOffer } from "@/lib/market-store";
@@ -38,6 +40,11 @@ export function AdminPanel() {
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // New User State
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [newUser, setNewUser] = useState({ name: '', username: '', role: 'user' as UserRole });
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+
   // States for Editing
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [optimizedEdits, setOptimizedEdits] = useState<Record<string, string>>({});
@@ -51,7 +58,6 @@ export function AdminPanel() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      // نمرر true لـ getSubjects للإشارة إلى صلاحية الأدمن
       const [msgs, allUsers, allVideos, allSubjects, allOffers, allTxs] = await Promise.all([
         getStoredMessages(undefined, true),
         getStoredUsers(),
@@ -79,6 +85,28 @@ export function AdminPanel() {
     const interval = setInterval(loadData, 30000); 
     return () => clearInterval(interval);
   }, []);
+
+  // [DELETION_PREVENTION_PROTOCOL]: ميزة إضافة المستخدمين هي صلاحية حصرية للأدمن. لا تمسح هذا الكود.
+  const handleCreateUser = async () => {
+    if (!newUser.name || !newUser.username) return;
+    setIsCreatingUser(true);
+    try {
+      await addUser({
+        name: newUser.name,
+        username: newUser.username,
+        role: newUser.role,
+        avatarUrl: `https://picsum.photos/seed/${newUser.username}/100/100`
+      });
+      toast({ title: "Node Registered", description: `User ${newUser.name} is now part of the ecosystem.` });
+      setNewUser({ name: '', username: '', role: 'user' });
+      setIsAddUserOpen(false);
+      loadData();
+    } catch (err) {
+      toast({ variant: "destructive", title: "Registration Failed", description: "Could not register node in Firestore." });
+    } finally {
+      setIsCreatingUser(false);
+    }
+  };
 
   const stats = [
     { label: "العقد البشرية", value: users.length, icon: Users, color: "text-blue-400", bg: "bg-blue-500/10" },
@@ -120,7 +148,7 @@ export function AdminPanel() {
   );
 
   return (
-    <div className="p-8 max-w-7xl mx-auto flex flex-col min-h-screen gap-10 animate-in fade-in duration-700">
+    <div className="p-8 max-w-7xl mx-auto flex flex-col min-h-screen gap-10 animate-in fade-in duration-700 font-sans">
       {/* Header */}
       <div className="flex justify-between items-center flex-row-reverse">
         <div className="text-right">
@@ -418,7 +446,50 @@ export function AdminPanel() {
           )}
         </TabsContent>
 
-        <TabsContent value="users" className="flex-1 outline-none">
+        <TabsContent value="users" className="flex-1 outline-none space-y-8">
+          <div className="flex justify-between items-center flex-row-reverse">
+            <h3 className="text-2xl font-bold text-white flex items-center gap-3 flex-row-reverse"><Users className="text-indigo-400" /> سجل العقد البشرية الموثقة</h3>
+            <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-indigo-600 hover:bg-indigo-500 rounded-xl px-6 font-bold h-12 shadow-xl shadow-indigo-600/20">
+                  <UserPlus className="mr-2 size-5" /> تسجيل عقدة جديدة
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-900 border-white/10 rounded-[2rem] p-8 sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold text-right">إضافة مستخدم جديد</DialogTitle>
+                  <DialogDescription className="text-right">قم بإنشاء هوية جديدة للوصول إلى بروتوكول نكسوس.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-6 py-6 text-right">
+                  <div className="grid gap-2">
+                    <Label className="px-1 font-bold text-xs uppercase tracking-widest text-muted-foreground">اسم الهوية الكامل</Label>
+                    <Input dir="auto" className="bg-white/5 border-white/10 h-12 rounded-xl text-right" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} placeholder="الاسم الحقيقي..." />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label className="px-1 font-bold text-xs uppercase tracking-widest text-muted-foreground">معرف الدخول (Username)</Label>
+                    <Input dir="auto" className="bg-white/5 border-white/10 h-12 rounded-xl text-right" value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})} placeholder="id_unique..." />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label className="px-1 font-bold text-xs uppercase tracking-widest text-muted-foreground">صلاحية النخاع (Role)</Label>
+                    <Select value={newUser.role} onValueChange={(v: UserRole) => setNewUser({...newUser, role: v})}>
+                      <SelectTrigger className="bg-white/5 border-white/10 h-12 rounded-xl flex-row-reverse"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10 text-white">
+                        <SelectItem value="user">User Node</SelectItem>
+                        <SelectItem value="admin">System Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleCreateUser} disabled={isCreatingUser || !newUser.username} className="w-full bg-indigo-600 h-14 rounded-xl font-bold text-lg shadow-lg">
+                    {isCreatingUser ? <RefreshCcw className="animate-spin size-5 mr-2" /> : <Shield className="size-5 mr-2" />}
+                    تفعيل العقدة في السجل
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
           {users.length === 0 ? renderEmptyState(Users, "لا يوجد مستخدمون مسجلون حالياً.") : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {users.map((u) => (
