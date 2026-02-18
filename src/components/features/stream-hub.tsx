@@ -21,7 +21,8 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
-const VAULT_FOLDER_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
+// [FIX]: تحديث الرابط لصيغة Embed لتجنب خطأ 403 Forbidden
+const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g#grid";
 
 const getYoutubeId = (url?: string) => {
   if (!url) return null;
@@ -237,7 +238,7 @@ export function StreamHub({ onOpenVault }: { onOpenVault?: () => void }) {
                         className="gap-2 text-indigo-400 font-bold" 
                         onClick={() => {
                           if (onOpenVault) onOpenVault();
-                          else window.open(VAULT_FOLDER_URL, '_blank');
+                          else window.open(VAULT_EMBED_URL, '_blank');
                           setIsModalOpen(false);
                         }}
                       >

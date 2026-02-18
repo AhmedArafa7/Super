@@ -102,7 +102,7 @@ const MessageItem = memo(({
             <p dir="auto" className="text-sm leading-relaxed whitespace-pre-wrap text-right">{msg.originalText || msg.text}</p>
           </div>
           
-          {/* [UI_TRANSPARENCY]: بروتوكول الشفافية - عرض التحسين العصبي */}
+          {/* [UI_TRANSPARENCY]: بروتوكول الشفافية السيادي - عرض التحسين العصبي */}
           {msg.optimizedText && msg.optimizedText !== msg.originalText && (
             <div className="w-full mt-1 flex flex-col items-end gap-2">
               <button 
@@ -115,7 +115,8 @@ const MessageItem = memo(({
               
               {showOptimized && (
                 <div className="w-full animate-in fade-in slide-in-from-top-1 duration-300">
-                  <div className="h-px bg-white/40 w-full mb-2" /> {/* الخط الفاصل الأبيض السيادي */}
+                  {/* الخط الأبيض الفاصل السيادي */}
+                  <div className="h-px bg-white/40 w-full mb-2" /> 
                   <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-right backdrop-blur-sm">
                     <p className="text-[9px] text-indigo-400 font-black uppercase mb-1 tracking-[0.2em]">النص المحسن عصبيًا</p>
                     <p dir="auto" className="text-xs text-indigo-100/70 italic leading-relaxed">{msg.optimizedText}</p>
@@ -155,6 +156,7 @@ const MessageItem = memo(({
                   {isSpeaking ? <Loader2 className="size-3 animate-spin" /> : <Volume2 className="size-3" />}
                   {audioUrl ? "إعادة النطق" : "نطق الرد"}
                 </Button>
+                {/* [SIMPLIFIED_NAMING]: عرض الأسماء المبسطة فقط (Flash, Thinking, Pro) */}
                 <div className="flex items-center gap-2 opacity-40 text-[9px] font-mono tracking-tighter">
                   <Zap className="size-3 text-indigo-400" />
                   <span>{msg.engine}</span>

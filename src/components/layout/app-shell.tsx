@@ -34,20 +34,20 @@ import { LoginView } from "@/components/auth/login-view";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
-const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
+// [FIX]: استخدام صيغة الرابط القابلة للتضمين (Embed) لتجنب خطأ 403
+const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g#grid";
 
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<NavItemId>("dashboard");
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingOffersCount, setPendingOffersCount] = useState(0);
-  const [highlightId, setHighlightId] = useState<string | null>(null);
   
   const processOfflineQueue = useWalletStore(state => state.processOfflineQueue);
   const uploadTasks = useUploadStore(state => state.tasks);
   const setCurrentTab = useStreamStore(state => state.setCurrentTab);
   
-  const { pinnedItems, togglePin, isPinned } = useSidebarStore();
+  const { isPinned, togglePin } = useSidebarStore();
 
   const [launchedApp, setLaunchedApp] = useState<{url: string, title: string} | null>(null);
 
@@ -108,7 +108,10 @@ export function AppShell() {
           <header className="h-14 border-b border-white/5 bg-slate-900 flex items-center justify-between px-6 shrink-0 flex-row-reverse">
             <div className="flex items-center gap-3 flex-row-reverse">
               <h2 className="text-sm font-bold text-white">{launchedApp.title}</h2>
-              <div className="size-2 rounded-full bg-green-500 animate-pulse" />
+              <div className="flex items-center gap-2 px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full">
+                <div className="size-1.5 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-[8px] uppercase font-black text-green-400 tracking-tighter">Vault Protocol Active</span>
+              </div>
             </div>
             <Button variant="destructive" size="sm" onClick={() => setLaunchedApp(null)} className="h-8 rounded-lg px-4 font-bold text-xs gap-2">
               <X className="size-3" /> إغلاق العقدة
@@ -116,8 +119,9 @@ export function AppShell() {
           </header>
           <iframe 
             src={launchedApp.url} 
-            className="flex-1 w-full border-none bg-white" 
+            className="flex-1 w-full border-none bg-slate-50" 
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            title={launchedApp.title}
           />
         </div>
       );
@@ -126,7 +130,7 @@ export function AppShell() {
     switch (activeTab) {
       case "dashboard": return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
       case "chat": return <AIChat />;
-      case "stream": return <StreamHub onOpenVault={() => setLaunchedApp({url: VAULT_URL, title: "Nexus Central Vault"})} />;
+      case "stream": return <StreamHub onOpenVault={() => setLaunchedApp({url: VAULT_EMBED_URL, title: "Nexus Central Vault"})} />;
       case "market": return <TechMarket onLaunchApp={(url, title) => setLaunchedApp({url, title})} />;
       case "launcher": return <AppLauncher />;
       case "wallet": return <WalletView />;
