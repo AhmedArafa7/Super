@@ -1,39 +1,51 @@
 
 {
   "project": "NexusAI Ecosystem",
-  "last_sync": "2024-05-20T18:00:00Z",
-  "version": "4.7.0",
+  "last_sync": "2024-05-21T10:00:00Z",
+  "version": "5.0.0",
   "feature_history": [
     {
-      "id": "FEAT-012",
-      "name": "Hierarchical Power Protocol",
+      "id": "FEAT-015",
+      "name": "Neural Singularity Protocol",
       "status": "Active",
-      "description": "3-tier roles: User, Employee, Admin. Financial authority (canManageCredits) is now a separate privilege granted only by the root node."
+      "description": "Integration of Vision, Imagen 4, Neural TTS, and System Tools into the AI Engine."
+    },
+    {
+      "id": "FEAT-014",
+      "name": "Financial Sovereignty Protocol",
+      "status": "Active",
+      "description": "Separation of credit management authority from Admin role. Only root-authorized nodes can distribute credits."
+    },
+    {
+      "id": "FEAT-013",
+      "name": "Triple Role Hierarchy",
+      "status": "Active",
+      "description": "Defined User, Employee, and Admin tiers with isolated permission logic."
+    },
+    {
+      "id": "FEAT-012",
+      "name": "Silent Classification Protocol",
+      "status": "Active",
+      "description": "User roles are hidden from the public UI to maintain hierarchy confidentiality."
     },
     {
       "id": "FEAT-011",
-      "name": "Admin Registry: Role Management",
+      "name": "App Launcher Sandbox",
       "status": "Active",
-      "description": "Admin can now re-classify any node (User/Employee/Admin) directly from the registry console."
+      "description": "Safe environment for running external production nodes within NexusAI Shell."
     },
     {
       "id": "FEAT-010",
-      "name": "Silent Classification Protocol",
+      "name": "Market & Negotiation Stream",
       "status": "Active",
-      "description": "User roles are hidden in the sidebar and dashboard, visible only to authorized admin nodes."
-    },
-    {
-      "id": "FEAT-009",
-      "name": "Self-Registration Protocol",
-      "status": "Active",
-      "description": "Allows new users to create nodes and automatically receive starting credits."
+      "description": "Escrow-protected peer-to-peer asset acquisition with Price/Trade options."
     }
   ],
   "technical_protocols": {
-    "rendering": "NextJS 15 App Router",
-    "database": "Firebase Firestore + collectionGroup Queries",
-    "ai_engines": ["Google Gemini 1.5 Flash", "Groq Llama 3.3 70B"],
-    "styling": "Tailwind CSS + ShadCN UI",
-    "state": "Zustand + Local Persistence"
+    "rendering": "NextJS 15 App Router (Turbopack)",
+    "database": "Firebase Firestore + Client-side Sorting",
+    "ai_engines": ["Google Gemini 1.5 Flash", "Groq Llama 3.3 70B", "Imagen 4.0", "Neural TTS"],
+    "state": "Zustand + Local Persistence",
+    "security": "Custom Firestore Rules + E2EE Wallet Sync"
   }
 }

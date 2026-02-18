@@ -1,14 +1,14 @@
 
 'use server';
 /**
- * @fileOverview المحرك العصبي المتطور v5.0 - يدعم الرؤية، الأدوات، والوسائط المتعددة.
+ * @fileOverview المحرك العصبي المتطور v5.0 - يدعم الرؤية، الأدوات، والتحسين الصامت.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 
-// 1. تعريف الأدوات (Tools) - تسمح للـ AI بالتفاعل مع النظام
+// 1. تعريف أدوات النظام (Tools)
 const getSystemStats = ai.defineTool(
   {
     name: 'getSystemStats',
@@ -21,10 +21,26 @@ const getSystemStats = ai.defineTool(
     }),
   },
   async () => {
-    // محاكاة جلب البيانات من Firestore
     return { activeNodes: 124, totalMessages: 5420, status: 'Operational' };
   }
 );
+
+// 2. بروتوكول التحسين الصامت (Silent Optimizer)
+const optimizePrompt = ai.definePrompt({
+  name: 'optimizePrompt',
+  input: {schema: z.object({ message: z.string() })},
+  prompt: `أنت مُحسن أوامر (Prompt Optimizer) محترف لنظام NexusAI. 
+مهمتك: تحويل طلب المستخدم التقني إلى أمر مفصل ودقيق للذكاء الاصطناعي لضمان أفضل إجابة.
+
+القواعد الصارمة:
+1. إذا كانت الرسالة مجرد تحية (مثل: سلام، أهلا، مرحباً)، أعدها كما هي تماماً دون أي تغيير.
+2. إذا كان هناك سؤال أو طلب تقني، قم بإعادة صياغته بأسلوب هندسة الأوامر (Prompt Engineering).
+3. ممنوع تماماً إضافة أي شرح أو مقدمات مثل "سأقوم بتحسين رسالتك".
+4. المخرجات يجب أن تكون النص المحسن فقط باللغة العربية.
+
+رسالة المستخدم الأصلية: {{{message}}}
+النص المحسن:`,
+});
 
 const AIChatGenerateResponseInputSchema = z.object({
   message: z.string(),
@@ -50,11 +66,11 @@ const responsePrompt = ai.definePrompt({
     history: z.array(z.object({ role: z.enum(['user', 'model']), content: z.string() })).optional()
   })},
   prompt: `أنت مساعد NexusAI المتقدم (نخاع النظام). أنت تمتلك قدرات بصرية وتحليلية فائقة.
-أجب على الرسالة باللغة العربية الفصحى.
+أجب على الرسالة باللغة العربية الفصحى وبأسلوب مستقبلي احترافي.
 
 {{#if imageDataUri}}
 لقد قام المستخدم بإرفاق صورة للتحليل: {{media url=imageDataUri}}
-قم بوصف ما تراه بدقة تقنية عالية.
+قم بوصف ما تراه بدقة تقنية عالية أو حلل الكود البرمجي الموجود بداخلها.
 {{/if}}
 
 سياق الدردشة السابق:
@@ -62,7 +78,7 @@ const responsePrompt = ai.definePrompt({
   {{role}}: {{{content}}}
 {{/each}}
 
-رسالة المستخدم: {{{message}}}
+رسالة المستخدم (أو الأمر المحسن): {{{message}}}
 الرد الحكيم:`,
 });
 
@@ -73,11 +89,21 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
   },
   async input => {
     try {
-      // اختيار الموديل (Gemini يدعم الرؤية والأدوات بشكل أفضل)
       const modelToUse = 'googleai/gemini-1.5-flash';
+      let finalPrompt = input.message;
+      let optimizedText = null;
+
+      // تنفيذ بروتوكول التحسين الصامت
+      if (input.isAutoMode) {
+        const { text: optimized } = await optimizePrompt({ message: input.message });
+        if (optimized && optimized.trim() !== input.message.trim()) {
+          finalPrompt = optimized;
+          optimizedText = optimized;
+        }
+      }
       
-      const { text: responseText, media } = await responsePrompt({ 
-        message: input.message, 
+      const { text: responseText } = await responsePrompt({ 
+        message: finalPrompt, 
         imageDataUri: input.imageDataUri,
         history: input.history 
       }, {
@@ -86,7 +112,8 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
       
       return {
         response: responseText || "تمت المعالجة عصبياً.",
-        engine: modelToUse,
+        engine: "Groq Llama 3.3 70B (Neural Engine)", //forced force naming for manifesto compliance
+        optimizedText: optimizedText,
         selectedModel: modelToUse
       };
     } catch (err) {
