@@ -1,27 +1,35 @@
 
 'use server';
 /**
- * @fileOverview المحرك العصبي المتطور v5.0 - يدعم الرؤية، الأدوات، والتحسين الصامت، واختيار الموديل اليدوي.
+ * @fileOverview المحرك العصبي المتطور v5.5 - يدعم الرؤية، الأدوات، التحسين الصامت، وتكامل Nexus Vault.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 
+const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
+
 // 1. تعريف أدوات النظام (Tools)
 const getSystemStats = ai.defineTool(
   {
     name: 'getSystemStats',
-    description: 'جلب إحصائيات النظام الحية (عدد المستخدمين، الرسائل).',
+    description: 'جلب إحصائيات النظام الحية وموقع خزنة التخزين الضخمة.',
     inputSchema: z.object({}),
     outputSchema: z.object({
       activeNodes: z.number(),
       totalMessages: z.number(),
+      vaultUrl: z.string(),
       status: z.string()
     }),
   },
   async () => {
-    return { activeNodes: 124, totalMessages: 5420, status: 'Operational' };
+    return { 
+      activeNodes: 124, 
+      totalMessages: 5420, 
+      vaultUrl: VAULT_URL,
+      status: 'Operational' 
+    };
   }
 );
 
@@ -67,6 +75,8 @@ const responsePrompt = ai.definePrompt({
   })},
   prompt: `أنت مساعد NexusAI المتقدم (نخاع النظام). أنت تمتلك قدرات بصرية وتحليلية فائقة.
 أجب على الرسالة باللغة العربية الفصحى وبأسلوب مستقبلي احترافي.
+
+معلومات النظام: لدينا خزنة تخزين مركزية (Nexus Vault) للملفات الكبيرة على الرابط: ${VAULT_URL}.
 
 {{#if imageDataUri}}
 لقد قام المستخدم بإرفاق صورة للتحليل: {{media url=imageDataUri}}
@@ -116,7 +126,7 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
         model: modelToUse as any
       });
       
-      // [SIMPLIFIED_NAMING]: استخلاص الأسماء المبسطة للموديلات لحجب أرقام الإصدارات وفق طلب المستخدم
+      // [SIMPLIFIED_NAMING]: استخلاص الأسماء المبسطة للموديلات لحجب أرقام الإصدارات وفق بروتوكول نكسوس
       let engineName = "Neural Engine";
       if (modelToUse.includes('gemini-1.5-pro')) engineName = "Gemini Pro";
       else if (modelToUse.includes('gemini-2.0')) engineName = "Gemini Thinking";

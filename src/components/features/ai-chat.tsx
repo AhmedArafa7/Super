@@ -293,8 +293,8 @@ export function AIChat() {
             {messages.length === 0 && !isAITyping && (
               <EmptyState 
                 icon={Sparkles} 
-                title="نظام NexusAI v5.0" 
-                description="أنا الآن أدعم الرؤية الحاسوبية، التحسين الصامت للأوامر، وتوليد الصور السينمائية. كيف يمكنني خدمتك تقنياً اليوم؟" 
+                title="نظام NexusAI v5.5" 
+                description="أنا الآن أدعم الرؤية الحاسوبية، التحسين الصامت للأوامر، وتكامل Nexus Vault لتخزين الملفات الضخمة. كيف يمكنني خدمتك تقنياً اليوم؟" 
               />
             )}
             {messages.map(m => (

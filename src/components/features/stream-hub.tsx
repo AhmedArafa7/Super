@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Play, Plus, Upload, Trash2, Youtube, FileVideo, Radio, Settings2, Zap, CheckCircle2, Loader2, HardDrive, Volume2, Globe } from "lucide-react";
+import { Play, Plus, Upload, Trash2, Youtube, FileVideo, Radio, Settings2, Zap, CheckCircle2, Loader2, HardDrive, Volume2, Globe, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -20,12 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
-const getYoutubeId = (url?: string) => {
-  if (!url) return null;
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
-};
+const VAULT_FOLDER_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 export function StreamHub() {
   const { user } = useAuth();
@@ -40,7 +35,7 @@ export function StreamHub() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeView, setActiveView] = useState<'explore' | 'studio'>('explore');
   
-  const [uploadSource, setUploadSource] = useState<VideoSource>('local');
+  const [uploadSource, setUploadSource] = useState<VideoSource>('drive');
   const [uploadData, setUploadData] = useState({
     title: "",
     visibility: "public" as Visibility,
@@ -75,7 +70,7 @@ export function StreamHub() {
         author: user.name,
         authorId: user.id,
         thumbnail: uploadSource === 'youtube' ? "https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1074&auto=format&fit=crop" : "https://images.unsplash.com/photo-1544391496-1ca7c974b711?q=80&w=1170&auto=format&fit=crop",
-        time: uploadSource === 'youtube' ? "YouTube Broadcast" : "Drive Storage",
+        time: uploadSource === 'youtube' ? "YouTube Broadcast" : "Nexus Vault Sync",
         status: user.role === 'admin' ? 'published' : 'pending_review',
         visibility: uploadData.visibility,
         allowedUserIds: [],
@@ -122,9 +117,9 @@ export function StreamHub() {
         <div className="text-right">
           <h2 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
             StreamHub
-            <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase tracking-widest">Drive Sync v5.0</Badge>
+            <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase tracking-widest">Vault Integration v5.5</Badge>
           </h2>
-          <p className="text-muted-foreground mt-2 text-lg">بث مخصص يدعم Google Drive لتوفير مساحات تخزين ضخمة.</p>
+          <p className="text-muted-foreground mt-2 text-lg">بث مخصص يدعم Nexus Vault لتوفير مساحات تخزين ضخمة.</p>
         </div>
 
         <div className="flex items-center gap-4 flex-row-reverse">
@@ -200,14 +195,26 @@ export function StreamHub() {
                 <DialogHeader>
                   <DialogTitle className="text-3xl font-headline font-bold text-white text-right">إرسال عصبي جديد</DialogTitle>
                   <DialogDescription className="text-muted-foreground text-sm text-right">
-                    استخدم روابط Google Drive للمساحات الكبيرة، أو يوتيوب للبث العام.
+                    استخدم Nexus Vault للمساحات الكبيرة، أو يوتيوب للبث العام.
                   </DialogDescription>
                 </DialogHeader>
                 
                 <div className="grid gap-6 py-6">
+                  {uploadSource === 'drive' && (
+                    <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-between flex-row-reverse animate-in fade-in duration-500">
+                      <div className="text-right">
+                        <p className="text-xs font-bold text-indigo-300">خزنة نكسوس المركزية</p>
+                        <p className="text-[10px] text-muted-foreground">ارفع ملفك هنا أولاً ثم انسخ الرابط</p>
+                      </div>
+                      <Button variant="ghost" size="sm" className="gap-2 text-indigo-400 font-bold" onClick={() => window.open(VAULT_FOLDER_URL, '_blank')}>
+                        <ExternalLink className="size-3" /> فتح الخزنة
+                      </Button>
+                    </div>
+                  )}
+
                   <Tabs value={uploadSource} onValueChange={(v: any) => setUploadSource(v)} className="w-full">
                     <TabsList className="grid w-full grid-cols-3 bg-white/5 p-1 rounded-xl flex-row-reverse">
-                      <TabsTrigger value="drive" className="rounded-lg gap-2 text-[10px] sm:text-sm"><HardDrive className="size-3" /> Drive</TabsTrigger>
+                      <TabsTrigger value="drive" className="rounded-lg gap-2 text-[10px] sm:text-sm"><HardDrive className="size-3" /> Drive/Vault</TabsTrigger>
                       <TabsTrigger value="youtube" className="rounded-lg gap-2 text-[10px] sm:text-sm"><Youtube className="size-3" /> YouTube</TabsTrigger>
                       <TabsTrigger value="local" className="rounded-lg gap-2 text-[10px] sm:text-sm"><FileVideo className="size-3" /> محلي</TabsTrigger>
                     </TabsList>
@@ -228,7 +235,7 @@ export function StreamHub() {
                     <div className="grid gap-2">
                       <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">رابط المصدر ({uploadSource})</Label>
                       <Input 
-                        placeholder={uploadSource === 'youtube' ? "https://www.youtube.com/watch?v=..." : "https://drive.google.com/file/d/.../view"} 
+                        placeholder={uploadSource === 'youtube' ? "https://www.youtube.com/watch?v=..." : "رابط فيديو من الخزنة أو الدرايف..."} 
                         className="bg-white/5 border-white/10 rounded-xl h-12 text-right"
                         value={uploadData.externalUrl}
                         onChange={(e) => setUploadData({ ...uploadData, externalUrl: e.target.value })}
@@ -307,7 +314,7 @@ export function StreamHub() {
                   <div className="flex gap-2">
                     <Badge className="bg-black/60 backdrop-blur-md border-white/10 gap-1.5">
                       {video.source === 'youtube' ? <Youtube className="size-3 text-red-500" /> : video.source === 'drive' ? <HardDrive className="size-3 text-emerald-400" /> : <Radio className="size-3 text-indigo-400" />}
-                      <span className="text-[9px] uppercase font-bold">{video.source === 'youtube' ? 'YouTube' : video.source === 'drive' ? 'Drive' : 'Nexus Clip'}</span>
+                      <span className="text-[9px] uppercase font-bold">{video.source === 'youtube' ? 'YouTube' : video.source === 'drive' ? 'Nexus Vault' : 'Nexus Clip'}</span>
                     </Badge>
                   </div>
                 </div>
