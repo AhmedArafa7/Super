@@ -26,7 +26,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useChatStore, WizardMessage, Attachment } from "@/lib/chat-store";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/components/auth/auth-provider";
+import { useAuth } from "@/components/auth/provider"; // Note: Fixed import from previous turns context if needed
+import { useAuth as useNexusAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/ui/empty-state";
 import { aiChatGenerateResponse } from "@/ai/flows/ai-chat-generate-response";
@@ -177,7 +178,7 @@ const MessageItem = memo(({
 });
 
 export function AIChat() {
-  const { user } = useAuth();
+  const { user } = useNexusAuth();
   const { toast } = useToast();
   const { 
     messages, sendMessage, provideAIResponse, loadMessages, 

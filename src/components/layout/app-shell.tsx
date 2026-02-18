@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
-import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard, Repeat, Loader2, CheckCircle2, AlertCircle, Sparkles, BookOpen, Rocket, MonitorSmartphone, Plus, X } from "lucide-react";
+import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard, Repeat, Loader2, CheckCircle2, AlertCircle, Sparkles, BookOpen, Rocket, MonitorSmartphone, Plus, X, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,8 +34,9 @@ import { LoginView } from "@/components/auth/login-view";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
-// [FIX]: استخدام صيغة الرابط القابلة للتضمين (Embed) لتجنب خطأ 403
-const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g#grid";
+// [FIX]: استخدام صيغة الرابط القابلة للتضمين (Embed) مع دعم الـ List View لزيادة التوافق
+const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g#list";
+const VAULT_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -49,7 +50,7 @@ export function AppShell() {
   
   const { isPinned, togglePin } = useSidebarStore();
 
-  const [launchedApp, setLaunchedApp] = useState<{url: string, title: string} | null>(null);
+  const [launchedApp, setLaunchedApp] = useState<{url: string, title: string, isVault?: boolean} | null>(null);
 
   useEffect(() => {
     setCurrentTab(activeTab);
@@ -113,16 +114,31 @@ export function AppShell() {
                 <span className="text-[8px] uppercase font-black text-green-400 tracking-tighter">Vault Protocol Active</span>
               </div>
             </div>
-            <Button variant="destructive" size="sm" onClick={() => setLaunchedApp(null)} className="h-8 rounded-lg px-4 font-bold text-xs gap-2">
-              <X className="size-3" /> إغلاق العقدة
-            </Button>
+            <div className="flex items-center gap-2">
+              {launchedApp.isVault && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => window.open(VAULT_SHARE_URL, '_blank')}
+                  className="h-8 rounded-lg px-4 font-bold text-xs gap-2 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/10"
+                >
+                  <ExternalLink className="size-3" /> فتح في نافذة مستقلة
+                </Button>
+              )}
+              <Button variant="destructive" size="sm" onClick={() => setLaunchedApp(null)} className="h-8 rounded-lg px-4 font-bold text-xs gap-2">
+                <X className="size-3" /> إغلاق العقدة
+              </Button>
+            </div>
           </header>
-          <iframe 
-            src={launchedApp.url} 
-            className="flex-1 w-full border-none bg-slate-50" 
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-            title={launchedApp.title}
-          />
+          <div className="flex-1 w-full bg-slate-950 relative">
+            <iframe 
+              src={launchedApp.url} 
+              className="absolute inset-0 size-full border-none bg-slate-50" 
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              title={launchedApp.title}
+            />
+          </div>
         </div>
       );
     }
@@ -130,7 +146,7 @@ export function AppShell() {
     switch (activeTab) {
       case "dashboard": return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
       case "chat": return <AIChat />;
-      case "stream": return <StreamHub onOpenVault={() => setLaunchedApp({url: VAULT_EMBED_URL, title: "Nexus Central Vault"})} />;
+      case "stream": return <StreamHub onOpenVault={() => setLaunchedApp({url: VAULT_EMBED_URL, title: "Nexus Central Vault", isVault: true})} />;
       case "market": return <TechMarket onLaunchApp={(url, title) => setLaunchedApp({url, title})} />;
       case "launcher": return <AppLauncher />;
       case "wallet": return <WalletView />;
