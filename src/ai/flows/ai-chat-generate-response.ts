@@ -1,7 +1,7 @@
 
 'use server';
 /**
- * @fileOverview المحرك العصبي المتطور v5.0 - يدعم الرؤية، الأدوات، والتحسين الصامت.
+ * @fileOverview المحرك العصبي المتطور v5.0 - يدعم الرؤية، الأدوات، والتحسين الصامت، واختيار الموديل اليدوي.
  */
 
 import {ai} from '@/ai/genkit';
@@ -89,16 +89,22 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
   },
   async input => {
     try {
-      const modelToUse = 'googleai/gemini-1.5-flash';
+      // تحديد الموديل المطلوب استخدامه
+      let modelToUse = input.isAutoMode ? 'googleai/gemini-1.5-flash' : (input.manualModel || 'googleai/gemini-1.5-flash');
+      
       let finalPrompt = input.message;
       let optimizedText = null;
 
-      // تنفيذ بروتوكول التحسين الصامت
+      // تنفيذ بروتوكول التحسين الصامت فقط في الوضع التلقائي
       if (input.isAutoMode) {
-        const { text: optimized } = await optimizePrompt({ message: input.message });
-        if (optimized && optimized.trim() !== input.message.trim()) {
-          finalPrompt = optimized;
-          optimizedText = optimized;
+        try {
+          const { text: optimized } = await optimizePrompt({ message: input.message });
+          if (optimized && optimized.trim() !== input.message.trim()) {
+            finalPrompt = optimized;
+            optimizedText = optimized;
+          }
+        } catch (optErr) {
+          console.error("Optimization failed, using original message", optErr);
         }
       }
       
@@ -112,16 +118,13 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
       
       return {
         response: responseText || "تمت المعالجة عصبياً.",
-        engine: "Groq Llama 3.3 70B (Neural Engine)", //forced force naming for manifesto compliance
+        engine: modelToUse.includes('groq') ? "Groq Llama 3.3 70B (Neural Engine)" : "Gemini 1.5 Flash (Core Engine)",
         optimizedText: optimizedText,
         selectedModel: modelToUse
       };
     } catch (err) {
       console.error("Neural Execution Error:", err);
-      return {
-        response: "حدث اضطراب في المزامنة العصبية. يرجى إعادة المحاولة.",
-        engine: "Error"
-      };
+      throw new Error("حدث اضطراب في المزامنة العصبية: " + (err as Error).message);
     }
   }
 );

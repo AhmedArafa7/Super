@@ -5,7 +5,7 @@ import React, { useState, useRef, useEffect, memo } from "react";
 import { 
   Send, Bot, User, Sparkles, Paperclip, Mic, Loader2, Pencil, 
   Trash2, X, FileText, Download, MoreVertical, Zap, ChevronDown, 
-  ChevronUp, ImageIcon, Volume2, Wand2 
+  ChevronUp, ImageIcon, Volume2, Wand2, Settings2, Check, Cpu
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,8 +14,17 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel
 } from "@/components/ui/dropdown-menu";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useChatStore, WizardMessage, Attachment } from "@/lib/chat-store";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -80,7 +89,7 @@ const MessageItem = memo(({
             <p dir="auto" className="text-sm leading-relaxed whitespace-pre-wrap text-right">{msg.originalText || msg.text}</p>
           </div>
           
-          {/* بروتوكول التحسين العصبي (الظهور الشفاف كما في الدستور) */}
+          {/* بروتوكول التحسين العصبي */}
           {msg.optimizedText && msg.optimizedText !== msg.originalText && (
             <div className="w-full mt-1 flex flex-col items-end gap-2">
               <button 
@@ -155,7 +164,11 @@ const MessageItem = memo(({
 export function AIChat() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { messages, sendMessage, provideAIResponse, loadMessages, updateMessageRequest, deleteMessage } = useChatStore();
+  const { 
+    messages, sendMessage, provideAIResponse, loadMessages, 
+    updateMessageRequest, deleteMessage, autoMode, setAutoMode,
+    selectedManualModel, setSelectedManualModel 
+  } = useChatStore();
 
   const [input, setInput] = useState("");
   const [isAITyping, setIsAITyping] = useState(false);
@@ -214,7 +227,8 @@ export function AIChat() {
         const res = await aiChatGenerateResponse({
           message: userText,
           imageDataUri: visionData,
-          isAutoMode: true,
+          isAutoMode: autoMode,
+          manualModel: selectedManualModel,
           history: messages.slice(-6).map(m => ({ 
             role: m.status === 'replied' ? 'model' : 'user', 
             content: m.response || m.text 
@@ -229,7 +243,7 @@ export function AIChat() {
         });
       }
     } catch (err) {
-      toast({ variant: "destructive", title: "Neural Link Error", description: "تعذر الاتصال بالنخاع حالياً." });
+      toast({ variant: "destructive", title: "Neural Link Error", description: "تعذر الاتصال بالنخاع حالياً. " + (err as Error).message });
     } finally {
       setIsAITyping(false);
     }
@@ -329,13 +343,62 @@ export function AIChat() {
               >
                 <ImageIcon className="size-6" />
               </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="size-14 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:text-indigo-400 transition-all shadow-inner"
-              >
-                <Mic className="size-6" />
-              </Button>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="size-14 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:text-indigo-400 transition-all shadow-inner"
+                  >
+                    <Settings2 className="size-6" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 bg-slate-900 border-white/10 p-6 rounded-[2rem] shadow-2xl">
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between flex-row-reverse">
+                      <h4 className="font-bold text-sm text-white">إعدادات النخاع العصبى</h4>
+                      <Cpu className="size-4 text-indigo-400" />
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between flex-row-reverse">
+                        <div className="text-right">
+                          <Label className="text-xs font-bold text-white">الوضع التلقائي الذكي</Label>
+                          <p className="text-[9px] text-muted-foreground">تحسين الأوامر واختيار أفضل موديل تلقائياً</p>
+                        </div>
+                        <Switch checked={autoMode} onCheckedChange={setAutoMode} />
+                      </div>
+
+                      {!autoMode && (
+                        <div className="space-y-2 pt-4 border-t border-white/5">
+                          <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest block text-right">اختيار المحرك اليدوي</Label>
+                          <div className="grid gap-2">
+                            {[
+                              { id: 'googleai/gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+                              { id: 'groq/llama-3.3-70b-versatile', label: 'Groq Llama 3.3 70B' }
+                            ].map(m => (
+                              <Button 
+                                key={m.id}
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => setSelectedManualModel(m.id)}
+                                className={cn(
+                                  "w-full justify-between h-9 rounded-xl px-4 text-xs flex-row-reverse",
+                                  selectedManualModel === m.id ? "bg-primary text-white" : "bg-white/5 text-muted-foreground"
+                                )}
+                              >
+                                {m.label}
+                                {selectedManualModel === m.id && <Check className="size-3" />}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <Input 
