@@ -245,237 +245,247 @@ export function HisnAlMuslim() {
         </TabsList>
 
         <AnimatePresence mode="wait">
-          <TabsContent value="quran" className="space-y-8 focus-visible:ring-0">
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <div className="relative max-w-3xl mx-auto mb-12">
-                <Search className="absolute right-6 top-1/2 -translate-y-1/2 size-6 text-muted-foreground" />
-                <Input dir="auto" placeholder="ابحث عن سورة بالاسم أو الرقم..." className="w-full h-16 bg-white/5 border-white/10 rounded-[2rem] pr-16 pl-8 text-xl text-right focus-visible:ring-primary shadow-2xl" value={search} onChange={(e) => setSearch(e.target.value)} />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredQuran.map((s) => {
-                  const isDownloaded = downloadedAssets.some(a => a.id === s.id);
-                  const isFav = downloadedAssets.find(a => a.id === s.id)?.isFavorite;
-                  const isCurrent = currentSurah?.id === s.id;
-
-                  return (
-                    <Card key={s.id} className={cn("group glass border-white/5 rounded-[2.5rem] overflow-hidden transition-all duration-500 hover:border-primary/40", isCurrent && "ring-2 ring-primary border-primary/50 shadow-primary/10")}>
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between mb-6 flex-row-reverse">
-                          <div className="size-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary font-black text-lg">
-                            {s.id}
-                          </div>
-                          <div className="flex gap-2">
-                            {isDownloaded && (
-                              <Button variant="ghost" size="icon" className={cn("size-8 rounded-full", isFav ? "text-amber-400" : "text-white/20")} onClick={() => toggleFavorite(s.id)}>
-                                <Star className={cn("size-4", isFav && "fill-amber-400")} />
-                              </Button>
-                            )}
-                            <Badge variant="outline" className={cn("text-[8px] uppercase font-bold", isDownloaded ? "border-green-500/30 text-green-400" : "border-white/5 opacity-50")}>
-                              {isDownloaded ? "عقدة محلية" : "سحابي"}
-                            </Badge>
-                          </div>
-                        </div>
-                        
-                        <div className="text-right mb-8">
-                          <h3 className="text-2xl font-bold text-white mb-1 group-hover:text-primary transition-colors">{s.name}</h3>
-                          <p className="text-xs text-muted-foreground">{s.reciter}</p>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-4 border-t border-white/5 flex-row-reverse">
-                          <div className="flex gap-2 flex-row-reverse">
-                            <Button onClick={() => setCurrentSurah(s)} className={cn("size-14 rounded-[1.25rem] shadow-lg active:scale-95 transition-all", isCurrent && isPlaying ? "bg-red-500 hover:bg-red-600" : "bg-primary hover:bg-primary/90")}>
-                              {isCurrent && isPlaying ? <Pause className="size-6" /> : <Play className="size-6 ml-1" />}
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              onClick={() => setReadingSurah(s)}
-                              className="size-14 rounded-[1.25rem] border border-white/10 hover:bg-white/5 text-indigo-400"
-                            >
-                              <BookOpen className="size-6" />
-                            </Button>
-                          </div>
-                          <div className="text-left">
-                            <span className="text-[10px] font-mono text-muted-foreground bg-white/5 px-2 py-1 rounded-md">{s.sizeMB} MB</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </motion.div>
-          </TabsContent>
-
-          <TabsContent value="azkar" className="space-y-12">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <div className="relative max-w-3xl mx-auto">
-                <Search className="absolute right-6 top-1/2 -translate-y-1/2 size-6 text-muted-foreground" />
-                <Input dir="auto" placeholder="البحث في الأذكار..." className="w-full h-16 bg-white/5 border-white/10 rounded-[2rem] pr-16 pl-8 text-xl text-right shadow-2xl" value={search} onChange={(e) => setSearch(e.target.value)} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredCategories.map((cat) => {
-                  const CategoryIcon = cat.icon === 'Sun' ? Sun : cat.icon === 'Moon' ? Moon : cat.icon === 'Globe' ? Globe : BookOpen;
-                  return (
-                    <Card key={cat.id} className="group glass border-white/5 rounded-[3rem] overflow-hidden hover:border-primary/40 transition-all cursor-pointer shadow-2xl relative" onClick={() => setSelectedCategory(cat)}>
-                      <div className="p-10 text-right">
-                        <div className="size-20 bg-primary/10 rounded-[2rem] flex items-center justify-center border border-primary/20 mb-8 group-hover:bg-primary transition-all group-hover:scale-110">
-                          <CategoryIcon className="size-10 text-primary group-hover:text-white transition-colors" />
-                        </div>
-                        <h3 dir="auto" className="text-3xl font-bold text-white mb-3 group-hover:text-primary transition-colors">{cat.title}</h3>
-                        <p dir="auto" className="text-muted-foreground text-sm leading-relaxed mb-8">{cat.description}</p>
-                        <div className="flex items-center justify-end gap-2 text-primary font-bold text-sm">بدء الورد <ChevronRight className="size-4 rotate-180 group-hover:-translate-x-1 transition-transform" /></div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            </motion.div>
-          </TabsContent>
-
-          <TabsContent value="names" className="animate-in fade-in duration-500">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-              {NAMES_OF_ALLAH.map((name) => (
-                <Card key={name.id} className="glass border-white/5 rounded-3xl hover:border-primary/40 transition-all group text-right">
-                  <CardContent className="p-6 flex flex-col items-center gap-4">
-                    <div className="size-16 bg-white/5 rounded-2xl flex items-center justify-center text-3xl font-serif text-primary group-hover:scale-110 transition-transform">
-                      {name.name}
-                    </div>
-                    <p dir="auto" className="text-[10px] text-muted-foreground leading-relaxed text-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      {name.meaning}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="tasbih" className="focus-visible:ring-0">
-            <div className="max-w-2xl mx-auto flex flex-col items-center gap-12 py-12 text-center">
-              <div className="space-y-4">
-                <Badge variant="outline" className="px-4 py-1 border-indigo-500/30 text-indigo-400">مسبحة نكسوس التفاعلية</Badge>
-                <div className="flex items-center gap-4 justify-center flex-row-reverse">
-                  <Label className="text-xs font-bold text-muted-foreground uppercase">الهدف:</Label>
-                  <div className="flex gap-2">
-                    {[33, 99, 100].map(val => (
-                      <button key={val} onClick={() => setTasbihTarget(val)} className={cn("px-3 py-1 rounded-lg text-[10px] font-bold transition-all", tasbihTarget === val ? "bg-primary text-white" : "bg-white/5 text-muted-foreground hover:bg-white/10")}>
-                        {val}
-                      </button>
-                    ))}
-                  </div>
+          {activeTab === 'quran' && (
+            <TabsContent key="quran" value="quran" className="space-y-8 focus-visible:ring-0">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                <div className="relative max-w-3xl mx-auto mb-12">
+                  <Search className="absolute right-6 top-1/2 -translate-y-1/2 size-6 text-muted-foreground" />
+                  <Input dir="auto" placeholder="ابحث عن سورة بالاسم أو الرقم..." className="w-full h-16 bg-white/5 border-white/10 rounded-[2rem] pr-16 pl-8 text-xl text-right focus-visible:ring-primary shadow-2xl" value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
-              </div>
 
-              <div className="relative group">
-                <motion.div 
-                  className="absolute inset-0 bg-primary/20 blur-[120px] rounded-full"
-                  animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-                  transition={{ duration: 4, repeat: Infinity }}
-                />
-                <button 
-                  onClick={handleTasbih} 
-                  className="relative size-80 bg-white/5 backdrop-blur-3xl border-4 border-white/10 rounded-full flex flex-col items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.5)] active:scale-95 transition-all group-hover:border-primary/50"
-                >
-                  <span className="text-9xl font-black text-white tracking-tighter tabular-nums mb-2">
-                    {tasbihCount}
-                  </span>
-                  <div className="flex flex-col items-center gap-1">
-                    <p className="text-muted-foreground text-xs font-bold uppercase tracking-[0.2em]">اضغط للتسبيح</p>
-                    <div className="flex gap-1">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className={cn("size-1 rounded-full", (tasbihCount % tasbihTarget) > (i * (tasbihTarget/3)) ? "bg-primary" : "bg-white/10")} />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredQuran.map((s) => {
+                    const isDownloaded = downloadedAssets.some(a => a.id === s.id);
+                    const isFav = downloadedAssets.find(a => a.id === s.id)?.isFavorite;
+                    const isCurrent = currentSurah?.id === s.id;
+
+                    return (
+                      <Card key={s.id} className={cn("group glass border-white/5 rounded-[2.5rem] overflow-hidden transition-all duration-500 hover:border-primary/40", isCurrent && "ring-2 ring-primary border-primary/50 shadow-primary/10")}>
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between mb-6 flex-row-reverse">
+                            <div className="size-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary font-black text-lg">
+                              {s.id}
+                            </div>
+                            <div className="flex gap-2">
+                              {isDownloaded && (
+                                <Button variant="ghost" size="icon" className={cn("size-8 rounded-full", isFav ? "text-amber-400" : "text-white/20")} onClick={() => toggleFavorite(s.id)}>
+                                  <Star className={cn("size-4", isFav && "fill-amber-400")} />
+                                </Button>
+                              )}
+                              <Badge variant="outline" className={cn("text-[8px] uppercase font-bold", isDownloaded ? "border-green-500/30 text-green-400" : "border-white/5 opacity-50")}>
+                                {isDownloaded ? "عقدة محلية" : "سحابي"}
+                              </Badge>
+                            </div>
+                          </div>
+                          
+                          <div className="text-right mb-8">
+                            <h3 className="text-2xl font-bold text-white mb-1 group-hover:text-primary transition-colors">{s.name}</h3>
+                            <p className="text-xs text-muted-foreground">{s.reciter}</p>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-4 border-t border-white/5 flex-row-reverse">
+                            <div className="flex gap-2 flex-row-reverse">
+                              <Button onClick={() => setCurrentSurah(s)} className={cn("size-14 rounded-[1.25rem] shadow-lg active:scale-95 transition-all", isCurrent && isPlaying ? "bg-red-500 hover:bg-red-600" : "bg-primary hover:bg-primary/90")}>
+                                {isCurrent && isPlaying ? <Pause className="size-6" /> : <Play className="size-6 ml-1" />}
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                onClick={() => setReadingSurah(s)}
+                                className="size-14 rounded-[1.25rem] border border-white/10 hover:bg-white/5 text-indigo-400"
+                              >
+                                <BookOpen className="size-6" />
+                              </Button>
+                            </div>
+                            <div className="text-left">
+                              <span className="text-[10px] font-mono text-muted-foreground bg-white/5 px-2 py-1 rounded-md">{s.sizeMB} MB</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </TabsContent>
+          )}
+
+          {activeTab === 'azkar' && (
+            <TabsContent key="azkar" value="azkar" className="space-y-12">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <div className="relative max-w-3xl mx-auto">
+                  <Search className="absolute right-6 top-1/2 -translate-y-1/2 size-6 text-muted-foreground" />
+                  <Input dir="auto" placeholder="البحث في الأذكار..." className="w-full h-16 bg-white/5 border-white/10 rounded-[2rem] pr-16 pl-8 text-xl text-right shadow-2xl" value={search} onChange={(e) => setSearch(e.target.value)} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {filteredCategories.map((cat) => {
+                    const CategoryIcon = cat.icon === 'Sun' ? Sun : cat.icon === 'Moon' ? Moon : cat.icon === 'Globe' ? Globe : BookOpen;
+                    return (
+                      <Card key={cat.id} className="group glass border-white/5 rounded-[3rem] overflow-hidden hover:border-primary/40 transition-all cursor-pointer shadow-2xl relative" onClick={() => setSelectedCategory(cat)}>
+                        <div className="p-10 text-right">
+                          <div className="size-20 bg-primary/10 rounded-[2rem] flex items-center justify-center border border-primary/20 mb-8 group-hover:bg-primary transition-all group-hover:scale-110">
+                            <CategoryIcon className="size-10 text-primary group-hover:text-white transition-colors" />
+                          </div>
+                          <h3 dir="auto" className="text-3xl font-bold text-white mb-3 group-hover:text-primary transition-colors">{cat.title}</h3>
+                          <p dir="auto" className="text-muted-foreground text-sm leading-relaxed mb-8">{cat.description}</p>
+                          <div className="flex items-center justify-end gap-2 text-primary font-bold text-sm">بدء الورد <ChevronRight className="size-4 rotate-180 group-hover:-translate-x-1 transition-transform" /></div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </TabsContent>
+          )}
+
+          {activeTab === 'names' && (
+            <TabsContent key="names" value="names" className="focus-visible:ring-0">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                {NAMES_OF_ALLAH.map((name) => (
+                  <Card key={name.id} className="glass border-white/5 rounded-3xl hover:border-primary/40 transition-all group text-right">
+                    <CardContent className="p-6 flex flex-col items-center gap-4">
+                      <div className="size-16 bg-white/5 rounded-2xl flex items-center justify-center text-3xl font-serif text-primary group-hover:scale-110 transition-transform">
+                        {name.name}
+                      </div>
+                      <p dir="auto" className="text-[10px] text-muted-foreground leading-relaxed text-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        {name.meaning}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </motion.div>
+            </TabsContent>
+          )}
+
+          {activeTab === 'tasbih' && (
+            <TabsContent key="tasbih" value="tasbih" className="focus-visible:ring-0">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="max-w-2xl mx-auto flex flex-col items-center gap-12 py-12 text-center">
+                <div className="space-y-4">
+                  <Badge variant="outline" className="px-4 py-1 border-indigo-500/30 text-indigo-400">مسبحة نكسوس التفاعلية</Badge>
+                  <div className="flex items-center gap-4 justify-center flex-row-reverse">
+                    <Label className="text-xs font-bold text-muted-foreground uppercase">الهدف:</Label>
+                    <div className="flex gap-2">
+                      {[33, 99, 100].map(val => (
+                        <button key={val} onClick={() => setTasbihTarget(val)} className={cn("px-3 py-1 rounded-lg text-[10px] font-bold transition-all", tasbihTarget === val ? "bg-primary text-white" : "bg-white/5 text-muted-foreground hover:bg-white/10")}>
+                          {val}
+                        </button>
                       ))}
                     </div>
                   </div>
-                </button>
-                
-                <Button 
-                  onClick={() => { setTasbihCount(0); if ('vibrate' in navigator) navigator.vibrate(50); }}
-                  variant="ghost" 
-                  size="icon" 
-                  className="absolute -bottom-4 -right-4 size-14 bg-slate-900 border border-white/10 rounded-2xl hover:bg-red-500/10 hover:text-red-400 transition-all shadow-xl"
-                >
-                  <RotateCcw className="size-6" />
-                </Button>
-              </div>
-
-              <div className="p-6 glass border-white/5 rounded-3xl w-full max-w-sm flex items-center justify-between flex-row-reverse">
-                <div className="flex items-center gap-3 flex-row-reverse">
-                  <div className="size-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">
-                    <Infinity className="size-5" />
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase">إجمالي اليوم</p>
-                    <p className="font-black text-xl text-white">{tasbihCount}</p>
-                  </div>
                 </div>
-                <div className="h-8 w-px bg-white/10" />
-                <div className="text-left">
-                  <p className="text-[10px] text-muted-foreground font-bold uppercase">الدورة الحالية</p>
-                  <p className="font-black text-xl text-indigo-400">{Math.floor(tasbihCount / tasbihTarget)}</p>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
 
-          <TabsContent value="storage">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <Card className="glass border-white/5 rounded-[3rem] p-10 text-right">
-                <h3 className="text-2xl font-bold text-white mb-8 flex items-center gap-3 justify-end">تخصيص العقدة الإيمانية <Settings2 className="text-indigo-400" /></h3>
-                <div className="space-y-10">
-                  <div className="space-y-4">
-                    <div className="flex justify-between flex-row-reverse items-center">
-                      <Label className="text-sm font-bold text-white">الحد الأقصى للتخزين</Label>
-                      <Badge className="bg-indigo-500/20 text-indigo-400 font-mono font-bold text-lg px-4 py-1">{storageLimitMB} MB</Badge>
+                <div className="relative group">
+                  <motion.div 
+                    className="absolute inset-0 bg-primary/20 blur-[120px] rounded-full"
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+                    transition={{ duration: 4, repeat: Infinity }}
+                  />
+                  <button 
+                    onClick={handleTasbih} 
+                    className="relative size-80 bg-white/5 backdrop-blur-3xl border-4 border-white/10 rounded-full flex flex-col items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.5)] active:scale-95 transition-all group-hover:border-primary/50"
+                  >
+                    <span className="text-9xl font-black text-white tracking-tighter tabular-nums mb-2">
+                      {tasbihCount}
+                    </span>
+                    <div className="flex flex-col items-center gap-1">
+                      <p className="text-muted-foreground text-xs font-bold uppercase tracking-[0.2em]">اضغط للتسبيح</p>
+                      <div className="flex gap-1">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                          <div key={i} className={cn("size-1 rounded-full", (tasbihCount % tasbihTarget) > (i * (tasbihTarget/3)) ? "bg-primary" : "bg-white/10")} />
+                        ))}
+                      </div>
                     </div>
-                    <Slider value={[storageLimitMB]} min={50} max={2000} step={50} onValueChange={(v) => setStorageLimit(v[0])} className="py-4" />
-                    <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl flex gap-3 flex-row-reverse">
-                      <Lightbulb className="size-5 text-amber-400 shrink-0" />
-                      <p className="text-[10px] text-amber-200/70 leading-relaxed italic text-right">
-                        عند امتلاء المساحة، سيقوم نظام نكسوس تلقائياً بتنظيف الملفات القديمة غير المميزة بنجمة لتوفير مساحة للمحتوى الجديد.
-                      </p>
+                  </button>
+                  
+                  <Button 
+                    onClick={() => { setTasbihCount(0); if ('vibrate' in navigator) navigator.vibrate(50); }}
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute -bottom-4 -right-4 size-14 bg-slate-900 border border-white/10 rounded-2xl hover:bg-red-500/10 hover:text-red-400 transition-all shadow-xl"
+                  >
+                    <RotateCcw className="size-6" />
+                  </Button>
+                </div>
+
+                <div className="p-6 glass border-white/5 rounded-3xl w-full max-w-sm flex items-center justify-between flex-row-reverse">
+                  <div className="flex items-center gap-3 flex-row-reverse">
+                    <div className="size-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">
+                      <Infinity className="size-5" />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-muted-foreground font-bold uppercase">إجمالي اليوم</p>
+                      <p className="font-black text-xl text-white">{tasbihCount}</p>
                     </div>
                   </div>
-                </div>
-              </Card>
-
-              <Card className="glass border-white/5 rounded-[3rem] p-8 flex flex-col">
-                <div className="flex items-center justify-between mb-6 flex-row-reverse">
-                  <h3 className="text-xl font-bold text-white">الملفات المحلية ({downloadedAssets.length})</h3>
-                  <Database className="size-5 text-indigo-400" />
-                </div>
-                <ScrollArea className="flex-1 max-h-[400px]">
-                  <div className="space-y-3 pr-4">
-                    {downloadedAssets.length === 0 ? (
-                      <div className="py-20 text-center opacity-30 italic text-sm border-2 border-dashed border-white/5 rounded-[2rem]">لا توجد بيانات مخزنة محلياً.</div>
-                    ) : (
-                      downloadedAssets.sort((a,b) => b.timestamp - a.timestamp).map(asset => {
-                        const surah = QURAN_DATA.find(q => q.id === asset.id);
-                        return (
-                          <div key={asset.id} className="p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between flex-row-reverse group hover:bg-white/10 transition-all">
-                            <div className="text-right">
-                              <p className="text-sm font-bold text-white">{surah?.name}</p>
-                              <p className="text-[9px] text-muted-foreground flex items-center gap-1 justify-end">
-                                {asset.size} MB <ShieldCheck className="size-2 text-green-400" />
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button variant="ghost" size="icon" className={cn("size-9 rounded-xl transition-all", asset.isFavorite ? "text-amber-400 bg-amber-400/10" : "text-white/20 hover:bg-white/10")} onClick={() => toggleFavorite(asset.id)}>
-                                <Star className={cn("size-4", asset.isFavorite && "fill-amber-400")} />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="size-9 rounded-xl text-red-400/40 hover:text-red-400 hover:bg-red-400/10 transition-all" onClick={() => deleteAsset(asset.id)}>
-                                <Trash2 className="size-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
+                  <div className="h-8 w-px bg-white/10" />
+                  <div className="text-left">
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase">الدورة الحالية</p>
+                    <p className="font-black text-xl text-indigo-400">{Math.floor(tasbihCount / tasbihTarget)}</p>
                   </div>
-                </ScrollArea>
-              </Card>
-            </div>
-          </TabsContent>
+                </div>
+              </motion.div>
+            </TabsContent>
+          )}
+
+          {activeTab === 'storage' && (
+            <TabsContent key="storage" value="storage" className="focus-visible:ring-0">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <Card className="glass border-white/5 rounded-[3rem] p-10 text-right">
+                  <h3 className="text-2xl font-bold text-white mb-8 flex items-center gap-3 justify-end">تخصيص العقدة الإيمانية <Settings2 className="text-indigo-400" /></h3>
+                  <div className="space-y-10">
+                    <div className="space-y-4">
+                      <div className="flex justify-between flex-row-reverse items-center">
+                        <Label className="text-sm font-bold text-white">الحد الأقصى للتخزين</Label>
+                        <Badge className="bg-indigo-500/20 text-indigo-400 font-mono font-bold text-lg px-4 py-1">{storageLimitMB} MB</Badge>
+                      </div>
+                      <Slider value={[storageLimitMB]} min={50} max={2000} step={50} onValueChange={(v) => setStorageLimit(v[0])} className="py-4" />
+                      <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl flex gap-3 flex-row-reverse">
+                        <Lightbulb className="size-5 text-amber-400 shrink-0" />
+                        <p className="text-[10px] text-amber-200/70 leading-relaxed italic text-right">
+                          عند امتلاء المساحة، سيقوم نظام نكسوس تلقائياً بتنظيف الملفات القديمة غير المميزة بنجمة لتوفير مساحة للمحتوى الجديد.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="glass border-white/5 rounded-[3rem] p-8 flex flex-col">
+                  <div className="flex items-center justify-between mb-6 flex-row-reverse">
+                    <h3 className="text-xl font-bold text-white">الملفات المحلية ({downloadedAssets.length})</h3>
+                    <Database className="size-5 text-indigo-400" />
+                  </div>
+                  <ScrollArea className="flex-1 max-h-[400px]">
+                    <div className="space-y-3 pr-4">
+                      {downloadedAssets.length === 0 ? (
+                        <div className="py-20 text-center opacity-30 italic text-sm border-2 border-dashed border-white/5 rounded-[2rem]">لا توجد بيانات مخزنة محلياً.</div>
+                      ) : (
+                        downloadedAssets.sort((a,b) => b.timestamp - a.timestamp).map(asset => {
+                          const surah = QURAN_DATA.find(q => q.id === asset.id);
+                          return (
+                            <div key={asset.id} className="p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between flex-row-reverse group hover:bg-white/10 transition-all">
+                              <div className="text-right">
+                                <p className="text-sm font-bold text-white">{surah?.name}</p>
+                                <p className="text-[9px] text-muted-foreground flex items-center gap-1 justify-end">
+                                  {asset.size} MB <ShieldCheck className="size-2 text-green-400" />
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button variant="ghost" size="icon" className={cn("size-9 rounded-xl transition-all", asset.isFavorite ? "text-amber-400 bg-amber-400/10" : "text-white/20 hover:bg-white/10")} onClick={() => toggleFavorite(asset.id)}>
+                                  <Star className={cn("size-4", asset.isFavorite && "fill-amber-400")} />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="size-9 rounded-xl text-red-400/40 hover:text-red-400 hover:bg-red-400/10 transition-all" onClick={() => deleteAsset(asset.id)}>
+                                  <Trash2 className="size-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </ScrollArea>
+                </Card>
+              </motion.div>
+            </TabsContent>
+          )}
         </AnimatePresence>
       </Tabs>
 
