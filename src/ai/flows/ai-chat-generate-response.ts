@@ -116,14 +116,13 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
         model: modelToUse as any
       });
       
-      // استخلاص اسم المحرك للعرض في الواجهة
+      // [SIMPLIFIED_NAMING]: استخلاص الأسماء المبسطة للموديلات لحجب أرقام الإصدارات
       let engineName = "Neural Engine";
-      if (modelToUse.includes('gemini-1.5-pro')) engineName = "Gemini 1.5 Pro (Deep Neural)";
-      else if (modelToUse.includes('gemini-2.0')) engineName = "Gemini 2.0 Flash (Next-Gen)";
-      else if (modelToUse.includes('llama-3.3')) engineName = "Groq Llama 3.3 70B (SOTA)";
-      else if (modelToUse.includes('llama-3.1-8b')) engineName = "Groq Llama 3.1 8B (Lightning)";
-      else if (modelToUse.includes('mixtral')) engineName = "Groq Mixtral 8x7B (Logic)";
-      else engineName = "Gemini 1.5 Flash (Core)";
+      if (modelToUse.includes('gemini-1.5-pro')) engineName = "Gemini Pro";
+      else if (modelToUse.includes('gemini-2.0')) engineName = "Gemini Thinking";
+      else if (modelToUse.includes('gemini-1.5-flash')) engineName = "Gemini Flash";
+      else if (modelToUse.includes('llama-3.3')) engineName = "Llama 3.3 70B";
+      else engineName = "Nexus Engine";
 
       return {
         response: responseText || "تمت المعالجة عصبياً.",
