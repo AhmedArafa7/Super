@@ -129,12 +129,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
   provideAIResponse: async (id, userId, data) => {
     const { firestore } = initializeFirebase();
     const docRef = doc(firestore, 'users', userId, 'messages', id);
-    await updateDoc(docRef, {
-      response: data.response,
-      engine: data.engine,
-      optimizedText: data.optimizedText,
-      selectedModel: data.selectedModel
-    });
+    
+    // بناء كائن التحديث يدوياً لتجنب تمرير قيم undefined لـ Firestore
+    const updates: any = {
+      response: data.response || "عذراً، لم يتم توليد رد.",
+      engine: data.engine || "System",
+    };
+
+    // نستخدم null بدلاً من undefined لضمان سلامة حقول Firestore
+    if (data.optimizedText !== undefined) updates.optimizedText = data.optimizedText;
+    if (data.selectedModel !== undefined) updates.selectedModel = data.selectedModel;
+
+    await updateDoc(docRef, updates);
   }
 }));
 
