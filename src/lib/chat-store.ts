@@ -157,15 +157,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const { firestore } = initializeFirebase();
     const docRef = doc(firestore, 'users', userId, 'messages', id);
     
-    // ملاحظة: نحافظ على حالة 'sent' لكي يراها الأدمن ويوافق عليها كمسودة
     const updates: any = {
       response: data.response || "عذراً، لم يتم توليد رد.",
       engine: data.engine || "System",
       optimizedText: data.optimizedText || null,
-      selectedModel: data.selectedModel || null
+      selectedModel: data.selectedModel || null,
+      status: 'replied' // يظهر للمستخدم فوراً
     };
 
-    // تنقية البيانات من undefined لتجنب أخطاء Firebase
     Object.keys(updates).forEach(key => {
       if (updates[key] === undefined) {
         delete updates[key];
