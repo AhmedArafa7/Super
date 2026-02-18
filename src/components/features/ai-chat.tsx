@@ -157,7 +157,7 @@ const MessageItem = memo(({
                 </Button>
                 <div className="flex items-center gap-2 opacity-40 text-[9px] font-mono tracking-tighter">
                   <Zap className="size-3 text-indigo-400" />
-                  <span>{msg.engine}</span> {/* يعرض الاسم المبسط للمحرك */}
+                  <span>{msg.engine}</span>
                 </div>
               </div>
               

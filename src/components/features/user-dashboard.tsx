@@ -6,7 +6,7 @@ import {
   User, Package, Shield, Upload, Loader2, CheckCircle2, 
   ShoppingBag, History, CreditCard, MessageSquare, 
   Briefcase, Zap, Video, BookOpen, GraduationCap, 
-  ArrowRight, Bell, Wallet as WalletIcon, Sparkles, ShieldAlert 
+  ArrowRight, Bell, Wallet as WalletIcon, Sparkles, ShieldAlert, HardDrive
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,12 +15,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { updateUserProfile } from "@/lib/auth-store";
 import { getTransactions, Transaction, useWalletStore } from "@/lib/wallet-store";
 import { getReceivedOffers } from "@/lib/market-store";
 import { getNotifications } from "@/lib/notification-store";
+import { useGlobalStorage } from "@/lib/global-storage-store";
 import { EmptyState } from "@/components/ui/empty-state";
 import { OffersReceived } from "./offers-received";
 import { formatDistanceToNow } from "date-fns";
@@ -56,6 +58,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
   const { user } = useAuth();
   const { toast } = useToast();
   const wallet = useWalletStore(state => state.wallet);
+  const { getTotalUsedSpace, storageLimitMB, cachedAssets } = useGlobalStorage();
   
   const [displayName, setDisplayName] = useState(user?.name || "");
   const [isUpdating, setIsUpdating] = useState(false);
@@ -115,6 +118,9 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
       setIsUpdating(false);
     }
   };
+
+  const usedSpace = getTotalUsedSpace();
+  const storagePercentage = Math.round((usedSpace / storageLimitMB) * 100);
 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
@@ -228,27 +234,35 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
             <Card className="glass border-white/5 rounded-[2.5rem] p-8 flex flex-col text-right">
               <div className="flex items-center justify-between mb-6 flex-row-reverse">
                 <h3 className="text-xl font-bold text-white flex items-center gap-3 flex-row-reverse">
-                  <Bell className="text-indigo-400" />
-                  آخر التنبيهات
+                  <HardDrive className="text-indigo-400" />
+                  الذاكرة المحلية
                 </h3>
-                {unreadNotifications > 0 && <Badge className="bg-indigo-500">{unreadNotifications}</Badge>}
+                <Badge className="bg-indigo-500">{storagePercentage}%</Badge>
               </div>
-              <ScrollArea className="flex-1 max-h-[200px]">
-                <div className="space-y-4">
-                  {unreadNotifications === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-8 italic">لا توجد تنبيهات جديدة في العقدة.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                        <p dir="auto" className="text-xs text-white font-medium text-right">تمت ترقية البروتوكول إلى v4.2</p>
-                        <span className="text-[9px] text-muted-foreground">منذ ساعة</span>
-                      </div>
-                    </div>
-                  )}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[10px] uppercase font-bold text-muted-foreground">
+                    <span>{usedSpace.toFixed(1)} MB</span>
+                    <span>المساحة المستخدمة</span>
+                  </div>
+                  <Progress value={storagePercentage} className="h-1.5 bg-white/5" />
                 </div>
-              </ScrollArea>
-              <Button variant="ghost" className="w-full mt-4 rounded-xl text-indigo-400 hover:bg-indigo-500/10 text-xs" onClick={() => onNavigate?.("notifications")}>
-                عرض كل التنبيهات
+                <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                  <p className="text-[10px] text-muted-foreground mb-2">آخر الأصول المزامنة:</p>
+                  <ScrollArea className="h-20">
+                    <div className="space-y-2">
+                      {cachedAssets.slice(-3).reverse().map(a => (
+                        <div key={a.id} className="flex justify-between items-center flex-row-reverse">
+                          <span className="text-[10px] text-white font-bold truncate max-w-[120px]">{a.title}</span>
+                          <span className="text-[8px] text-indigo-400 uppercase">{a.type}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </div>
+              <Button variant="ghost" className="w-full mt-4 rounded-xl text-indigo-400 hover:bg-indigo-500/10 text-xs" onClick={() => onNavigate?.("hisn")}>
+                إدارة الذاكرة العصبية
               </Button>
             </Card>
           </div>
@@ -264,7 +278,6 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
               </div>
               <h3 dir="auto" className="text-xl font-bold text-white">{user?.name}</h3>
               <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">@{user?.username}</p>
-              {/* [SECURITY_PROTOCOL]: حجب التصنيف عن المستخدم ليبقى سراً إدارياً */}
             </Card>
 
             <Card className="lg:col-span-2 glass border-white/5 rounded-[2.5rem] p-8">

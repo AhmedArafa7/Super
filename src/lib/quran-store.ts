@@ -3,6 +3,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useGlobalStorage } from './global-storage-store';
 
 export interface QuranSurah {
   id: number;
@@ -13,27 +14,12 @@ export interface QuranSurah {
   text?: string; 
 }
 
-export interface OfflineAsset {
-  id: number;
-  type: 'quran';
-  size: number;
-  timestamp: number;
-  isFavorite: boolean;
-}
-
 interface QuranState {
   currentSurah: QuranSurah | null;
-  downloadedAssets: OfflineAsset[];
-  storageLimitMB: number;
   isPlaying: boolean;
   
   setCurrentSurah: (surah: QuranSurah | null) => void;
-  toggleFavorite: (id: number) => void;
-  setStorageLimit: (limit: number) => void;
-  addAsset: (surah: QuranSurah) => void;
   setIsPlaying: (playing: boolean) => void;
-  clearOldestAssets: (requiredSpace: number) => void;
-  deleteAsset: (id: number) => void;
 }
 
 export const QURAN_DATA: QuranSurah[] = [
@@ -67,79 +53,22 @@ export const useQuranStore = create<QuranState>()(
   persist(
     (set, get) => ({
       currentSurah: null,
-      downloadedAssets: [],
-      storageLimitMB: 500,
       isPlaying: false,
 
       setCurrentSurah: (surah) => {
         set({ currentSurah: surah, isPlaying: !!surah });
-        if (surah) get().addAsset(surah);
+        if (surah) {
+          useGlobalStorage.getState().addAsset({
+            id: `quran-${surah.id}`,
+            type: 'quran',
+            title: surah.name,
+            sizeMB: surah.sizeMB
+          });
+        }
       },
 
       setIsPlaying: (isPlaying) => set({ isPlaying }),
-
-      setStorageLimit: (storageLimitMB) => set({ storageLimitMB }),
-
-      toggleFavorite: (id) => {
-        const { downloadedAssets } = get();
-        set({
-          downloadedAssets: downloadedAssets.map(a => 
-            a.id === id ? { ...a, isFavorite: !a.isFavorite } : a
-          )
-        });
-      },
-
-      deleteAsset: (id) => {
-        set({ downloadedAssets: get().downloadedAssets.filter(a => a.id !== id) });
-      },
-
-      addAsset: (surah) => {
-        const { downloadedAssets, storageLimitMB, clearOldestAssets } = get();
-        const existing = downloadedAssets.find(a => a.id === surah.id);
-        
-        if (existing) {
-          set({
-            downloadedAssets: downloadedAssets.map(a => 
-              a.id === surah.id ? { ...a, timestamp: Date.now() } : a
-            )
-          });
-          return;
-        }
-
-        const currentTotal = downloadedAssets.reduce((acc, a) => acc + a.size, 0);
-        if (currentTotal + surah.sizeMB > storageLimitMB) {
-          clearOldestAssets(surah.sizeMB);
-        }
-
-        const newAsset: OfflineAsset = {
-          id: surah.id,
-          type: 'quran',
-          size: surah.sizeMB,
-          timestamp: Date.now(),
-          isFavorite: false
-        };
-
-        set({ downloadedAssets: [...get().downloadedAssets, newAsset] });
-      },
-
-      clearOldestAssets: (requiredSpace) => {
-        const { downloadedAssets, storageLimitMB } = get();
-        let currentAssets = [...downloadedAssets];
-        let currentTotal = currentAssets.reduce((acc, a) => acc + a.size, 0);
-
-        const deleteCandidates = currentAssets
-          .filter(a => !a.isFavorite)
-          .sort((a, b) => a.timestamp - b.timestamp);
-
-        for (const candidate of deleteCandidates) {
-          if (currentTotal + requiredSpace <= storageLimitMB) break;
-          currentTotal -= candidate.size;
-          currentAssets = currentAssets.filter(a => a.id !== candidate.id);
-        }
-
-        set({ downloadedAssets: currentAssets });
-      }
     }),
-    { name: 'nexus-quran-storage' }
+    { name: 'nexus-quran-prefs' }
   )
 );

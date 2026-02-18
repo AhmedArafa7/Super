@@ -18,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { HISN_DATA, NAMES_OF_ALLAH, HisnCategory, ZikrItem } from "@/lib/hisn-store";
 import { QURAN_DATA, useQuranStore, QuranSurah } from "@/lib/quran-store";
+import { useGlobalStorage } from "@/lib/global-storage-store";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,10 +35,8 @@ export function HisnAlMuslim() {
   const [tasbihCount, setTasbihCount] = useState(0);
   const [tasbihTarget, setTasbihTarget] = useState(33);
 
-  const { 
-    currentSurah, isPlaying, downloadedAssets, storageLimitMB,
-    setCurrentSurah, setIsPlaying, setStorageLimit, deleteAsset
-  } = useQuranStore();
+  const { currentSurah, isPlaying, setCurrentSurah, setIsPlaying } = useQuranStore();
+  const { cachedAssets, storageLimitMB, setStorageLimit, removeAsset, getTotalUsedSpace } = useGlobalStorage();
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -54,10 +53,7 @@ export function HisnAlMuslim() {
     }
   }, [isPlaying, currentSurah, setIsPlaying]);
 
-  const usedStorage = useMemo(() => 
-    downloadedAssets.reduce((acc, a) => acc + a.size, 0), 
-  [downloadedAssets]);
-
+  const usedStorage = getTotalUsedSpace();
   const storagePercentage = Math.round((usedStorage / storageLimitMB) * 100);
 
   const filteredCategories = useMemo(() => {
@@ -107,7 +103,7 @@ export function HisnAlMuslim() {
           <div className="flex items-center justify-between flex-row-reverse">
             <div className="flex items-center gap-2 flex-row-reverse">
               <HardDrive className="size-4 text-indigo-400" />
-              <span className="text-[10px] uppercase font-bold text-white">الذاكرة العصبية</span>
+              <span className="text-[10px] uppercase font-bold text-white">الذاكرة العصبية العالمية</span>
             </div>
             <span className="text-[10px] font-mono text-indigo-400">{usedStorage.toFixed(1)} / {storageLimitMB} MB</span>
           </div>
@@ -164,7 +160,7 @@ export function HisnAlMuslim() {
                           <div className="flex items-center justify-between mb-6 flex-row-reverse">
                             <div className="size-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary font-black text-lg">{s.id}</div>
                             <Badge variant="outline" className="text-[8px] uppercase font-bold border-white/5 opacity-50">
-                              {downloadedAssets.some(a => a.id === s.id) ? "عقدة محلية" : "سحابي"}
+                              {cachedAssets.some(a => a.id === `quran-${s.id}`) ? "عقدة محلية" : "سحابي"}
                             </Badge>
                           </div>
                           <div className="text-right mb-8">
@@ -263,7 +259,6 @@ export function HisnAlMuslim() {
             <TabsContent key="tasbih" value="tasbih" className="focus-visible:ring-0">
               <motion.div key="tasbih-view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto flex flex-col items-center gap-12 py-12 text-center">
                 <div className="relative group">
-                  {/* [FIX_ANIMATION_ERROR]: استخدام animate-pulse لضمان الاستقرار ومنع خطأ iterationCount */}
                   <div className="absolute inset-0 bg-primary/20 blur-[120px] rounded-full animate-pulse" />
                   <button onClick={handleTasbih} className="relative size-80 bg-white/5 backdrop-blur-3xl border-4 border-white/10 rounded-full flex flex-col items-center justify-center shadow-2xl active:scale-95 transition-all">
                     <span className="text-9xl font-black text-white tabular-nums mb-2">{tasbihCount}</span>
@@ -293,20 +288,20 @@ export function HisnAlMuslim() {
                   </div>
                 </Card>
                 <Card className="glass border-white/5 rounded-[3rem] p-8 flex flex-col">
-                  <h3 className="text-xl font-bold text-white mb-6 text-right">الملفات المحلية ({downloadedAssets.length})</h3>
+                  <h3 className="text-xl font-bold text-white mb-6 text-right">الملفات المحلية ({cachedAssets.length})</h3>
                   <ScrollArea className="flex-1 max-h-[400px]">
                     <div className="space-y-3 pr-4">
-                      {downloadedAssets.map(asset => {
-                        const surah = QURAN_DATA.find(q => q.id === asset.id);
-                        return (
-                          <div key={asset.id} className="p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between flex-row-reverse">
-                            <p className="text-sm font-bold text-white">{surah?.name}</p>
-                            <Button variant="ghost" size="icon" className="text-red-400/40 hover:text-red-400" onClick={() => deleteAsset(asset.id)}>
-                              <Trash2 className="size-4" />
-                            </Button>
+                      {cachedAssets.map(asset => (
+                        <div key={asset.id} className="p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between flex-row-reverse">
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-white">{asset.title}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase">{asset.type} • {asset.sizeMB} MB</p>
                           </div>
-                        );
-                      })}
+                          <Button variant="ghost" size="icon" className="text-red-400/40 hover:text-red-400" onClick={() => removeAsset(asset.id)}>
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   </ScrollArea>
                 </Card>

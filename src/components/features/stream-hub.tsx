@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Play, Plus, Upload, Trash2, Youtube, FileVideo, Radio, Settings2, Zap, CheckCircle2, Loader2, HardDrive, Volume2, Globe, ExternalLink } from "lucide-react";
+import { Play, Plus, Upload, Trash2, Youtube, FileVideo, Radio, Settings2, Zap, CheckCircle2, Loader2, HardDrive, Volume2, Globe, ExternalLink, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -16,15 +16,13 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { getStoredVideos, addVideo, deleteVideo, Video, Visibility, VideoSource } from "@/lib/video-store";
 import { useUploadStore } from "@/lib/upload-store";
 import { useStreamStore } from "@/lib/stream-store";
+import { useGlobalStorage } from "@/lib/global-storage-store";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
 const VAULT_FOLDER_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
-/**
- * دالة مساعدة لاستخراج ID الفيديو من روابط يوتيوب.
- */
 const getYoutubeId = (url?: string) => {
   if (!url) return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -36,6 +34,7 @@ export function StreamHub() {
   const { user } = useAuth();
   const { toast } = useToast();
   const addTask = useUploadStore(state => state.addTask);
+  const { addAsset, cachedAssets, removeAsset } = useGlobalStorage();
   const { 
     activeVideo, setActiveVideo, quality, setQuality, 
     backgroundPlayback, setBackgroundPlayback, autoFloat, setAutoFloat 
@@ -69,6 +68,22 @@ export function StreamHub() {
     window.addEventListener('videos-update', loadData);
     return () => window.removeEventListener('videos-update', loadData);
   }, []);
+
+  const handleSyncToLocal = (video: Video) => {
+    const assetId = `video-${video.id}`;
+    if (cachedAssets.some(a => a.id === assetId)) {
+      removeAsset(assetId);
+      toast({ title: "تم فك الارتباط", description: "تمت إزالة الفيديو من الذاكرة المحلية." });
+    } else {
+      addAsset({
+        id: assetId,
+        type: 'video',
+        title: video.title,
+        sizeMB: Math.floor(Math.random() * 50 + 10) // محاكاة حجم الفيديو
+      });
+      toast({ title: "مزامنة ناجحة", description: "الفيديو متاح الآن في العقدة المحلية للجهاز." });
+    }
+  };
 
   const handleFinalizeUpload = async () => {
     if (!uploadData.title || !user) return;
@@ -129,7 +144,7 @@ export function StreamHub() {
             StreamHub
             <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase tracking-widest">Vault Integration v5.5</Badge>
           </h2>
-          <p className="text-muted-foreground mt-2 text-lg">بث مخصص يدعم Nexus Vault لتوفير مساحات تخزين ضخمة.</p>
+          <p className="text-muted-foreground mt-2 text-lg">بث مخصص يدعم Nexus Vault للوصول للمساحات الضخمة.</p>
         </div>
 
         <div className="flex items-center gap-4 flex-row-reverse">
@@ -298,6 +313,7 @@ export function StreamHub() {
             : video.thumbnail;
 
           const isActive = activeVideo?.id === video.id;
+          const isCached = cachedAssets.some(a => a.id === `video-${video.id}`);
 
           return (
             <div 
@@ -320,13 +336,12 @@ export function StreamHub() {
                     {isActive ? <Volume2 className="text-white size-8 animate-pulse" /> : <Play className="text-white size-8 fill-white ml-1" />}
                   </div>
                 </div>
-                <div className="absolute top-4 left-4">
-                  <div className="flex gap-2">
-                    <Badge className="bg-black/60 backdrop-blur-md border-white/10 gap-1.5">
-                      {video.source === 'youtube' ? <Youtube className="size-3 text-red-500" /> : video.source === 'drive' ? <HardDrive className="size-3 text-emerald-400" /> : <Radio className="size-3 text-indigo-400" />}
-                      <span className="text-[9px] uppercase font-bold">{video.source === 'youtube' ? 'YouTube' : video.source === 'drive' ? 'Nexus Vault' : 'Nexus Clip'}</span>
-                    </Badge>
-                  </div>
+                <div className="absolute top-4 left-4 flex gap-2">
+                  <Badge className="bg-black/60 backdrop-blur-md border-white/10 gap-1.5">
+                    {video.source === 'youtube' ? <Youtube className="size-3 text-red-500" /> : video.source === 'drive' ? <HardDrive className="size-3 text-emerald-400" /> : <Radio className="size-3 text-indigo-400" />}
+                    <span className="text-[9px] uppercase font-bold">{video.source === 'youtube' ? 'YouTube' : video.source === 'drive' ? 'Nexus Vault' : 'Nexus Clip'}</span>
+                  </Badge>
+                  {isCached && <Badge className="bg-indigo-500/80 text-white text-[8px] uppercase">Cached</Badge>}
                 </div>
               </div>
               
@@ -337,21 +352,33 @@ export function StreamHub() {
                 </div>
                 <h3 dir="auto" className="font-bold text-xl text-white group-hover:text-primary transition-colors line-clamp-2 text-right mb-6">{video.title}</h3>
                 
-                <div className="mt-auto flex items-center justify-between pt-6 border-t border-white/5 flex-row-reverse">
-                  <div className="flex items-center gap-3 flex-row-reverse">
-                    <div className="size-10 rounded-xl bg-white/5 border border-white/10 overflow-hidden">
-                      <img src={`https://picsum.photos/seed/${video.author}/40/40`} className="size-full object-cover" alt={video.author} />
+                <div className="mt-auto flex flex-col gap-4">
+                  <div className="flex items-center justify-between pt-6 border-t border-white/5 flex-row-reverse">
+                    <div className="flex items-center gap-3 flex-row-reverse">
+                      <div className="size-10 rounded-xl bg-white/5 border border-white/10 overflow-hidden">
+                        <img src={`https://picsum.photos/seed/${video.author}/40/40`} className="size-full object-cover" alt={video.author} />
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-bold text-white">@{video.author}</p>
+                        <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">{video.views} مشاهدة</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs font-bold text-white">@{video.author}</p>
-                      <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">{video.views} مشاهدة</p>
-                    </div>
+                    {video.authorId === user?.id && (
+                      <Button variant="ghost" size="icon" className="text-red-400/50 hover:text-red-400" onClick={(e) => { e.stopPropagation(); deleteVideo(video.id); }}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
                   </div>
-                  {video.authorId === user?.id && (
-                    <Button variant="ghost" size="icon" className="text-red-400/50 hover:text-red-400" onClick={(e) => { e.stopPropagation(); deleteVideo(video.id); }}>
-                      <Trash2 className="size-4" />
-                    </Button>
-                  )}
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className={cn("w-full rounded-xl gap-2 font-bold h-10 border-white/5", isCached ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : "bg-white/5 text-muted-foreground")}
+                    onClick={(e) => { e.stopPropagation(); handleSyncToLocal(video); }}
+                  >
+                    {isCached ? <CheckCircle2 className="size-4" /> : <Download className="size-4" />}
+                    {isCached ? "إزالة من العقدة المحلية" : "مزامنة للعقدة المحلية"}
+                  </Button>
                 </div>
               </div>
             </div>
