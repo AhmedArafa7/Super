@@ -48,10 +48,21 @@ export function HisnAlMuslim() {
 
   useEffect(() => {
     if (audioRef.current) {
-      if (isPlaying) audioRef.current.play().catch(() => setIsPlaying(false));
-      else audioRef.current.pause();
+      if (isPlaying) {
+        audioRef.current.play().catch(() => setIsPlaying(false));
+      } else {
+        audioRef.current.pause();
+      }
     }
   }, [isPlaying, currentSurah, setIsPlaying]);
+
+  const handleTogglePlay = (s: QuranSurah) => {
+    if (currentSurah?.id === s.id) {
+      setIsPlaying(!isPlaying);
+    } else {
+      setCurrentSurah(s);
+    }
+  };
 
   const usedStorage = getTotalUsedSpace();
   const storagePercentage = Math.round((usedStorage / storageLimitMB) * 100);
@@ -169,7 +180,7 @@ export function HisnAlMuslim() {
                           </div>
                           <div className="flex items-center justify-between pt-4 border-t border-white/5 flex-row-reverse">
                             <div className="flex gap-2 flex-row-reverse">
-                              <Button onClick={() => setCurrentSurah(s)} className={cn("size-14 rounded-[1.25rem] shadow-lg", currentSurah?.id === s.id && isPlaying ? "bg-red-500" : "bg-primary")}>
+                              <Button onClick={() => handleTogglePlay(s)} className={cn("size-14 rounded-[1.25rem] shadow-lg", currentSurah?.id === s.id && isPlaying ? "bg-red-500" : "bg-primary")}>
                                 {currentSurah?.id === s.id && isPlaying ? <Pause className="size-6" /> : <Play className="size-6 ml-1" />}
                               </Button>
                               <Button variant="ghost" onClick={() => setReadingSurah(s)} className="size-14 rounded-[1.25rem] border border-white/10 text-indigo-400">
