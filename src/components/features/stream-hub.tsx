@@ -30,7 +30,7 @@ const getYoutubeId = (url?: string) => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
-export function StreamHub() {
+export function StreamHub({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const addTask = useUploadStore(state => state.addTask);
@@ -79,7 +79,7 @@ export function StreamHub() {
         id: assetId,
         type: 'video',
         title: video.title,
-        sizeMB: Math.floor(Math.random() * 50 + 10) // محاكاة حجم الفيديو
+        sizeMB: Math.floor(Math.random() * 50 + 10) 
       });
       toast({ title: "مزامنة ناجحة", description: "الفيديو متاح الآن في العقدة المحلية للجهاز." });
     }
@@ -231,7 +231,16 @@ export function StreamHub() {
                         <p className="text-xs font-bold text-indigo-300">خزنة نكسوس المركزية</p>
                         <p className="text-[10px] text-muted-foreground">ارفع ملفك هنا أولاً ثم انسخ الرابط</p>
                       </div>
-                      <Button variant="ghost" size="sm" className="gap-2 text-indigo-400 font-bold" onClick={() => window.open(VAULT_FOLDER_URL, '_blank')}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="gap-2 text-indigo-400 font-bold" 
+                        onClick={() => {
+                          if (onOpenVault) onOpenVault();
+                          else window.open(VAULT_FOLDER_URL, '_blank');
+                          setIsModalOpen(false);
+                        }}
+                      >
                         <ExternalLink className="size-3" /> فتح الخزنة
                       </Button>
                     </div>

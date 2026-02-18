@@ -115,7 +115,7 @@ const MessageItem = memo(({
               
               {showOptimized && (
                 <div className="w-full animate-in fade-in slide-in-from-top-1 duration-300">
-                  <div className="h-px bg-white/40 w-full mb-2" /> {/* الخط الفاصل الأبيض */}
+                  <div className="h-px bg-white/40 w-full mb-2" /> {/* الخط الفاصل الأبيض السيادي */}
                   <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-right backdrop-blur-sm">
                     <p className="text-[9px] text-indigo-400 font-black uppercase mb-1 tracking-[0.2em]">النص المحسن عصبيًا</p>
                     <p dir="auto" className="text-xs text-indigo-100/70 italic leading-relaxed">{msg.optimizedText}</p>

@@ -34,6 +34,8 @@ import { LoginView } from "@/components/auth/login-view";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
+const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
+
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<NavItemId>("dashboard");
@@ -104,20 +106,27 @@ export function AppShell() {
       return (
         <div className="flex flex-col h-full bg-black animate-in fade-in duration-500">
           <header className="h-14 border-b border-white/5 bg-slate-900 flex items-center justify-between px-6 shrink-0 flex-row-reverse">
-            <h2 className="text-sm font-bold text-white">{launchedApp.title}</h2>
+            <div className="flex items-center gap-3 flex-row-reverse">
+              <h2 className="text-sm font-bold text-white">{launchedApp.title}</h2>
+              <div className="size-2 rounded-full bg-green-500 animate-pulse" />
+            </div>
             <Button variant="destructive" size="sm" onClick={() => setLaunchedApp(null)} className="h-8 rounded-lg px-4 font-bold text-xs gap-2">
               <X className="size-3" /> إغلاق العقدة
             </Button>
           </header>
-          <iframe src={launchedApp.url} className="flex-1 w-full border-none bg-white" />
+          <iframe 
+            src={launchedApp.url} 
+            className="flex-1 w-full border-none bg-white" 
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          />
         </div>
       );
     }
 
     switch (activeTab) {
       case "dashboard": return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
-      case "chat": return <AIChat highlightId={highlightId} onHighlightComplete={() => setHighlightId(null)} />;
-      case "stream": return <StreamHub />;
+      case "chat": return <AIChat />;
+      case "stream": return <StreamHub onOpenVault={() => setLaunchedApp({url: VAULT_URL, title: "Nexus Central Vault"})} />;
       case "market": return <TechMarket onLaunchApp={(url, title) => setLaunchedApp({url, title})} />;
       case "launcher": return <AppLauncher />;
       case "wallet": return <WalletView />;
