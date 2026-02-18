@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { MessageSquare, ShieldAlert, Badge, Send, ArrowRight } from "lucide-react";
+import { MessageSquare, ShieldAlert, Badge, Send, ArrowRight, User as UserIcon, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -10,26 +10,36 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { getStoredMessages, approveMessage, rejectMessage, WizardMessage } from "@/lib/chat-store";
+import { getStoredUsers, User } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
 
 export function AdminPanel() {
   const { toast } = useToast();
   const [messages, setMessages] = useState<WizardMessage[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [optimizedEdits, setOptimizedEdits] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const loadData = async () => {
+    setIsLoading(true);
     try {
-      const msgs = await getStoredMessages(undefined, true);
+      const [msgs, allUsers] = await Promise.all([
+        getStoredMessages(undefined, true),
+        getStoredUsers()
+      ]);
       setMessages(Array.isArray(msgs) ? msgs : []);
+      setUsers(Array.isArray(allUsers) ? allUsers : []);
     } catch (err) {
       console.error("Admin Load Error:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 10000);
+    const interval = setInterval(loadData, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -42,6 +52,9 @@ export function AdminPanel() {
             <ShieldAlert className="text-indigo-400" />
           </h2>
         </div>
+        <Button variant="ghost" size="icon" onClick={loadData} disabled={isLoading} className="rounded-xl border border-white/5">
+          <RefreshCcw className={cn("size-4", isLoading && "animate-spin")} />
+        </Button>
       </div>
 
       <Tabs defaultValue="stream" className="flex-1 flex flex-col">
@@ -59,7 +72,7 @@ export function AdminPanel() {
               </h3>
               <ScrollArea className="flex-1">
                 <div className="space-y-6 pr-4">
-                  {messages.filter(m => m.status === 'sent').map((m) => (
+                  {messages.map((m) => (
                     <div key={m.id} className="p-6 bg-white/5 border border-white/5 rounded-[2rem] space-y-6 group">
                       <div className="flex justify-between items-center flex-row-reverse">
                         <div className="flex items-center gap-3 flex-row-reverse">
@@ -72,7 +85,12 @@ export function AdminPanel() {
                            <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30">
                             {m.isAutoMode ? 'AUTO ROUTING' : 'MANUAL MODE'}
                           </Badge>
-                          {m.response && <Badge className="bg-green-500/20 text-green-400 border-green-500/30">AI RESPONDED</Badge>}
+                          <Badge variant="outline" className={cn(
+                            "text-[10px]",
+                            m.status === 'replied' ? "bg-green-500/10 text-green-400" : "bg-amber-500/10 text-amber-400"
+                          )}>
+                            {m.status.toUpperCase()}
+                          </Badge>
                         </div>
                       </div>
 
@@ -89,20 +107,17 @@ export function AdminPanel() {
                             onChange={(e) => setOptimizedEdits({...optimizedEdits, [m.id]: e.target.value})}
                             className="bg-transparent border-none text-xs min-h-[60px] p-0 text-right focus-visible:ring-0"
                           />
-                          <div className="absolute -left-2 top-1/2 -translate-y-1/2 text-indigo-400">
-                            <ArrowRight className="size-4" />
-                          </div>
                         </div>
                         <div className="p-4 bg-green-500/5 rounded-2xl border border-green-500/20">
                           <p className="text-[10px] text-green-400 uppercase font-bold mb-2">Routed Engine</p>
                           <p className="text-[10px] font-mono text-green-400 uppercase truncate">
-                            {m.selectedModel || m.engine || 'Pending Selection'}
+                            {m.selectedModel || m.engine || 'System'}
                           </p>
                         </div>
                       </div>
                       
                       <div className="space-y-3 pt-4 border-t border-white/5">
-                        <Label className="text-[10px] uppercase font-bold text-indigo-400 tracking-widest block">Final Response Draft</Label>
+                        <Label className="text-[10px] uppercase font-bold text-indigo-400 tracking-widest block">Response Quality Check</Label>
                         <Textarea 
                           dir="auto"
                           placeholder="Refine response before transmission..." 
@@ -120,7 +135,7 @@ export function AdminPanel() {
                                 responses[m.id] !== undefined ? responses[m.id] : (m.response || ""),
                                 optimizedEdits[m.id] !== undefined ? optimizedEdits[m.id] : m.optimizedText
                               );
-                              toast({ title: "Response Transmitted" });
+                              toast({ title: "Quality Verified", description: "Node memory updated." });
                               loadData();
                             }}
                           >
@@ -144,6 +159,33 @@ export function AdminPanel() {
               </ScrollArea>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="users" className="flex-1 outline-none">
+          <Card className="glass border-white/10 rounded-[2.5rem] p-8 h-full flex flex-col text-right">
+            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3 justify-end">
+              Nexus User Registry
+              <UserIcon className="size-5 text-indigo-400" />
+            </h3>
+            <ScrollArea className="flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pr-4">
+                {users.map((u) => (
+                  <div key={u.id} className="p-6 bg-white/5 border border-white/5 rounded-3xl flex items-center justify-between flex-row-reverse">
+                    <div className="flex items-center gap-4 flex-row-reverse">
+                      <div className="size-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-xl font-bold text-indigo-400">
+                        {u.name.charAt(0)}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-white">{u.name}</p>
+                        <p className="text-xs text-muted-foreground">@{u.username}</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="capitalize border-indigo-500/20 text-indigo-400">{u.role}</Badge>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

@@ -95,11 +95,6 @@ export function HisnAlMuslim() {
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({ title: "تم النسخ", description: "تم نسخ النص بنجاح للعقدة." });
-  };
-
   return (
     <div className="p-8 max-w-7xl mx-auto flex flex-col min-h-screen animate-in fade-in duration-700">
       {/* رأس العقدة المشترك */}
@@ -135,7 +130,7 @@ export function HisnAlMuslim() {
           <TabsTrigger value="azkar" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary flex-1 sm:flex-none font-bold">الأذكار</TabsTrigger>
           <TabsTrigger value="names" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary flex-1 sm:flex-none font-bold">أسماء الله</TabsTrigger>
           <TabsTrigger value="tasbih" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary flex-1 sm:flex-none font-bold">المسبحة</TabsTrigger>
-          <TabsTrigger value="storage" className="rounded-xl px-8 py-3 data-[state=active]:bg-indigo-600 flex-1 sm:flex-none font-bold">إعدادات الذاكرة</TabsTrigger>
+          <TabsTrigger value="storage" className="rounded-xl px-8 py-3 data-[state=active]:bg-indigo-600 flex-1 sm:flex-none font-bold">إدارة الذاكرة</TabsTrigger>
         </TabsList>
 
         <AnimatePresence mode="wait">
