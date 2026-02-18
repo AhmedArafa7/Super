@@ -71,7 +71,7 @@ const MessageItem = memo(({
                 {msg.originalText || msg.text}
               </p>
               
-              {/* سهم التحسين العصبي (يظهر فقط إذا كان هناك تحسين) */}
+              {/* سهم التحسين العصبي */}
               {hasOptimization && (
                 <div className="mt-2 pt-2 border-t border-white/10 flex flex-col items-end">
                   <button 
@@ -104,7 +104,7 @@ const MessageItem = memo(({
         </div>
       </div>
 
-      {/* 2. فقاعة الـ AI (تظهر فقط بعد الرد جهة اليسار) */}
+      {/* 2. فقاعة الـ AI (تظهر فقط بعد الرد) */}
       {isReplied ? (
         <div className="flex items-start gap-3 justify-start animate-in slide-in-from-left-4 duration-500">
           <div className="size-8 rounded-full glass border border-white/10 flex items-center justify-center mt-1 shrink-0">
@@ -173,10 +173,12 @@ export function AIChat({ highlightId }: AIChatProps) {
   
   const loadMessages = useChatStore(state => state.loadMessages);
   const sendMessage = useChatStore(state => state.sendMessage);
+  const updateMessageRequest = useChatStore(state => state.updateMessageRequest);
   const deleteMessage = useChatStore(state => state.deleteMessage);
   const provideAIResponse = useChatStore(state => state.provideAIResponse);
 
   const [input, setInput] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [isAITyping, setIsAITyping] = useState(false);
   
@@ -202,38 +204,48 @@ export function AIChat({ highlightId }: AIChatProps) {
     if ((!input.trim() && pendingAttachments.length === 0) || !user?.id || isSending) return;
 
     const userText = input;
+    const currentEditingId = editingId;
+    
     setInput(""); 
+    setEditingId(null);
     const currentAttachments = [...pendingAttachments];
     setPendingAttachments([]);
 
     try {
-      const savedMsg = await sendMessage(userText, user.id, user.name, currentAttachments);
+      let savedMsgId = "";
+      if (currentEditingId) {
+        const success = await updateMessageRequest(currentEditingId, user.id, userText);
+        if (!success) return;
+        savedMsgId = currentEditingId;
+      } else {
+        const savedMsg = await sendMessage(userText, user.id, user.name, currentAttachments);
+        if (!savedMsg) return;
+        savedMsgId = savedMsg.id;
+      }
       
-      if (savedMsg) {
-        setIsAITyping(true);
-        const history: { role: 'user' | 'model', content: string }[] = [];
-        messages.slice(-5).forEach(m => {
-          if (m.status === 'replied' && m.response) {
-            history.push({ role: 'user', content: m.originalText || m.text });
-            history.push({ role: 'model', content: m.response });
-          }
-        });
-
-        const responseData = await aiChatGenerateResponse({
-          message: userText,
-          isAutoMode: autoMode,
-          manualModel: autoMode ? undefined : selectedManualModel,
-          history: history
-        });
-
-        if (responseData && responseData.response) {
-          await provideAIResponse(savedMsg.id, user.id, {
-            response: responseData.response,
-            engine: responseData.engine,
-            optimizedText: responseData.optimizedText,
-            selectedModel: responseData.selectedModel
-          });
+      setIsAITyping(true);
+      const history: { role: 'user' | 'model', content: string }[] = [];
+      messages.slice(-5).forEach(m => {
+        if (m.id !== savedMsgId && m.status === 'replied' && m.response) {
+          history.push({ role: 'user', content: m.originalText || m.text });
+          history.push({ role: 'model', content: m.response });
         }
+      });
+
+      const responseData = await aiChatGenerateResponse({
+        message: userText,
+        isAutoMode: autoMode,
+        manualModel: autoMode ? undefined : selectedManualModel,
+        history: history
+      });
+
+      if (responseData && responseData.response) {
+        await provideAIResponse(savedMsgId, user.id, {
+          response: responseData.response,
+          engine: responseData.engine,
+          optimizedText: responseData.optimizedText,
+          selectedModel: responseData.selectedModel
+        });
       }
     } catch (err: any) {
       console.error(err);
@@ -314,7 +326,7 @@ export function AIChat({ highlightId }: AIChatProps) {
                     key={msg.id} 
                     msg={msg} 
                     highlightId={highlightId} 
-                    onEdit={(m) => { setInput(m.originalText || m.text); deleteMessage(m.id, user?.id || ''); }}
+                    onEdit={(m) => { setInput(m.originalText || m.text); setEditingId(m.id); }}
                     onDelete={(id) => deleteMessage(id, user?.id || '')}
                   />
                 ))}
@@ -353,9 +365,18 @@ export function AIChat({ highlightId }: AIChatProps) {
           </div>
         )}
 
-        <div className="p-4 bg-white/5 border-t border-white/5">
+        <div className={cn("p-4 bg-white/5 border-t border-white/5 transition-all", editingId && "ring-2 ring-primary ring-inset")}>
+          {editingId && (
+            <div className="flex items-center justify-between mb-2 px-2">
+              <span className="text-[10px] font-bold text-primary uppercase flex items-center gap-2">
+                <Pencil className="size-3" /> جاري تعديل الطلب...
+              </span>
+              <Button variant="ghost" size="icon" className="size-5 rounded-full" onClick={() => { setEditingId(null); setInput(""); }}>
+                <X className="size-3" />
+              </Button>
+            </div>
+          )}
           <div className="relative flex items-center gap-3">
-            {/* أزرار الوسائط جهة اليسار */}
             <div className="flex items-center gap-2">
               <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileSelect} />
               <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="icon" className="text-muted-foreground hover:text-indigo-400 size-12 rounded-2xl bg-white/5 border border-white/5 transition-all">
@@ -366,27 +387,28 @@ export function AIChat({ highlightId }: AIChatProps) {
               </Button>
             </div>
             
-            {/* مربع النص في المنتصف */}
             <div className="relative flex-1">
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-                placeholder="اكتب رسالتك هنا..."
+                placeholder={editingId ? "عدل رسالتك هنا..." : "اكتب رسالتك هنا..."}
                 disabled={isAITyping}
                 dir="auto"
                 className="w-full h-14 bg-white/5 border-white/10 rounded-2xl px-6 text-sm text-white text-right focus-visible:ring-primary focus-visible:bg-white/10 transition-all"
               />
             </div>
 
-            {/* زر الإرسال جهة اليمين */}
             <Button 
               onClick={handleSend} 
               disabled={isAITyping || (!input.trim() && pendingAttachments.length === 0)} 
               size="icon" 
-              className="size-14 bg-primary hover:bg-primary/90 rounded-2xl shadow-lg shadow-primary/20 shrink-0 transition-transform active:scale-95"
+              className={cn(
+                "size-14 rounded-2xl shadow-lg transition-all active:scale-95 shrink-0",
+                editingId ? "bg-green-600 hover:bg-green-500 shadow-green-600/20" : "bg-primary hover:bg-primary/90 shadow-primary/20"
+              )}
             >
-              {isSending ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5" />}
+              {isSending ? <Loader2 className="size-5 animate-spin" /> : editingId ? <Pencil className="size-5" /> : <Send className="size-5" />}
             </Button>
           </div>
         </div>

@@ -43,6 +43,7 @@ interface ChatState {
   selectedManualModel: string;
   loadMessages: (userId: string) => void;
   sendMessage: (text: string, userId: string, userName: string, attachments?: Attachment[]) => Promise<WizardMessage | null>;
+  updateMessageRequest: (id: string, userId: string, newText: string) => Promise<boolean>;
   deleteMessage: (id: string, userId: string) => Promise<void>;
   updateMessageText: (id: string, userId: string, newText: string) => Promise<void>;
   setConnected: (status: boolean) => void;
@@ -108,6 +109,32 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
+  updateMessageRequest: async (id, userId, newText) => {
+    const { firestore } = initializeFirebase();
+    const { autoMode, selectedManualModel } = get();
+    set({ isSending: true });
+
+    try {
+      const docRef = doc(firestore, 'users', userId, 'messages', id);
+      await updateDoc(docRef, {
+        text: newText,
+        originalText: newText,
+        isAutoMode: autoMode,
+        selectedModel: autoMode ? 'Auto Selecting...' : selectedManualModel,
+        response: null, // تصفير الرد القديم
+        optimizedText: null, // تصفير التحسين القديم
+        status: 'sent', // إعادة الحالة للمراجعة
+        timestamp: new Date().toISOString()
+      });
+      set({ isSending: false });
+      return true;
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Update Error', description: 'Failed to update neural request.' });
+      set({ isSending: false });
+      return false;
+    }
+  },
+
   deleteMessage: async (id, userId) => {
     const { firestore } = initializeFirebase();
     try {
@@ -130,13 +157,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const { firestore } = initializeFirebase();
     const docRef = doc(firestore, 'users', userId, 'messages', id);
     
-    // بناء كائن التحديث يدوياً لتجنب تمرير قيم undefined لـ Firestore
     const updates: any = {
       response: data.response || "عذراً، لم يتم توليد رد.",
       engine: data.engine || "System",
+      status: 'replied'
     };
 
-    // نستخدم null بدلاً من undefined لضمان سلامة حقول Firestore
     if (data.optimizedText !== undefined) updates.optimizedText = data.optimizedText;
     if (data.selectedModel !== undefined) updates.selectedModel = data.selectedModel;
 
