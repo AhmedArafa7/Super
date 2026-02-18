@@ -30,14 +30,13 @@ export function HisnAlMuslim() {
   const [readingSurah, setReadingSurah] = useState<QuranSurah | null>(null);
   const [fontSize, setFontSize] = useState(24);
   const [counts, setCounts] = useState<Record<number, number>>({});
-  const [completedItems, setCompletedItems] = useState<Set<number>>(new Set());
   
   const [tasbihCount, setTasbihCount] = useState(0);
   const [tasbihTarget, setTasbihTarget] = useState(33);
 
   const { 
     currentSurah, isPlaying, downloadedAssets, storageLimitMB,
-    setCurrentSurah, setIsPlaying, toggleFavorite, setStorageLimit, deleteAsset
+    setCurrentSurah, setIsPlaying, setStorageLimit, deleteAsset
   } = useQuranStore();
 
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -79,10 +78,8 @@ export function HisnAlMuslim() {
     if (current > 0) {
       const nextValue = current - 1;
       setCounts(prev => ({ ...prev, [item.id]: nextValue }));
-      if (nextValue === 0) {
-        setCompletedItems(prev => { const n = new Set(prev); n.add(item.id); return n; });
-        if ('vibrate' in navigator) navigator.vibrate([50, 30, 50]);
-      } else if ('vibrate' in navigator) navigator.vibrate(30);
+      if (nextValue === 0 && 'vibrate' in navigator) navigator.vibrate([50, 30, 50]);
+      else if ('vibrate' in navigator) navigator.vibrate(30);
     }
   };
 
@@ -97,7 +94,6 @@ export function HisnAlMuslim() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto flex flex-col min-h-screen animate-in fade-in duration-700">
-      {/* رأس العقدة المشترك */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 gap-6 flex-row-reverse">
         <div className="text-right">
           <Badge className="bg-primary/20 text-primary border-primary/30 mb-4 px-4 py-1 uppercase font-bold text-[10px] tracking-widest">Neural Faith Hub</Badge>
@@ -134,7 +130,6 @@ export function HisnAlMuslim() {
         </TabsList>
 
         <AnimatePresence mode="wait">
-          {/* تبويب القرآن الكريم */}
           {activeTab === 'quran' && (
             <TabsContent key="quran" value="quran" className="space-y-8 focus-visible:ring-0">
               {readingSurah ? (
@@ -144,17 +139,15 @@ export function HisnAlMuslim() {
                       <Button variant="ghost" size="icon" onClick={() => setReadingSurah(null)} className="rounded-full text-white">
                         <ArrowLeft className="size-5 rotate-180" />
                       </Button>
-                      <div className="text-right">
-                        <h2 dir="auto" className="text-xl font-bold text-white">سورة {readingSurah.name}</h2>
-                      </div>
+                      <h2 dir="auto" className="text-xl font-bold text-white">سورة {readingSurah.name}</h2>
                     </div>
                     <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10">
                       <Button variant="ghost" size="icon" onClick={() => setFontSize(Math.min(fontSize + 2, 48))} className="size-8 text-white"><ZoomIn className="size-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => setFontSize(Math.max(fontSize - 2, 16))} className="size-8 text-white"><ZoomOut className="size-4" /></Button>
                     </div>
                   </header>
-                  <Card className="glass border-white/5 rounded-[3rem] p-10 shadow-2xl">
-                    <p dir="rtl" className="font-serif leading-[2.5] text-center text-slate-100" style={{ fontSize: `${fontSize}px` }}>
+                  <Card className="glass border-white/5 rounded-[3rem] p-10 shadow-2xl overflow-hidden">
+                    <p dir="rtl" className="font-serif leading-[2.5] text-center text-slate-100 whitespace-pre-wrap" style={{ fontSize: `${fontSize}px` }}>
                       {readingSurah.text}
                     </p>
                   </Card>
@@ -199,7 +192,6 @@ export function HisnAlMuslim() {
             </TabsContent>
           )}
 
-          {/* تبويب الأذكار */}
           {activeTab === 'azkar' && (
             <TabsContent key="azkar" value="azkar" className="space-y-12 focus-visible:ring-0">
               {selectedCategory ? (
@@ -215,7 +207,7 @@ export function HisnAlMuslim() {
                   <div className="space-y-6 max-w-4xl mx-auto w-full">
                     {selectedCategory.items.map((item) => (
                       <Card key={item.id} className={cn("glass border-white/5 rounded-[2.5rem] transition-all", (counts[item.id] ?? item.count) === 0 && "opacity-50 grayscale")}>
-                        <CardContent className="p-8 space-y-6">
+                        <CardContent className="p-8 space-y-6 text-right">
                           <p dir="auto" className="text-2xl leading-relaxed text-right font-serif text-slate-100 font-medium">{item.text}</p>
                           <div className="flex items-center justify-between pt-6 border-t border-white/5 flex-row-reverse">
                             <p className="text-xs text-muted-foreground italic">{item.reference}</p>
@@ -253,7 +245,6 @@ export function HisnAlMuslim() {
             </TabsContent>
           )}
 
-          {/* تبويب أسماء الله الحسنى */}
           {activeTab === 'names' && (
             <TabsContent key="names" value="names" className="focus-visible:ring-0">
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -269,7 +260,6 @@ export function HisnAlMuslim() {
             </TabsContent>
           )}
 
-          {/* تبويب المسبحة */}
           {activeTab === 'tasbih' && (
             <TabsContent key="tasbih" value="tasbih" className="focus-visible:ring-0">
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto flex flex-col items-center gap-12 py-12 text-center">
@@ -287,7 +277,6 @@ export function HisnAlMuslim() {
             </TabsContent>
           )}
 
-          {/* تبويب إدارة الذاكرة */}
           {activeTab === 'storage' && (
             <TabsContent key="storage" value="storage" className="focus-visible:ring-0">
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
