@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
-import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard, Repeat, Loader2, CheckCircle2, AlertCircle, Sparkles, BookOpen } from "lucide-react";
+import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard, Repeat, Loader2, CheckCircle2, AlertCircle, Sparkles, BookOpen, Rocket } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,17 +20,18 @@ import { UserDashboard } from "@/components/features/user-dashboard";
 import { OffersInbox } from "@/components/features/offers-inbox";
 import { HisnAlMuslim } from "@/components/features/hisn-al-muslim";
 import { PersistentPlayer } from "@/components/features/persistent-player";
+import { AppLauncher } from "@/components/features/app-launcher";
 import { getNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
-import { useStreamStore } from "@/lib/stream-store"; // استيراد مخزن البث
+import { useStreamStore } from "@/lib/stream-store"; 
 import { getReceivedOffers } from "@/lib/market-store";
 import { useAuth } from "@/components/auth/auth-provider";
 import { LoginView } from "@/components/auth/login-view";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
-type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn";
+type NavItem = "chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn" | "launcher";
 
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -43,7 +44,6 @@ export function AppShell() {
   const uploadTasks = useUploadStore(state => state.tasks);
   const setCurrentTab = useStreamStore(state => state.setCurrentTab);
 
-  // مزامنة التبويب النشط مع مخزن البث
   useEffect(() => {
     setCurrentTab(activeTab);
   }, [activeTab, setCurrentTab]);
@@ -82,6 +82,7 @@ export function AppShell() {
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "chat", label: "AI Chat", icon: MessageSquare },
     { id: "stream", label: "StreamHub", icon: Video },
+    { id: "launcher", label: "App Launcher", icon: Rocket },
     { id: "market", label: "TechMarket", icon: ShoppingBag },
     { id: "wallet", label: "Neural Wallet", icon: Wallet },
     { id: "offers", label: "Offers Inbox", icon: Repeat, badge: pendingOffersCount },
@@ -97,6 +98,7 @@ export function AppShell() {
       case "dashboard": return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
       case "chat": return <AIChat highlightId={highlightId} onHighlightComplete={() => setHighlightId(null)} />;
       case "stream": return <StreamHub />;
+      case "launcher": return <AppLauncher />;
       case "market": return <TechMarket />;
       case "wallet": return <WalletView />;
       case "offers": return <OffersInbox />;
@@ -224,8 +226,6 @@ export function AppShell() {
           </main>
         </div>
       </div>
-      
-      {/* مشغل الفيديو العالمي - يدعم الآن الوضع المدمج والعائم حسب الإعدادات */}
       <PersistentPlayer />
     </SidebarProvider>
   );
