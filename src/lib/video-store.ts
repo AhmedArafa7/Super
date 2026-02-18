@@ -7,12 +7,12 @@ import { addNotification } from './notification-store';
 
 export type VideoStatus = 'published' | 'pending_review' | 'rejected' | 'needs_action';
 export type Visibility = 'public' | 'unlisted' | 'private';
-export type VideoSource = 'local' | 'youtube';
+export type VideoSource = 'local' | 'youtube' | 'drive';
 
 export interface Video {
   id: string;
   title: string;
-  thumbnail: string; // للملفات المحلية، هذا هو رابط الفيديو الفعلي أو مصغر الفيديو
+  thumbnail: string; 
   views: string;
   author: string;
   authorId: string;
@@ -21,7 +21,7 @@ export interface Video {
   visibility: Visibility;
   allowedUserIds: string[];
   adminFeedback?: string;
-  uploaderRole: 'admin' | 'user';
+  uploaderRole: 'admin' | 'employee' | 'user';
   createdAt: string;
   source: VideoSource;
   externalUrl?: string;
@@ -47,7 +47,7 @@ export const addVideo = async (video: Omit<Video, 'id' | 'createdAt' | 'views'>)
   };
   const docRef = await addDoc(collection(firestore, 'videos'), payload);
   
-  if (video.uploaderRole === 'user') {
+  if (video.uploaderRole !== 'admin') {
     addNotification({
       type: 'content_new',
       title: 'إرسال فيديو جديد',

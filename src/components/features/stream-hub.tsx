@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Play, Plus, Upload, Trash2, Youtube, FileVideo, Radio, Settings2, Zap, CheckCircle2, Loader2, MonitorSmartphone, Volume2, CloudOff } from "lucide-react";
+import { Play, Plus, Upload, Trash2, Youtube, FileVideo, Radio, Settings2, Zap, CheckCircle2, Loader2, HardDrive, Volume2, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -68,22 +68,22 @@ export function StreamHub() {
   const handleFinalizeUpload = async () => {
     if (!uploadData.title || !user) return;
     
-    if (uploadSource === 'youtube') {
+    if (uploadSource === 'youtube' || uploadSource === 'drive') {
       if (!uploadData.externalUrl) return;
       await addVideo({
         title: uploadData.title,
         author: user.name,
         authorId: user.id,
-        thumbnail: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1074&auto=format&fit=crop",
-        time: "YouTube Broadcast",
+        thumbnail: uploadSource === 'youtube' ? "https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1074&auto=format&fit=crop" : "https://images.unsplash.com/photo-1544391496-1ca7c974b711?q=80&w=1170&auto=format&fit=crop",
+        time: uploadSource === 'youtube' ? "YouTube Broadcast" : "Drive Storage",
         status: user.role === 'admin' ? 'published' : 'pending_review',
         visibility: uploadData.visibility,
         allowedUserIds: [],
-        uploaderRole: user.role,
-        source: 'youtube',
+        uploaderRole: user.role as any,
+        source: uploadSource,
         externalUrl: uploadData.externalUrl
       });
-      toast({ title: "تم ربط الرابط", description: "بث يوتيوب تمت إضافته لعقدتك." });
+      toast({ title: "تم ربط العقدة", description: `تمت إضافة فيديو من ${uploadSource} بنجاح.` });
       setIsModalOpen(false);
     } else {
       if (!uploadData.file) return;
@@ -100,8 +100,8 @@ export function StreamHub() {
       });
 
       toast({ 
-        title: "بدأ الإرسال عصبي", 
-        description: "الفيديو يرفع في الخلفية الآن. يمكنك التنقل بحرية." 
+        title: "بدأ الإرسال العصبي", 
+        description: "الفيديو يرفع في الخلفية الآن لتوفير الوقت." 
       });
       setIsModalOpen(false);
     }
@@ -122,9 +122,9 @@ export function StreamHub() {
         <div className="text-right">
           <h2 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
             StreamHub
-            <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase tracking-widest">Neural v4.2</Badge>
+            <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase tracking-widest">Drive Sync v5.0</Badge>
           </h2>
-          <p className="text-muted-foreground mt-2 text-lg">بث مخصص مع تحكم كامل في تجربة المشاهدة.</p>
+          <p className="text-muted-foreground mt-2 text-lg">بث مخصص يدعم Google Drive لتوفير مساحات تخزين ضخمة.</p>
         </div>
 
         <div className="flex items-center gap-4 flex-row-reverse">
@@ -200,15 +200,16 @@ export function StreamHub() {
                 <DialogHeader>
                   <DialogTitle className="text-3xl font-headline font-bold text-white text-right">إرسال عصبي جديد</DialogTitle>
                   <DialogDescription className="text-muted-foreground text-sm text-right">
-                    اختر "رابط يوتيوب" لتجاوز قيود المساحة، أو "ملف محلي" للمقاطع الحصرية.
+                    استخدم روابط Google Drive للمساحات الكبيرة، أو يوتيوب للبث العام.
                   </DialogDescription>
                 </DialogHeader>
                 
                 <div className="grid gap-6 py-6">
                   <Tabs value={uploadSource} onValueChange={(v: any) => setUploadSource(v)} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 bg-white/5 p-1 rounded-xl flex-row-reverse">
-                      <TabsTrigger value="youtube" className="rounded-lg gap-2"><Youtube className="size-4" /> رابط يوتيوب</TabsTrigger>
-                      <TabsTrigger value="local" className="rounded-lg gap-2"><FileVideo className="size-4" /> ملف محلي</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-3 bg-white/5 p-1 rounded-xl flex-row-reverse">
+                      <TabsTrigger value="drive" className="rounded-lg gap-2 text-[10px] sm:text-sm"><HardDrive className="size-3" /> Drive</TabsTrigger>
+                      <TabsTrigger value="youtube" className="rounded-lg gap-2 text-[10px] sm:text-sm"><Youtube className="size-3" /> YouTube</TabsTrigger>
+                      <TabsTrigger value="local" className="rounded-lg gap-2 text-[10px] sm:text-sm"><FileVideo className="size-3" /> محلي</TabsTrigger>
                     </TabsList>
                   </Tabs>
 
@@ -223,15 +224,16 @@ export function StreamHub() {
                     />
                   </div>
 
-                  {uploadSource === 'youtube' ? (
+                  {uploadSource !== 'local' ? (
                     <div className="grid gap-2">
-                      <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">رابط يوتيوب</Label>
+                      <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">رابط المصدر ({uploadSource})</Label>
                       <Input 
-                        placeholder="https://www.youtube.com/watch?v=..." 
+                        placeholder={uploadSource === 'youtube' ? "https://www.youtube.com/watch?v=..." : "https://drive.google.com/file/d/.../view"} 
                         className="bg-white/5 border-white/10 rounded-xl h-12 text-right"
                         value={uploadData.externalUrl}
                         onChange={(e) => setUploadData({ ...uploadData, externalUrl: e.target.value })}
                       />
+                      <p className="text-[9px] text-indigo-400 text-right italic">تأكد أن الرابط متاح للعرض العام (Anyone with the link).</p>
                     </div>
                   ) : (
                     <div className="grid gap-2">
@@ -259,7 +261,7 @@ export function StreamHub() {
                   <Button 
                     onClick={handleFinalizeUpload} 
                     className="w-full bg-primary text-white hover:bg-primary/90 h-14 rounded-2xl font-bold text-lg" 
-                    disabled={!uploadData.title || (uploadSource === 'local' && !uploadData.file) || (uploadSource === 'youtube' && !uploadData.externalUrl)}
+                    disabled={!uploadData.title || (uploadSource === 'local' && !uploadData.file) || (uploadSource !== 'local' && !uploadData.externalUrl)}
                   >
                     <Zap className="mr-2 size-5" />
                     بدء المزامنة العصبية
@@ -276,7 +278,7 @@ export function StreamHub() {
           const ytId = video.source === 'youtube' ? getYoutubeId(video.externalUrl) : null;
           const thumbSrc = video.source === 'youtube' && ytId 
             ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` 
-            : (video.thumbnail && !video.thumbnail.endsWith('.mp4') ? video.thumbnail : "https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1074&auto=format&fit=crop");
+            : video.thumbnail;
 
           const isActive = activeVideo?.id === video.id;
 
@@ -304,8 +306,8 @@ export function StreamHub() {
                 <div className="absolute top-4 left-4">
                   <div className="flex gap-2">
                     <Badge className="bg-black/60 backdrop-blur-md border-white/10 gap-1.5">
-                      {video.source === 'youtube' ? <Youtube className="size-3 text-red-500" /> : <Radio className="size-3 text-indigo-400" />}
-                      <span className="text-[9px] uppercase font-bold">{video.source === 'youtube' ? 'YouTube' : 'Nexus Clip'}</span>
+                      {video.source === 'youtube' ? <Youtube className="size-3 text-red-500" /> : video.source === 'drive' ? <HardDrive className="size-3 text-emerald-400" /> : <Radio className="size-3 text-indigo-400" />}
+                      <span className="text-[9px] uppercase font-bold">{video.source === 'youtube' ? 'YouTube' : video.source === 'drive' ? 'Drive' : 'Nexus Clip'}</span>
                     </Badge>
                   </div>
                 </div>
