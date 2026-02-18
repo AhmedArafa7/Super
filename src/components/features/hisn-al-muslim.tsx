@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -81,7 +82,8 @@ export function HisnAlMuslim() {
   };
 
   if (selectedCategory) {
-    const progress = Math.round((selectedCategory.items.filter(i => completedItems.has(item.id)).length / selectedCategory.items.length) * 100);
+    const progressCount = selectedCategory.items.filter(i => completedItems.has(i.id)).length;
+    const progress = Math.round((progressCount / selectedCategory.items.length) * 100);
     return (
       <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-2 duration-500">
         <header className="p-6 border-b border-white/5 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-20 flex items-center justify-between flex-row-reverse">
