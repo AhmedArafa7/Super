@@ -4,16 +4,13 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { 
   Search, BookOpen, ChevronRight, RotateCcw, Copy, Check, Star, 
-  Moon, Sun, Heart, Zap, Globe, ArrowLeft, Share2, Sparkles, 
-  Fingerprint, Clock, Compass, Activity, ShieldCheck, RefreshCw,
-  Calendar, Target, Shield, MapPin, Music, Play, Pause, Download, 
-  Database, Trash2, HardDrive, Settings2, Volume2, Type, ZoomIn, ZoomOut,
-  Infinity, Info, Lightbulb
+  Moon, Sun, Globe, ArrowLeft, Sparkles, 
+  Infinity, Info, Lightbulb, Settings2, Database, Trash2, HardDrive, ZoomIn, ZoomOut, Play, Pause, Music
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -35,7 +32,6 @@ export function HisnAlMuslim() {
   const [counts, setCounts] = useState<Record<number, number>>({});
   const [completedItems, setCompletedItems] = useState<Set<number>>(new Set());
   
-  // Tasbih Logic
   const [tasbihCount, setTasbihCount] = useState(0);
   const [tasbihTarget, setTasbihTarget] = useState(33);
 
@@ -51,7 +47,7 @@ export function HisnAlMuslim() {
       if (isPlaying) audioRef.current.play().catch(() => setIsPlaying(false));
       else audioRef.current.pause();
     }
-  }, [isPlaying, currentSurah]);
+  }, [isPlaying, currentSurah, setIsPlaying]);
 
   const usedStorage = useMemo(() => 
     downloadedAssets.reduce((acc, a) => acc + a.size, 0), 
@@ -97,7 +93,6 @@ export function HisnAlMuslim() {
     toast({ title: "تم النسخ", description: "تم نسخ النص بنجاح للعقدة." });
   };
 
-  // واجهة قراءة السورة
   if (readingSurah) {
     return (
       <motion.div 
@@ -230,7 +225,7 @@ export function HisnAlMuslim() {
           <Progress value={storagePercentage} className="h-1.5 bg-white/5" />
           <div className="flex items-center justify-between text-[9px] text-muted-foreground flex-row-reverse">
             <span>{storagePercentage}% مستخدم</span>
-            <span className="flex items-center gap-1">تنظيف ذكي نشط <ShieldCheck className="size-2 text-green-400" /></span>
+            <span className="flex items-center gap-1">تنظيف ذكي نشط</span>
           </div>
         </div>
       </div>
@@ -241,7 +236,7 @@ export function HisnAlMuslim() {
           <TabsTrigger value="azkar" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary flex-1 sm:flex-none font-bold">الأذكار</TabsTrigger>
           <TabsTrigger value="names" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary flex-1 sm:flex-none font-bold">أسماء الله</TabsTrigger>
           <TabsTrigger value="tasbih" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary flex-1 sm:flex-none font-bold">المسبحة</TabsTrigger>
-          <TabsTrigger value="storage" className="rounded-xl px-8 py-3 data-[state=active]:bg-indigo-600 flex-1 sm:flex-none font-bold">الإعدادات</TabsTrigger>
+          <TabsTrigger value="storage" className="rounded-xl px-8 py-3 data-[state=active]:bg-indigo-600 flex-1 sm:flex-none font-bold">إعدادات الذاكرة</TabsTrigger>
         </TabsList>
 
         <AnimatePresence mode="wait">
@@ -318,7 +313,7 @@ export function HisnAlMuslim() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {filteredCategories.map((cat) => {
-                    const CategoryIcon = cat.icon === 'Sun' ? Sun : cat.icon === 'Moon' ? Moon : cat.icon === 'Globe' ? Globe : BookOpen;
+                    const CategoryIcon = cat.icon === 'Sun' ? Sun : cat.icon === 'Moon' ? Moon : Globe;
                     return (
                       <Card key={cat.id} className="group glass border-white/5 rounded-[3rem] overflow-hidden hover:border-primary/40 transition-all cursor-pointer shadow-2xl relative" onClick={() => setSelectedCategory(cat)}>
                         <div className="p-10 text-right">
@@ -388,11 +383,6 @@ export function HisnAlMuslim() {
                     </span>
                     <div className="flex flex-col items-center gap-1">
                       <p className="text-muted-foreground text-xs font-bold uppercase tracking-[0.2em]">اضغط للتسبيح</p>
-                      <div className="flex gap-1">
-                        {Array.from({ length: 3 }).map((_, i) => (
-                          <div key={i} className={cn("size-1 rounded-full", (tasbihCount % tasbihTarget) > (i * (tasbihTarget/3)) ? "bg-primary" : "bg-white/10")} />
-                        ))}
-                      </div>
                     </div>
                   </button>
                   
@@ -465,7 +455,7 @@ export function HisnAlMuslim() {
                               <div className="text-right">
                                 <p className="text-sm font-bold text-white">{surah?.name}</p>
                                 <p className="text-[9px] text-muted-foreground flex items-center gap-1 justify-end">
-                                  {asset.size} MB <ShieldCheck className="size-2 text-green-400" />
+                                  {asset.size} MB
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
@@ -488,62 +478,6 @@ export function HisnAlMuslim() {
           )}
         </AnimatePresence>
       </Tabs>
-
-      {/* Floating Global Player */}
-      <AnimatePresence>
-        {currentSurah && !readingSurah && (
-          <motion.div 
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md"
-          >
-            <div className="glass border-primary/30 rounded-[2rem] p-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
-              <div className="absolute inset-0 bg-primary/5 -z-10" />
-              <div className="flex items-center justify-between px-4 flex-row-reverse">
-                <div className="flex items-center gap-3 flex-row-reverse">
-                  <div className="size-12 bg-primary rounded-2xl flex items-center justify-center shadow-lg border border-white/10">
-                    <Music className="size-6 text-white animate-pulse" />
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-white truncate max-w-[140px]">{currentSurah.name}</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{currentSurah.reciter}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="size-12 rounded-2xl bg-white/5 text-white hover:bg-primary hover:text-white transition-all shadow-inner" 
-                    onClick={() => setIsPlaying(!isPlaying)}
-                  >
-                    {isPlaying ? <Pause className="size-7" /> : <Play className="size-7 ml-1" />}
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="size-10 rounded-xl text-red-400 hover:bg-red-500/10" 
-                    onClick={() => { setCurrentSurah(null); setIsPlaying(false); }}
-                  >
-                    <RotateCcw className="size-4" />
-                  </Button>
-                </div>
-              </div>
-              <audio ref={audioRef} src={currentSurah.url} onEnded={() => setIsPlaying(false)} />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="mt-20 p-16 glass rounded-[4rem] border-white/5 text-center relative overflow-hidden">
-        <div className="absolute top-0 right-0 size-64 bg-primary/10 blur-[100px] -mr-32 -mt-32" />
-        <div className="absolute bottom-0 left-0 size-64 bg-indigo-500/10 blur-[100px] -ml-32 -mb-32" />
-        <h3 className="text-3xl font-serif font-bold text-white mb-6 relative z-10">﴿أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ﴾</h3>
-        <p className="text-muted-foreground text-lg relative z-10 max-w-2xl mx-auto leading-relaxed">
-          تم تصميم "عقدة الإيمان" لتكون مساحتك الخاصة للسكينة الرقمية، مدمجة بالكامل مع بروتوكولات NexusAI لضمان الخصوصية والوصول السريع.
-        </p>
-      </div>
     </div>
   );
 }

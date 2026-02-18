@@ -2,7 +2,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { collection, addDoc, doc, updateDoc, deleteDoc, query, orderBy, onSnapshot, getDocs, collectionGroup, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, deleteDoc, query, orderBy, onSnapshot, getDocs, collectionGroup } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
 import { toast } from '@/hooks/use-toast';
 
@@ -21,10 +21,10 @@ export interface WizardMessage {
   id: string;
   userId: string;
   userName: string;
-  text: string; // النص النهائي المستخدم
-  originalText: string; // نص المستخدم الأصلي
-  optimizedText?: string; // النص بعد تحسين الـ AI
-  selectedModel?: string; // الموديل الذي تم استخدامه
+  text: string; 
+  originalText: string;
+  optimizedText?: string;
+  selectedModel?: string;
   isAutoMode: boolean;
   response: string | null;
   engine?: string;
@@ -121,9 +121,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         originalText: newText,
         isAutoMode: autoMode,
         selectedModel: autoMode ? 'Auto Selecting...' : selectedManualModel,
-        response: null, // تصفير الرد القديم
-        optimizedText: null, // تصفير التحسين القديم
-        status: 'sent', // إعادة الحالة للمراجعة
+        response: null, 
+        optimizedText: null, 
+        status: 'sent', 
         timestamp: new Date().toISOString()
       });
       set({ isSending: false });
@@ -157,14 +157,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const { firestore } = initializeFirebase();
     const docRef = doc(firestore, 'users', userId, 'messages', id);
     
+    // ملاحظة: نحافظ على حالة 'sent' لكي يراها الأدمن ويوافق عليها كمسودة
     const updates: any = {
       response: data.response || "عذراً، لم يتم توليد رد.",
       engine: data.engine || "System",
-      status: 'replied'
+      optimizedText: data.optimizedText || null,
+      selectedModel: data.selectedModel || null
     };
 
-    if (data.optimizedText !== undefined) updates.optimizedText = data.optimizedText;
-    if (data.selectedModel !== undefined) updates.selectedModel = data.selectedModel;
+    // تنقية البيانات من undefined لتجنب أخطاء Firebase
+    Object.keys(updates).forEach(key => {
+      if (updates[key] === undefined) {
+        delete updates[key];
+      }
+    });
 
     await updateDoc(docRef, updates);
   }
@@ -194,14 +200,16 @@ export const getStoredMessages = async (userId?: string, fetchAll = false): Prom
   return allMessages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
-export const approveMessage = async (id: string, userId: string, response: string, engine?: string) => {
+export const approveMessage = async (id: string, userId: string, response: string, optimizedText?: string) => {
   const { firestore } = initializeFirebase();
   const docRef = doc(firestore, 'users', userId, 'messages', id);
-  await updateDoc(docRef, {
+  const updates: any = {
     response,
-    engine: engine || 'Nexus Control',
     status: 'replied'
-  });
+  };
+  if (optimizedText) updates.optimizedText = optimizedText;
+  
+  await updateDoc(docRef, updates);
 };
 
 export const rejectMessage = async (id: string, userId: string) => {
@@ -209,15 +217,5 @@ export const rejectMessage = async (id: string, userId: string) => {
   const docRef = doc(firestore, 'users', userId, 'messages', id);
   await updateDoc(docRef, {
     status: 'rejected'
-  });
-};
-
-export const editMessage = async (id: string, userId: string, newResponse: string, reason: string) => {
-  const { firestore } = initializeFirebase();
-  const docRef = doc(firestore, 'users', userId, 'messages', id);
-  await updateDoc(docRef, {
-    response: newResponse,
-    editReason: reason,
-    status: 'replied'
   });
 };
