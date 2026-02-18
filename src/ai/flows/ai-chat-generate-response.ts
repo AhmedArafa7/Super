@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview المحرك العصبي المتطور v5.5 - يدعم الرؤية، الأدوات، التحسين الصامت، وتكامل Nexus Vault.
@@ -129,7 +128,7 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
       // [SIMPLIFIED_NAMING]: استخلاص الأسماء المبسطة للموديلات لحجب أرقام الإصدارات وفق بروتوكول نكسوس
       let engineName = "Neural Engine";
       if (modelToUse.includes('gemini-1.5-pro')) engineName = "Gemini Pro";
-      else if (modelToUse.includes('gemini-2.0')) engineName = "Gemini Thinking";
+      else if (modelToUse.includes('gemini-2.0') || modelToUse.includes('thinking')) engineName = "Gemini Thinking";
       else if (modelToUse.includes('gemini-1.5-flash')) engineName = "Gemini Flash";
       else if (modelToUse.includes('llama-3.3')) engineName = "Llama 3.3 70B";
       else if (modelToUse.includes('groq')) engineName = "Groq Node";
