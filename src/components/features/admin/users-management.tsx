@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Users, Plus, DollarSign } from "lucide-react";
+import { Users, Plus, DollarSign, Mic2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -39,6 +39,7 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
         role: newUser.role,
         classification: 'none',
         proResponsesRemaining: 0,
+        proTTSRemaining: 0,
         avatarUrl: `https://picsum.photos/seed/${newUser.username}/100/100`,
         canManageCredits: false
       });
@@ -81,7 +82,19 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
       toast({ title: "مزامنة عصبية", description: "تم تخصيص ردود Pro بنجاح." });
       onRefresh();
     } catch (err) {
-      toast({ variant: "destructive", title: "فشل التحديث", description: "فشل في المزامنة." });
+      toast({ variant: "destructive", title: "فشل التحديث" });
+    }
+  };
+
+  const handleUpdateProTTS = async (userId: string, amount: string) => {
+    const num = parseInt(amount);
+    if (isNaN(num)) return;
+    try {
+      await updateUserProfile(userId, { proTTSRemaining: num });
+      toast({ title: "مزامنة السيادة الصوتية", description: "تم تخصيص حصص نطق عالي الجودة." });
+      onRefresh();
+    } catch (err) {
+      toast({ variant: "destructive", title: "فشل التحديث" });
     }
   };
 
@@ -97,7 +110,7 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
         onRefresh();
       }
     } catch (err) {
-      toast({ variant: "destructive", title: "فشل الحقن", description: "رفضت عقدة الائتمان الطلب." });
+      toast({ variant: "destructive", title: "فشل الحقن" });
     } finally {
       setIsAddingCredits(false);
     }
@@ -158,9 +171,9 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
                 </Select>
               </div>
 
-              {(u.classification === 'investor' || u.classification === 'manager') && (
+              <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-[9px] uppercase font-bold text-indigo-400">رصيد ردود Pro المتبقي</Label>
+                  <Label className="text-[9px] uppercase font-bold text-indigo-400">ردود Pro</Label>
                   <Input 
                     type="number" 
                     className="bg-white/5 border-white/10 h-10 text-center font-bold" 
@@ -168,7 +181,18 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
                     onBlur={(e) => handleUpdateProResponses(u.id, e.target.value)}
                   />
                 </div>
-              )}
+                <div className="space-y-1">
+                  <Label className="text-[9px] uppercase font-bold text-emerald-400 flex items-center justify-end gap-1">
+                    حصص TTS <Mic2 className="size-2" />
+                  </Label>
+                  <Input 
+                    type="number" 
+                    className="bg-white/5 border-white/10 h-10 text-center font-bold" 
+                    defaultValue={u.proTTSRemaining || 0}
+                    onBlur={(e) => handleUpdateProTTS(u.id, e.target.value)}
+                  />
+                </div>
+              </div>
 
               <div className="flex items-center justify-between flex-row-reverse pt-2">
                 <Label className="text-[9px] uppercase font-bold text-muted-foreground">صلاحية النخاع</Label>

@@ -15,6 +15,7 @@ export interface User {
   role: UserRole;
   classification?: UserClassification;
   proResponsesRemaining?: number;
+  proTTSRemaining?: number;
   avatar_url?: string;
   customTag?: string;
   canManageCredits?: boolean;
@@ -43,7 +44,7 @@ export const getStoredUsers = async (): Promise<User[]> => {
   return snapshot.docs.map(d => ({ 
     id: d.id, 
     ...d.data(),
-    status: d.data().status || 'offline' // القيمة الافتراضية
+    status: d.data().status || 'offline'
   } as User));
 };
 
@@ -55,6 +56,7 @@ export const addUser = async (userData: Omit<User, 'id'>) => {
     id: newUserRef.id,
     classification: userData.classification || 'none',
     proResponsesRemaining: userData.proResponsesRemaining || 0,
+    proTTSRemaining: userData.proTTSRemaining || 0,
     avatar_url: userData.avatar_url || `https://picsum.photos/seed/${userData.username}/100/100`,
     status: 'online',
     lastSeen: new Date().toISOString()

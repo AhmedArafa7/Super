@@ -4,7 +4,7 @@
 import React, { useState, memo, useEffect, useRef } from "react";
 import { 
   Bot, User, MoreVertical, Pencil, Trash2, ChevronDown, 
-  ChevronUp, Volume2, Loader2, Zap 
+  ChevronUp, Volume2, Loader2, Zap, Mic2 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -16,9 +16,11 @@ import {
 import { cn } from "@/lib/utils";
 import { WizardMessage } from "@/lib/chat-store";
 import { textToNeuralSpeech } from "@/ai/flows/ai-audio-flows";
+import { updateUserProfile } from "@/lib/auth-store";
 
 interface ChatMessageProps {
   msg: WizardMessage;
+  user: any;
   isInAudioQueue?: boolean;
   isMyTurnToPlay?: boolean;
   onAudioFinished?: () => void;
@@ -27,10 +29,11 @@ interface ChatMessageProps {
 }
 
 /**
- * [STABILITY_ANCHOR: CHAT_MESSAGE_NODE_V1.6]
- * عقدة الرسالة المستقلة - تم تحصين محرك النطق ضد الأخطاء البرمجية لمنع الانهيارات البصرية.
+ * [STABILITY_ANCHOR: CHAT_MESSAGE_NODE_V2.0]
+ * عقدة الرسالة المستقلة - تدعم الآن بروتوكول السيادة الصوتية (Pro TTS Quota).
+ * يتم استخدام النطق المحلي افتراضياً إلا إذا كان للمستخدم رصيد Pro ممنوح من الإدارة.
  */
-export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioFinished, onEdit, onDelete }: ChatMessageProps) => {
+export const ChatMessage = memo(({ msg, user, isInAudioQueue, isMyTurnToPlay, onAudioFinished, onEdit, onDelete }: ChatMessageProps) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
@@ -45,12 +48,10 @@ export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioF
       return;
     }
 
-    // إلغاء أي عمليات نطق جارية لتجنب التداخل البرمجي
     window.speechSynthesis.cancel();
 
     try {
       const utterance = new SpeechSynthesisUtterance(text);
-      // التحقق من اللغة وتعيين المجمع الصوتي المناسب
       utterance.lang = /[\u0600-\u06FF]/.test(text) ? 'ar-SA' : 'en-US';
       utterance.rate = 0.95;
       utterance.pitch = 1;
@@ -61,7 +62,6 @@ export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioF
       };
 
       utterance.onerror = () => {
-        // معالجة الخطأ بصمت لمنع ظهور شاشات الخطأ الحمراء للمستخدم
         setHasFailed(true);
         setIsSpeaking(false);
         onAudioFinished?.();
@@ -78,32 +78,39 @@ export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioF
   const handleSpeak = async () => {
     if (!msg.response || audioUrl || hasFailed || isSpeaking) return;
     
-    setIsSpeaking(true);
-    try {
-      const result = await textToNeuralSpeech(msg.response);
-      if (result.success && result.audioUrl) {
-        setAudioUrl(result.audioUrl);
-      } else {
-        // التحويل للمحرك المحلي عند تجاوز الحصة أو حدوث عطل في السحابة
+    // [STABILITY_ANCHOR: SOVEREIGN_VOICE_CHECK]
+    // التحقق من وجود رصيد نطق عالي الجودة ممنوح من الإدارة
+    const hasQuota = user?.proTTSRemaining && user.proTTSRemaining > 0;
+
+    if (hasQuota) {
+      setIsSpeaking(true);
+      try {
+        const result = await textToNeuralSpeech(msg.response);
+        if (result.success && result.audioUrl) {
+          setAudioUrl(result.audioUrl);
+          // خصم حصة واحدة من رصيد المستخدم بعد النجاح
+          await updateUserProfile(user.id, { proTTSRemaining: user.proTTSRemaining - 1 });
+        } else {
+          speakLocally(msg.response);
+        }
+      } catch (e) {
         speakLocally(msg.response);
+      } finally {
+        setIsSpeaking(false);
       }
-    } catch (e) {
-      // فشل صامت والانتقال للخطوة التالية في الطابور
-      setHasFailed(true);
-      onAudioFinished?.();
-    } finally {
-      if (!isUsingLocalFallback) setIsSpeaking(false);
+    } else {
+      // إذا لم يكن هناك رصيد، يتم تشغيل النطق المحلي فوراً دون محاولة استخدام الـ API
+      setIsSpeaking(true);
+      speakLocally(msg.response);
     }
   };
 
-  // المزامنة مع طابور التشغيل العالمي
   useEffect(() => {
     if (isInAudioQueue && !audioUrl && !isSpeaking && !hasFailed && !isUsingLocalFallback) {
       handleSpeak();
     }
   }, [isInAudioQueue, audioUrl, hasFailed]);
 
-  // التحكم في البدء الفعلي للنطق
   useEffect(() => {
     if (isMyTurnToPlay) {
       if (audioUrl && audioRef.current) {
@@ -111,7 +118,7 @@ export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioF
           onAudioFinished?.(); 
         });
       } else if (isUsingLocalFallback) {
-        // المحرك المحلي يعمل بالفعل عبر speakLocally
+        // المحرك المحلي يعمل بالفعل
       } else if (hasFailed) {
         onAudioFinished?.();
       } else {
@@ -122,7 +129,6 @@ export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioF
 
   return (
     <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
-      {/* User Message */}
       <div className="flex items-start gap-3 justify-end group relative">
         <div className="absolute right-full top-0 mr-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
           <DropdownMenu>
@@ -175,7 +181,6 @@ export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioF
         </div>
       </div>
 
-      {/* AI Response */}
       {msg.status === 'replied' && (
         <div className="flex items-start gap-3 justify-start animate-in slide-in-from-left-4 duration-500">
           <div className="size-10 rounded-2xl glass flex items-center justify-center mt-1 shrink-0 border border-primary/20 shadow-inner">
@@ -198,6 +203,7 @@ export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioF
                   {hasFailed ? "النطق غير متاح" : (isUsingLocalFallback ? "نطق محلي (احتياطي)" : (audioUrl ? (isMyTurnToPlay ? "جاري النطق..." : "إعادة النطق") : "نطق الرد"))}
                 </Button>
                 <div className="flex items-center gap-2 opacity-40 text-[9px] font-mono tracking-tighter">
+                  {audioUrl && !isUsingLocalFallback && <Mic2 className="size-3 text-emerald-400" />}
                   <Zap className={cn("size-3", isUsingLocalFallback ? "text-amber-400" : "text-indigo-400")} />
                   <span>{isUsingLocalFallback ? "Local Engine" : msg.engine}</span>
                 </div>

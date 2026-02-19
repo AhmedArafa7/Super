@@ -13,14 +13,13 @@ import { generateNeuralImage } from "@/ai/flows/ai-media-generation";
 import { updateUserProfile } from "@/lib/auth-store";
 import { ToastAction } from "@/components/ui/toast";
 
-// [STABILITY_ANCHOR: CHAT_MODULAR_IMPORTS]
 import { ChatMessage } from "./chat/chat-message";
 import { ChatInput } from "./chat/chat-input";
 import { ChatSettings } from "./chat/chat-settings";
 
 /**
- * [STABILITY_ANCHOR: CHAT_ORCHESTRATOR_V6.5]
- * المنسق الرئيسي للدردشة الذكية - تحصين معالجة الاستجابات القادمة من النخاع.
+ * [STABILITY_ANCHOR: CHAT_ORCHESTRATOR_V6.6]
+ * المنسق الرئيسي للدردشة الذكية - تم ربط محرك النطق بنظام حصص السيادة.
  */
 export function AIChat() {
   const { user } = useAuth();
@@ -44,12 +43,12 @@ export function AIChat() {
 
   const availableModels = useMemo(() => {
     const models = [
-      { id: 'googleai/gemini-1.5-flash', label: 'NexusAI (Flash)', desc: 'المحرك العصبي الأساسي' },
+      { id: 'googleai/gemini-1.5-flash-latest', label: 'NexusAI (Flash)', desc: 'المحرك العصبي الأساسي' },
       { id: 'groq/llama-3.3-70b-versatile', label: 'Groq Llama 3.3', desc: 'محرك فائق السرعة' }
     ];
     if (user?.classification === 'investor' || user?.classification === 'manager') {
       models.push({ 
-        id: 'googleai/gemini-1.5-pro', 
+        id: 'googleai/gemini-1.5-pro-latest', 
         label: 'Gemini Pro', 
         desc: 'تحليل فائق الدقة',
         count: user.proResponsesRemaining || 0
@@ -108,7 +107,7 @@ export function AIChat() {
   const handleSend = async () => {
     if ((!input.trim() && attachments.length === 0) || isAITyping || !user) return;
 
-    if (selectedManualModel === 'googleai/gemini-1.5-pro' && (user.proResponsesRemaining || 0) <= 0) {
+    if (selectedManualModel.includes('pro') && (user.proResponsesRemaining || 0) <= 0) {
       toast({ variant: "destructive", title: "رصيد غير كافٍ", description: "لقد استهلكت كافة ردود Pro المتاحة." });
       return;
     }
@@ -133,7 +132,7 @@ export function AIChat() {
     setIsAITyping(true);
     try {
       if (userText.startsWith("/imagine")) {
-        const result = await generateNeuralImage(userText.replace("/imagine", ""));
+        await generateNeuralImage(userText.replace("/imagine", ""));
         await provideAIResponse(savedMsgId, user.id, { response: `لقد ولدت الصورة المطلوبة بنجاح.`, engine: "Imagen 4.0" });
       } else {
         const res = await aiChatGenerateResponse({
@@ -143,9 +142,7 @@ export function AIChat() {
           history: messages.slice(-6).map(m => ({ role: m.status === 'replied' ? 'model' : 'user', content: m.response || m.text }))
         });
         
-        if (res.error) {
-          throw new Error(res.message);
-        }
+        if (res.error) throw new Error(res.message);
 
         await provideAIResponse(savedMsgId, user.id, {
           response: res.response,
@@ -154,7 +151,7 @@ export function AIChat() {
           selectedModel: res.selectedModel
         });
 
-        if (selectedManualModel === 'googleai/gemini-1.5-pro' && user.proResponsesRemaining !== undefined) {
+        if (selectedManualModel.includes('pro') && user.proResponsesRemaining !== undefined) {
           await updateUserProfile(user.id, { proResponsesRemaining: Math.max(0, user.proResponsesRemaining - 1) });
         }
       }
@@ -203,6 +200,7 @@ export function AIChat() {
               <ChatMessage 
                 key={m.id} 
                 msg={m} 
+                user={user}
                 isInAudioQueue={audioQueue.includes(m.id)}
                 isMyTurnToPlay={currentlyPlayingId === m.id}
                 onAudioFinished={handleAudioFinished}
