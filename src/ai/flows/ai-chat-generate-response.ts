@@ -12,6 +12,7 @@ import { googleAI } from '@genkit-ai/google-genai';
 const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 // [STABILITY_ANCHOR: SILENT_OPTIMIZER_LOGIC]
+// هذا القطاع مسؤول عن تحسين الطلبات تقنياً دون إضافة مقدمات شرح.
 const optimizePrompt = ai.definePrompt({
   name: 'optimizePrompt',
   input: {schema: z.object({ message: z.string() })},
@@ -102,7 +103,7 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
       });
       
       // [STABILITY_ANCHOR: SOVEREIGN_NAMING_CONVENTION]
-      // الالتزام بالأسماء المبسطة وحجب أرقام الإصدارات التقنية
+      // الالتزام الصارم بالأسماء المبسطة وحجب أرقام الإصدارات التقنية.
       let engineName = "Neural Engine";
       if (modelToUse.includes('gemini-1.5-pro')) engineName = "Gemini Pro";
       else if (modelToUse.includes('gemini-2.0') || modelToUse.includes('thinking')) engineName = "Gemini Thinking";

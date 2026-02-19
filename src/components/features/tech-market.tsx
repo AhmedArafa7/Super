@@ -1,12 +1,12 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { 
-  Search, Filter, Wallet, Loader2, Plus, ShoppingBag, 
-  Repeat, Tag, Cpu, Globe, Layers, BookOpen, 
-  Terminal, ShieldCheck, Zap, ChevronRight, LayoutGrid,
-  Laptop, Boxes, Briefcase, GraduationCap, Download, Play, MonitorSmartphone,
-  FileCode, CheckCircle2, Upload, Info, MessageCircle, Edit3, ArrowLeft, Image as ImageIcon
+  Search, LayoutGrid, Laptop, Boxes, Briefcase, Terminal, 
+  GraduationCap, MonitorSmartphone, Plus, Loader2, Zap, 
+  ChevronRight, ArrowLeft, Image as ImageIcon, CheckCircle2, 
+  Upload, MessageCircle, Edit3, Download, Play 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 
 const ITEMS_PER_PAGE = 12;
 
+// [STABILITY_ANCHOR: MARKET_CATEGORIES]
 const MAIN_CATEGORIES = [
   { id: 'all', label: 'All Clusters', icon: LayoutGrid },
   { id: 'electronics', label: 'Electronics', icon: Laptop },
@@ -43,6 +44,10 @@ const MAIN_CATEGORIES = [
   { id: 'software', label: 'Apps & Nodes', icon: MonitorSmartphone },
 ];
 
+/**
+ * [STABILITY_ANCHOR: TECH_MARKET_COMPONENT]
+ * المتجر التقني اللامركزي - يعتمد الهيكل المعياري لضمان ثبات الميزات.
+ */
 export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title: string) => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -64,6 +69,7 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
   const [mainCat, setMainCat] = useState<MainCategory>("all");
   const [subCat, setSubCat] = useState<string>("all_subs");
 
+  // [STABILITY_ANCHOR: FORM_INITIAL_STATE]
   const [newListing, setNewListing] = useState({
     title: "",
     description: "",
@@ -147,6 +153,7 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
     return () => clearTimeout(timer);
   }, [search, mainCat, subCat, loadData]);
 
+  // [STABILITY_ANCHOR: MUTATION_LOGIC]
   const handleAddListing = async () => {
     if (!user) return;
     setIsSubmitting(true);
@@ -242,6 +249,7 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
     return item.sellerId !== user?.id && item.status === 'active';
   });
 
+  // [STABILITY_ANCHOR: DETAIL_VIEW_LOGIC]
   if (viewingItem) {
     const isOwner = viewingItem.sellerId === user?.id;
     return (
@@ -367,6 +375,7 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
     );
   }
 
+  // [STABILITY_ANCHOR: MARKET_MAIN_UI]
   return (
     <div className="flex h-full bg-slate-950/50">
       <aside className="w-64 border-r border-white/5 bg-slate-900/20 backdrop-blur-xl flex flex-col hidden lg:flex">
@@ -545,6 +554,7 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
         </ScrollArea>
       </main>
 
+      {/* [STABILITY_ANCHOR: DIALOG_FORMS] */}
       <Dialog open={isAddModalOpen || isEditModalOpen} onOpenChange={(open) => { if (!open) { setIsAddModalOpen(false); setIsEditModalOpen(false); } }}>
         <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 sm:max-w-[650px] overflow-y-auto max-h-[90vh]">
           <DialogHeader>

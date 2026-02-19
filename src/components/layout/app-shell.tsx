@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
-import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShieldCheck, GraduationCap, Wallet, Settings, LayoutDashboard, Repeat, Loader2, CheckCircle2, AlertCircle, Sparkles, BookOpen, Rocket, MonitorSmartphone, Plus, X, ExternalLink } from "lucide-react";
+import { MessageSquare, Video, ShoppingBag, Zap, Layers, LogOut, Search, Bell, ShieldCheck, GraduationCap, Wallet, LayoutDashboard, Repeat, Sparkles, BookOpen, Rocket, MonitorSmartphone, Plus, X, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,10 +34,14 @@ import { LoginView } from "@/components/auth/login-view";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
-// [FIX]: استخدام صيغة الرابط القابلة للتضمين (Embed) مع دعم الـ List View لزيادة التوافق
+// [STABILITY_ANCHOR: VAULT_CONFIG]
 const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g#list";
 const VAULT_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
+/**
+ * [STABILITY_ANCHOR: APPSHELL_ORCHESTRATOR]
+ * المكون المركزي لإدارة واجهة النظام بالكامل.
+ */
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<NavItemId>("dashboard");
@@ -94,7 +98,7 @@ export function AppShell() {
     { id: "wallet", label: "Neural Wallet", icon: Wallet },
     { id: "offers", label: "Offers Inbox", icon: Repeat, badge: pendingOffersCount },
     { id: "learning", label: "Knowledge Hub", icon: GraduationCap },
-    { id: "hisn", label: "حصن المسلم", icon: BookOpen },
+    { id: "hisn", label: "عقدة الإيمان", icon: BookOpen },
     { id: "features", label: "Capabilities", icon: Zap },
     { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount },
     { id: "admin", label: "Admin Panel", icon: ShieldCheck },
@@ -102,6 +106,7 @@ export function AppShell() {
 
   const sidebarItems = ALL_NAV_ITEMS.filter(item => isPinned(item.id as NavItemId));
 
+  // [STABILITY_ANCHOR: CONTENT_ROUTER]
   const renderContent = () => {
     if (launchedApp) {
       return (
@@ -204,13 +209,13 @@ export function AppShell() {
                 <DialogTrigger asChild>
                   <Button variant="ghost" className="w-full border border-dashed border-white/10 h-12 rounded-xl text-[10px] uppercase font-bold text-muted-foreground hover:bg-white/5 gap-3 flex-row-reverse">
                     <MonitorSmartphone className="size-4 text-primary" />
-                    Customize Sidebar
+                    تخصيص القائمة الجانبية
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Configure Neural Sidebar</DialogTitle>
-                    <DialogDescription>Toggle sections to pin them to your primary navigation.</DialogDescription>
+                    <DialogTitle className="text-right">تهيئة القائمة العصبية</DialogTitle>
+                    <DialogDescription className="text-right">اختر الأقسام التي تريد تثبيتها في شريط التنقل الرئيسي.</DialogDescription>
                   </DialogHeader>
                   <ScrollArea className="max-h-[400px] mt-4">
                     <div className="grid grid-cols-1 gap-2 pr-4">
@@ -228,7 +233,7 @@ export function AppShell() {
                             className={cn("rounded-lg h-8 px-4", isPinned(item.id as NavItemId) ? "bg-primary" : "border-white/10")}
                             onClick={() => togglePin(item.id as NavItemId)}
                           >
-                            {isPinned(item.id as NavItemId) ? "Unpin" : "Pin"}
+                            {isPinned(item.id as NavItemId) ? "إلغاء التثبيت" : "تثبيت"}
                           </Button>
                         </div>
                       ))}
@@ -241,7 +246,7 @@ export function AppShell() {
             {uploadTasks.length > 0 && (
               <div className="mt-8 px-4 space-y-4">
                 <div className="flex items-center gap-2 mb-2 justify-end">
-                  <p className="text-[10px] uppercase font-bold text-indigo-400 tracking-[0.2em]">Neural Sync Monitor</p>
+                  <p className="text-[10px] uppercase font-bold text-indigo-400 tracking-[0.2em]">مراقب المزامنة العصبية</p>
                   <Sparkles className="size-3 text-indigo-400 animate-pulse" />
                 </div>
                 {uploadTasks.map(task => (
@@ -282,7 +287,7 @@ export function AppShell() {
               <SidebarTrigger className="md:hidden" />
               <div className="relative hidden md:block">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                <Input placeholder="Scan Nexus..." className="w-64 pr-9 h-9 bg-white/5 border-white/10 rounded-lg text-sm text-right" />
+                <Input placeholder="البحث في نكسوس..." className="w-64 pr-9 h-9 bg-white/5 border-white/10 rounded-lg text-sm text-right" />
               </div>
             </div>
             <div className="flex items-center gap-4 flex-row-reverse">
@@ -297,7 +302,7 @@ export function AppShell() {
                 onClick={() => { setActiveTab("wallet"); setLaunchedApp(null); }}
               >
                 <Wallet className="size-4 text-primary" />
-                Neural Credits
+                رصيد المحفظة
               </Button>
             </div>
           </header>
