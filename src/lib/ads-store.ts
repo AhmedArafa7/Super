@@ -22,19 +22,23 @@ export interface Ad {
 }
 
 /**
- * محرك إدارة الإعلانات في نكسوس - يدعم السيادة الإدارية ومساهمات المستخدمين.
+ * [STABILITY_ANCHOR: ADS_FETCH_V2]
+ * محرك جلب الإعلانات - تم نقل الترتيب والتصفية لجانب العميل لتجنب أخطاء الفهرسة (Index Errors).
  */
 export const getAds = async (status?: AdStatus): Promise<Ad[]> => {
   const { firestore } = initializeFirebase();
   try {
-    let q = query(collection(firestore, 'ads'), orderBy('createdAt', 'desc'));
-    
+    // جلب المجموعة كاملة لتجنب الحاجة لفهارس مركبة
+    const snap = await getDocs(collection(firestore, 'ads'));
+    let ads = snap.docs.map(d => ({ id: d.id, ...d.data() } as Ad));
+
+    // التصفية حسب الحالة برمجياً
     if (status) {
-      q = query(collection(firestore, 'ads'), where('status', '==', status), orderBy('createdAt', 'desc'));
+      ads = ads.filter(ad => ad.status === status);
     }
 
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as Ad));
+    // الترتيب حسب التاريخ برمجياً (الأحدث أولاً)
+    return ads.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   } catch (e) {
     console.error("Fetch Ads Error:", e);
     return [];
@@ -65,7 +69,7 @@ export const deleteAd = async (id: string) => {
 export const recordAdClick = async (id: string) => {
   const { firestore } = initializeFirebase();
   const adRef = doc(firestore, 'ads', id);
-  // محاكاة زيادة العداد مع التحقق
+  // جلب البيانات الحالية لتحديث العداد
   const snap = await getDocs(query(collection(firestore, 'ads')));
   const ad = snap.docs.find(d => d.id === id);
   if (ad) {

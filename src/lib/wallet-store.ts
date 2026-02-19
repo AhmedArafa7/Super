@@ -1,3 +1,4 @@
+
 'use client';
 
 import { create } from 'zustand';
@@ -74,11 +75,13 @@ export const useWalletStore = create<WalletState>()(
       const { firestore } = initializeFirebase();
       try {
         const txRef = collection(firestore, 'users', userId, 'transactions');
-        const q = query(txRef, orderBy('timestamp', 'desc'));
-        const snap = await getDocs(q);
+        const snap = await getDocs(txRef);
         const txs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
-        set({ transactions: txs });
-        return txs;
+        
+        // الترتيب في جانب العميل لتجنب الحاجة لفهارس
+        const sortedTxs = txs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        set({ transactions: sortedTxs });
+        return sortedTxs;
       } catch (err) {
         console.error('Transactions Fetch Error:', err);
         return [];
@@ -177,11 +180,11 @@ export const useWalletStore = create<WalletState>()(
 
 export const getAllTransactionsAdmin = async (): Promise<Transaction[]> => {
   const { firestore } = initializeFirebase();
-  // إزالة orderBy لتجنب خطأ الفهرس المفقود في collectionGroup
+  // إزالة الترتيب من الاستعلام لتجنب خطأ الفهرس في collectionGroup
   const q = query(collectionGroup(firestore, 'transactions'));
   const snap = await getDocs(q);
   const txs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
-  // الترتيب في جانب العميل لضمان عمل الواجهة فوراً
+  // الترتيب في جانب العميل لضمان العمل الفوري
   return txs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
