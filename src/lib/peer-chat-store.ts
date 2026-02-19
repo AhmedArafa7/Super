@@ -2,13 +2,18 @@
 'use client';
 
 import { create } from 'zustand';
-import { collection, addDoc, query, orderBy, onSnapshot, where, Timestamp, limit } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, onSnapshot, where, Timestamp, limit, updateDoc, doc, getDocs } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
+
+export type MessageType = 'text' | 'image' | 'file';
 
 export interface PeerMessage {
   id: string;
   senderId: string;
   text: string;
+  imageUrl?: string;
+  type: MessageType;
+  isRead: boolean;
   timestamp: any;
 }
 
@@ -17,7 +22,8 @@ interface PeerChatState {
   isLoading: boolean;
   activeChatId: string | null;
   loadMessages: (currentUserId: string, targetUserId: string) => () => void;
-  sendMessage: (senderId: string, targetUserId: string, text: string) => Promise<void>;
+  sendMessage: (senderId: string, targetUserId: string, data: { text?: string, imageUrl?: string, type: MessageType }) => Promise<void>;
+  markAsRead: (chatId: string, messageId: string) => Promise<void>;
 }
 
 export const usePeerChatStore = create<PeerChatState>((set) => ({
@@ -44,15 +50,24 @@ export const usePeerChatStore = create<PeerChatState>((set) => ({
     });
   },
 
-  sendMessage: async (senderId, targetUserId, text) => {
-    if (!text.trim()) return;
+  sendMessage: async (senderId, targetUserId, data) => {
+    if (!data.text?.trim() && !data.imageUrl) return;
     const { firestore } = initializeFirebase();
     const chatId = [senderId, targetUserId].sort().join('_');
     
     await addDoc(collection(firestore, 'chats', chatId, 'messages'), {
       senderId,
-      text,
+      text: data.text || "",
+      imageUrl: data.imageUrl || null,
+      type: data.type,
+      isRead: false,
       timestamp: Timestamp.now()
     });
+  },
+
+  markAsRead: async (chatId, messageId) => {
+    const { firestore } = initializeFirebase();
+    const msgRef = doc(firestore, 'chats', chatId, 'messages', messageId);
+    await updateDoc(msgRef, { isRead: true });
   }
 }));
