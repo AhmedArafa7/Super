@@ -4,7 +4,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type NavItemId = "chat" | "peer-chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn" | "launcher" | "lab" | "directory";
+export type NavItemId = "chat" | "peer-chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn" | "launcher" | "lab" | "directory" | "agent-ai";
 
 interface SidebarState {
   pinnedItems: NavItemId[];
@@ -13,12 +13,12 @@ interface SidebarState {
 }
 
 /**
- * @fileOverview محرك تخصيص القائمة الجانبية - تم إضافة Peer Chat للقائمة.
+ * @fileOverview محرك تخصيص القائمة الجانبية - تم إضافة المهندس العصبي (Agent AI).
  */
 export const useSidebarStore = create<SidebarState>()(
   persist(
     (set, get) => ({
-      pinnedItems: ["dashboard", "chat", "peer-chat", "stream", "market", "wallet"],
+      pinnedItems: ["dashboard", "chat", "agent-ai", "peer-chat", "stream", "market", "wallet"],
 
       togglePin: (id) => {
         const { pinnedItems } = get();

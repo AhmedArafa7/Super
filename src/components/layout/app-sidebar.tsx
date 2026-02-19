@@ -8,7 +8,7 @@ import {
 import { 
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat, 
   Sparkles, BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, 
-  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle
+  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
   const ALL_NAV_ITEMS = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "chat", label: "AI Chat", icon: MessageSquare },
+    { id: "agent-ai", label: "Neural Architect", icon: Cpu }, // أيقونة القسم الجديد
     { id: "peer-chat", label: "Direct Link", icon: MessageCircle },
     { id: "stream", label: "StreamHub", icon: Video },
     { id: "market", label: "TechMarket", icon: ShoppingBag },
