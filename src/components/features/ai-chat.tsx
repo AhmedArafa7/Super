@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Sparkles, Loader2, Zap } from "lucide-react";
+import { Sparkles, Loader2, Zap, Copy } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useChatStore, Attachment } from "@/lib/chat-store";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { aiChatGenerateResponse } from "@/ai/flows/ai-chat-generate-response";
 import { generateNeuralImage } from "@/ai/flows/ai-media-generation";
 import { updateUserProfile } from "@/lib/auth-store";
+import { ToastAction } from "@/components/ui/toast";
 
 // [STABILITY_ANCHOR: CHAT_MODULAR_IMPORTS]
 import { ChatMessage } from "./chat/chat-message";
@@ -18,8 +19,8 @@ import { ChatInput } from "./chat/chat-input";
 import { ChatSettings } from "./chat/chat-settings";
 
 /**
- * [STABILITY_ANCHOR: CHAT_ORCHESTRATOR_V6.2]
- * المنسق الرئيسي للدردشة الذكية - تم تحسين إظهار الأخطاء الحقيقية وضبط طابور الصوت.
+ * [STABILITY_ANCHOR: CHAT_ORCHESTRATOR_V6.3]
+ * المنسق الرئيسي للدردشة الذكية - تفعيل ميزة نسخ الأخطاء التقنية لتسهيل الدعم.
  */
 export function AIChat() {
   const { user } = useAuth();
@@ -154,11 +155,19 @@ export function AIChat() {
         }
       }
     } catch (err: any) {
-      // إظهار الخطأ الحقيقي للمستخدم وللمطور للتشخيص
+      const errorMsg = err.message || "تعذر الاتصال بالنخاع العصبي.";
       toast({ 
         variant: "destructive", 
         title: "Neural Link Error", 
-        description: err.message || "تعذر الاتصال بالنخاع العصبي." 
+        description: errorMsg,
+        action: (
+          <ToastAction altText="Copy" onClick={() => {
+            navigator.clipboard.writeText(errorMsg);
+            toast({ title: "تم نسخ كود الخطأ" });
+          }}>
+            <Copy className="size-3 mr-1" /> نسخ الخطأ
+          </ToastAction>
+        )
       });
     } finally {
       setIsAITyping(false);

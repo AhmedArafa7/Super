@@ -68,6 +68,7 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
   },
   async input => {
     try {
+      // استخدام المسمى المستقر لضمان عدم حدوث 404
       let modelToUse = input.isAutoMode ? 'googleai/gemini-1.5-flash' : (input.manualModel || 'googleai/gemini-1.5-flash');
       let finalPrompt = input.message;
       let optimizedText = null;
@@ -102,7 +103,6 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
         selectedModel: modelToUse
       };
     } catch (err: any) {
-      // إرسال تفاصيل الخطأ الحقيقية بدلاً من رسالة عامة
       throw new Error(`Neural Failure: ${err.message || 'Unknown disturbance'}`);
     }
   }
