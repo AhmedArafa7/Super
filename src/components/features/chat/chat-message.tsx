@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, memo, useEffect } from "react";
+import React, { useState, memo, useEffect, useRef } from "react";
 import { 
   Bot, User, MoreVertical, Pencil, Trash2, ChevronDown, 
   ChevronUp, Volume2, Loader2, Zap 
@@ -19,22 +19,25 @@ import { textToNeuralSpeech } from "@/ai/flows/ai-audio-flows";
 
 interface ChatMessageProps {
   msg: WizardMessage;
-  autoRead?: boolean;
+  isInAudioQueue?: boolean;
+  isMyTurnToPlay?: boolean;
+  onAudioFinished?: () => void;
   onEdit: (m: WizardMessage) => void;
   onDelete: (id: string) => void;
 }
 
 /**
- * [STABILITY_ANCHOR: CHAT_MESSAGE_NODE_V1]
- * عقدة الرسالة المستقلة - تدعم النطق والتحسين البصري.
+ * [STABILITY_ANCHOR: CHAT_MESSAGE_NODE_V1.1]
+ * عقدة الرسالة المستقلة - تدعم النطق المتسلسل والتحميل المسبق للوسائط.
  */
-export const ChatMessage = memo(({ msg, autoRead, onEdit, onDelete }: ChatMessageProps) => {
+export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioFinished, onEdit, onDelete }: ChatMessageProps) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showOptimized, setShowOptimized] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const handleSpeak = async () => {
-    if (!msg.response) return;
+    if (!msg.response || audioUrl) return;
     setIsSpeaking(true);
     try {
       const result = await textToNeuralSpeech(msg.response);
@@ -46,12 +49,22 @@ export const ChatMessage = memo(({ msg, autoRead, onEdit, onDelete }: ChatMessag
     }
   };
 
-  // ميزة القراءة التلقائية عند وصول رد جديد
+  // [LOGIC]: التحميل المسبق (Pre-loading) عند دخول الرسالة في الطابور
   useEffect(() => {
-    if (autoRead && msg.status === 'replied' && !audioUrl && !isSpeaking) {
+    if (isInAudioQueue && !audioUrl && !isSpeaking) {
       handleSpeak();
     }
-  }, [msg.status, autoRead]);
+  }, [isInAudioQueue, audioUrl]);
+
+  // [LOGIC]: بدء التشغيل الفعلي فقط عندما يحين الدور
+  useEffect(() => {
+    if (isMyTurnToPlay && audioUrl && audioRef.current) {
+      audioRef.current.play().catch(e => {
+        console.error("Audio Playback Error:", e);
+        onAudioFinished?.(); // تجاوز الخطأ للانتقال للتالي
+      });
+    }
+  }, [isMyTurnToPlay, audioUrl]);
 
   return (
     <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -124,20 +137,36 @@ export const ChatMessage = memo(({ msg, autoRead, onEdit, onDelete }: ChatMessag
                   variant="ghost" 
                   size="sm" 
                   onClick={handleSpeak} 
-                  disabled={isSpeaking} 
+                  disabled={isSpeaking || isMyTurnToPlay} 
                   className="h-8 px-3 text-[10px] gap-2 text-muted-foreground hover:text-white bg-white/5 rounded-lg border border-white/5"
                 >
                   {isSpeaking ? <Loader2 className="size-3 animate-spin" /> : <Volume2 className="size-3" />} 
-                  {audioUrl ? "إعادة النطق" : "نطق الرد"}
+                  {audioUrl ? (isMyTurnToPlay ? "جاري النطق..." : "إعادة النطق") : "نطق الرد"}
                 </Button>
                 <div className="flex items-center gap-2 opacity-40 text-[9px] font-mono tracking-tighter">
                   <Zap className="size-3 text-indigo-400" />
                   <span>{msg.engine}</span>
                 </div>
               </div>
+              
+              {/* مشغل الصوت المخفي للتحكم في الطابور */}
               {audioUrl && (
-                <div className="mt-4 p-2 bg-black/40 rounded-xl border border-white/5">
-                  <audio controls className="h-8 w-full scale-90" src={audioUrl} autoPlay />
+                <audio 
+                  ref={audioRef} 
+                  src={audioUrl} 
+                  onEnded={() => onAudioFinished?.()} 
+                  className="hidden" 
+                />
+              )}
+
+              {/* واجهة العرض المرئية للصوت عند الطلب اليدوي أو التشغيل النشط */}
+              {audioUrl && (isMyTurnToPlay || isSpeaking) && (
+                <div className="mt-4 p-2 bg-black/40 rounded-xl border border-white/5 animate-pulse">
+                  <div className="flex items-center gap-2 justify-center py-1">
+                    <div className="size-1.5 bg-primary rounded-full animate-bounce delay-75" />
+                    <div className="size-1.5 bg-primary rounded-full animate-bounce delay-150" />
+                    <div className="size-1.5 bg-primary rounded-full animate-bounce delay-300" />
+                  </div>
                 </div>
               )}
             </div>

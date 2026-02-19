@@ -18,8 +18,8 @@ import { ChatInput } from "./chat/chat-input";
 import { ChatSettings } from "./chat/chat-settings";
 
 /**
- * [STABILITY_ANCHOR: CHAT_ORCHESTRATOR_V6.0]
- * المنسق الرئيسي للدردشة الذكية - تم التفكيك بالكامل لضمان الاستقرار.
+ * [STABILITY_ANCHOR: CHAT_ORCHESTRATOR_V6.1]
+ * المنسق الرئيسي للدردشة الذكية - تم إضافة محرك الطابور الصوتي لضمان القراءة المتسلسلة.
  */
 export function AIChat() {
   const { user } = useAuth();
@@ -31,7 +31,13 @@ export function AIChat() {
 
   const [input, setInput] = useState("");
   const [isAITyping, setIsAITyping] = useState(false);
+  
+  // [LOGIC]: إدارة القراءة التلقائية المتسلسلة
   const [autoRead, setAutoRead] = useState(false);
+  const [autoReadActiveAt, setAutoReadActiveAt] = useState<number | null>(null);
+  const [audioQueue, setAudioQueue] = useState<string[]>([]);
+  const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
+
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [editingMsg, setEditingMsg] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -62,6 +68,46 @@ export function AIChat() {
       if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
     }
   }, [messages, isAITyping]);
+
+  // [LOGIC]: مراقبة الرسائل الجديدة لجدولتها في طابور القراءة
+  useEffect(() => {
+    if (!autoRead || !autoReadActiveAt) return;
+
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg && lastMsg.status === 'replied' && !audioQueue.includes(lastMsg.id)) {
+      const msgTime = new Date(lastMsg.timestamp).getTime();
+      // تأكد أن الرسالة وصلت بعد تفعيل الخاصية
+      if (msgTime >= autoReadActiveAt) {
+        setAudioQueue(prev => [...prev, lastMsg.id]);
+      }
+    }
+  }, [messages, autoRead, autoReadActiveAt]);
+
+  // [LOGIC]: معالج تسلسل القراءة
+  useEffect(() => {
+    if (!currentlyPlayingId && audioQueue.length > 0) {
+      setCurrentlyPlayingId(audioQueue[0]);
+    }
+  }, [audioQueue, currentlyPlayingId]);
+
+  const handleAudioFinished = () => {
+    // فاصل زمني مريح (800ms) قبل الانتقال للرسالة التالية
+    setTimeout(() => {
+      setAudioQueue(prev => prev.slice(1));
+      setCurrentlyPlayingId(null);
+    }, 800);
+  };
+
+  const handleAutoReadChange = (enabled: boolean) => {
+    setAutoRead(enabled);
+    if (enabled) {
+      setAutoReadActiveAt(Date.now());
+    } else {
+      setAutoReadActiveAt(null);
+      setAudioQueue([]);
+      setCurrentlyPlayingId(null);
+    }
+  };
 
   const handleSend = async () => {
     if ((!input.trim() && attachments.length === 0) || isAITyping || !user) return;
@@ -144,7 +190,9 @@ export function AIChat() {
               <ChatMessage 
                 key={m.id} 
                 msg={m} 
-                autoRead={autoRead}
+                isInAudioQueue={audioQueue.includes(m.id)}
+                isMyTurnToPlay={currentlyPlayingId === m.id}
+                onAudioFinished={handleAudioFinished}
                 onEdit={(msg) => { setEditingMsg(msg); setInput(msg.originalText || msg.text); }} 
                 onDelete={(id) => deleteMessage(id, user?.id || "")} 
               />
@@ -163,7 +211,7 @@ export function AIChat() {
              selectedModel={selectedManualModel} 
              autoRead={autoRead}
              onModelChange={setSelectedManualModel}
-             onAutoReadChange={setAutoRead}
+             onAutoReadChange={handleAutoReadChange}
            />
         </div>
 
