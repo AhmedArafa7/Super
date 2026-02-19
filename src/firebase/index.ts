@@ -4,12 +4,12 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 /**
- * تهيئة خدمات Firebase.
- * تم تحسين عملية استدعاء getStorage لضمان استخدام الـ Config الصحيح للمشروع.
+ * [STABILITY_ANCHOR: FIREBASE_CORE_V8.0]
+ * تهيئة خدمات Firebase مع تفعيل "بروتوكول التخزين المستمر" لتوفير الطاقة والبيانات.
  */
 export function initializeFirebase() {
   let app: FirebaseApp;
@@ -20,18 +20,28 @@ export function initializeFirebase() {
     app = getApp();
   }
 
-  return getSdks(app);
+  const sdks = getSdks(app);
+
+  // تفعيل التخزين المحلي المستمر (Persistence) لراحة المستخدم وتقليل استهلاك الإنترنت
+  if (typeof window !== 'undefined') {
+    enableIndexedDbPersistence(sdks.firestore).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn("Persistence failed: Multiple tabs open.");
+      } else if (err.code === 'unimplemented') {
+        console.warn("Persistence is not supported in this browser.");
+      }
+    });
+  }
+
+  return sdks;
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
-  // تفعيل خدمة التخزين السحابي مع تسجيل بيانات الـ Bucket للمساعدة في التشخيص
-  const storage = getStorage(firebaseApp);
-  
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
     firestore: getFirestore(firebaseApp),
-    storage
+    storage: getStorage(firebaseApp)
   };
 }
 

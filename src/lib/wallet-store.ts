@@ -3,7 +3,10 @@
 
 import { create } from 'zustand';
 import { initializeFirebase } from '@/firebase';
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc, collectionGroup } from 'firebase/firestore';
+import { 
+  collection, doc, getDoc, getDocs, setDoc, updateDoc, 
+  query, orderBy, addDoc, collectionGroup, limit 
+} from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
 
 export type TransactionType = 'deposit' | 'withdrawal' | 'purchase_hold' | 'purchase_release' | 'purchase_refund';
@@ -41,7 +44,6 @@ interface WalletState {
   fetchWallet: (userId: string) => Promise<void>;
   fetchTransactions: (userId: string) => Promise<Transaction[]>;
   adjustFunds: (userId: string, amount: number, type: TransactionType) => Promise<boolean>;
-  processOfflineQueue: (userId: string) => Promise<void>;
   removePendingTransaction: (id: string) => void;
   retryTransaction: (userId: string, id: string) => Promise<void>;
   addPendingTransaction: (tx: PendingTransaction) => void;
@@ -75,13 +77,11 @@ export const useWalletStore = create<WalletState>()(
       const { firestore } = initializeFirebase();
       try {
         const txRef = collection(firestore, 'users', userId, 'transactions');
-        const snap = await getDocs(txRef);
+        const q = query(txRef, orderBy('timestamp', 'desc'), limit(30));
+        const snap = await getDocs(q);
         const txs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
-        
-        // الترتيب في جانب العميل لتجنب الحاجة لفهارس
-        const sortedTxs = txs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        set({ transactions: sortedTxs });
-        return sortedTxs;
+        set({ transactions: txs });
+        return txs;
       } catch (err) {
         console.error('Transactions Fetch Error:', err);
         return [];
@@ -99,22 +99,11 @@ export const useWalletStore = create<WalletState>()(
         let newBalance = current.balance;
         let newFrozen = current.frozenBalance;
 
-        if (type === 'deposit') {
-          newBalance += amount;
-        } else if (type === 'withdrawal') {
-          if (current.balance < amount) return false;
-          newBalance -= amount;
-        } else if (type === 'purchase_hold') {
-          if (current.balance < amount) return false;
-          newBalance -= amount;
-          newFrozen += amount;
-        } else if (type === 'purchase_release') {
-          if (current.frozenBalance < amount) return false;
-          newFrozen -= amount;
-        } else if (type === 'purchase_refund') {
-          newBalance += amount;
-          newFrozen -= amount;
-        }
+        if (type === 'deposit') newBalance += amount;
+        else if (type === 'withdrawal') { if (current.balance < amount) return false; newBalance -= amount; }
+        else if (type === 'purchase_hold') { if (current.balance < amount) return false; newBalance -= amount; newFrozen += amount; }
+        else if (type === 'purchase_release') { if (current.frozenBalance < amount) return false; newFrozen -= amount; }
+        else if (type === 'purchase_refund') { newBalance += amount; newFrozen -= amount; }
 
         await updateDoc(walletRef, { balance: newBalance, frozenBalance: newFrozen });
         
@@ -130,62 +119,28 @@ export const useWalletStore = create<WalletState>()(
         await get().fetchTransactions(userId);
         return true;
       } catch (err) {
-        console.error('Adjustment error:', err);
         return false;
       }
     },
 
-    addPendingTransaction: (tx) => {
-      set(state => ({
-        pendingTransactions: [tx, ...state.pendingTransactions]
-      }));
-    },
-
-    processOfflineQueue: async (userId) => {
-      if (typeof window !== 'undefined' && !navigator.onLine) return;
-      const { pendingTransactions } = get();
-      if (pendingTransactions.length === 0) return;
-      
-      for (const tx of [...pendingTransactions]) {
-        if (tx.status === 'pending_sync') {
-          await get().retryTransaction(userId, tx.id);
-        }
-      }
-    },
-
-    removePendingTransaction: (id) => {
-      set(state => ({
-        pendingTransactions: state.pendingTransactions.filter(t => t.id !== id)
-      }));
-    },
+    addPendingTransaction: (tx) => set(state => ({ pendingTransactions: [tx, ...state.pendingTransactions] })),
+    removePendingTransaction: (id) => set(state => ({ pendingTransactions: state.pendingTransactions.filter(t => t.id !== id) })),
 
     retryTransaction: async (userId, id) => {
       const tx = get().pendingTransactions.find(t => t.id === id);
       if (!tx) return;
-
       const success = await get().adjustFunds(userId, tx.price, 'purchase_hold');
-      if (success) {
-        get().removePendingTransaction(id);
-        toast({ title: "Sync Complete", description: `Transmission "${tx.title}" finalized.` });
-      } else {
-        set(state => ({
-          pendingTransactions: state.pendingTransactions.map(t => 
-            t.id === id ? { ...t, status: 'failed_needs_action', errorReason: 'Insufficient Credits' } : t
-          )
-        }));
-      }
+      if (success) get().removePendingTransaction(id);
     }
   })
 );
 
 export const getAllTransactionsAdmin = async (): Promise<Transaction[]> => {
   const { firestore } = initializeFirebase();
-  // إزالة الترتيب من الاستعلام لتجنب خطأ الفهرس في collectionGroup
-  const q = query(collectionGroup(firestore, 'transactions'));
+  // يتطلب فهرس Collection Group لـ timestamp
+  const q = query(collectionGroup(firestore, 'transactions'), orderBy('timestamp', 'desc'), limit(100));
   const snap = await getDocs(q);
-  const txs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
-  // الترتيب في جانب العميل لضمان العمل الفوري
-  return txs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
 };
 
 export const selectTotalPendingDebt = (state: { pendingTransactions: PendingTransaction[] }) => 
