@@ -27,44 +27,59 @@ interface ChatMessageProps {
 }
 
 /**
- * [STABILITY_ANCHOR: CHAT_MESSAGE_NODE_V1.1]
- * عقدة الرسالة المستقلة - تدعم النطق المتسلسل والتحميل المسبق للوسائط.
+ * [STABILITY_ANCHOR: CHAT_MESSAGE_NODE_V1.2]
+ * عقدة الرسالة المستقلة - تم تحصينها ضد أخطاء تجاوز حصة الصوت لضمان استمرار المزامنة.
  */
 export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioFinished, onEdit, onDelete }: ChatMessageProps) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [hasFailed, setHasFailed] = useState(false);
   const [showOptimized, setShowOptimized] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const handleSpeak = async () => {
-    if (!msg.response || audioUrl) return;
+    if (!msg.response || audioUrl || hasFailed) return;
     setIsSpeaking(true);
     try {
       const result = await textToNeuralSpeech(msg.response);
-      setAudioUrl(result.audioUrl);
+      if (result.success && result.audioUrl) {
+        setAudioUrl(result.audioUrl);
+      } else {
+        setHasFailed(true);
+        // في حال تجاوز الحصة، نقوم بإنهاء المهمة لهذا المكون لفتح الطريق للبقية
+        if (result.isQuotaError) {
+          console.warn(`[Neural TTS Quota]: Skipping audio for message ${msg.id}`);
+          onAudioFinished?.();
+        }
+      }
     } catch (e) {
       console.error("TTS Sync Error:", e);
+      setHasFailed(true);
+      onAudioFinished?.();
     } finally {
       setIsSpeaking(false);
     }
   };
 
-  // [LOGIC]: التحميل المسبق (Pre-loading) عند دخول الرسالة في الطابور
+  // التحميل المسبق عند دخول الرسالة في الطابور
   useEffect(() => {
-    if (isInAudioQueue && !audioUrl && !isSpeaking) {
+    if (isInAudioQueue && !audioUrl && !isSpeaking && !hasFailed) {
       handleSpeak();
     }
-  }, [isInAudioQueue, audioUrl]);
+  }, [isInAudioQueue, audioUrl, hasFailed]);
 
-  // [LOGIC]: بدء التشغيل الفعلي فقط عندما يحين الدور
+  // بدء التشغيل الفعلي فقط عندما يحين الدور
   useEffect(() => {
     if (isMyTurnToPlay && audioUrl && audioRef.current) {
       audioRef.current.play().catch(e => {
         console.error("Audio Playback Error:", e);
-        onAudioFinished?.(); // تجاوز الخطأ للانتقال للتالي
+        onAudioFinished?.(); 
       });
+    } else if (isMyTurnToPlay && hasFailed) {
+      // إذا حان دور رسالة فاشلة، ننتقل فوراً للتالية
+      onAudioFinished?.();
     }
-  }, [isMyTurnToPlay, audioUrl]);
+  }, [isMyTurnToPlay, audioUrl, hasFailed]);
 
   return (
     <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -137,11 +152,11 @@ export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioF
                   variant="ghost" 
                   size="sm" 
                   onClick={handleSpeak} 
-                  disabled={isSpeaking || isMyTurnToPlay} 
+                  disabled={isSpeaking || isMyTurnToPlay || hasFailed} 
                   className="h-8 px-3 text-[10px] gap-2 text-muted-foreground hover:text-white bg-white/5 rounded-lg border border-white/5"
                 >
                   {isSpeaking ? <Loader2 className="size-3 animate-spin" /> : <Volume2 className="size-3" />} 
-                  {audioUrl ? (isMyTurnToPlay ? "جاري النطق..." : "إعادة النطق") : "نطق الرد"}
+                  {hasFailed ? "النطق غير متاح" : (audioUrl ? (isMyTurnToPlay ? "جاري النطق..." : "إعادة النطق") : "نطق الرد")}
                 </Button>
                 <div className="flex items-center gap-2 opacity-40 text-[9px] font-mono tracking-tighter">
                   <Zap className="size-3 text-indigo-400" />
@@ -149,7 +164,6 @@ export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioF
                 </div>
               </div>
               
-              {/* مشغل الصوت المخفي للتحكم في الطابور */}
               {audioUrl && (
                 <audio 
                   ref={audioRef} 
@@ -159,7 +173,6 @@ export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioF
                 />
               )}
 
-              {/* واجهة العرض المرئية للصوت عند الطلب اليدوي أو التشغيل النشط */}
               {audioUrl && (isMyTurnToPlay || isSpeaking) && (
                 <div className="mt-4 p-2 bg-black/40 rounded-xl border border-white/5 animate-pulse">
                   <div className="flex items-center gap-2 justify-center py-1">
