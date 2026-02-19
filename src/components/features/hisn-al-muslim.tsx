@@ -12,12 +12,12 @@ import { QuranView } from "./faith/quran-view";
 import { AzkarView } from "./faith/azkar-view";
 import { TasbihView } from "./faith/tasbih-view";
 import { StorageView } from "./faith/storage-view";
+import { NamesView } from "./faith/names-view";
 import { AnimatePresence } from "framer-motion";
 
 /**
- * [STABILITY_ANCHOR: FAITH_HUB_ORCHESTRATOR]
- * المكون المركزي لعقدة الإيمان. تم تقليصه ليعمل كمنسق بين المكونات المستقلة
- * لضمان أقصى درجات الاستقرار وعدم حذف الميزات مستقبلاً.
+ * [STABILITY_ANCHOR: FAITH_HUB_ORCHESTRATOR_V2]
+ * المكون المركزي لعقدة الإيمان. تم إصلاح أخطاء المفاتيح وتفعيل كافة الأقسام السيادية.
  */
 export function HisnAlMuslim() {
   const [activeTab, setActiveTab] = useState("quran");
@@ -30,7 +30,6 @@ export function HisnAlMuslim() {
   }, []);
 
   // [STABILITY_ANCHOR: GLOBAL_AUDIO_SYNC]
-  // التحكم الموحد في الصوت لضمان استقرار المشغل عبر كافة المكونات
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio();
@@ -82,10 +81,12 @@ export function HisnAlMuslim() {
         </TabsList>
 
         <AnimatePresence mode="wait">
-          <TabsContent value="quran"><QuranView /></TabsContent>
-          <TabsContent value="azkar"><AzkarView /></TabsContent>
-          <TabsContent value="tasbih"><TasbihView /></TabsContent>
-          <TabsContent value="storage"><StorageView /></TabsContent>
+          {/* [FIX]: إضافة مفاتيح فريدة (keys) لـ TabsContent لمنع تكرار العقد في الـ DOM */}
+          <TabsContent key="quran-content" value="quran"><QuranView /></TabsContent>
+          <TabsContent key="azkar-content" value="azkar"><AzkarView /></TabsContent>
+          <TabsContent key="names-content" value="names"><NamesView /></TabsContent>
+          <TabsContent key="tasbih-content" value="tasbih"><TasbihView /></TabsContent>
+          <TabsContent key="storage-content" value="storage"><StorageView /></TabsContent>
         </AnimatePresence>
       </Tabs>
     </div>
