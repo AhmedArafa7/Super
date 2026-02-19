@@ -18,8 +18,8 @@ import { ChatInput } from "./chat/chat-input";
 import { ChatSettings } from "./chat/chat-settings";
 
 /**
- * [STABILITY_ANCHOR: CHAT_ORCHESTRATOR_V6.1]
- * المنسق الرئيسي للدردشة الذكية - تم إضافة محرك الطابور الصوتي لضمان القراءة المتسلسلة.
+ * [STABILITY_ANCHOR: CHAT_ORCHESTRATOR_V6.2]
+ * المنسق الرئيسي للدردشة الذكية - تم تحسين إظهار الأخطاء الحقيقية وضبط طابور الصوت.
  */
 export function AIChat() {
   const { user } = useAuth();
@@ -32,7 +32,6 @@ export function AIChat() {
   const [input, setInput] = useState("");
   const [isAITyping, setIsAITyping] = useState(false);
   
-  // [LOGIC]: إدارة القراءة التلقائية المتسلسلة
   const [autoRead, setAutoRead] = useState(false);
   const [autoReadActiveAt, setAutoReadActiveAt] = useState<number | null>(null);
   const [audioQueue, setAudioQueue] = useState<string[]>([]);
@@ -69,21 +68,18 @@ export function AIChat() {
     }
   }, [messages, isAITyping]);
 
-  // [LOGIC]: مراقبة الرسائل الجديدة لجدولتها في طابور القراءة
   useEffect(() => {
     if (!autoRead || !autoReadActiveAt) return;
 
     const lastMsg = messages[messages.length - 1];
     if (lastMsg && lastMsg.status === 'replied' && !audioQueue.includes(lastMsg.id)) {
       const msgTime = new Date(lastMsg.timestamp).getTime();
-      // تأكد أن الرسالة وصلت بعد تفعيل الخاصية
       if (msgTime >= autoReadActiveAt) {
         setAudioQueue(prev => [...prev, lastMsg.id]);
       }
     }
   }, [messages, autoRead, autoReadActiveAt]);
 
-  // [LOGIC]: معالج تسلسل القراءة
   useEffect(() => {
     if (!currentlyPlayingId && audioQueue.length > 0) {
       setCurrentlyPlayingId(audioQueue[0]);
@@ -91,7 +87,6 @@ export function AIChat() {
   }, [audioQueue, currentlyPlayingId]);
 
   const handleAudioFinished = () => {
-    // فاصل زمني مريح (800ms) قبل الانتقال للرسالة التالية
     setTimeout(() => {
       setAudioQueue(prev => prev.slice(1));
       setCurrentlyPlayingId(null);
@@ -158,8 +153,13 @@ export function AIChat() {
           await updateUserProfile(user.id, { proResponsesRemaining: Math.max(0, user.proResponsesRemaining - 1) });
         }
       }
-    } catch (err) {
-      toast({ variant: "destructive", title: "Neural Link Error", description: "تعذر الاتصال بالنخاع." });
+    } catch (err: any) {
+      // إظهار الخطأ الحقيقي للمستخدم وللمطور للتشخيص
+      toast({ 
+        variant: "destructive", 
+        title: "Neural Link Error", 
+        description: err.message || "تعذر الاتصال بالنخاع العصبي." 
+      });
     } finally {
       setIsAITyping(false);
     }

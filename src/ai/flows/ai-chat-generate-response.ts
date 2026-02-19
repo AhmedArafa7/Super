@@ -1,8 +1,8 @@
 
 'use server';
 /**
- * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V6.0]
- * المحرك العصبي المطور - تم إصلاح الربط المفقود وتصحيح تعريفات الأوامر.
+ * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V6.1]
+ * المحرك العصبي المطور - تحسين معالجة الأخطاء وتثبيت ربط الموديلات.
  */
 
 import {ai} from '@/ai/genkit';
@@ -73,20 +73,23 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
       let optimizedText = null;
 
       if (input.isAutoMode) {
-        const { text: optimized } = await optimizePrompt({ message: input.message });
-        if (optimized && optimized.trim() !== input.message.trim()) {
-          finalPrompt = optimized;
-          optimizedText = optimized;
+        try {
+          const { text: optimized } = await optimizePrompt({ message: input.message });
+          if (optimized && optimized.trim() !== input.message.trim()) {
+            finalPrompt = optimized;
+            optimizedText = optimized;
+          }
+        } catch (e) {
+          console.warn("Prompt optimization failed, falling back to original message.");
         }
       }
       
       const { text: responseText } = await responsePrompt({ 
         message: finalPrompt, 
         imageDataUri: input.imageDataUri,
-        history: input.history 
+        history: input.history?.filter(h => !!h.content) 
       }, { model: modelToUse as any });
       
-      // [STABILITY_ANCHOR: SOVEREIGN_NAMING_CONVENTION]
       let engineName = "NexusAI";
       if (modelToUse.includes('gemini-1.5-pro')) engineName = "Gemini Pro";
       else if (modelToUse.includes('llama-3.3')) engineName = "Llama 3.3 70B";
@@ -98,8 +101,9 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
         optimizedText: optimizedText,
         selectedModel: modelToUse
       };
-    } catch (err) {
-      throw new Error("حدث اضطراب في المزامنة العصبية: " + (err as Error).message);
+    } catch (err: any) {
+      // إرسال تفاصيل الخطأ الحقيقية بدلاً من رسالة عامة
+      throw new Error(`Neural Failure: ${err.message || 'Unknown disturbance'}`);
     }
   }
 );
