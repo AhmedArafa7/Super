@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useState } from "react";
-import { MessageSquare, CheckCircle2, XCircle } from "lucide-react";
+import { MessageSquare, CheckCircle2, XCircle, Pencil, MoreVertical, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { approveMessage, rejectMessage } from "@/lib/chat-store";
+import { cn } from "@/lib/utils";
 
 interface ChatReviewProps {
   messages: any[];
