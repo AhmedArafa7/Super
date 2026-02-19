@@ -27,8 +27,8 @@ interface ChatMessageProps {
 }
 
 /**
- * [STABILITY_ANCHOR: CHAT_MESSAGE_NODE_V1.5]
- * عقدة الرسالة المستقلة - تم إضافة بروتوكول النطق المحلي كبديل (Fallback) عند تجاوز الحصة السحابية.
+ * [STABILITY_ANCHOR: CHAT_MESSAGE_NODE_V1.6]
+ * عقدة الرسالة المستقلة - تم تحصين محرك النطق ضد الأخطاء البرمجية لمنع الانهيارات البصرية.
  */
 export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioFinished, onEdit, onDelete }: ChatMessageProps) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -45,29 +45,34 @@ export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioF
       return;
     }
 
-    // تنظيف أي نطق سابق
+    // إلغاء أي عمليات نطق جارية لتجنب التداخل البرمجي
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    // اكتشاف اللغة: إذا كانت تحتوي على حروف عربية استخدم صوت عربي
-    utterance.lang = /[\u0600-\u06FF]/.test(text) ? 'ar-SA' : 'en-US';
-    utterance.rate = 0.95; // سرعة مستقبلية هادئة
-    utterance.pitch = 1;
+    try {
+      const utterance = new SpeechSynthesisUtterance(text);
+      // التحقق من اللغة وتعيين المجمع الصوتي المناسب
+      utterance.lang = /[\u0600-\u06FF]/.test(text) ? 'ar-SA' : 'en-US';
+      utterance.rate = 0.95;
+      utterance.pitch = 1;
 
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      onAudioFinished?.();
-    };
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        onAudioFinished?.();
+      };
 
-    utterance.onerror = (e) => {
-      console.error("Local Speech Error:", e);
+      utterance.onerror = () => {
+        // معالجة الخطأ بصمت لمنع ظهور شاشات الخطأ الحمراء للمستخدم
+        setHasFailed(true);
+        setIsSpeaking(false);
+        onAudioFinished?.();
+      };
+
+      setIsUsingLocalFallback(true);
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
       setHasFailed(true);
-      setIsSpeaking(false);
       onAudioFinished?.();
-    };
-
-    setIsUsingLocalFallback(true);
-    window.speechSynthesis.speak(utterance);
+    }
   };
 
   const handleSpeak = async () => {
@@ -79,17 +84,11 @@ export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioF
       if (result.success && result.audioUrl) {
         setAudioUrl(result.audioUrl);
       } else {
-        // في حال تجاوز الحصة (429)، نلجأ فوراً للمحرك المحلي
-        if (result.isQuotaError) {
-          console.warn(`[Neural TTS Quota]: Using Local Fallback Node for message ${msg.id}`);
-          speakLocally(msg.response);
-        } else {
-          setHasFailed(true);
-          onAudioFinished?.();
-        }
+        // التحويل للمحرك المحلي عند تجاوز الحصة أو حدوث عطل في السحابة
+        speakLocally(msg.response);
       }
     } catch (e) {
-      console.error("TTS Sync Error:", e);
+      // فشل صامت والانتقال للخطوة التالية في الطابور
       setHasFailed(true);
       onAudioFinished?.();
     } finally {
@@ -97,28 +96,25 @@ export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioF
     }
   };
 
-  // التحميل المسبق عند دخول الرسالة في الطابور
+  // المزامنة مع طابور التشغيل العالمي
   useEffect(() => {
     if (isInAudioQueue && !audioUrl && !isSpeaking && !hasFailed && !isUsingLocalFallback) {
       handleSpeak();
     }
   }, [isInAudioQueue, audioUrl, hasFailed]);
 
-  // بدء التشغيل الفعلي فقط عندما يحين الدور
+  // التحكم في البدء الفعلي للنطق
   useEffect(() => {
     if (isMyTurnToPlay) {
       if (audioUrl && audioRef.current) {
-        audioRef.current.play().catch(e => {
-          console.error("Audio Playback Error:", e);
+        audioRef.current.play().catch(() => {
           onAudioFinished?.(); 
         });
       } else if (isUsingLocalFallback) {
-        // المحرك المحلي يبدأ العمل فور استدعاء speakLocally، فلا نحتاج لفعل شيء هنا 
-        // سوى ضمان عدم التكرار إذا كان الطابور قد بدأه بالفعل
+        // المحرك المحلي يعمل بالفعل عبر speakLocally
       } else if (hasFailed) {
         onAudioFinished?.();
       } else {
-        // محاولة نطق أخيرة إذا لم يتم التحميل المسبق
         handleSpeak();
       }
     }
