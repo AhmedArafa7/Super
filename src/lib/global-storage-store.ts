@@ -29,8 +29,8 @@ interface GlobalStorageState {
 }
 
 /**
- * @fileOverview بروتوكول إدارة التخزين المحلي الشامل v5.5
- * يدعم تتبع كافة الأصول المخزنة على جهاز المستخدم عبر كافة الموديلات.
+ * [STABILITY_ANCHOR: GLOBAL_STORAGE_V5.6]
+ * بروتوكول إدارة التخزين المحلي - يدعم نظام "درع المفضلات" لحماية الأصول السيادية من الحذف.
  */
 export const useGlobalStorage = create<GlobalStorageState>()(
   persist(
@@ -79,11 +79,15 @@ export const useGlobalStorage = create<GlobalStorageState>()(
 
       setStorageLimit: (limit) => set({ storageLimitMB: limit }),
 
+      /**
+       * [CRITICAL]: منطق الحذف الذكي - يتجاهل المفضلات تماماً.
+       */
       clearOldestAssets: (requiredSpace) => {
         const { cachedAssets, storageLimitMB } = get();
         let currentAssets = [...cachedAssets];
         let currentTotal = currentAssets.reduce((acc, a) => acc + a.sizeMB, 0);
 
+        // تصفية الأصول غير المفضلة فقط لترشيحها للحذف
         const deleteCandidates = currentAssets
           .filter(a => !a.isFavorite)
           .sort((a, b) => a.timestamp - b.timestamp);
@@ -101,6 +105,6 @@ export const useGlobalStorage = create<GlobalStorageState>()(
         return get().cachedAssets.reduce((acc, a) => acc + a.sizeMB, 0);
       }
     }),
-    { name: 'nexus-global-cache' }
+    { name: 'nexus-global-cache-v2' }
   )
 );
