@@ -32,8 +32,10 @@ import { generateNeuralImage } from "@/ai/flows/ai-media-generation";
 import { textToNeuralSpeech } from "@/ai/flows/ai-audio-flows";
 import { updateUserProfile } from "@/lib/auth-store";
 
-const MAX_FILE_SIZE = 1.5 * 1024 * 1024;
-
+/**
+ * [STABILITY_ANCHOR: CHAT_MESSAGE_ITEM]
+ * مكون مستقل لفقاعة الرسائل لضمان ثبات الشفافية البصرية.
+ */
 const MessageItem = memo(({ 
   msg, 
   onEdit, 
@@ -84,7 +86,7 @@ const MessageItem = memo(({
             <div className="w-full mt-1 flex flex-col items-end gap-2">
               <button onClick={() => setShowOptimized(!showOptimized)} className="flex items-center gap-1 text-[10px] text-indigo-300 bg-indigo-500/5 px-2 py-1 rounded-full border border-indigo-500/10">
                 {showOptimized ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-                <span>{showOptimized ? "إخفاء التحسين" : "عرض التحسين العصبي"}</span>
+                <span>{showOptimized ? "إخفاء التحسين" : "عرض التحسين عصبيًا"}</span>
               </button>
               {showOptimized && (
                 <div className="w-full animate-in fade-in slide-in-from-top-1 duration-300">
