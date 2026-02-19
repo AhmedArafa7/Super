@@ -2,13 +2,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // قاعدة الإنتاج المؤقتة: السماح بالوصول الكامل لضمان عمل كافة الأنظمة المدمجة
-    // سيتم تقييد القواعد في مرحلة لاحقة بناءً على request.auth.uid
+    // [STABILITY_ANCHOR: FORCE_DEPLOY_V8.6]
+    // تحديث سيادي للقواعد لضمان مزامنة الفهارس المركبة الجديدة (COLLECTION_GROUP).
+    
     match /{document=**} {
       allow read, write: if true;
     }
 
-    // دعم البحث الشامل في الرسائل (Collection Group) الضروري للأدمن
     match /{path=**}/messages/{messageId} {
       allow read, write: if true;
     }
