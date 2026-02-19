@@ -34,7 +34,6 @@ import { updateUserProfile } from "@/lib/auth-store";
 
 /**
  * [STABILITY_ANCHOR: CHAT_MESSAGE_ITEM]
- * مكون مستقل لفقاعة الرسائل لضمان ثبات الشفافية البصرية.
  */
 const MessageItem = memo(({ 
   msg, 
@@ -139,10 +138,11 @@ export function AIChat() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // [STABILITY_ANCHOR: TIERED_ACCESS_LOGIC]
+  // [STABILITY_ANCHOR: TIERED_ACCESS_LOGIC_V2]
   const availableModels = useMemo(() => {
     const models = [
-      { id: 'googleai/gemini-1.5-flash', label: 'NexusAI', desc: 'المحرك العصبي الأساسي' }
+      { id: 'googleai/gemini-1.5-flash', label: 'NexusAI (Gemini Flash)', desc: 'المحرك العصبي الأساسي' },
+      { id: 'groq/llama-3.3-70b-versatile', label: 'Groq Llama 3.3', desc: 'محرك فائق السرعة' }
     ];
     
     if (user?.classification === 'investor' || user?.classification === 'manager') {
@@ -264,7 +264,7 @@ export function AIChat() {
                           disabled={m.id === 'googleai/gemini-1.5-pro' && (m.count || 0) <= 0}
                         >
                           <div className="flex items-center gap-3 flex-row-reverse">
-                            <span className="font-bold">{m.label}</span>
+                            <span className="font-bold text-xs">{m.label}</span>
                             {m.count !== undefined && (
                               <div className="size-6 rounded-full bg-indigo-500 flex items-center justify-center text-[10px] font-black text-white shadow-inner">{m.count}</div>
                             )}

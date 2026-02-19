@@ -1,18 +1,18 @@
 
 'use server';
 /**
- * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V5.5]
- * المحرك العصبي المطور - يدعم الشفافية السيادية والتصنيفات الجديدة.
+ * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V6.0]
+ * المحرك العصبي المطور - تم إصلاح الربط المفقود وتصحيح تعريفات الأوامر.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 
 const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 const optimizePrompt = ai.definePrompt({
   name: 'optimizePrompt',
+  model: 'googleai/gemini-1.5-flash',
   input: {schema: z.object({ message: z.string() })},
   prompt: `أنت مُحسن أوامر (Prompt Optimizer) لنظام NexusAI.
 مهمتك: تحويل طلب المستخدم إلى أمر دقيق للذكاء الاصطناعي.
@@ -90,6 +90,7 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
       let engineName = "NexusAI";
       if (modelToUse.includes('gemini-1.5-pro')) engineName = "Gemini Pro";
       else if (modelToUse.includes('llama-3.3')) engineName = "Llama 3.3 70B";
+      else if (modelToUse.includes('groq/')) engineName = "Groq Engine";
 
       return {
         response: responseText || "تمت المعالجة عصبياً.",

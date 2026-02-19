@@ -1,10 +1,8 @@
+
 'use server';
 
 /**
- * @fileOverview A concise welcome message AI agent powered by Groq Llama 3.3.
- *
- * - getWelcomeMessage - A function that returns a welcome message.
- * - WelcomeMessageOutput - The return type for the getWelcomeMessage function.
+ * @fileOverview A concise welcome message AI agent.
  */
 
 import {ai} from '@/ai/genkit';
@@ -21,6 +19,7 @@ export async function getWelcomeMessage(): Promise<WelcomeMessageOutput> {
 
 const prompt = ai.definePrompt({
   name: 'welcomeMessagePrompt',
+  model: 'googleai/gemini-1.5-flash',
   prompt: `You are the NexusAI Assistant. 
 Generate a VERY CONCISE and inspiring welcome message in Arabic (max 2-3 sentences).
 Greet the user to the NexusAI ecosystem and mention that AI Chat, StreamHub, and TechMarket are ready for synchronization.

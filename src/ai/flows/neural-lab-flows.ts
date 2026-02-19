@@ -1,7 +1,8 @@
+
 'use server';
 /**
- * @fileOverview [STABILITY_ANCHOR: LAB_NEURAL_FLOWS]
- * محرك المختبر العصبي - معالجة وتحسين الأوامر التقنية.
+ * @fileOverview [STABILITY_ANCHOR: LAB_NEURAL_FLOWS_V2]
+ * محرك المختبر العصبي - معالجة وتحسين الأوامر التقنية مع ربط الموديل الصحيح.
  */
 
 import { ai } from '@/ai/genkit';
@@ -22,6 +23,7 @@ export async function labOptimizePrompt(input: z.infer<typeof LabOptimizeInputSc
 
 const labPrompt = ai.definePrompt({
   name: 'labPrompt',
+  model: 'googleai/gemini-1.5-flash',
   input: { schema: LabOptimizeInputSchema },
   output: { schema: LabOptimizeOutputSchema },
   prompt: `أنت خبير في هندسة الأوامر (Prompt Engineering) لنظام NexusAI.

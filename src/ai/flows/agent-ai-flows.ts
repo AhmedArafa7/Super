@@ -1,8 +1,8 @@
 
 'use server';
 /**
- * @fileOverview [STABILITY_ANCHOR: AGENT_AI_ENGINE]
- * محرك المهندس العصبي - مسؤول عن بناء الأكواد وإدارة ملفات المشروع.
+ * @fileOverview [STABILITY_ANCHOR: AGENT_AI_ENGINE_V2]
+ * محرك المهندس العصبي - تم إصلاح الربط المفقود بالموديل.
  */
 
 import { ai } from '@/ai/genkit';
@@ -32,6 +32,7 @@ export async function processAgentTask(input: z.infer<typeof AgentCodeInputSchem
 
 const agentPrompt = ai.definePrompt({
   name: 'agentCodePrompt',
+  model: 'googleai/gemini-1.5-flash',
   input: { schema: AgentCodeInputSchema },
   output: { schema: AgentCodeOutputSchema },
   prompt: `أنت "المهندس العصبي" (Neural Architect) في نظام NexusAI. 
