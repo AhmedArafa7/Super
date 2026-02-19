@@ -26,6 +26,10 @@ interface MakeOfferModalProps {
   trigger?: React.ReactNode;
 }
 
+/**
+ * [STABILITY_ANCHOR: OFFER_MODAL_V2.1]
+ * نافذة تقديم العروض - تم تصحيح هوية البائع لضمان استلام العروض.
+ */
 export function MakeOfferModal({ item, trigger }: MakeOfferModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -46,11 +50,20 @@ export function MakeOfferModal({ item, trigger }: MakeOfferModalProps) {
       return;
     }
     
+    // محاولة جلب معرف البائع من عدة حقول لضمان التوافق مع البيانات القديمة
+    const sellerId = item.sellerId || (item as any).ownerId;
+    
+    if (!sellerId) {
+      toast({ 
+        variant: "destructive", 
+        title: "خطأ في هوية البائع", 
+        description: "تعذر العثور على عنوان العقدة المستهدفة. يرجى المحاولة لاحقاً." 
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
-      const sellerId = item.sellerId || item.ownerId;
-      if (!sellerId) throw new Error("Target Node ID missing.");
-
       const success = await addMarketOffer(item.id, sellerId, item.title, {
         buyerId: user.id,
         buyerName: user.name,

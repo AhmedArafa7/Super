@@ -19,7 +19,7 @@ export interface MarketItem {
   description: string;
   price: number;
   sellerId: string;
-  ownerId: string; 
+  ownerId?: string; 
   imageUrl?: string;
   mainCategory: MainCategory;
   subCategory: string;
@@ -64,17 +64,13 @@ export const getMarketItems = async (
 ): Promise<{ items: MarketItem[], lastVisible: DocumentSnapshot | null }> => {
   const { firestore } = initializeFirebase();
   
-  let constraints: QueryConstraint[] = [
-    limit(100) 
-  ];
-
-  const q = query(collection(firestore, 'products'), ...constraints);
+  const q = query(collection(firestore, 'products'), limit(100));
   const snap = await getDocs(q);
   
   let items = snap.docs.map(d => ({ 
     id: d.id, 
     ...d.data(),
-    ownerId: d.data().sellerId 
+    ownerId: d.data().sellerId // لضمان التوافق مع النسخ القديمة
   } as MarketItem));
 
   if (mainCat && mainCat !== 'all') {
@@ -96,7 +92,7 @@ export const getMarketItems = async (
   return { items: items.slice(0, limitSize), lastVisible: null };
 };
 
-export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'status' | 'currency' | 'ownerId' | 'createdAt'>) => {
+export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'status' | 'currency' | 'createdAt'>) => {
   const { firestore } = initializeFirebase();
   const docRef = await addDoc(collection(firestore, 'products'), { 
     ...item, 
@@ -118,12 +114,16 @@ export const decrementStock = async (itemId: string) => {
   const { firestore } = initializeFirebase();
   const itemRef = doc(firestore, 'products', itemId);
   const snap = await getDoc(itemRef);
-  if (snap.exists() && snap.data().stockQuantity > 0) {
-    await updateDoc(itemRef, { 
-      stockQuantity: increment(-1),
-      status: snap.data().stockQuantity <= 1 ? 'sold' : 'active'
-    });
-    return true;
+  
+  if (snap.exists()) {
+    const currentStock = snap.data().stockQuantity || 0;
+    if (currentStock > 0) {
+      await updateDoc(itemRef, { 
+        stockQuantity: increment(-1),
+        status: currentStock <= 1 ? 'sold' : 'active'
+      });
+      return true;
+    }
   }
   return false;
 };

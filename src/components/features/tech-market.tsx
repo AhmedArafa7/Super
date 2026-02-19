@@ -124,25 +124,26 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
       const success = await adjustFunds(user.id, item.price, 'purchase_hold');
       if (success) {
         // تحديث المخزون في السيرفر
-        await decrementStock(item.id);
+        const stockSuccess = await decrementStock(item.id);
         
-        toast({ 
-          title: "اكتمل الاستحواذ", 
-          description: `لقد نجحت في تأمين "${item.title}". تم حجز الرصيد في الضمان آلياً وتحديث المخزون.` 
-        });
-        
-        setViewingItem(null);
-        loadData(false);
-        if (user.id) fetchWallet(user.id);
+        if (stockSuccess) {
+          toast({ 
+            title: "تم الاستحواذ بنجاح", 
+            description: `لقد حجزت "${item.title}". تم تحديث سجلاتك والمخزون.` 
+          });
+          setViewingItem(null);
+          loadData(false);
+          if (user.id) fetchWallet(user.id);
+        } else {
+          // استرداد المبلغ في حال فشل تحديث المخزون (نادر)
+          await adjustFunds(user.id, item.price, 'purchase_refund');
+          throw new Error("عذراً، نفذت الكمية في اللحظة الأخيرة.");
+        }
       } else {
-        throw new Error("فشلت المعالجة المالية في النخاع.");
+        throw new Error("فشلت المعالجة المالية في النخاع العصبي.");
       }
     } catch (err: any) {
-      toast({ 
-        variant: "destructive", 
-        title: "فشل الاستحواذ", 
-        description: err.message 
-      });
+      throw err; // إعادة الخطأ ليتم التعامل معه في واجهة التفاصيل
     }
   };
 
@@ -173,13 +174,13 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
 
       <main className="flex-1 flex flex-col min-w-0">
         <header className="p-8 border-b border-white/5 bg-slate-900/10">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8 flex-row-reverse">
-            <div className="text-right">
-              <h1 className="text-4xl font-headline font-bold text-white tracking-tight flex items-center gap-3 justify-end">
-                TechMarket
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8 flex-row-reverse text-right">
+            <div className="space-y-1">
+              <div className="flex items-center gap-3 justify-end">
+                <h1 className="text-4xl font-headline font-bold text-white tracking-tight">TechMarket</h1>
                 <Badge variant="outline" className="text-[10px] border-primary/30 text-primary uppercase">v5.0</Badge>
-              </h1>
-              <p className="text-muted-foreground mt-1">سوق الأصول البرمجية والحلول الذكية اللامركزي.</p>
+              </div>
+              <p className="text-muted-foreground">سوق الأصول البرمجية والحلول الذكية اللامركزي.</p>
             </div>
             
             <div className="flex items-center gap-3 w-full md:w-auto flex-row-reverse">

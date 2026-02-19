@@ -22,6 +22,10 @@ interface MarketItemDetailsProps {
   onAcquire: (item: MarketItem) => Promise<void>;
 }
 
+/**
+ * [STABILITY_ANCHOR: MARKET_DETAILS_V2.5]
+ * واجهة تفاصيل المنتج - تم تحسين استجابة زر الاستحواذ وتفعيل مؤشرات التحميل.
+ */
 export function MarketItemDetails({ item, userId, userBalance = 0, onBack, onLaunch, onEdit, onAcquire }: MarketItemDetailsProps) {
   const { toast } = useToast();
   const [isAcquiring, setIsAcquiring] = useState(false);
@@ -44,14 +48,21 @@ export function MarketItemDetails({ item, userId, userBalance = 0, onBack, onLau
       return;
     }
 
-    const warning = "\n\n⚠️ تنبيه هام: لا يمكن إرجاع البرمجيات بعد الاستحواذ إلا في حال وجود عطل تقني مثبت.";
-    if (!confirm(`هل أنت متأكد من رغبتك في استحواذ "${item.title}" مقابل ${item.price} Credits؟${warning}`)) return;
+    const warning = "\n\n⚠️ تنبيه هام: لا يمكن إرجاع البرمجيات بعد الاستحواذ إلا في حال وجود عطل تقني مثبت من قبل المطور.";
+    const confirmed = window.confirm(`هل أنت متأكد من رغبتك في استحواذ "${item.title}" مقابل ${item.price} Credits؟${warning}`);
+    
+    if (!confirmed) return;
 
     setIsAcquiring(true);
     try {
       await onAcquire(item);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error("Acquisition Error:", e);
+      toast({ 
+        variant: "destructive", 
+        title: "فشل في المعالجة", 
+        description: e.message || "حدث خطأ غير متوقع أثناء المزامنة." 
+      });
     } finally {
       setIsAcquiring(false);
     }
@@ -132,7 +143,7 @@ export function MarketItemDetails({ item, userId, userBalance = 0, onBack, onLau
                   <MakeOfferModal 
                     item={item} 
                     trigger={
-                      <Button variant="outline" className="h-16 rounded-2xl border-white/10 hover:bg-white/5 font-bold text-lg gap-3">
+                      <Button variant="outline" disabled={isAcquiring} className="h-16 rounded-2xl border-white/10 hover:bg-white/5 font-bold text-lg gap-3">
                         <MessageCircle className="size-6 text-indigo-400" /> تقديم عرض
                       </Button>
                     }
@@ -140,10 +151,19 @@ export function MarketItemDetails({ item, userId, userBalance = 0, onBack, onLau
                   <Button 
                     onClick={handleAcquireClick}
                     disabled={isAcquiring || item.stockQuantity <= 0}
-                    className="h-16 bg-primary rounded-2xl font-bold text-lg shadow-2xl shadow-primary/20"
+                    className="h-16 bg-primary rounded-2xl font-bold text-lg shadow-2xl shadow-primary/20 relative"
                   >
-                    {isAcquiring ? <Loader2 className="animate-spin size-6" /> : <Zap className="size-6" />}
-                    {item.stockQuantity <= 0 ? "نفذت الكمية" : (isAcquiring ? "جاري المزامنة..." : "استحواذ الآن")}
+                    {isAcquiring ? (
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="animate-spin size-6" />
+                        <span>جاري المزامنة...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <Zap className="size-6" />
+                        <span>{item.stockQuantity <= 0 ? "نفذت الكمية" : "استحواذ الآن"}</span>
+                      </div>
+                    )}
                   </Button>
                 </>
               ) : (
