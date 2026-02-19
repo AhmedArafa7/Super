@@ -18,6 +18,8 @@ import { OffersInbox } from "@/components/features/offers-inbox";
 import { HisnAlMuslim } from "@/components/features/hisn-al-muslim";
 import { PersistentPlayer } from "@/components/features/persistent-player";
 import { AppLauncher } from "@/components/features/app-launcher";
+import { NeuralLab } from "@/components/features/neural-lab";
+import { NodeDirectory } from "@/components/features/node-directory";
 import { getNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
@@ -34,8 +36,8 @@ const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGaf
 const VAULT_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 /**
- * [STABILITY_ANCHOR: APPSHELL_ORCHESTRATOR_V3.0]
- * المكون المركزي المحدث - تم تفكيكه إلى عقد معيارية (Sidebar, Header) لضمان أعلى درجات الاستقرار.
+ * [STABILITY_ANCHOR: APPSHELL_ORCHESTRATOR_V4.0]
+ * المكون المركزي المحدث - يدعم الأقسام السيادية الجديدة (Lab, Directory) بنظام العقد المستقلة.
  */
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -99,6 +101,8 @@ export function AppShell() {
       case "launcher": return <AppLauncher />;
       case "wallet": return <WalletView />;
       case "offers": return <OffersInbox />;
+      case "lab": return <NeuralLab />;
+      case "directory": return <NodeDirectory />;
       case "features": return <Capabilities />;
       case "admin": return <AdminPanel />;
       case "learning": return <KnowledgeHub />;

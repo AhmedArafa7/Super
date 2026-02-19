@@ -7,7 +7,8 @@ import {
 } from "@/components/ui/sidebar";
 import { 
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat, 
-  Sparkles, BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, ShieldCheck, GraduationCap, Zap
+  Sparkles, BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, 
+  ShieldCheck, GraduationCap, Zap, Microscope, Users
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,8 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
     { id: "wallet", label: "Neural Wallet", icon: Wallet },
     { id: "offers", label: "Offers Inbox", icon: Repeat, badge: pendingOffersCount },
     { id: "learning", label: "Knowledge Hub", icon: GraduationCap },
+    { id: "lab", label: "Neural Lab", icon: Microscope },
+    { id: "directory", label: "Node Directory", icon: Users },
     { id: "hisn", label: "عقدة الإيمان", icon: BookOpen },
     { id: "features", label: "Capabilities", icon: Zap },
     { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount },
