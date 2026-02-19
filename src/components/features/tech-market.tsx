@@ -15,6 +15,7 @@ import {
   MainCategory, SUB_CATEGORIES, uploadMarketImage
 } from "@/lib/market-store";
 import { uploadLearningFile } from "@/lib/learning-store";
+import { useWalletStore } from "@/lib/wallet-store";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DocumentSnapshot } from "firebase/firestore";
 
@@ -28,6 +29,7 @@ const ITEMS_PER_PAGE = 12;
 export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title: string) => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { wallet, adjustFunds, fetchWallet } = useWalletStore();
   
   const [items, setItems] = useState<MarketItem[]>([]);
   const [activeView, setActiveView] = useState<'buy' | 'mine'>('buy');
@@ -70,6 +72,10 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
     return () => clearTimeout(timer);
   }, [search, mainCat, subCat]);
 
+  useEffect(() => {
+    if (user?.id) fetchWallet(user.id);
+  }, [user?.id, fetchWallet]);
+
   const handleSaveListing = async (formData: any) => {
     if (!user) return;
     setIsSubmitting(true);
@@ -106,6 +112,30 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
     }
   };
 
+  const handleAcquire = async (item: MarketItem) => {
+    if (!user) return;
+    
+    try {
+      const success = await adjustFunds(user.id, item.price, 'purchase_hold');
+      if (success) {
+        toast({ 
+          title: "اكتمل الاستحواذ", 
+          description: `لقد نجحت في تأمين "${item.title}". تم حجز الرصيد في الضمان آلياً.` 
+        });
+        setViewingItem(null);
+        loadData(false);
+      } else {
+        throw new Error("فشلت المعالجة المالية في النخاع.");
+      }
+    } catch (err: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "فشل الاستحواذ", 
+        description: err.message 
+      });
+    }
+  };
+
   const filteredItems = items.filter(item => {
     if (activeView === 'mine') return item.sellerId === user?.id;
     return item.sellerId !== user?.id && item.status === 'active';
@@ -116,9 +146,11 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
       <MarketItemDetails 
         item={viewingItem} 
         userId={user?.id} 
+        userBalance={wallet?.balance || 0}
         onBack={() => setViewingItem(null)} 
         onLaunch={onLaunchApp}
         onEdit={(item) => { setEditingItem(item); setIsModalOpen(true); }}
+        onAcquire={handleAcquire}
       />
     );
   }

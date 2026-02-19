@@ -1,26 +1,30 @@
 
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
-import { ArrowLeft, Play, Download, Edit3, MessageCircle, Info } from "lucide-react";
+import { ArrowLeft, Play, Download, Edit3, MessageCircle, Info, Loader2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MarketItem, SUB_CATEGORIES } from "@/lib/market-store";
 import { MakeOfferModal } from "../make-offer-modal";
 import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface MarketItemDetailsProps {
   item: MarketItem;
   userId?: string;
+  userBalance?: number;
   onBack: () => void;
   onLaunch?: (url: string, title: string) => void;
   onEdit: (item: MarketItem) => void;
+  onAcquire: (item: MarketItem) => Promise<void>;
 }
 
-export function MarketItemDetails({ item, userId, onBack, onLaunch, onEdit }: MarketItemDetailsProps) {
+export function MarketItemDetails({ item, userId, userBalance = 0, onBack, onLaunch, onEdit, onAcquire }: MarketItemDetailsProps) {
+  const { toast } = useToast();
+  const [isAcquiring, setIsAcquiring] = useState(false);
   const isOwner = item.sellerId === userId;
   const subCatLabel = SUB_CATEGORIES.find(s => s.id === item.subCategory)?.label || item.subCategory;
 
@@ -28,6 +32,26 @@ export function MarketItemDetails({ item, userId, onBack, onLaunch, onEdit }: Ma
     if (!item.downloadUrl) return;
     toast({ title: "بدأ التحميل العصبي", description: `جاري جلب ملفات ${item.title}...` });
     window.open(item.downloadUrl, '_blank');
+  };
+
+  const handleAcquireClick = async () => {
+    if (userBalance < item.price) {
+      toast({ 
+        variant: "destructive", 
+        title: "رصيد غير كافٍ", 
+        description: `تحتاج إلى ${item.price - userBalance} Credits إضافية لإتمام المزامنة.` 
+      });
+      return;
+    }
+
+    if (!confirm(`هل أنت متأكد من رغبتك في استحواذ "${item.title}" مقابل ${item.price} Credits؟`)) return;
+
+    setIsAcquiring(true);
+    try {
+      await onAcquire(item);
+    } finally {
+      setIsAcquiring(false);
+    }
   };
 
   return (
@@ -100,8 +124,13 @@ export function MarketItemDetails({ item, userId, onBack, onLaunch, onEdit }: Ma
                       </Button>
                     }
                   />
-                  <Button className="h-16 bg-primary rounded-2xl font-bold text-lg shadow-2xl shadow-primary/20">
-                    استحواذ الآن
+                  <Button 
+                    onClick={handleAcquireClick}
+                    disabled={isAcquiring}
+                    className="h-16 bg-primary rounded-2xl font-bold text-lg shadow-2xl shadow-primary/20"
+                  >
+                    {isAcquiring ? <Loader2 className="animate-spin size-6" /> : <Zap className="size-6" />}
+                    {isAcquiring ? "جاري المزامنة..." : "استحواذ الآن"}
                   </Button>
                 </>
               ) : (
