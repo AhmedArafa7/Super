@@ -29,9 +29,8 @@ interface ChatMessageProps {
 }
 
 /**
- * [STABILITY_ANCHOR: CHAT_MESSAGE_NODE_V2.0]
- * عقدة الرسالة المستقلة - تدعم الآن بروتوكول السيادة الصوتية (Pro TTS Quota).
- * يتم استخدام النطق المحلي افتراضياً إلا إذا كان للمستخدم رصيد Pro ممنوح من الإدارة.
+ * [STABILITY_ANCHOR: CHAT_MESSAGE_NODE_V2.1]
+ * عقدة الرسالة المستقلة - تم تحسين ظهور خيارات التعديل والحذف بوضوح عند التمرير.
  */
 export const ChatMessage = memo(({ msg, user, isInAudioQueue, isMyTurnToPlay, onAudioFinished, onEdit, onDelete }: ChatMessageProps) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -78,8 +77,6 @@ export const ChatMessage = memo(({ msg, user, isInAudioQueue, isMyTurnToPlay, on
   const handleSpeak = async () => {
     if (!msg.response || audioUrl || hasFailed || isSpeaking) return;
     
-    // [STABILITY_ANCHOR: SOVEREIGN_VOICE_CHECK]
-    // التحقق من وجود رصيد نطق عالي الجودة ممنوح من الإدارة
     const hasQuota = user?.proTTSRemaining && user.proTTSRemaining > 0;
 
     if (hasQuota) {
@@ -88,7 +85,6 @@ export const ChatMessage = memo(({ msg, user, isInAudioQueue, isMyTurnToPlay, on
         const result = await textToNeuralSpeech(msg.response);
         if (result.success && result.audioUrl) {
           setAudioUrl(result.audioUrl);
-          // خصم حصة واحدة من رصيد المستخدم بعد النجاح
           await updateUserProfile(user.id, { proTTSRemaining: user.proTTSRemaining - 1 });
         } else {
           speakLocally(msg.response);
@@ -99,7 +95,6 @@ export const ChatMessage = memo(({ msg, user, isInAudioQueue, isMyTurnToPlay, on
         setIsSpeaking(false);
       }
     } else {
-      // إذا لم يكن هناك رصيد، يتم تشغيل النطق المحلي فوراً دون محاولة استخدام الـ API
       setIsSpeaking(true);
       speakLocally(msg.response);
     }
@@ -118,7 +113,7 @@ export const ChatMessage = memo(({ msg, user, isInAudioQueue, isMyTurnToPlay, on
           onAudioFinished?.(); 
         });
       } else if (isUsingLocalFallback) {
-        // المحرك المحلي يعمل بالفعل
+        // Local engine already running
       } else if (hasFailed) {
         onAudioFinished?.();
       } else {
@@ -130,18 +125,19 @@ export const ChatMessage = memo(({ msg, user, isInAudioQueue, isMyTurnToPlay, on
   return (
     <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex items-start gap-3 justify-end group relative">
-        <div className="absolute right-full top-0 mr-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
+        {/* خيارات الرسالة (تظهر عند التمرير) */}
+        <div className="mr-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center self-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="size-8 rounded-xl hover:bg-white/10 text-muted-foreground">
                 <MoreVertical className="size-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-slate-900 border-white/10 text-white rounded-xl">
-              <DropdownMenuItem onClick={() => onEdit(msg)} className="gap-2 flex-row-reverse text-right text-xs">
-                <Pencil className="size-3.5" /> تعديل الطلب
+            <DropdownMenuContent align="end" className="bg-slate-900 border-white/10 text-white rounded-xl shadow-2xl">
+              <DropdownMenuItem onClick={() => onEdit(msg)} className="gap-2 flex-row-reverse text-right text-xs py-2.5">
+                <Pencil className="size-3.5 text-indigo-400" /> تعديل الطلب
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDelete(msg.id)} className="gap-2 flex-row-reverse text-right text-xs text-red-400 focus:text-red-400">
+              <DropdownMenuItem onClick={() => onDelete(msg.id)} className="gap-2 flex-row-reverse text-right text-xs text-red-400 focus:text-red-400 py-2.5">
                 <Trash2 className="size-3.5" /> حذف السجل
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -149,7 +145,7 @@ export const ChatMessage = memo(({ msg, user, isInAudioQueue, isMyTurnToPlay, on
         </div>
 
         <div className="flex flex-col gap-2 items-end max-w-[85%]">
-          <div className={cn("p-4 shadow-xl relative message-bubble-user text-white")}>
+          <div className={cn("p-4 shadow-xl relative message-bubble-user text-white border border-white/5")}>
             <p dir="auto" className="text-sm leading-relaxed whitespace-pre-wrap text-right">
               {msg.originalText || msg.text}
             </p>

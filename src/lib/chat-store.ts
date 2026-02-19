@@ -58,7 +58,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isConnected: true,
   isSending: false,
   autoMode: true,
-  selectedManualModel: 'googleai/gemini-1.5-flash',
+  selectedManualModel: 'googleai/gemini-1.5-flash-latest',
 
   setConnected: (status) => set({ isConnected: status }),
   setAutoMode: (autoMode) => set({ autoMode }),
@@ -139,6 +139,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const { firestore } = initializeFirebase();
     try {
       await deleteDoc(doc(firestore, 'users', userId, 'messages', id));
+      toast({ title: "تم حذف السجل", description: "تمت إزالة الرسالة وتوابعها بنجاح." });
     } catch (err) {
       toast({ variant: 'destructive', title: 'Action Failed', description: 'Could not retract request.' });
     }

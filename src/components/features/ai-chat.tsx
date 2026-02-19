@@ -18,8 +18,8 @@ import { ChatInput } from "./chat/chat-input";
 import { ChatSettings } from "./chat/chat-settings";
 
 /**
- * [STABILITY_ANCHOR: CHAT_ORCHESTRATOR_V6.6]
- * المنسق الرئيسي للدردشة الذكية - تم ربط محرك النطق بنظام حصص السيادة.
+ * [STABILITY_ANCHOR: CHAT_ORCHESTRATOR_V6.7]
+ * المنسق الرئيسي للدردشة الذكية - تم تفعيل "بروتوكول التعديل والحذف".
  */
 export function AIChat() {
   const { user } = useAuth();
