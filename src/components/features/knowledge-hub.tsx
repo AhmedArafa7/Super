@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { FileText, ChevronRight, BookOpen, Play, Music, Trophy, Plus, Trash2, Upload, Loader2, Globe, CheckCircle2, RefreshCcw, Lock, AlignLeft, Mic, AlertTriangle } from "lucide-react";
+import { FileText, ChevronRight, BookOpen, Play, Music, Trophy, Plus, Trash2, Upload, Loader2, Globe, CheckCircle2, RefreshCcw, Lock, AlignLeft, Mic, AlertTriangle, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +17,12 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { cn } from "@/lib/utils";
 import { getSubjects, getCollections, getLearningItems, Subject, Collection, LearningItem, addSubject, addCollection, addLearningItem, uploadLearningFile, LearningItemType } from "@/lib/learning-store";
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
 
+/**
+ * [STABILITY_ANCHOR: KNOWLEDGE_HUB_V3.0]
+ * المنسق الرئيسي لقسم التعلم - تم تحسين تجربة الانتقال للمشغل المعرفي.
+ */
 export function KnowledgeHub() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -51,7 +56,7 @@ export function KnowledgeHub() {
   const loadSubjects = async () => {
     setIsLoading(true);
     try {
-      const data = await getSubjects(user?.id);
+      const data = await getSubjects(user?.id, user?.role === 'admin');
       setSubjects(data);
     } catch (err) {
       console.error(err);
@@ -76,7 +81,7 @@ export function KnowledgeHub() {
     if (!newSubject.title) return;
     const allowed = newSubject.allowedUserIds ? newSubject.allowedUserIds.split(',').map(s => s.trim()) : null;
     await addSubject({ title: newSubject.title, description: newSubject.description, allowedUserIds: allowed });
-    toast({ title: "Subject Created", description: "New neural pathway initialized." });
+    toast({ title: "تم إنشاء القطاع", description: "تم فتح مسار عصبي معرفي جديد." });
     setIsSubjectModalOpen(false);
     setNewSubject({ title: "", description: "", allowedUserIds: "" });
     loadSubjects();
@@ -91,12 +96,12 @@ export function KnowledgeHub() {
         description: newCollection.description,
         orderIndex: collections.length
       });
-      toast({ title: "Lesson Integrated", description: "Content synchronized successfully." });
+      toast({ title: "تم دمج الدرس", description: "تمت مزامنة المحتوى بنجاح." });
       setIsCollectionModalOpen(false);
       setNewCollection({ title: "", description: "" });
       handleSelectSubject(selectedSubject);
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Integration Failed", description: err.message });
+      toast({ variant: "destructive", title: "فشل الدمج", description: err.message });
     }
   };
 
@@ -118,11 +123,11 @@ export function KnowledgeHub() {
         });
 
         if (!uploadUrl) {
-          throw new Error("No storage node accepted the payload.");
+          throw new Error("لم تقبل أي عقدة تخزين هذا المحتوى.");
         }
         url = uploadUrl;
       } else {
-        throw new Error("Empty Payload: Please provide a file or technical content.");
+        throw new Error("البيانات فارغة: يرجى تقديم ملف أو محتوى تقني.");
       }
 
       await addLearningItem({
@@ -134,7 +139,7 @@ export function KnowledgeHub() {
         orderIndex: (itemsMap[activeCollectionId]?.length || 0)
       });
 
-      toast({ title: "Asset Synchronized", description: "The educational resource is now linked to the neural node." });
+      toast({ title: "تمت المزامنة", description: "الأصل التعليمي مرتبط الآن بالعقدة العصبية." });
       setIsItemModalOpen(false);
       if (selectedSubject) handleSelectSubject(selectedSubject);
       setNewItem({ title: "", type: "file", file: null, textContent: "" });
@@ -142,7 +147,7 @@ export function KnowledgeHub() {
     } catch (err: any) {
       toast({ 
         variant: "destructive", 
-        title: "Sync Failed", 
+        title: "فشل المزامنة", 
         description: err.message 
       });
     } finally {
@@ -153,68 +158,71 @@ export function KnowledgeHub() {
 
   if (!selectedSubject) {
     return (
-      <div className="p-8 max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-12">
+      <div className="p-8 max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700 font-sans">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 flex-row-reverse text-right">
           <div>
-            <h1 className="text-4xl font-headline font-bold text-white tracking-tight">Knowledge Hub</h1>
-            <p className="text-muted-foreground mt-2">Neural learning pathways and institutional intelligence.</p>
+            <h1 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
+              Knowledge Hub
+              <GraduationCap className="text-primary size-10" />
+            </h1>
+            <p className="text-muted-foreground mt-2 text-lg">المسارات التعليمية العصبية والذكاء المؤسسي الموزع.</p>
           </div>
           <div className="flex gap-3">
-            <Button variant="ghost" size="icon" onClick={loadSubjects} className="h-12 w-12 rounded-xl border border-white/10">
+            <Button variant="ghost" size="icon" onClick={loadSubjects} className="h-12 w-12 rounded-xl border border-white/10 bg-white/5">
               <RefreshCcw className="size-5" />
             </Button>
-            <Dialog open={isSubjectModalOpen} onOpenChange={setIsSubjectModalOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary rounded-xl h-12 px-6 shadow-lg shadow-primary/20">
-                  <Plus className="mr-2 size-5" /> Add New Subject
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-slate-900 border-white/10 rounded-[2rem]">
-                <DialogHeader>
-                  <DialogTitle>Create Learning Subject</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="grid gap-2">
-                    <Label>Subject Title</Label>
-                    <Input dir="auto" className="bg-white/5 border-white/10 text-right" value={newSubject.title} onChange={e => setNewSubject({...newSubject, title: e.target.value})} />
+            {user?.role === 'admin' && (
+              <Dialog open={isSubjectModalOpen} onOpenChange={setIsSubjectModalOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-primary rounded-xl h-12 px-6 shadow-lg shadow-primary/20 font-bold">
+                    <Plus className="mr-2 size-5" /> إضافة قطاع جديد
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right">
+                  <DialogHeader><DialogTitle className="text-right">إنشاء قطاع تعليمي سيادي</DialogTitle></DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="grid gap-2">
+                      <Label>عنوان القطاع</Label>
+                      <Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" value={newSubject.title} onChange={e => setNewSubject({...newSubject, title: e.target.value})} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>الوصف التفصيلي</Label>
+                      <Textarea dir="auto" className="bg-white/5 border-white/10 text-right min-h-[100px]" value={newSubject.description} onChange={e => setNewSubject({...newSubject, description: e.target.value})} />
+                    </div>
                   </div>
-                  <div className="grid gap-2">
-                    <Label>Description</Label>
-                    <Textarea dir="auto" className="bg-white/5 border-white/10 text-right" value={newSubject.description} onChange={e => setNewSubject({...newSubject, description: e.target.value})} />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button onClick={handleCreateSubject} className="w-full bg-primary h-11 rounded-xl">Authorize Subject</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                  <DialogFooter>
+                    <Button onClick={handleCreateSubject} className="w-full bg-primary h-12 rounded-xl font-bold">تفعيل القطاع</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center h-64"><Loader2 className="size-8 animate-spin text-primary" /></div>
+          <div className="flex items-center justify-center h-64"><Loader2 className="size-12 animate-spin text-primary" /></div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {subjects.map((subject) => (
               <Card 
                 key={subject.id} 
-                className="group glass border-white/5 rounded-[2.5rem] overflow-hidden hover:border-primary/40 transition-all cursor-pointer"
+                className="group glass border-white/5 rounded-[2.5rem] overflow-hidden hover:border-primary/40 transition-all cursor-pointer shadow-2xl"
                 onClick={() => handleSelectSubject(subject)}
               >
                 <div className="p-8">
-                  <div className="size-14 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 mb-6 group-hover:bg-primary transition-all">
-                    <BookOpen className="size-7" />
+                  <div className="size-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 mb-6 group-hover:bg-primary group-hover:text-white transition-all shadow-inner">
+                    <BookOpen className="size-8" />
                   </div>
                   <h3 dir="auto" className="text-2xl font-bold text-white mb-2 text-right">{subject.title}</h3>
-                  <p dir="auto" className="text-muted-foreground text-sm line-clamp-2 text-right">{subject.description}</p>
-                  <div className="flex items-center justify-between pt-6 mt-6 border-t border-white/5">
-                    <div className="flex items-center gap-2">
+                  <p dir="auto" className="text-muted-foreground text-sm line-clamp-2 text-right leading-relaxed h-10">{subject.description}</p>
+                  <div className="flex items-center justify-between pt-6 mt-6 border-t border-white/5 flex-row-reverse">
+                    <div className="flex items-center gap-2 flex-row-reverse">
                        {subject.allowedUserIds ? <Lock className="size-3 text-amber-400" /> : <Globe className="size-3 text-green-400" />}
                        <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
-                        {subject.allowedUserIds ? "Restricted" : "Public"}
+                        {subject.allowedUserIds ? "عقدة مقيدة" : "متاح للجميع"}
                        </span>
                     </div>
-                    <ChevronRight className="size-4 text-primary group-hover:translate-x-1 transition-transform" />
+                    <ChevronRight className="size-4 text-primary group-hover:translate-x-1 transition-transform rotate-180" />
                   </div>
                 </div>
               </Card>
@@ -226,108 +234,131 @@ export function KnowledgeHub() {
   }
 
   return (
-    <div className="min-h-full bg-slate-950 text-white font-sans">
+    <div className="min-h-full bg-slate-950/20 text-white font-sans animate-in slide-in-from-left-4 duration-500">
       <header className="border-b border-white/5 px-8 py-6 sticky top-0 z-10 bg-slate-950/80 backdrop-blur-md">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => setSelectedSubject(null)}><ChevronRight className="rotate-180" /></Button>
-            <h1 dir="auto" className="text-2xl font-bold text-right">{selectedSubject.title}</h1>
+        <div className="max-w-5xl mx-auto flex items-center justify-between flex-row-reverse">
+          <div className="flex items-center gap-4 flex-row-reverse text-right">
+            <Button variant="ghost" size="icon" onClick={() => setSelectedSubject(null)} className="rounded-full"><ChevronRight className="rotate-180" /></Button>
+            <div>
+              <h1 dir="auto" className="text-2xl font-bold text-white">{selectedSubject.title}</h1>
+              <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Active Neural Track</p>
+            </div>
           </div>
-          <Button variant="outline" className="rounded-xl border-white/10" onClick={() => setIsCollectionModalOpen(true)}>
-            <Plus className="size-4 mr-2" /> Add Lesson
-          </Button>
+          {user?.role === 'admin' && (
+            <Button variant="outline" className="rounded-xl border-white/10 bg-white/5 font-bold" onClick={() => setIsCollectionModalOpen(true)}>
+              <Plus className="size-4 mr-2" /> إضافة درس
+            </Button>
+          )}
         </div>
       </header>
 
-      <main className="p-8 max-w-5xl mx-auto space-y-8">
+      <main className="p-8 max-w-5xl mx-auto space-y-8 pb-32">
         {collections.map((col, idx) => (
-          <Card key={col.id} className="glass border-white/5 rounded-[2rem] overflow-hidden">
-            <div className="p-8 flex flex-col md:flex-row gap-8">
-              <div className="w-full md:w-48 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-r border-white/5 pb-6 md:pb-0 md:pr-8">
-                <span className="text-5xl font-black text-white/20">{(idx + 1).toString().padStart(2, '0')}</span>
-                <p dir="auto" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2 text-right">{col.title}</p>
+          <Card key={col.id} className="glass border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
+            <div className="p-8 flex flex-col md:flex-row gap-8 flex-row-reverse">
+              <div className="w-full md:w-48 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-l border-white/5 pb-6 md:pb-0 md:pl-8">
+                <span className="text-6xl font-black text-white/10">{(idx + 1).toString().padStart(2, '0')}</span>
+                <p dir="auto" className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mt-2">{col.title}</p>
+                <Link href={`/learn/${col.id}`} className="mt-6 w-full">
+                  <Button className="w-full bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold gap-2 flex-row-reverse">
+                    <Play className="size-3" /> دخول الدرس
+                  </Button>
+                </Link>
               </div>
+              
               <div className="flex-1 space-y-4">
+                <div className="flex items-center justify-between flex-row-reverse mb-2">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">الأصول المرتبطة</h4>
+                  <Badge variant="outline" className="text-[8px] opacity-40 border-white/10">{itemsMap[col.id]?.length || 0} Assets</Badge>
+                </div>
+                
                 {itemsMap[col.id]?.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className="size-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                  <div key={item.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors flex-row-reverse">
+                    <div className="flex items-center gap-4 flex-row-reverse text-right">
+                      <div className="size-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/10">
                         {item.type === 'video' ? <Play className="size-5" /> : item.type === 'audio' ? <Mic className="size-5" /> : item.type === 'text' ? <AlignLeft className="size-5" /> : <FileText className="size-5" />}
                       </div>
-                      <p dir="auto" className="font-bold text-sm text-right">{item.title}</p>
+                      <div>
+                        <p dir="auto" className="font-bold text-sm text-white">{item.title}</p>
+                        <p className="text-[8px] text-muted-foreground uppercase font-black">{item.type}</p>
+                      </div>
                     </div>
-                    <Badge variant="outline" className="text-[10px] border-white/10 uppercase">{item.type.replace('_', ' ')}</Badge>
+                    <ArrowRight className="size-3 text-muted-foreground opacity-20 rotate-180" />
                   </div>
                 ))}
-                <Button 
-                  variant="ghost" 
-                  className="w-full border-dashed border-2 border-white/5 h-12 rounded-2xl text-muted-foreground hover:bg-white/5"
-                  onClick={() => { setActiveCollectionId(col.id); setIsItemModalOpen(true); }}
-                >
-                  <Plus className="size-4 mr-2" /> Add Asset
-                </Button>
+                
+                {user?.role === 'admin' && (
+                  <Button 
+                    variant="ghost" 
+                    className="w-full border-dashed border-2 border-white/5 h-14 rounded-2xl text-muted-foreground hover:bg-white/5 hover:border-primary/20 transition-all font-bold gap-2 flex-row-reverse"
+                    onClick={() => { setActiveCollectionId(col.id); setIsItemModalOpen(true); }}
+                  >
+                    <Plus className="size-4" /> إلحاق أصل معرفي
+                  </Button>
+                )}
               </div>
             </div>
           </Card>
         ))}
       </main>
 
+      {/* Modals for Admin */}
       <Dialog open={isCollectionModalOpen} onOpenChange={setIsCollectionModalOpen}>
-        <DialogContent className="bg-slate-900 border-white/10 text-white rounded-[2rem]">
-          <DialogHeader><DialogTitle>Add New Lesson</DialogTitle></DialogHeader>
+        <DialogContent className="bg-slate-950 border-white/10 text-white rounded-[2.5rem] p-8 text-right">
+          <DialogHeader><DialogTitle className="text-right">إضافة وحدة دراسية جديدة</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid gap-2">
-              <Label>Lesson Title</Label>
-              <Input dir="auto" className="bg-white/5 border-white/10 text-right" value={newCollection.title} onChange={e => setNewCollection({...newCollection, title: e.target.value})} />
+              <Label>عنوان الوحدة</Label>
+              <Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" value={newCollection.title} onChange={e => setNewCollection({...newCollection, title: e.target.value})} />
             </div>
             <div className="grid gap-2">
-              <Label>Description</Label>
-              <Textarea dir="auto" className="bg-white/5 border-white/10 text-right" value={newCollection.description} onChange={e => setNewCollection({...newCollection, description: e.target.value})} />
+              <Label>الوصف</Label>
+              <Textarea dir="auto" className="bg-white/5 border-white/10 text-right min-h-[100px]" value={newCollection.description} onChange={e => setNewCollection({...newCollection, description: e.target.value})} />
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleCreateCollection} className="w-full bg-primary h-11 rounded-xl">Append Lesson</Button>
+            <Button onClick={handleCreateCollection} className="w-full bg-primary h-12 rounded-xl font-bold shadow-xl shadow-primary/20">تثبيت الوحدة</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isItemModalOpen} onOpenChange={setIsItemModalOpen}>
-        <DialogContent className="bg-slate-900 border-white/10 text-white rounded-[2rem] sm:max-w-md">
-          <DialogHeader><DialogTitle>Add Learning Asset</DialogTitle></DialogHeader>
+        <DialogContent className="bg-slate-950 border-white/10 text-white rounded-[2.5rem] sm:max-w-md p-8 text-right">
+          <DialogHeader><DialogTitle className="text-right">مزامنة أصل معرفي</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid gap-2">
-              <Label>Asset Title</Label>
-              <Input dir="auto" className="bg-white/5 border-white/10 text-right" value={newItem.title} onChange={e => setNewItem({...newItem, title: e.target.value})} />
+              <Label>عنوان الأصل</Label>
+              <Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" value={newItem.title} onChange={e => setNewItem({...newItem, title: e.target.value})} />
             </div>
             <div className="grid gap-2">
-              <Label>Type</Label>
+              <Label>البروتوكول (النوع)</Label>
               <Select value={newItem.type} onValueChange={(v: any) => setNewItem({...newItem, type: v})}>
-                <SelectTrigger className="bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-12"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-slate-900 border-white/10 text-white">
-                  <SelectItem value="video">Video</SelectItem>
-                  <SelectItem value="audio">Audio File</SelectItem>
-                  <SelectItem value="file">Document</SelectItem>
-                  <SelectItem value="text">Text (Explanation)</SelectItem>
-                  <SelectItem value="quiz_json">Quiz (JSON)</SelectItem>
+                  <SelectItem value="video">فيديو تعليمي</SelectItem>
+                  <SelectItem value="audio">شرح صوتي</SelectItem>
+                  <SelectItem value="file">مستند تقني</SelectItem>
+                  <SelectItem value="text">نص إيضاحي (Manual)</SelectItem>
+                  <SelectItem value="quiz_json">اختبار تقييمي</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
             {newItem.type === 'text' ? (
               <div className="grid gap-2">
-                <Label>Explanation Content</Label>
+                <Label>المحتوى التعليمي</Label>
                 <Textarea 
                   dir="auto"
                   className="bg-white/5 border-white/10 min-h-[150px] text-right" 
-                  placeholder="Enter the educational text here..."
+                  placeholder="اكتب الشرح التقني هنا..."
                   value={newItem.textContent}
                   onChange={e => setNewItem({...newItem, textContent: e.target.value})}
                 />
               </div>
             ) : (
               <div className="grid gap-2">
-                <Label>Upload File</Label>
-                <div className="relative border-2 border-dashed border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center bg-white/5 hover:bg-white/10 transition-colors">
+                <Label>رفع الملف</Label>
+                <div className="relative border-2 border-dashed border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center bg-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
                   <input 
                     type="file" 
                     className="absolute inset-0 opacity-0 cursor-pointer" 
@@ -339,12 +370,11 @@ export function KnowledgeHub() {
                     <div className="flex items-center gap-2 text-primary font-bold">
                       <CheckCircle2 className="size-5" />
                       <span className="text-sm truncate max-w-[200px]">{newItem.file.name}</span>
-                      <span className="text-[10px] text-muted-foreground">({(newItem.file.size / 1024 / 1024).toFixed(2)} MB)</span>
                     </div>
                   ) : (
                     <>
-                      <Upload className="size-8 text-muted-foreground mb-2" />
-                      <p className="text-xs text-muted-foreground">Click or drag to upload asset</p>
+                      <Upload className="size-8 text-muted-foreground mb-2 group-hover:scale-110 transition-transform" />
+                      <p className="text-xs text-muted-foreground">اضغط لرفع الملف للنخاع</p>
                     </>
                   )}
                 </div>
@@ -352,15 +382,12 @@ export function KnowledgeHub() {
             )}
 
             {isUploading && (
-              <div className="space-y-2 mt-4 animate-in fade-in slide-in-from-top-2">
+              <div className="space-y-2 mt-4 animate-in fade-in">
                 <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-indigo-400">
-                  <span>Uploading to Neural Link</span>
-                  <span>{uploadProgress}%</span>
+                  <span>جاري المزامنة مع السحاب</span>
+                  <span>{Math.round(uploadProgress)}%</span>
                 </div>
-                <Progress value={uploadProgress} className="h-1.5 bg-white/5" />
-                <p className="text-[10px] text-muted-foreground italic text-center">
-                  {uploadProgress === 100 ? "Finalizing synchronization..." : "Transmitting data packets to institution vault..."}
-                </p>
+                <Progress value={uploadProgress} className="h-1 bg-white/5" />
               </div>
             )}
           </div>
@@ -368,19 +395,10 @@ export function KnowledgeHub() {
             <Button 
               onClick={handleCreateItem} 
               disabled={isUploading || (!newItem.file && newItem.type !== 'text') || (newItem.type === 'text' && !newItem.textContent)} 
-              className="w-full bg-primary h-11 rounded-xl font-bold"
+              className="w-full bg-primary h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20"
             >
-              {isUploading ? (
-                <>
-                  <Loader2 className="size-4 animate-spin mr-2" />
-                  Uploading {uploadProgress}%
-                </>
-              ) : (
-                <>
-                  <Plus className="size-4 mr-2" />
-                  Integrate Asset
-                </>
-              )}
+              {isUploading ? <Loader2 className="size-5 animate-spin mr-2" /> : <Plus className="size-5 mr-2" />}
+              تأكيد الدمج
             </Button>
           </DialogFooter>
         </DialogContent>

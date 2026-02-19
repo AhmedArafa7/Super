@@ -22,8 +22,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/lib/supabaseClient";
+import { initializeFirebase } from "@/firebase";
+import { collectionGroup, query, where, getDocs, orderBy } from "firebase/firestore";
 import { LearningItem } from "@/lib/learning-store";
 import { QuizPlayer } from "./quiz-player";
 import { cn } from "@/lib/utils";
@@ -36,6 +36,10 @@ interface CoursePlayerProps {
   collectionId: string;
 }
 
+/**
+ * [STABILITY_ANCHOR: COURSE_PLAYER_V2.5]
+ * مشغل المسارات التعليمية - تم تحويله ليعمل عبر Collection Group لضمان جلب الأصول دون الحاجة لمعرف الأب.
+ */
 export function CoursePlayer({ collectionId }: CoursePlayerProps) {
   const [items, setItems] = useState<LearningItem[]>([]);
   const [activeItem, setActiveItem] = useState<LearningItem | null>(null);
@@ -50,31 +54,29 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
 
   const fetchCollectionItems = async () => {
     setIsLoading(true);
+    const { firestore } = initializeFirebase();
     try {
-      const { data, error } = await supabase
-        .from('learning_items')
-        .select('*')
-        .eq('collection_id', collectionId)
-        .order('order_index', { ascending: true });
+      // استخدام استعلام المجموعة لجلب العناصر التي تنتمي لهذا الدرس في أي قطاع
+      const q = query(
+        collectionGroup(firestore, 'learning_items'),
+        where('collectionId', '==', collectionId)
+      );
 
-      if (error) throw error;
+      const snapshot = await getDocs(q);
+      const fetchedItems = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as LearningItem[];
 
-      if (data && data.length > 0) {
-        const mappedItems = data.map(item => ({
-          id: item.id,
-          collectionId: item.collection_id,
-          title: item.title,
-          type: item.type as any,
-          url: item.url,
-          quizData: item.quiz_data,
-          orderIndex: item.order_index,
-          createdAt: item.created_at
-        }));
-        setItems(mappedItems);
-        setActiveItem(mappedItems[0]);
+      // الترتيب اليدوي لضمان التسلسل الصحيح (Client-side sorting)
+      const sortedItems = fetchedItems.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+
+      setItems(sortedItems);
+      if (sortedItems.length > 0) {
+        setActiveItem(sortedItems[0]);
       }
     } catch (err) {
-      console.error("Failed to fetch learning items:", err);
+      console.error("Neural Fetch Failure:", err);
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +114,7 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
       <div className="flex h-screen bg-slate-950 items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="size-12 animate-spin text-primary" />
-          <p className="text-muted-foreground animate-pulse font-medium">Synchronizing Neural Content...</p>
+          <p className="text-muted-foreground animate-pulse font-bold uppercase tracking-widest text-xs">جاري مزامنة المحتوى التعليمي...</p>
         </div>
       </div>
     );
@@ -124,17 +126,17 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
         <div className="size-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10">
           <FileText className="size-10 text-muted-foreground" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">No Content Detected</h2>
-        <p className="text-muted-foreground mb-8">This neural pathway appears to be empty.</p>
+        <h2 className="text-2xl font-bold text-white mb-2">لا يوجد محتوى</h2>
+        <p className="text-muted-foreground mb-8">هذا المسار المعرفي فارغ حالياً في السجل العالمي.</p>
         <Link href="/dashboard">
-          <Button variant="outline" className="rounded-xl border-white/10">Return to Dashboard</Button>
+          <Button variant="outline" className="rounded-xl border-white/10">العودة للوحة التحكم</Button>
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-slate-950 overflow-hidden text-slate-50">
+    <div className="flex h-screen bg-slate-950 overflow-hidden text-slate-50 font-sans">
       {/* Sidebar Overlay for Mobile */}
       {!isSidebarOpen && (
         <Button 
@@ -153,15 +155,15 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
         isSidebarOpen ? "md:mr-0" : ""
       )}>
         {/* Top Header */}
-        <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-md shrink-0">
-          <div className="flex items-center gap-4">
+        <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-md shrink-0 flex-row-reverse">
+          <div className="flex items-center gap-4 flex-row-reverse">
             <Link href="/dashboard">
               <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/5">
-                <ArrowLeft className="size-5" />
+                <ArrowLeft className="size-5 rotate-180" />
               </Button>
             </Link>
             <div className="h-8 w-px bg-white/10" />
-            <h1 dir="auto" className="font-bold text-sm truncate max-w-[200px] md:max-w-md text-right">
+            <h1 dir="auto" className="font-bold text-sm truncate max-w-[200px] md:max-w-md text-right text-white">
               {activeItem?.title}
             </h1>
           </div>
@@ -172,7 +174,7 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           >
             {isSidebarOpen ? <X className="size-4" /> : <Menu className="size-4" />}
-            {isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
+            {isSidebarOpen ? "إغلاق القائمة" : "فتح القائمة"}
           </Button>
         </header>
 
@@ -196,12 +198,12 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
                 )}
               </div>
             ) : activeItem?.type === 'audio' ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-slate-900/50">
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-900/50 p-6">
                 <div className="max-w-md w-full p-10 glass border-white/10 rounded-[3rem] text-center">
                   <div className="size-24 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl animate-pulse">
                     <Volume2 className="size-12 text-indigo-400" />
                   </div>
-                  <h3 dir="auto" className="text-2xl font-bold mb-4">{activeItem.title}</h3>
+                  <h3 dir="auto" className="text-2xl font-bold mb-4 text-white">{activeItem.title}</h3>
                   <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
                     {mounted && (
                       <audio controls className="w-full">
@@ -214,7 +216,7 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
               </div>
             ) : activeItem?.type === 'text' ? (
               <div className="absolute inset-0 flex items-center justify-center bg-slate-900 p-8">
-                <ScrollArea className="max-w-3xl w-full h-full max-h-[80%] glass border-white/10 rounded-[2.5rem] p-10">
+                <ScrollArea className="max-w-3xl w-full h-full max-h-[90%] glass border-white/10 rounded-[2.5rem] p-10">
                   <div className="flex items-center gap-3 mb-8 justify-end">
                     <h2 dir="auto" className="text-3xl font-bold text-white tracking-tight text-right">{activeItem.title}</h2>
                     <div className="size-10 bg-indigo-500/20 rounded-xl flex items-center justify-center shrink-0">
@@ -222,14 +224,14 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
                     </div>
                   </div>
                   <div className="prose prose-invert max-w-none">
-                    <p dir="auto" className="text-lg text-slate-300 leading-relaxed whitespace-pre-wrap text-right">
+                    <p dir="auto" className="text-lg text-slate-300 leading-loose whitespace-pre-wrap text-right font-medium">
                       {activeItem.url}
                     </p>
                   </div>
                 </ScrollArea>
               </div>
             ) : activeItem?.type === 'quiz_json' ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/50">
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/50 p-6">
                 {activeItem.quizData ? (
                   <QuizPlayer 
                     data={activeItem.quizData} 
@@ -238,7 +240,7 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
                 ) : (
                   <div className="p-8 text-center glass border-white/10 rounded-3xl">
                     <Trophy className="size-12 text-amber-400 mx-auto mb-4" />
-                    <p className="text-muted-foreground">This quiz node has no data configured.</p>
+                    <p className="text-muted-foreground">لا توجد بيانات متاحة لهذا الاختبار حالياً.</p>
                   </div>
                 )}
               </div>
@@ -248,13 +250,13 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
                   <div className="size-20 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-indigo-500/10">
                     <FileText className="size-10 text-indigo-400" />
                   </div>
-                  <h3 dir="auto" className="text-2xl font-bold mb-2">{activeItem?.title}</h3>
+                  <h3 dir="auto" className="text-2xl font-bold mb-2 text-white">{activeItem?.title}</h3>
                   <p className="text-muted-foreground mb-8 text-sm leading-relaxed">
-                    This lesson contains a PDF or document resource.
+                    هذا الدرس يحتوي على أصل رقمي خارجي (PDF أو وثيقة تقنية).
                   </p>
                   <a href={activeItem?.url} target="_blank" rel="noopener noreferrer">
                     <Button className="w-full h-12 bg-indigo-600 rounded-xl font-bold shadow-lg shadow-indigo-600/20">
-                      Download Asset
+                      جلب الأصل الرقمي
                     </Button>
                   </a>
                 </div>
@@ -263,29 +265,29 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
           </div>
 
           {/* Bottom Controls */}
-          <div className="h-20 border-t border-white/5 bg-slate-900/80 backdrop-blur-xl flex items-center justify-between px-8 shrink-0">
+          <div className="h-20 border-t border-white/5 bg-slate-900/80 backdrop-blur-xl flex items-center justify-between px-8 shrink-0 flex-row-reverse">
             <Button 
-              variant="outline" 
-              className="rounded-xl border-white/10 h-11 px-6 group"
-              onClick={handlePrevious}
-              disabled={activeIndex === 0}
+              className="rounded-xl bg-primary h-11 px-6 group font-bold"
+              onClick={handleNext}
+              disabled={activeIndex === items.length - 1}
             >
-              <ChevronLeft className="mr-2 size-4 group-hover:-translate-x-1 transition-transform" />
-              Previous
+              الدرس التالي
+              <ChevronRight className="ml-2 size-4 group-hover:translate-x-1 transition-transform" />
             </Button>
 
             <div className="hidden sm:flex flex-col items-center">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Progress</span>
+              <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground">معدل الإنجاز</span>
               <span className="text-sm font-mono text-white">{(activeIndex + 1).toString().padStart(2, '0')} / {items.length.toString().padStart(2, '0')}</span>
             </div>
 
             <Button 
-              className="rounded-xl bg-primary h-11 px-6 group"
-              onClick={handleNext}
-              disabled={activeIndex === items.length - 1}
+              variant="outline" 
+              className="rounded-xl border-white/10 h-11 px-6 group font-bold"
+              onClick={handlePrevious}
+              disabled={activeIndex === 0}
             >
-              Next
-              <ChevronRight className="ml-2 size-4 group-hover:translate-x-1 transition-transform" />
+              <ChevronLeft className="mr-2 size-4 group-hover:-translate-x-1 transition-transform rotate-180" />
+              السابق
             </Button>
           </div>
         </div>
@@ -296,8 +298,8 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
         "w-80 border-l border-white/5 bg-slate-900/90 backdrop-blur-2xl flex flex-col transition-all duration-300 absolute inset-y-0 right-0 z-40 md:relative translate-x-full md:translate-x-0",
         isSidebarOpen ? "translate-x-0" : ""
       )}>
-        <div className="p-6 border-b border-white/5 flex items-center justify-between">
-          <h3 className="font-bold text-sm uppercase tracking-widest text-muted-foreground">Neural Playlist</h3>
+        <div className="p-6 border-b border-white/5 flex items-center justify-between flex-row-reverse">
+          <h3 className="font-bold text-xs uppercase tracking-[0.2em] text-indigo-400 text-right">قائمة المسار العصبي</h3>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -322,7 +324,7 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
                     if (window.innerWidth < 768) setIsSidebarOpen(false);
                   }}
                   className={cn(
-                    "w-full flex items-start gap-4 p-4 rounded-2xl transition-all duration-200 group text-left",
+                    "w-full flex items-start gap-4 p-4 rounded-2xl transition-all duration-200 group flex-row-reverse text-right",
                     isActive 
                       ? "bg-primary/10 border border-primary/20" 
                       : "hover:bg-white/5 border border-transparent"
@@ -340,7 +342,7 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p dir="auto" className={cn(
-                      "text-xs font-bold transition-colors line-clamp-2 text-right",
+                      "text-xs font-bold transition-colors line-clamp-2",
                       isActive ? "text-primary" : "text-slate-300 group-hover:text-white"
                     )}>
                       {item.title}
@@ -361,8 +363,8 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
         </ScrollArea>
 
         <div className="p-6 border-t border-white/5 bg-black/20">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-[10px] uppercase font-bold text-muted-foreground">Course Completion</span>
+          <div className="flex items-center justify-between mb-4 flex-row-reverse">
+            <span className="text-[10px] uppercase font-bold text-muted-foreground">نسبة المزامنة المعرفية</span>
             <span className="text-[10px] font-mono text-primary">{Math.round((activeIndex / items.length) * 100)}%</span>
           </div>
           <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
