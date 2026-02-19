@@ -43,13 +43,16 @@ export function ChatList({ contacts, activeContactId, onSelect }: { contacts: an
                   <div className="size-12 rounded-2xl overflow-hidden border border-white/10 group-hover:scale-105 transition-transform">
                     <img src={c.avatar_url || `https://picsum.photos/seed/${c.username}/40/40`} className="size-full object-cover" />
                   </div>
-                  <div className="absolute -bottom-1 -right-1 size-3 bg-green-500 border-2 border-slate-950 rounded-full" />
+                  <div className={cn(
+                    "absolute -bottom-1 -right-1 size-3 border-2 border-slate-950 rounded-full transition-colors",
+                    c.status === 'online' ? "bg-green-500" : "bg-slate-600"
+                  )} />
                 </div>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5 flex-row-reverse">
                     <p className={cn("text-sm font-bold truncate", activeContactId === c.id ? "text-primary" : "text-white")}>{c.name}</p>
-                    <span className="text-[8px] text-muted-foreground uppercase opacity-50">Active</span>
+                    <span className="text-[8px] text-muted-foreground uppercase opacity-50">{c.status === 'online' ? 'Active' : 'Offline'}</span>
                   </div>
                   <p className="text-[10px] text-muted-foreground truncate uppercase font-mono tracking-tighter">@{c.username}</p>
                 </div>

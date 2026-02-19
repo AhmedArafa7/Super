@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, User, Loader2, ShieldCheck, ImageIcon, Paperclip, MoreHorizontal, Check, CheckCheck } from 'lucide-react';
+import { Send, User, Loader2, ShieldCheck, ImageIcon, Paperclip, MoreHorizontal, Check, CheckCheck, FileText, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -10,6 +10,7 @@ import { usePeerChatStore } from '@/lib/peer-chat-store';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { uploadMarketImage } from '@/lib/market-store';
+import { uploadLearningFile } from '@/lib/learning-store';
 import { Progress } from '@/components/ui/progress';
 
 export function ChatWindow({ currentUser, targetUser }: { currentUser: any, targetUser: any }) {
@@ -18,6 +19,7 @@ export function ChatWindow({ currentUser, targetUser }: { currentUser: any, targ
   const [uploadProgress, setUploadProgress] = useState(0);
   const { messages, isLoading, loadMessages, sendMessage, activeChatId, markAsRead } = usePeerChatStore();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -33,7 +35,6 @@ export function ChatWindow({ currentUser, targetUser }: { currentUser: any, targ
       if (viewport) viewport.scrollTop = viewport.scrollHeight;
     }
     
-    // مارك للرسائل كـ مقروءة عند فتح المحادثة
     if (activeChatId) {
       messages.forEach(msg => {
         if (msg.senderId !== currentUser.id && !msg.isRead) {
@@ -57,9 +58,29 @@ export function ChatWindow({ currentUser, targetUser }: { currentUser: any, targ
     setIsUploading(true);
     try {
       const url = await uploadMarketImage(file, (pct) => setUploadProgress(pct));
-      await sendMessage(currentUser.id, targetUser.id, { imageUrl: url, type: 'image' });
+      await sendMessage(currentUser.id, targetUser.id, { imageUrl: url, type: 'image', text: `Sent an image: ${file.name}` });
     } catch (err) {
       console.error("Upload failed", err);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleGenericFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser) return;
+
+    setIsUploading(true);
+    try {
+      const url = await uploadLearningFile(file, (pct) => setUploadProgress(pct));
+      await sendMessage(currentUser.id, targetUser.id, { 
+        text: file.name, 
+        imageUrl: url, // نستخدم نفس الحقل لتخزين الرابط
+        type: 'file' 
+      });
+    } catch (err) {
+      console.error("File upload failed", err);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -82,15 +103,20 @@ export function ChatWindow({ currentUser, targetUser }: { currentUser: any, targ
           <div>
             <h3 className="font-bold text-white text-base flex items-center gap-2 justify-end">
               {targetUser.name}
-              <ShieldCheck className="size-3 text-emerald-400" />
+              <ShieldCheck className={cn("size-3", targetUser.status === 'online' ? "text-emerald-400" : "text-slate-500")} />
             </h3>
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">@{targetUser.username}</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-            <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[8px] text-emerald-400 font-black uppercase tracking-tighter">Secure P2P Node</span>
+          <div className={cn(
+            "hidden sm:flex items-center gap-2 px-3 py-1 border rounded-full transition-colors",
+            targetUser.status === 'online' ? "bg-emerald-500/10 border-emerald-500/20" : "bg-slate-500/10 border-slate-500/20"
+          )}>
+            <div className={cn("size-1.5 rounded-full", targetUser.status === 'online' ? "bg-emerald-500 animate-pulse" : "bg-slate-500")} />
+            <span className={cn("text-[8px] font-black uppercase tracking-tighter", targetUser.status === 'online' ? "text-emerald-400" : "text-slate-500")}>
+              {targetUser.status === 'online' ? 'Secure P2P Node' : 'Node Offline'}
+            </span>
           </div>
           <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white"><MoreHorizontal className="size-5" /></Button>
         </div>
@@ -115,9 +141,22 @@ export function ChatWindow({ currentUser, targetUser }: { currentUser: any, targ
                       <div className="mb-2 rounded-xl overflow-hidden border border-white/10 bg-black/20">
                         <img src={msg.imageUrl} className="max-w-full h-auto object-cover cursor-pointer hover:opacity-90" onClick={() => window.open(msg.imageUrl, '_blank')} />
                       </div>
+                    ) : msg.type === 'file' ? (
+                      <div className="mb-3 p-4 bg-black/30 rounded-xl border border-white/10 flex items-center gap-4 flex-row-reverse">
+                        <div className="size-10 bg-indigo-500/20 rounded-lg flex items-center justify-center">
+                          <FileText className="size-5 text-indigo-400" />
+                        </div>
+                        <div className="flex-1 text-right overflow-hidden">
+                          <p className="text-xs font-bold truncate text-white">{msg.text}</p>
+                          <p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest mt-1">Institutional Asset</p>
+                        </div>
+                        <Button variant="ghost" size="icon" className="size-8 rounded-lg hover:bg-white/10 text-indigo-400" onClick={() => window.open(msg.imageUrl, '_blank')}>
+                          <Download className="size-4" />
+                        </Button>
+                      </div>
                     ) : null}
                     
-                    <p dir="auto" className="text-right text-sm leading-relaxed">{msg.text}</p>
+                    {msg.type !== 'file' && <p dir="auto" className="text-right text-sm leading-relaxed">{msg.text}</p>}
                     
                     <div className={cn(
                       "flex items-center gap-2 mt-2 opacity-40 text-[9px] font-mono",
@@ -139,7 +178,7 @@ export function ChatWindow({ currentUser, targetUser }: { currentUser: any, targ
       {isUploading && (
         <div className="px-8 py-2 bg-indigo-500/10 border-t border-white/5 animate-in fade-in">
           <div className="flex justify-between items-center mb-1 flex-row-reverse">
-            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">جاري إرسال الوسائط...</span>
+            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">جاري مزامنة الوسائط مع النخاع...</span>
             <span className="text-[10px] font-mono text-indigo-400">{Math.round(uploadProgress)}%</span>
           </div>
           <Progress value={uploadProgress} className="h-1 bg-white/5" />
@@ -152,15 +191,22 @@ export function ChatWindow({ currentUser, targetUser }: { currentUser: any, targ
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => imageInputRef.current?.click()}
               className="size-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-indigo-400"
             >
               <ImageIcon className="size-5" />
             </Button>
-            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-            <Button variant="ghost" size="icon" className="size-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-muted-foreground hidden sm:flex">
+            <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
+            
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => fileInputRef.current?.click()}
+              className="size-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-muted-foreground flex"
+            >
               <Paperclip className="size-5" />
             </Button>
+            <input type="file" ref={fileInputRef} className="hidden" onChange={handleGenericFileUpload} />
           </div>
 
           <Input 
@@ -172,7 +218,7 @@ export function ChatWindow({ currentUser, targetUser }: { currentUser: any, targ
             dir="auto"
           />
           
-          <Button onClick={handleSend} disabled={!input.trim() && !isUploading} className="size-12 rounded-xl bg-primary shadow-lg shadow-primary/20 shrink-0">
+          <Button onClick={handleSend} disabled={(!input.trim() && !isUploading) || isUploading} className="size-12 rounded-xl bg-primary shadow-lg shadow-primary/20 shrink-0">
             <Send className="size-5" />
           </Button>
         </div>

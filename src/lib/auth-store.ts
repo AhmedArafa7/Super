@@ -6,6 +6,7 @@ import { initializeFirebase } from '@/firebase';
 
 export type UserRole = 'admin' | 'employee' | 'user';
 export type UserClassification = 'none' | 'freelancer' | 'investor' | 'manager';
+export type OnlineStatus = 'online' | 'offline' | 'away';
 
 export interface User {
   id: string;
@@ -17,6 +18,8 @@ export interface User {
   avatar_url?: string;
   customTag?: string;
   canManageCredits?: boolean;
+  status?: OnlineStatus;
+  lastSeen?: string;
 }
 
 const SESSION_KEY = 'nexus_session';
@@ -37,7 +40,11 @@ export const setSession = (user: User | null) => {
 export const getStoredUsers = async (): Promise<User[]> => {
   const { firestore } = initializeFirebase();
   const snapshot = await getDocs(collection(firestore, 'users'));
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as User));
+  return snapshot.docs.map(d => ({ 
+    id: d.id, 
+    ...d.data(),
+    status: d.data().status || 'offline' // القيمة الافتراضية
+  } as User));
 };
 
 export const addUser = async (userData: Omit<User, 'id'>) => {
@@ -48,7 +55,9 @@ export const addUser = async (userData: Omit<User, 'id'>) => {
     id: newUserRef.id,
     classification: userData.classification || 'none',
     proResponsesRemaining: userData.proResponsesRemaining || 0,
-    avatar_url: userData.avatar_url || `https://picsum.photos/seed/${userData.username}/100/100`
+    avatar_url: userData.avatar_url || `https://picsum.photos/seed/${userData.username}/100/100`,
+    status: 'online',
+    lastSeen: new Date().toISOString()
   };
   await setDoc(newUserRef, user);
   
