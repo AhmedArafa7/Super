@@ -2,11 +2,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { Users, Plus, DollarSign, Mic2 } from "lucide-react";
+import { Users, Plus, DollarSign, Mic2, ShieldCheck, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -40,15 +41,15 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
         classification: 'none',
         proResponsesRemaining: 0,
         proTTSRemaining: 0,
-        avatarUrl: `https://picsum.photos/seed/${newUser.username}/100/100`,
+        avatar_url: `https://picsum.photos/seed/${newUser.username}/100/100`,
         canManageCredits: false
       });
-      toast({ title: "تم تسجيل العقدة", description: `المستخدم ${newUser.name} أصبح جزءاً من النظام.` });
+      toast({ title: "تم تسجيل العقدة", description: `المستخدم ${newUser.name} أصبح جزءاً من النظام برصيد صفري.` });
       setNewUser({ name: '', username: '', role: 'user' });
       setIsAddUserOpen(false);
       onRefresh();
     } catch (err) {
-      toast({ variant: "destructive", title: "فشل التسجيل", description: "تعذر تسجيل العقدة في Firestore." });
+      toast({ variant: "destructive", title: "فشل التسجيل" });
     } finally {
       setIsCreatingUser(false);
     }
@@ -57,41 +58,30 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
   const handleUpdateUserRole = async (userId: string, role: any) => {
     try {
       await updateUserProfile(userId, { role });
-      toast({ title: "تمت إعادة المعايرة", description: "تم تحديث مستويات الوصول للعقدة." });
-      onRefresh();
-    } catch (err) {
-      toast({ variant: "destructive", title: "فشل التحديث", description: "تعذر مزامنة تغيير الرتبة." });
-    }
-  };
-
-  const handleUpdateClassification = async (userId: string, classification: any) => {
-    try {
-      await updateUserProfile(userId, { classification });
-      toast({ title: "تم تحديث التصنيف", description: "تم تعديل النطاق العصبي للمستخدم." });
-      onRefresh();
-    } catch (err) {
-      toast({ variant: "destructive", title: "فشل التحديث", description: "تعذر مزامنة التصنيف." });
-    }
-  };
-
-  const handleUpdateProResponses = async (userId: string, amount: string) => {
-    const num = parseInt(amount);
-    if (isNaN(num)) return;
-    try {
-      await updateUserProfile(userId, { proResponsesRemaining: num });
-      toast({ title: "مزامنة عصبية", description: "تم تخصيص ردود Pro بنجاح." });
+      toast({ title: "تمت إعادة المعايرة" });
       onRefresh();
     } catch (err) {
       toast({ variant: "destructive", title: "فشل التحديث" });
     }
   };
 
-  const handleUpdateProTTS = async (userId: string, amount: string) => {
-    const num = parseInt(amount);
-    if (isNaN(num)) return;
+  const handleUpdateAuthority = async (userId: string, canManageCredits: boolean) => {
     try {
-      await updateUserProfile(userId, { proTTSRemaining: num });
-      toast({ title: "مزامنة السيادة الصوتية", description: "تم تخصيص حصص نطق عالي الجودة." });
+      await updateUserProfile(userId, { canManageCredits });
+      toast({ 
+        title: canManageCredits ? "تم منح السلطة المالية" : "تم سحب السلطة المالية",
+        variant: canManageCredits ? "default" : "destructive"
+      });
+      onRefresh();
+    } catch (err) {
+      toast({ variant: "destructive", title: "فشل التحديث" });
+    }
+  };
+
+  const handleUpdateClassification = async (userId: string, classification: any) => {
+    try {
+      await updateUserProfile(userId, { classification });
+      toast({ title: "تم تحديث التصنيف" });
       onRefresh();
     } catch (err) {
       toast({ variant: "destructive", title: "فشل التحديث" });
@@ -104,7 +94,7 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
     try {
       const success = await adjustFunds(creditTarget.id, Number(creditAmount), 'deposit');
       if (success) {
-        toast({ title: "تم حقن الرصيد", description: `تمت إضافة ${creditAmount} Credits إلى @${creditTarget.username}` });
+        toast({ title: "تم حقن الرصيد", description: `تمت إضافة ${creditAmount} Credits بنجاح.` });
         setCreditTarget(null);
         setCreditAmount("");
         onRefresh();
@@ -120,7 +110,7 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
     <div className="space-y-8">
       <div className="flex justify-between items-center flex-row-reverse">
         <h3 className="text-xl font-bold text-white flex items-center gap-3 flex-row-reverse">
-          <Users className="text-indigo-400" /> إدارة العقد والتصنيفات
+          <Users className="text-indigo-400" /> إدارة العقد والسيادة
         </h3>
         <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
           <DialogTrigger asChild>
@@ -158,6 +148,24 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
             </div>
             
             <div className="pt-4 border-t border-white/5 space-y-4 text-right">
+              {/* سلطة إدارة الائتمان - تظهر فقط لمن يملك الصلاحية أصلاً */}
+              {currentUser?.canManageCredits && (
+                <div className="p-3 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between flex-row-reverse">
+                  <div className="text-right">
+                    <Label className="text-[10px] font-bold text-white flex items-center gap-2 justify-end">
+                      سلطة الائتمان
+                      <ShieldCheck className={cn("size-3", u.canManageCredits ? "text-emerald-400" : "text-muted-foreground")} />
+                    </Label>
+                    <p className="text-[8px] text-muted-foreground">تتيح للعقدة إصدار Credits للآخرين</p>
+                  </div>
+                  <Switch 
+                    checked={u.canManageCredits} 
+                    onCheckedChange={(val) => handleUpdateAuthority(u.id, val)}
+                    disabled={u.id === currentUser.id} // لا يمكن سحب الصلاحية من نفسك
+                  />
+                </div>
+              )}
+
               <div className="space-y-1">
                 <Label className="text-[9px] uppercase font-bold text-muted-foreground">تصنيف الوصول</Label>
                 <Select defaultValue={u.classification || 'none'} onValueChange={(v) => handleUpdateClassification(u.id, v)}>
@@ -171,31 +179,8 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-[9px] uppercase font-bold text-indigo-400">ردود Pro</Label>
-                  <Input 
-                    type="number" 
-                    className="bg-white/5 border-white/10 h-10 text-center font-bold" 
-                    defaultValue={u.proResponsesRemaining || 0}
-                    onBlur={(e) => handleUpdateProResponses(u.id, e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[9px] uppercase font-bold text-emerald-400 flex items-center justify-end gap-1">
-                    حصص TTS <Mic2 className="size-2" />
-                  </Label>
-                  <Input 
-                    type="number" 
-                    className="bg-white/5 border-white/10 h-10 text-center font-bold" 
-                    defaultValue={u.proTTSRemaining || 0}
-                    onBlur={(e) => handleUpdateProTTS(u.id, e.target.value)}
-                  />
-                </div>
-              </div>
-
               <div className="flex items-center justify-between flex-row-reverse pt-2">
-                <Label className="text-[9px] uppercase font-bold text-muted-foreground">صلاحية النخاع</Label>
+                <Label className="text-[9px] uppercase font-bold text-muted-foreground">رتبة العقدة</Label>
                 <Select defaultValue={u.role} onValueChange={(v) => handleUpdateUserRole(u.id, v)}>
                   <SelectTrigger className="h-8 w-28 bg-white/5 border-white/10 text-[9px] font-bold flex-row-reverse"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-slate-950 border-white/10 text-white">
