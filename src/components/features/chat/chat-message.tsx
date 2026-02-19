@@ -27,28 +27,64 @@ interface ChatMessageProps {
 }
 
 /**
- * [STABILITY_ANCHOR: CHAT_MESSAGE_NODE_V1.2]
- * عقدة الرسالة المستقلة - تم تحصينها ضد أخطاء تجاوز حصة الصوت لضمان استمرار المزامنة.
+ * [STABILITY_ANCHOR: CHAT_MESSAGE_NODE_V1.5]
+ * عقدة الرسالة المستقلة - تم إضافة بروتوكول النطق المحلي كبديل (Fallback) عند تجاوز الحصة السحابية.
  */
 export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioFinished, onEdit, onDelete }: ChatMessageProps) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
   const [showOptimized, setShowOptimized] = useState(false);
+  const [isUsingLocalFallback, setIsUsingLocalFallback] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const speakLocally = (text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setHasFailed(true);
+      onAudioFinished?.();
+      return;
+    }
+
+    // تنظيف أي نطق سابق
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    // اكتشاف اللغة: إذا كانت تحتوي على حروف عربية استخدم صوت عربي
+    utterance.lang = /[\u0600-\u06FF]/.test(text) ? 'ar-SA' : 'en-US';
+    utterance.rate = 0.95; // سرعة مستقبلية هادئة
+    utterance.pitch = 1;
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      onAudioFinished?.();
+    };
+
+    utterance.onerror = (e) => {
+      console.error("Local Speech Error:", e);
+      setHasFailed(true);
+      setIsSpeaking(false);
+      onAudioFinished?.();
+    };
+
+    setIsUsingLocalFallback(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
   const handleSpeak = async () => {
-    if (!msg.response || audioUrl || hasFailed) return;
+    if (!msg.response || audioUrl || hasFailed || isSpeaking) return;
+    
     setIsSpeaking(true);
     try {
       const result = await textToNeuralSpeech(msg.response);
       if (result.success && result.audioUrl) {
         setAudioUrl(result.audioUrl);
       } else {
-        setHasFailed(true);
-        // في حال تجاوز الحصة، نقوم بإنهاء المهمة لهذا المكون لفتح الطريق للبقية
+        // في حال تجاوز الحصة (429)، نلجأ فوراً للمحرك المحلي
         if (result.isQuotaError) {
-          console.warn(`[Neural TTS Quota]: Skipping audio for message ${msg.id}`);
+          console.warn(`[Neural TTS Quota]: Using Local Fallback Node for message ${msg.id}`);
+          speakLocally(msg.response);
+        } else {
+          setHasFailed(true);
           onAudioFinished?.();
         }
       }
@@ -57,29 +93,36 @@ export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioF
       setHasFailed(true);
       onAudioFinished?.();
     } finally {
-      setIsSpeaking(false);
+      if (!isUsingLocalFallback) setIsSpeaking(false);
     }
   };
 
   // التحميل المسبق عند دخول الرسالة في الطابور
   useEffect(() => {
-    if (isInAudioQueue && !audioUrl && !isSpeaking && !hasFailed) {
+    if (isInAudioQueue && !audioUrl && !isSpeaking && !hasFailed && !isUsingLocalFallback) {
       handleSpeak();
     }
   }, [isInAudioQueue, audioUrl, hasFailed]);
 
   // بدء التشغيل الفعلي فقط عندما يحين الدور
   useEffect(() => {
-    if (isMyTurnToPlay && audioUrl && audioRef.current) {
-      audioRef.current.play().catch(e => {
-        console.error("Audio Playback Error:", e);
-        onAudioFinished?.(); 
-      });
-    } else if (isMyTurnToPlay && hasFailed) {
-      // إذا حان دور رسالة فاشلة، ننتقل فوراً للتالية
-      onAudioFinished?.();
+    if (isMyTurnToPlay) {
+      if (audioUrl && audioRef.current) {
+        audioRef.current.play().catch(e => {
+          console.error("Audio Playback Error:", e);
+          onAudioFinished?.(); 
+        });
+      } else if (isUsingLocalFallback) {
+        // المحرك المحلي يبدأ العمل فور استدعاء speakLocally، فلا نحتاج لفعل شيء هنا 
+        // سوى ضمان عدم التكرار إذا كان الطابور قد بدأه بالفعل
+      } else if (hasFailed) {
+        onAudioFinished?.();
+      } else {
+        // محاولة نطق أخيرة إذا لم يتم التحميل المسبق
+        handleSpeak();
+      }
     }
-  }, [isMyTurnToPlay, audioUrl, hasFailed]);
+  }, [isMyTurnToPlay, audioUrl, hasFailed, isUsingLocalFallback]);
 
   return (
     <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -152,15 +195,15 @@ export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioF
                   variant="ghost" 
                   size="sm" 
                   onClick={handleSpeak} 
-                  disabled={isSpeaking || isMyTurnToPlay || hasFailed} 
+                  disabled={isSpeaking || (isMyTurnToPlay && !isUsingLocalFallback) || hasFailed} 
                   className="h-8 px-3 text-[10px] gap-2 text-muted-foreground hover:text-white bg-white/5 rounded-lg border border-white/5"
                 >
                   {isSpeaking ? <Loader2 className="size-3 animate-spin" /> : <Volume2 className="size-3" />} 
-                  {hasFailed ? "النطق غير متاح" : (audioUrl ? (isMyTurnToPlay ? "جاري النطق..." : "إعادة النطق") : "نطق الرد")}
+                  {hasFailed ? "النطق غير متاح" : (isUsingLocalFallback ? "نطق محلي (احتياطي)" : (audioUrl ? (isMyTurnToPlay ? "جاري النطق..." : "إعادة النطق") : "نطق الرد"))}
                 </Button>
                 <div className="flex items-center gap-2 opacity-40 text-[9px] font-mono tracking-tighter">
-                  <Zap className="size-3 text-indigo-400" />
-                  <span>{msg.engine}</span>
+                  <Zap className={cn("size-3", isUsingLocalFallback ? "text-amber-400" : "text-indigo-400")} />
+                  <span>{isUsingLocalFallback ? "Local Engine" : msg.engine}</span>
                 </div>
               </div>
               
@@ -173,7 +216,7 @@ export const ChatMessage = memo(({ msg, isInAudioQueue, isMyTurnToPlay, onAudioF
                 />
               )}
 
-              {audioUrl && (isMyTurnToPlay || isSpeaking) && (
+              {((audioUrl && (isMyTurnToPlay || isSpeaking)) || (isUsingLocalFallback && isSpeaking)) && (
                 <div className="mt-4 p-2 bg-black/40 rounded-xl border border-white/5 animate-pulse">
                   <div className="flex items-center gap-2 justify-center py-1">
                     <div className="size-1.5 bg-primary rounded-full animate-bounce delay-75" />
