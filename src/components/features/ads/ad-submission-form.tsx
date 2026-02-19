@@ -1,0 +1,129 @@
+
+"use client";
+
+import React, { useState } from "react";
+import { Plus, Zap, Loader2, ImageIcon, Globe, Megaphone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { addAd } from "@/lib/ads-store";
+
+interface AdSubmissionFormProps {
+  user: any;
+  onSuccess: () => void;
+}
+
+/**
+ * [STABILITY_ANCHOR: AD_SUBMISSION_NODE_V1]
+ * مكون مستقل لتقديم طلبات الإعلانات من قبل المستخدمين.
+ */
+export function AdSubmissionForm({ user, onSuccess }: AdSubmissionFormProps) {
+  const { toast } = useToast();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    imageUrl: "",
+    linkUrl: "",
+    category: "promo" as any,
+    rewardAmount: 0
+  });
+
+  const handleSubmit = async () => {
+    if (!formData.title || !formData.imageUrl) {
+      toast({ variant: "destructive", title: "بيانات ناقصة", description: "يرجى ملء الحقول الأساسية وعنوان الصورة." });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await addAd({
+        ...formData,
+        authorId: user.id,
+        authorName: user.name
+      }, user.role === 'admin');
+
+      toast({ 
+        title: "تم إرسال الطلب العصبي", 
+        description: "طلبك قيد المراجعة الآن من قبل مسؤولي النخاع." 
+      });
+      
+      setIsOpen(false);
+      setFormData({ title: "", description: "", imageUrl: "", linkUrl: "", category: "promo", rewardAmount: 0 });
+      onSuccess();
+    } catch (err) {
+      toast({ variant: "destructive", title: "فشل الإرسال", description: "تعذر ربط طلبك بالسجل العالمي." });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button className="bg-amber-600 hover:bg-amber-500 text-white rounded-2xl px-8 h-14 shadow-xl shadow-amber-600/20 font-bold text-base gap-3">
+          <Megaphone className="size-5" /> تقديم طلب إعلاني
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[550px] bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right">
+        <DialogHeader>
+          <DialogTitle className="text-3xl font-headline font-bold text-white">إطلاق لوحة إعلانية</DialogTitle>
+          <DialogDescription className="text-muted-foreground text-sm">سيتم مراجعة طلبك من قبل الإدارة قبل ظهوره لبقية العقد في النظام.</DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-5 py-6">
+          <div className="grid gap-2">
+            <Label>عنوان اللوحة</Label>
+            <Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" placeholder="مثال: خدمة برمجة ذكية..." value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+          </div>
+
+          <div className="grid gap-2">
+            <Label>الوصف التفصيلي</Label>
+            <Textarea dir="auto" className="bg-white/5 border-white/10 text-right min-h-[100px]" placeholder="اشرح ما تقدمه في هذه اللوحة..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label>رابط الصورة المعروضة</Label>
+              <Input className="bg-white/5 border-white/10 text-right h-11" placeholder="https://..." value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
+            </div>
+            <div className="grid gap-2">
+              <Label>رابط التوجيه (الموقع)</Label>
+              <Input className="bg-white/5 border-white/10 text-right h-11" placeholder="https://..." value={formData.linkUrl} onChange={e => setFormData({...formData, linkUrl: e.target.value})} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
+            <div className="grid gap-2">
+              <Label>الفئة التقنية</Label>
+              <Select value={formData.category} onValueChange={v => setFormData({...formData, category: v})}>
+                <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10 text-white">
+                  <SelectItem value="promo">عرض ترويجي</SelectItem>
+                  <SelectItem value="news">تحديث تقني</SelectItem>
+                  <SelectItem value="tutorial">درس تعليمي</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>المكافأة المقترحة (للمشاهد)</Label>
+              <Input type="number" className="bg-white/5 border-white/10 text-center h-11" value={formData.rewardAmount} onChange={e => setFormData({...formData, rewardAmount: Number(e.target.value)})} />
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full bg-amber-600 h-14 rounded-2xl font-bold text-lg shadow-xl shadow-amber-600/20">
+            {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : <Zap className="mr-2 size-5" />} 
+            إرسال للمراجعة الإدارية
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

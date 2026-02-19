@@ -10,11 +10,12 @@ import { getAds, Ad } from "@/lib/ads-store";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { AdCard } from "./ads/ad-card";
+import { AdSubmissionForm } from "./ads/ad-submission-form";
 import { EmptyState } from "@/components/ui/empty-state";
 
 /**
- * [STABILITY_ANCHOR: ADS_CENTER_V1.0]
- * المنسق الرئيسي لمركز الإعلانات والمكافآت العصبية.
+ * [STABILITY_ANCHOR: ADS_CENTER_V1.1]
+ * المنسق الرئيسي لمركز الإعلانات - يدعم الآن تقديم الإعلانات من قبل المستخدمين.
  */
 export function AdsCenter() {
   const { user } = useAuth();
@@ -26,7 +27,8 @@ export function AdsCenter() {
   const loadAds = async () => {
     setIsLoading(true);
     try {
-      const data = await getAds();
+      // جلب الإعلانات النشطة فقط للجمهور
+      const data = await getAds('active');
       setAds(data);
     } catch (err) {
       toast({ variant: "destructive", title: "خطأ في المزامنة", description: "تعذر جلب اللوحات الإعلانية." });
@@ -56,18 +58,21 @@ export function AdsCenter() {
             <Megaphone className="text-amber-400 size-10" />
           </h1>
           <p className="text-muted-foreground text-lg max-w-2xl">
-            اكتشف أحدث العروض والخدمات التقنية في النخاع. احصل على مكافآت (Credits) مقابل تفاعلك مع الإعلانات الموثقة.
+            اكتشف أحدث العروض والخدمات التقنية في النخاع. يمكنك أيضاً تقديم إعلانك الخاص ليظهر في الشبكة.
           </p>
         </div>
-        <Button 
-          variant="outline" 
-          size="icon" 
-          onClick={loadAds} 
-          disabled={isLoading}
-          className="size-12 rounded-2xl border-white/5 bg-white/5 hover:bg-white/10"
-        >
-          <RefreshCcw className={isLoading ? "animate-spin" : ""} />
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={loadAds} 
+            disabled={isLoading}
+            className="size-12 rounded-2xl border-white/5 bg-white/5 hover:bg-white/10"
+          >
+            <RefreshCcw className={isLoading ? "animate-spin" : ""} />
+          </Button>
+          {user && <AdSubmissionForm user={user} onSuccess={loadAds} />}
+        </div>
       </header>
 
       <div className="relative max-w-2xl ml-auto">
@@ -91,7 +96,7 @@ export function AdsCenter() {
             <EmptyState 
               icon={Sparkles} 
               title="اللوحة فارغة حالياً" 
-              description="لا توجد إعلانات نشطة في منطقتك العصبية. عد لاحقاً لمزامنة عروض جديدة." 
+              description="لا توجد إعلانات نشطة مطابقة في منطقتك العصبية. شاركنا بإعلانك الأول الآن!" 
             />
           </div>
         ) : (
