@@ -1,0 +1,154 @@
+
+"use client";
+
+import React from "react";
+import Image from "next/image";
+import { ArrowLeft, Play, Download, Edit3, MessageCircle, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { MarketItem, SUB_CATEGORIES } from "@/lib/market-store";
+import { MakeOfferModal } from "../make-offer-modal";
+import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
+
+interface MarketItemDetailsProps {
+  item: MarketItem;
+  userId?: string;
+  onBack: () => void;
+  onLaunch?: (url: string, title: string) => void;
+  onEdit: (item: MarketItem) => void;
+}
+
+export function MarketItemDetails({ item, userId, onBack, onLaunch, onEdit }: MarketItemDetailsProps) {
+  const isOwner = item.sellerId === userId;
+  const subCatLabel = SUB_CATEGORIES.find(s => s.id === item.subCategory)?.label || item.subCategory;
+
+  const handleDownload = () => {
+    if (!item.downloadUrl) return;
+    toast({ title: "بدأ التحميل العصبي", description: `جاري جلب ملفات ${item.title}...` });
+    window.open(item.downloadUrl, '_blank');
+  };
+
+  return (
+    <div className="flex-1 flex flex-col bg-slate-950/50 animate-in fade-in duration-500">
+      <header className="p-6 border-b border-white/5 bg-slate-900/20 backdrop-blur-xl flex items-center justify-between flex-row-reverse">
+        <Button variant="ghost" className="rounded-xl gap-2 text-white" onClick={onBack}>
+          <ArrowLeft className="size-4 rotate-180" /> العودة للسجل
+        </Button>
+        <div className="text-right">
+          <h2 dir="auto" className="text-xl font-bold text-white">{item.title}</h2>
+          <p className="text-xs text-muted-foreground uppercase tracking-widest">معاينة تفاصيل العقدة</p>
+        </div>
+      </header>
+
+      <ScrollArea className="flex-1">
+        <div className="max-w-6xl mx-auto p-8 grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div className="space-y-6">
+            <div className="relative aspect-square rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl group">
+              <Image 
+                src={item.imageUrl || `https://picsum.photos/seed/${item.id}/800/800`} 
+                alt={item.title} 
+                fill 
+                className="object-cover transition-transform duration-1000 group-hover:scale-105"
+              />
+              <div className="absolute top-6 left-6 flex flex-col gap-3">
+                <Badge className="bg-black/60 backdrop-blur-md border-white/10 px-4 py-1.5 text-xs font-bold uppercase">
+                  {subCatLabel}
+                </Badge>
+                {item.mainCategory === 'software' && (
+                  <Badge className={cn(
+                    "backdrop-blur-md border-white/10 px-4 py-1.5 text-xs font-black uppercase",
+                    item.versionStatus === 'beta' ? "bg-amber-500/80" : "bg-green-500/80"
+                  )}>
+                    {item.versionStatus === 'beta' ? 'BETA' : 'FINAL'}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col space-y-8 text-right">
+            <div className="space-y-4">
+              <h1 dir="auto" className="text-5xl font-black text-white tracking-tighter leading-tight">{item.title}</h1>
+              <div className="flex items-center justify-end gap-4">
+                 <div className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-2xl">
+                    <span className="text-3xl font-black text-indigo-400">{item.price?.toLocaleString()}</span>
+                    <span className="text-xs font-bold text-muted-foreground uppercase">Credits</span>
+                 </div>
+                 <Badge variant="outline" className="h-10 px-4 rounded-xl border-white/10 text-muted-foreground">
+                    STOCK: {item.stockQuantity}
+                 </Badge>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-primary uppercase tracking-[0.3em]">الوصف العصبي</h3>
+              <p dir="auto" className="text-lg text-slate-300 leading-relaxed whitespace-pre-wrap italic">
+                "{item.description}"
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-8 border-t border-white/5">
+              {!isOwner ? (
+                <>
+                  <MakeOfferModal 
+                    item={item} 
+                    trigger={
+                      <Button variant="outline" className="h-16 rounded-2xl border-white/10 hover:bg-white/5 font-bold text-lg gap-3">
+                        <MessageCircle className="size-6 text-indigo-400" /> تقديم عرض
+                      </Button>
+                    }
+                  />
+                  <Button className="h-16 bg-primary rounded-2xl font-bold text-lg shadow-2xl shadow-primary/20">
+                    استحواذ الآن
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {item.isLaunchable && item.launchUrl && (
+                    <Button 
+                      onClick={() => onLaunch?.(item.launchUrl!, item.title)}
+                      className="h-16 bg-green-600 hover:bg-green-500 rounded-2xl font-bold text-lg gap-3"
+                    >
+                      <Play className="size-6" /> تشغيل العقدة
+                    </Button>
+                  )}
+                  {item.downloadUrl && (
+                    <Button 
+                      onClick={handleDownload}
+                      variant="outline" 
+                      className="h-16 border-white/10 rounded-2xl font-bold text-lg gap-3"
+                    >
+                      <Download className="size-6 text-indigo-400" /> تحميل المصدر
+                    </Button>
+                  )}
+                  <Button 
+                    onClick={() => onEdit(item)}
+                    variant="ghost" 
+                    className="col-span-full h-14 bg-white/5 hover:bg-white/10 rounded-2xl font-bold gap-3 border border-white/5"
+                  >
+                    <Edit3 className="size-5" /> تعديل بيانات العقدة
+                  </Button>
+                </>
+              )}
+            </div>
+
+            <div className="p-6 bg-white/5 rounded-3xl border border-white/5 flex items-center justify-between flex-row-reverse">
+              <div className="flex items-center gap-4 flex-row-reverse">
+                <div className="size-12 rounded-2xl bg-slate-800 border border-white/10 overflow-hidden">
+                  <img src={`https://picsum.photos/seed/${item.sellerId}/60/60`} className="size-full object-cover" alt="owner" />
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">المالك / المطور</p>
+                  <p className="font-bold text-white">@{item.sellerId.substring(0, 8)}</p>
+                </div>
+              </div>
+              <Badge variant="outline" className="border-indigo-500/20 text-indigo-400">VERIFIED NODE</Badge>
+            </div>
+          </div>
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
