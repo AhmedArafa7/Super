@@ -9,10 +9,10 @@ import { NodeSearch } from "./directory/node-search";
 import { NodeCard } from "./directory/node-card";
 
 /**
- * [STABILITY_ANCHOR: SEGMENTED_DIRECTORY_V1]
- * المنسق الرئيسي لسجل العقد - يعمل بالكامل عبر بيانات Firestore الحقيقية.
+ * [STABILITY_ANCHOR: SEGMENTED_DIRECTORY_V2]
+ * المنسق الرئيسي لسجل العقد - يدعم الآن التمرير الوظيفي للنخاع.
  */
-export function NodeDirectory() {
+export function NodeDirectory({ onNavigate }: { onNavigate?: (tab: any) => void }) {
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState("");
@@ -40,7 +40,7 @@ export function NodeDirectory() {
   );
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700 font-sans">
+    <div className="p-8 max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700 font-sans text-right">
       <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 flex-row-reverse text-right">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-4 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-2">
@@ -67,7 +67,13 @@ export function NodeDirectory() {
             <p className="text-xl font-bold">لم يتم العثور على أي عقد نشطة مطابقة</p>
           </div>
         ) : (
-          filteredUsers.map((u) => <NodeCard key={u.id} user={u} />)
+          filteredUsers.map((u) => (
+            <NodeCard 
+              key={u.id} 
+              user={u} 
+              onChat={() => onNavigate?.("chat")} 
+            />
+          ))
         )}
       </div>
     </div>

@@ -14,7 +14,7 @@ export interface User {
   role: UserRole;
   classification?: UserClassification;
   proResponsesRemaining?: number;
-  avatarUrl?: string;
+  avatar_url?: string;
   customTag?: string;
   canManageCredits?: boolean;
 }
@@ -47,7 +47,8 @@ export const addUser = async (userData: Omit<User, 'id'>) => {
     ...userData, 
     id: newUserRef.id,
     classification: userData.classification || 'none',
-    proResponsesRemaining: userData.proResponsesRemaining || 0
+    proResponsesRemaining: userData.proResponsesRemaining || 0,
+    avatar_url: userData.avatar_url || `https://picsum.photos/seed/${userData.username}/100/100`
   };
   await setDoc(newUserRef, user);
   

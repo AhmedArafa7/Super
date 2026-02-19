@@ -2,15 +2,31 @@
 "use client";
 
 import React from "react";
-import { ShieldCheck, MessageCircle, MoreVertical, Zap } from "lucide-react";
+import { ShieldCheck, MessageCircle, MoreVertical, Zap, Copy, Activity, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
-export function NodeCard({ user }: { user: any }) {
+/**
+ * [STABILITY_ANCHOR: NODE_CARD_V2]
+ * بطاقة العقدة المحدثة - تدعم التنقل الحقيقي والقائمة السيادية والصور الموثقة.
+ */
+export function NodeCard({ user, onChat }: { user: any, onChat?: () => void }) {
   const { toast } = useToast();
+
+  const handleCopyId = () => {
+    navigator.clipboard.writeText(user.id);
+    toast({ title: "تم نسخ المعرف", description: "معرف العقدة جاهز للمزامنة الخارجية." });
+  };
 
   return (
     <Card className="group glass border-white/5 rounded-[2.5rem] overflow-hidden hover:border-emerald-500/40 transition-all duration-500 hover:translate-y-[-4px] shadow-2xl relative">
@@ -27,7 +43,7 @@ export function NodeCard({ user }: { user: any }) {
         <div className="relative">
           <div className="size-24 rounded-[2.2rem] bg-emerald-500/10 border-2 border-dashed border-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-500 overflow-hidden shadow-inner">
             <img 
-              src={user.avatarUrl || `https://picsum.photos/seed/${user.username}/100/100`} 
+              src={user.avatar_url || `https://picsum.photos/seed/${user.username}/100/100`} 
               className="size-full object-cover" 
               alt={user.name} 
             />
@@ -53,13 +69,32 @@ export function NodeCard({ user }: { user: any }) {
 
         <div className="flex items-center gap-3 w-full">
           <Button 
-            onClick={() => toast({ title: "Request Transmitted", description: `Waiting for @${user.username} to accept link.` })}
+            onClick={onChat}
             variant="outline" 
             className="flex-1 rounded-xl h-11 border-white/10 hover:bg-emerald-500/10 hover:text-emerald-400 transition-all text-xs font-bold gap-2"
           >
             <MessageCircle className="size-4" /> تواصل
           </Button>
-          <Button variant="ghost" size="icon" className="size-11 rounded-xl border border-white/10 hover:bg-white/5"><MoreVertical className="size-4" /></Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="size-11 rounded-xl border border-white/10 hover:bg-white/5">
+                <MoreVertical className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-slate-950 border-white/10 rounded-2xl p-2 min-w-[180px]">
+              <DropdownMenuItem onClick={handleCopyId} className="flex-row-reverse gap-3 text-right text-xs rounded-xl focus:bg-white/5 cursor-pointer">
+                <Copy className="size-3.5 text-indigo-400" /> نسخ معرف العقدة
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => toast({ title: "الحالة العصبية", description: "العقدة مستقرة بنسبة 98%." })} className="flex-row-reverse gap-3 text-right text-xs rounded-xl focus:bg-white/5 cursor-pointer">
+                <Activity className="size-3.5 text-emerald-400" /> عرض الحالة العصبية
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/5" />
+              <DropdownMenuItem onClick={() => toast({ variant: "destructive", title: "تم تسجيل التقرير", description: "سيتم فحص نشاط هذه العقدة من قبل الأدمن." })} className="flex-row-reverse gap-3 text-right text-xs text-red-400 focus:text-red-400 rounded-xl focus:bg-red-500/5 cursor-pointer">
+                <AlertTriangle className="size-3.5" /> تبليغ عن اضطراب
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardContent>
     </Card>
