@@ -77,7 +77,7 @@ export function ChatReview({ messages, onRefresh }: ChatReviewProps) {
               <Label className="text-[10px] text-indigo-400 uppercase font-black px-1 tracking-[0.2em]">الرد المقترح عصبياً</Label>
               <Textarea 
                 dir="auto" 
-                value={responses[m.id] ?? m.response || ""} 
+                value={(responses[m.id] ?? m.response) || ""} 
                 onChange={(e) => setResponses({...responses, [m.id]: e.target.value})} 
                 className="bg-white/5 border-white/10 rounded-2xl text-sm min-h-[120px] text-right focus-visible:ring-indigo-500 leading-relaxed" 
               />
