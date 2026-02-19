@@ -13,11 +13,12 @@ import { AzkarView } from "./faith/azkar-view";
 import { TasbihView } from "./faith/tasbih-view";
 import { StorageView } from "./faith/storage-view";
 import { NamesView } from "./faith/names-view";
+import { PrayerTimesView } from "./faith/prayer-times-view";
 import { AnimatePresence } from "framer-motion";
 
 /**
- * [STABILITY_ANCHOR: FAITH_HUB_ORCHESTRATOR_V2]
- * المكون المركزي لعقدة الإيمان. تم إصلاح أخطاء المفاتيح وتفعيل كافة الأقسام السيادية.
+ * [STABILITY_ANCHOR: FAITH_HUB_ORCHESTRATOR_V3]
+ * المكون المركزي لعقدة الإيمان. تم إضافة نظام مواقيت الصلاة المباشر.
  */
 export function HisnAlMuslim() {
   const [activeTab, setActiveTab] = useState("quran");
@@ -73,7 +74,8 @@ export function HisnAlMuslim() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-12 flex flex-wrap h-auto gap-1 flex-row-reverse">
-          <TabsTrigger value="quran" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary flex-1 sm:flex-none font-bold">القرآن الكريم (API)</TabsTrigger>
+          <TabsTrigger value="quran" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary flex-1 sm:flex-none font-bold">القرآن الكريم</TabsTrigger>
+          <TabsTrigger value="prayers" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary flex-1 sm:flex-none font-bold">مواقيت الصلاة</TabsTrigger>
           <TabsTrigger value="azkar" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary flex-1 sm:flex-none font-bold">الأذكار</TabsTrigger>
           <TabsTrigger value="names" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary flex-1 sm:flex-none font-bold">أسماء الله</TabsTrigger>
           <TabsTrigger value="tasbih" className="rounded-xl px-8 py-3 data-[state=active]:bg-primary flex-1 sm:flex-none font-bold">المسبحة</TabsTrigger>
@@ -81,8 +83,8 @@ export function HisnAlMuslim() {
         </TabsList>
 
         <AnimatePresence mode="wait">
-          {/* [FIX]: إضافة مفاتيح فريدة (keys) لـ TabsContent لمنع تكرار العقد في الـ DOM */}
           <TabsContent key="quran-content" value="quran"><QuranView /></TabsContent>
+          <TabsContent key="prayers-content" value="prayers"><PrayerTimesView /></TabsContent>
           <TabsContent key="azkar-content" value="azkar"><AzkarView /></TabsContent>
           <TabsContent key="names-content" value="names"><NamesView /></TabsContent>
           <TabsContent key="tasbih-content" value="tasbih"><TasbihView /></TabsContent>
