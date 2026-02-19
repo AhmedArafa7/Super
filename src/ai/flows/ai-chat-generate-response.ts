@@ -1,8 +1,8 @@
 
 'use server';
 /**
- * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V6.5]
- * المحرك العصبي المطور - تحصين الأوامر البرمجية ضد الانهيارات غير المتوقعة.
+ * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V6.8]
+ * المحرك العصبي المطور - تم تثبيت مسميات الموديلات لضمان استقرار الربط.
  */
 
 import {ai} from '@/ai/genkit';
@@ -36,9 +36,6 @@ const AIChatGenerateResponseInputSchema = z.object({
   })).optional(),
 });
 
-/**
- * وظيفة معالجة الرد - محصنة لتعيد كائناً منظماً في حال الخطأ.
- */
 export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerateResponseInputSchema>) {
   try {
     const result = await aiChatGenerateResponseFlow(input);
@@ -55,6 +52,7 @@ export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerat
 
 const responsePrompt = ai.definePrompt({
   name: 'aiChatGenerateResponsePrompt',
+  model: 'googleai/gemini-1.5-flash', // الموديل الافتراضي
   input: {schema: z.object({ 
     message: z.string(),
     imageDataUri: z.string().optional(),

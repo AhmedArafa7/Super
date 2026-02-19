@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sidebar";
 import { 
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat, 
-  Sparkles, BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, 
+  BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, 
   ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -18,26 +18,30 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { cn } from "@/lib/utils";
 
 export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, togglePin, uploadTasks, unreadCount, pendingOffersCount }: any) {
+  const isAdmin = user?.role === 'admin';
+
   const ALL_NAV_ITEMS = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "chat", label: "AI Chat", icon: MessageSquare },
-    { id: "agent-ai", label: "Neural Architect", icon: Cpu }, // أيقونة القسم الجديد
-    { id: "peer-chat", label: "Direct Link", icon: MessageCircle },
-    { id: "stream", label: "StreamHub", icon: Video },
-    { id: "market", label: "TechMarket", icon: ShoppingBag },
-    { id: "launcher", label: "App Launcher", icon: Rocket },
-    { id: "wallet", label: "Neural Wallet", icon: Wallet },
-    { id: "offers", label: "Offers Inbox", icon: Repeat, badge: pendingOffersCount },
-    { id: "learning", label: "Knowledge Hub", icon: GraduationCap },
-    { id: "lab", label: "Neural Lab", icon: Microscope },
-    { id: "directory", label: "Node Directory", icon: Users },
-    { id: "hisn", label: "عقدة الإيمان", icon: BookOpen },
-    { id: "features", label: "Capabilities", icon: Zap },
-    { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount },
-    { id: "admin", label: "Admin Panel", icon: ShieldCheck },
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, restricted: false },
+    { id: "chat", label: "AI Chat", icon: MessageSquare, restricted: false },
+    { id: "agent-ai", label: "Neural Architect", icon: Cpu, restricted: false },
+    { id: "peer-chat", label: "Direct Link", icon: MessageCircle, restricted: false },
+    { id: "stream", label: "StreamHub", icon: Video, restricted: false },
+    { id: "market", label: "TechMarket", icon: ShoppingBag, restricted: false },
+    { id: "launcher", label: "App Launcher", icon: Rocket, restricted: false },
+    { id: "wallet", label: "Neural Wallet", icon: Wallet, restricted: false },
+    { id: "offers", label: "Offers Inbox", icon: Repeat, badge: pendingOffersCount, restricted: false },
+    { id: "learning", label: "Knowledge Hub", icon: GraduationCap, restricted: false },
+    { id: "lab", label: "Neural Lab", icon: Microscope, restricted: false },
+    { id: "directory", label: "Node Directory", icon: Users, restricted: false },
+    { id: "hisn", label: "عقدة الإيمان", icon: BookOpen, restricted: false },
+    { id: "features", label: "Capabilities", icon: Zap, restricted: false },
+    { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount, restricted: false },
+    { id: "admin", label: "Admin Panel", icon: ShieldCheck, restricted: true },
   ];
 
-  const sidebarItems = ALL_NAV_ITEMS.filter(item => isPinned(item.id));
+  // تصفية العناصر بناءً على الصلاحيات
+  const visibleItems = ALL_NAV_ITEMS.filter(item => !item.restricted || isAdmin);
+  const pinnedSidebarItems = visibleItems.filter(item => isPinned(item.id));
 
   return (
     <Sidebar className="border-r border-white/10 bg-slate-900/50 backdrop-blur-xl">
@@ -52,7 +56,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
 
       <SidebarContent className="px-3">
         <SidebarMenu className="gap-2">
-          {sidebarItems.map((item) => (
+          {pinnedSidebarItems.map((item) => (
             <SidebarMenuItem key={item.id}>
               <SidebarMenuButton
                 isActive={activeTab === item.id}
@@ -86,7 +90,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
               </DialogHeader>
               <ScrollArea className="max-h-[400px] mt-4">
                 <div className="grid grid-cols-1 gap-2 pr-4">
-                  {ALL_NAV_ITEMS.filter(i => i.id !== 'dashboard').map((item) => (
+                  {visibleItems.filter(i => i.id !== 'dashboard').map((item) => (
                     <div key={item.id} className="flex items-center justify-between p-4 glass border-white/5 rounded-2xl hover:bg-white/5 transition-all flex-row-reverse">
                       <div className="flex items-center gap-3 flex-row-reverse">
                         <div className="size-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><item.icon className="size-5" /></div>
@@ -107,7 +111,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
           <div className="mt-8 px-4 space-y-4">
             <div className="flex items-center gap-2 mb-2 justify-end">
               <p className="text-[10px] uppercase font-bold text-indigo-400 tracking-[0.2em]">مراقب المزامنة العصبية</p>
-              <Sparkles className="size-3 text-indigo-400 animate-pulse" />
+              <Zap className="size-3 text-indigo-400 animate-pulse" />
             </div>
             {uploadTasks.map((task: any) => (
               <div key={task.id} className="p-3 bg-white/5 border border-white/10 rounded-2xl space-y-2">

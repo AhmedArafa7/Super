@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Sparkles, Loader2, Zap, Copy } from "lucide-react";
+import { Sparkles, Zap, Copy } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useChatStore, Attachment } from "@/lib/chat-store";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -12,14 +12,15 @@ import { aiChatGenerateResponse } from "@/ai/flows/ai-chat-generate-response";
 import { generateNeuralImage } from "@/ai/flows/ai-media-generation";
 import { updateUserProfile } from "@/lib/auth-store";
 import { ToastAction } from "@/components/ui/toast";
+import { useChatAudio } from "@/hooks/use-chat-audio";
 
 import { ChatMessage } from "./chat/chat-message";
 import { ChatInput } from "./chat/chat-input";
 import { ChatSettings } from "./chat/chat-settings";
 
 /**
- * [STABILITY_ANCHOR: CHAT_ORCHESTRATOR_V6.7]
- * المنسق الرئيسي للدردشة الذكية - تم تفعيل "بروتوكول التعديل والحذف".
+ * [STABILITY_ANCHOR: CHAT_ORCHESTRATOR_V6.8]
+ * المنسق الرئيسي للدردشة الذكية - تم تفريغ المنطق إلى hooks لضمان الرشاقة البرمجية.
  */
 export function AIChat() {
   const { user } = useAuth();
@@ -31,24 +32,21 @@ export function AIChat() {
 
   const [input, setInput] = useState("");
   const [isAITyping, setIsAITyping] = useState(false);
-  
   const [autoRead, setAutoRead] = useState(false);
-  const [autoReadActiveAt, setAutoReadActiveAt] = useState<number | null>(null);
-  const [audioQueue, setAudioQueue] = useState<string[]>([]);
-  const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
-
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [editingMsg, setEditingMsg] = useState<any>(null);
+  
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { audioQueue, currentlyPlayingId, handleAudioFinished } = useChatAudio(messages, autoRead);
 
   const availableModels = useMemo(() => {
     const models = [
-      { id: 'googleai/gemini-1.5-flash-latest', label: 'NexusAI (Flash)', desc: 'المحرك العصبي الأساسي' },
+      { id: 'googleai/gemini-1.5-flash', label: 'NexusAI (Flash)', desc: 'المحرك العصبي الأساسي' },
       { id: 'groq/llama-3.3-70b-versatile', label: 'Groq Llama 3.3', desc: 'محرك فائق السرعة' }
     ];
     if (user?.classification === 'investor' || user?.classification === 'manager') {
       models.push({ 
-        id: 'googleai/gemini-1.5-pro-latest', 
+        id: 'googleai/gemini-1.5-pro', 
         label: 'Gemini Pro', 
         desc: 'تحليل فائق الدقة',
         count: user.proResponsesRemaining || 0
@@ -59,7 +57,7 @@ export function AIChat() {
 
   useEffect(() => {
     if (user?.id) loadMessages(user.id);
-  }, [user?.id]);
+  }, [user?.id, loadMessages]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -67,42 +65,6 @@ export function AIChat() {
       if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
     }
   }, [messages, isAITyping]);
-
-  useEffect(() => {
-    if (!autoRead || !autoReadActiveAt) return;
-
-    const lastMsg = messages[messages.length - 1];
-    if (lastMsg && lastMsg.status === 'replied' && !audioQueue.includes(lastMsg.id)) {
-      const msgTime = new Date(lastMsg.timestamp).getTime();
-      if (msgTime >= autoReadActiveAt) {
-        setAudioQueue(prev => [...prev, lastMsg.id]);
-      }
-    }
-  }, [messages, autoRead, autoReadActiveAt]);
-
-  useEffect(() => {
-    if (!currentlyPlayingId && audioQueue.length > 0) {
-      setCurrentlyPlayingId(audioQueue[0]);
-    }
-  }, [audioQueue, currentlyPlayingId]);
-
-  const handleAudioFinished = () => {
-    setTimeout(() => {
-      setAudioQueue(prev => prev.slice(1));
-      setCurrentlyPlayingId(null);
-    }, 800);
-  };
-
-  const handleAutoReadChange = (enabled: boolean) => {
-    setAutoRead(enabled);
-    if (enabled) {
-      setAutoReadActiveAt(Date.now());
-    } else {
-      setAutoReadActiveAt(null);
-      setAudioQueue([]);
-      setCurrentlyPlayingId(null);
-    }
-  };
 
   const handleSend = async () => {
     if ((!input.trim() && attachments.length === 0) || isAITyping || !user) return;
@@ -222,7 +184,7 @@ export function AIChat() {
              selectedModel={selectedManualModel} 
              autoRead={autoRead}
              onModelChange={setSelectedManualModel}
-             onAutoReadChange={handleAutoReadChange}
+             onAutoReadChange={setAutoRead}
            />
         </div>
 
