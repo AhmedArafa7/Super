@@ -5,7 +5,7 @@ import { create } from 'zustand';
 import { initializeFirebase } from '@/firebase';
 import { 
   collection, doc, getDoc, getDocs, setDoc, updateDoc, 
-  query, orderBy, addDoc, collectionGroup, limit 
+  query, orderBy, addDoc, collectionGroup, limit, startAfter, DocumentSnapshot
 } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
 
@@ -135,12 +135,29 @@ export const useWalletStore = create<WalletState>()(
   })
 );
 
-export const getAllTransactionsAdmin = async (): Promise<Transaction[]> => {
+/**
+ * جلب كافة المعاملات للأدمن مع دعم التجزئة المتقدمة.
+ */
+export const getAllTransactionsAdmin = async (
+  limitSize = 50,
+  lastDoc?: DocumentSnapshot
+): Promise<{ transactions: Transaction[], lastVisible: DocumentSnapshot | null }> => {
   const { firestore } = initializeFirebase();
-  // يتطلب فهرس Collection Group لـ timestamp
-  const q = query(collectionGroup(firestore, 'transactions'), orderBy('timestamp', 'desc'), limit(100));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
+  try {
+    let constraints: any[] = [orderBy('timestamp', 'desc'), limit(limitSize)];
+    if (lastDoc) constraints.push(startAfter(lastDoc));
+
+    const q = query(collectionGroup(firestore, 'transactions'), ...constraints);
+    const snap = await getDocs(q);
+    
+    const transactions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
+    const lastVisible = snap.docs[snap.docs.length - 1] || null;
+
+    return { transactions, lastVisible };
+  } catch (e) {
+    console.error("Admin Ledger Fetch Error:", e);
+    return { transactions: [], lastVisible: null };
+  }
 };
 
 export const selectTotalPendingDebt = (state: { pendingTransactions: PendingTransaction[] }) => 

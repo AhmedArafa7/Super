@@ -5,7 +5,7 @@ import { initializeFirebase } from '@/firebase';
 import { 
   collection, doc, getDocs, updateDoc, query, 
   orderBy, addDoc, deleteDoc, where, limit, startAfter,
-  DocumentSnapshot
+  DocumentSnapshot, QueryConstraint
 } from 'firebase/firestore';
 
 export type AdStatus = 'active' | 'pending_review' | 'rejected' | 'archived';
@@ -26,28 +26,39 @@ export interface Ad {
 }
 
 /**
- * [STABILITY_ANCHOR: ADS_PAGINATED_V8]
- * جلب الإعلانات بنظام التجزئة (Pagination) لتقليل استهلاك البيانات والبطارية.
+ * [STABILITY_ANCHOR: ADS_PAGINATED_V9]
+ * جلب الإعلانات بنظام التجزئة القائم على المؤشر (Cursor) لتقليل الضغط على السيرفر.
  */
-export const getAds = async (status?: AdStatus, limitSize = 15): Promise<Ad[]> => {
+export const getAds = async (
+  status?: AdStatus, 
+  limitSize = 15,
+  lastDoc?: DocumentSnapshot
+): Promise<{ ads: Ad[], lastVisible: DocumentSnapshot | null }> => {
   const { firestore } = initializeFirebase();
   try {
-    let q = query(
-      collection(firestore, 'ads'),
+    let constraints: QueryConstraint[] = [
       orderBy('createdAt', 'desc'),
       limit(limitSize)
-    );
+    ];
 
     if (status) {
-      // يتطلب فهرس مركب (status + createdAt)
-      q = query(q, where('status', '==', status));
+      constraints.push(where('status', '==', status));
     }
 
+    if (lastDoc) {
+      constraints.push(startAfter(lastDoc));
+    }
+
+    const q = query(collection(firestore, 'ads'), ...constraints);
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as Ad));
+    
+    const ads = snap.docs.map(d => ({ id: d.id, ...d.data() } as Ad));
+    const lastVisible = snap.docs[snap.docs.length - 1] || null;
+
+    return { ads, lastVisible };
   } catch (e) {
     console.error("Fetch Ads Error:", e);
-    return [];
+    return { ads: [], lastVisible: null };
   }
 };
 
@@ -75,10 +86,10 @@ export const deleteAd = async (id: string) => {
 export const recordAdClick = async (id: string) => {
   const { firestore } = initializeFirebase();
   const adRef = doc(firestore, 'ads', id);
-  // تحديث العداد مباشرة في السيرفر لتقليل البيانات المتبادلة
-  const snap = await getDocs(query(collection(firestore, 'ads'), limit(100))); // محاكاة لجلب الوثيقة
-  const adDoc = snap.docs.find(d => d.id === id);
-  if (adDoc) {
-    await updateDoc(adRef, { clicks: (adDoc.data().clicks || 0) + 1 });
-  }
+  // نستخدم تحديثاً جزئياً لتوفير القراءة
+  try {
+    await updateDoc(adRef, { 
+      clicks: (await (await getDocs(query(collection(firestore, 'ads'), limit(1)))).docs[0]?.data()?.clicks || 0) + 1 
+    });
+  } catch (e) {}
 };

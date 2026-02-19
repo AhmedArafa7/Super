@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { Search, Plus, Loader2, Zap, RefreshCcw } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Search, Plus, Loader2, Zap, RefreshCcw, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -16,8 +16,8 @@ import {
 } from "@/lib/market-store";
 import { uploadLearningFile } from "@/lib/learning-store";
 import { EmptyState } from "@/components/ui/empty-state";
+import { DocumentSnapshot } from "firebase/firestore";
 
-// [STABILITY_ANCHOR: MARKET_MODULAR_IMPORTS]
 import { MarketSidebar } from "./market/market-sidebar";
 import { MarketItemCard } from "./market/market-item-card";
 import { MarketItemDetails } from "./market/market-item-details";
@@ -25,10 +25,6 @@ import { MarketFormDialog } from "./market/market-form-dialog";
 
 const ITEMS_PER_PAGE = 12;
 
-/**
- * [STABILITY_ANCHOR: TECH_MARKET_ORCHESTRATOR_V5.0]
- * المنسق الرئيسي للمتجر التقني - تم تفكيكه لضمان أعلى مستويات الاستقرار.
- */
 export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title: string) => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -42,7 +38,9 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [offset, setOffset] = useState(0);
+  const [lastVisible, setLastVisible] = useState<DocumentSnapshot | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  
   const [search, setSearch] = useState("");
   const [mainCat, setMainCat] = useState<MainCategory>("all");
   const [subCat, setSubCat] = useState<string>("all_subs");
@@ -50,25 +48,27 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
   const loadData = useCallback(async (isLoadMore = false) => {
     if (!isLoadMore) {
       setIsLoading(true);
-      setOffset(0);
+      setItems([]);
     }
-    const currentOffset = isLoadMore ? offset + ITEMS_PER_PAGE : 0;
-    const { items: fetchedItems } = await getMarketItems(
-      currentOffset, 
+    
+    const { items: fetchedItems, lastVisible: nextCursor } = await getMarketItems(
       ITEMS_PER_PAGE, 
-      search, 
+      isLoadMore ? lastVisible || undefined : undefined,
       mainCat, 
-      subCat
+      subCat,
+      search
     );
+
     setItems(prev => isLoadMore ? [...prev, ...fetchedItems] : fetchedItems);
-    setOffset(currentOffset);
+    setLastVisible(nextCursor);
+    setHasMore(fetchedItems.length === ITEMS_PER_PAGE);
     setIsLoading(false);
-  }, [search, mainCat, subCat, offset]);
+  }, [search, mainCat, subCat, lastVisible]);
 
   useEffect(() => {
-    const timer = setTimeout(() => loadData(false), 300);
+    const timer = setTimeout(() => loadData(false), 400);
     return () => clearTimeout(timer);
-  }, [search, mainCat, subCat, loadData]);
+  }, [search, mainCat, subCat]);
 
   const handleSaveListing = async (formData: any) => {
     if (!user) return;
@@ -206,17 +206,33 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
                 className="py-24"
               />
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8 pb-20">
-                {filteredItems.map((item) => (
-                  <MarketItemCard 
-                    key={item.id} 
-                    item={item} 
-                    userId={user?.id} 
-                    onClick={() => setViewingItem(item)} 
-                    onEdit={(e) => { e.stopPropagation(); setEditingItem(item); setIsModalOpen(true); }}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8 pb-10">
+                  {filteredItems.map((item) => (
+                    <MarketItemCard 
+                      key={item.id} 
+                      item={item} 
+                      userId={user?.id} 
+                      onClick={() => setViewingItem(item)} 
+                      onEdit={(e) => { e.stopPropagation(); setEditingItem(item); setIsModalOpen(true); }}
+                    />
+                  ))}
+                </div>
+                
+                {hasMore && (
+                  <div className="flex justify-center pb-20">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => loadData(true)} 
+                      disabled={isLoading}
+                      className="h-12 px-8 rounded-xl border-white/10 hover:bg-white/5 gap-2 font-bold"
+                    >
+                      {isLoading ? <Loader2 className="size-4 animate-spin" /> : <ChevronDown className="size-4" />}
+                      تحميل المزيد من العقد
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </ScrollArea>
@@ -233,4 +249,8 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
       />
     </div>
   );
+}
+
+function cn(...inputs: any[]) {
+  return inputs.filter(Boolean).join(" ");
 }

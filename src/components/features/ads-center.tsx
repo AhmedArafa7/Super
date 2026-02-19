@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Megaphone, RefreshCcw, Search, Sparkles } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Megaphone, RefreshCcw, Search, Sparkles, ChevronDown, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +12,11 @@ import { useToast } from "@/hooks/use-toast";
 import { AdCard } from "./ads/ad-card";
 import { AdSubmissionForm } from "./ads/ad-submission-form";
 import { EmptyState } from "@/components/ui/empty-state";
+import { DocumentSnapshot } from "firebase/firestore";
 
 /**
- * [STABILITY_ANCHOR: ADS_CENTER_V1.1]
- * المنسق الرئيسي لمركز الإعلانات - يدعم الآن تقديم الإعلانات من قبل المستخدمين.
+ * [STABILITY_ANCHOR: ADS_CENTER_V1.2]
+ * المنسق المطور لمركز الإعلانات - يدعم التجزئة الاحترافية لتقليل الضغط.
  */
 export function AdsCenter() {
   const { user } = useAuth();
@@ -23,19 +24,30 @@ export function AdsCenter() {
   const [ads, setAds] = useState<Ad[]>([]);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [lastVisible, setLastVisible] = useState<DocumentSnapshot | null>(null);
+  const [hasMore, setHasMore] = useState(true);
 
-  const loadAds = async () => {
-    setIsLoading(true);
+  const loadAds = useCallback(async (isLoadMore = false) => {
+    if (!isLoadMore) {
+      setIsLoading(true);
+      setAds([]);
+    }
     try {
-      // جلب الإعلانات النشطة فقط للجمهور
-      const data = await getAds('active');
-      setAds(data);
+      const { ads: fetchedAds, lastVisible: nextCursor } = await getAds(
+        'active', 
+        15, 
+        isLoadMore ? lastVisible || undefined : undefined
+      );
+      
+      setAds(prev => isLoadMore ? [...prev, ...fetchedAds] : fetchedAds);
+      setLastVisible(nextCursor);
+      setHasMore(fetchedAds.length === 15);
     } catch (err) {
-      toast({ variant: "destructive", title: "خطأ في المزامنة", description: "تعذر جلب اللوحات الإعلانية." });
+      toast({ variant: "destructive", title: "خطأ في المزامنة" });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [lastVisible, toast]);
 
   useEffect(() => {
     loadAds();
@@ -57,7 +69,7 @@ export function AdsCenter() {
             مركز الإعلانات
             <Megaphone className="text-amber-400 size-10" />
           </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl">
+          <p className="text-muted-foreground text-lg max-w-2xl text-right">
             اكتشف أحدث العروض والخدمات التقنية في النخاع. يمكنك أيضاً تقديم إعلانك الخاص ليظهر في الشبكة.
           </p>
         </div>
@@ -65,13 +77,13 @@ export function AdsCenter() {
           <Button 
             variant="outline" 
             size="icon" 
-            onClick={loadAds} 
+            onClick={() => loadAds()} 
             disabled={isLoading}
             className="size-12 rounded-2xl border-white/5 bg-white/5 hover:bg-white/10"
           >
             <RefreshCcw className={isLoading ? "animate-spin" : ""} />
           </Button>
-          {user && <AdSubmissionForm user={user} onSuccess={loadAds} />}
+          {user && <AdSubmissionForm user={user} onSuccess={() => loadAds()} />}
         </div>
       </header>
 
@@ -86,8 +98,8 @@ export function AdsCenter() {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
-        {isLoading ? (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10">
+        {isLoading && ads.length === 0 ? (
           Array(6).fill(0).map((_, i) => (
             <div key={i} className="aspect-video rounded-[2.5rem] bg-white/5 animate-pulse border border-white/5" />
           ))
@@ -105,11 +117,25 @@ export function AdsCenter() {
               key={ad.id} 
               ad={ad} 
               userId={user?.id} 
-              onRewardClaimed={() => toast({ title: "تم استحقاق المكافأة", description: "تم حقن الرصيد الإضافي في محفظتك بنجاح." })}
+              onRewardClaimed={() => toast({ title: "تم استحقاق المكافأة" })}
             />
           ))
         )}
       </div>
+
+      {hasMore && ads.length > 0 && (
+        <div className="flex justify-center pb-20">
+          <Button 
+            variant="ghost" 
+            onClick={() => loadAds(true)} 
+            disabled={isLoading}
+            className="h-12 px-10 rounded-xl bg-white/5 hover:bg-white/10 text-amber-400 font-bold gap-2"
+          >
+            {isLoading ? <Loader2 className="size-4 animate-spin" /> : <ChevronDown className="size-4" />}
+            عرض المزيد من اللوحات
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
