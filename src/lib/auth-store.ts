@@ -5,15 +5,18 @@ import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, ge
 import { initializeFirebase } from '@/firebase';
 
 export type UserRole = 'admin' | 'employee' | 'user';
+export type UserClassification = 'none' | 'freelancer' | 'investor' | 'manager';
 
 export interface User {
   id: string;
   username: string;
   name: string;
   role: UserRole;
+  classification?: UserClassification;
+  proResponsesRemaining?: number;
   avatarUrl?: string;
   customTag?: string;
-  canManageCredits?: boolean; // الصلاحية المالية المستقلة
+  canManageCredits?: boolean;
 }
 
 const SESSION_KEY = 'nexus_session';
@@ -37,16 +40,17 @@ export const getStoredUsers = async (): Promise<User[]> => {
   return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as User));
 };
 
-/**
- * [DELETION_PREVENTION_PROTOCOL]: إضافة المستخدمين تتم حصراً عبر هذا التابع من قبل الأدمن.
- */
 export const addUser = async (userData: Omit<User, 'id'>) => {
   const { firestore } = initializeFirebase();
   const newUserRef = doc(collection(firestore, 'users'));
-  const user = { ...userData, id: newUserRef.id };
+  const user = { 
+    ...userData, 
+    id: newUserRef.id,
+    classification: userData.classification || 'none',
+    proResponsesRemaining: userData.proResponsesRemaining || 0
+  };
   await setDoc(newUserRef, user);
   
-  // إنشاء محفظة لكل مستخدم جديد برصيد افتتاحي
   await setDoc(doc(firestore, `users/${user.id}/wallet/main`), {
     balance: 1000,
     frozenBalance: 0,

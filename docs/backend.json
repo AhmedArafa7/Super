@@ -10,6 +10,8 @@
         "username": { "type": "string" },
         "full_name": { "type": "string" },
         "role": { "type": "string", "enum": ["admin", "employee", "user"] },
+        "classification": { "type": "string", "enum": ["none", "freelancer", "investor", "manager"], "description": "User classification assigned by admin for AI access tiers." },
+        "proResponsesRemaining": { "type": "number", "default": 0, "description": "Remaining responses for restricted Pro models." },
         "avatar_url": { "type": "string" },
         "custom_tag": { "type": "string" },
         "canManageCredits": { "type": "boolean", "description": "Independent authority to distribute credits, granted by the root admin." }
