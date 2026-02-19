@@ -29,8 +29,9 @@ interface GlobalStorageState {
 }
 
 /**
- * [STABILITY_ANCHOR: GLOBAL_STORAGE_V5.6]
- * بروتوكول إدارة التخزين المحلي - يدعم نظام "درع المفضلات" لحماية الأصول السيادية من الحذف.
+ * [STABILITY_ANCHOR: GLOBAL_STORAGE_V6.0]
+ * بروتوكول إدارة التخزين المحلي السيادي.
+ * تم تثبيت معرف التخزين لضمان استمرارية البيانات عبر التحديثات.
  */
 export const useGlobalStorage = create<GlobalStorageState>()(
   persist(
@@ -43,6 +44,7 @@ export const useGlobalStorage = create<GlobalStorageState>()(
         const existing = cachedAssets.find(a => a.id === assetData.id);
         
         if (existing) {
+          // تحديث الطابع الزمني فقط للأصول الموجودة
           set({
             cachedAssets: cachedAssets.map(a => 
               a.id === assetData.id ? { ...a, timestamp: Date.now() } : a
@@ -51,8 +53,8 @@ export const useGlobalStorage = create<GlobalStorageState>()(
           return;
         }
 
-        const currentTotal = cachedAssets.reduce((acc, a) => acc + a.sizeMB, 0);
-        if (currentTotal + assetData.sizeMB > storageLimitMB) {
+        const currentTotal = cachedAssets.reduce((acc, a) => acc + (a.sizeMB || 0), 0);
+        if (currentTotal + (assetData.sizeMB || 0) > storageLimitMB) {
           clearOldestAssets(assetData.sizeMB);
         }
 
@@ -79,15 +81,12 @@ export const useGlobalStorage = create<GlobalStorageState>()(
 
       setStorageLimit: (limit) => set({ storageLimitMB: limit }),
 
-      /**
-       * [CRITICAL]: منطق الحذف الذكي - يتجاهل المفضلات تماماً.
-       */
       clearOldestAssets: (requiredSpace) => {
         const { cachedAssets, storageLimitMB } = get();
         let currentAssets = [...cachedAssets];
-        let currentTotal = currentAssets.reduce((acc, a) => acc + a.sizeMB, 0);
+        let currentTotal = currentAssets.reduce((acc, a) => acc + (a.sizeMB || 0), 0);
 
-        // تصفية الأصول غير المفضلة فقط لترشيحها للحذف
+        // تصفية المرشحين للحذف (غير المفضلين فقط)
         const deleteCandidates = currentAssets
           .filter(a => !a.isFavorite)
           .sort((a, b) => a.timestamp - b.timestamp);
@@ -102,9 +101,12 @@ export const useGlobalStorage = create<GlobalStorageState>()(
       },
 
       getTotalUsedSpace: () => {
-        return get().cachedAssets.reduce((acc, a) => acc + a.sizeMB, 0);
+        return get().cachedAssets.reduce((acc, a) => acc + (a.sizeMB || 0), 0);
       }
     }),
-    { name: 'nexus-global-cache-v2' }
+    { 
+      name: 'nexus-global-assets-v1',
+      version: 1 
+    }
   )
 );

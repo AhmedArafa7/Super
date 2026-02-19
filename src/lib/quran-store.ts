@@ -6,8 +6,8 @@ import { persist } from 'zustand/middleware';
 import { useGlobalStorage } from './global-storage-store';
 
 /**
- * [STABILITY_ANCHOR: QURAN_ENGINE_V2.1]
- * محرك القرآن الكريم المطور - يدعم القراءة، الاستماع، والتحميل الجزئي المتوازي مع نظام المفضلات.
+ * [STABILITY_ANCHOR: QURAN_ENGINE_V3.0]
+ * محرك القرآن الكريم المطور - تم تثبيت معرف التخزين لضمان ثبات المفضلات والتحميل.
  */
 
 export interface QuranSurah {
@@ -91,7 +91,6 @@ export const useQuranStore = create<QuranState>()(
 
       setCurrentSurah: (surah) => {
         set({ currentSurah: surah, isPlaying: !!surah });
-        // بمجرد البدء في الاستماع، نبدأ "المزامنة الخلفية" لتحميل الملف في الكاش إذا لم يكن موجوداً
         if (surah) {
           get().downloadToLocal(surah);
         }
@@ -101,20 +100,19 @@ export const useQuranStore = create<QuranState>()(
 
       downloadToLocal: async (surah) => {
         const assetId = `quran-${surah.id}`;
-        const isAlreadyCached = useGlobalStorage.getState().cachedAssets.some(a => a.id === assetId);
+        const storage = useGlobalStorage.getState();
+        const isAlreadyCached = storage.cachedAssets.some(a => a.id === assetId);
         
         if (isAlreadyCached) return;
 
         try {
           const cache = await caches.open('nexus-quran-physical-cache');
-          // الاستماع والتحميل في آن واحد عبر fetch المتوازي (Chunked Fetch)
           const response = await fetch(surah.url);
           if (!response.ok) throw new Error("Network rejected stream.");
           
-          // حفظ في الكاش ليعمل أوفلاين لاحقاً
           await cache.put(surah.url, response.clone());
           
-          useGlobalStorage.getState().addAsset({
+          storage.addAsset({
             id: assetId,
             type: 'quran',
             title: `سورة ${surah.name}`,
@@ -130,7 +128,6 @@ export const useQuranStore = create<QuranState>()(
         const storage = useGlobalStorage.getState();
         const existing = storage.cachedAssets.find(a => a.id === assetId);
         
-        // إذا لم تكن السورة محملة أصلاً، نقوم بإضافتها للسجل كـ "أصل افتراضي" قبل التفضيل
         if (!existing) {
           const surah = get().surahs.find(s => s.id === id);
           if (surah) {
@@ -145,6 +142,9 @@ export const useQuranStore = create<QuranState>()(
         storage.toggleFavorite(assetId);
       }
     }),
-    { name: 'nexus-quran-prefs-v3' }
+    { 
+      name: 'nexus-quran-registry-v1',
+      version: 1 
+    }
   )
 );
