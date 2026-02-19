@@ -2,8 +2,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // [STABILITY_ANCHOR: FORCE_DEPLOY_V8.6]
-    // تحديث سيادي للقواعد لضمان مزامنة الفهارس المركبة الجديدة (COLLECTION_GROUP).
+    // [STABILITY_ANCHOR: FORCE_DEPLOY_V8.7]
+    // نبضة نشر قسرية: تم تحديث الفهارس لتشمل نطاق COLLECTION و COLLECTION_GROUP لضمان مزامنة العروض والمتجر.
     
     match /{document=**} {
       allow read, write: if true;
