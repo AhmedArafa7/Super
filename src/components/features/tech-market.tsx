@@ -12,7 +12,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { 
   getMarketItems, addMarketItem, updateMarketItem, MarketItem, 
-  MainCategory, SUB_CATEGORIES, uploadMarketImage
+  MainCategory, SUB_CATEGORIES, uploadMarketImage, decrementStock
 } from "@/lib/market-store";
 import { uploadLearningFile } from "@/lib/learning-store";
 import { useWalletStore } from "@/lib/wallet-store";
@@ -53,18 +53,23 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
       setItems([]);
     }
     
-    const { items: fetchedItems, lastVisible: nextCursor } = await getMarketItems(
-      ITEMS_PER_PAGE, 
-      isLoadMore ? lastVisible || undefined : undefined,
-      mainCat, 
-      subCat,
-      search
-    );
+    try {
+      const { items: fetchedItems, lastVisible: nextCursor } = await getMarketItems(
+        ITEMS_PER_PAGE, 
+        isLoadMore ? lastVisible || undefined : undefined,
+        mainCat, 
+        subCat,
+        search
+      );
 
-    setItems(prev => isLoadMore ? [...prev, ...fetchedItems] : fetchedItems);
-    setLastVisible(nextCursor);
-    setHasMore(fetchedItems.length === ITEMS_PER_PAGE);
-    setIsLoading(false);
+      setItems(prev => isLoadMore ? [...prev, ...fetchedItems] : fetchedItems);
+      setLastVisible(nextCursor);
+      setHasMore(fetchedItems.length === ITEMS_PER_PAGE);
+    } catch (e) {
+      console.error("Market Load Error:", e);
+    } finally {
+      setIsLoading(false);
+    }
   }, [search, mainCat, subCat, lastVisible]);
 
   useEffect(() => {
@@ -118,12 +123,17 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
     try {
       const success = await adjustFunds(user.id, item.price, 'purchase_hold');
       if (success) {
+        // تحديث المخزون في السيرفر
+        await decrementStock(item.id);
+        
         toast({ 
           title: "اكتمل الاستحواذ", 
-          description: `لقد نجحت في تأمين "${item.title}". تم حجز الرصيد في الضمان آلياً.` 
+          description: `لقد نجحت في تأمين "${item.title}". تم حجز الرصيد في الضمان آلياً وتحديث المخزون.` 
         });
+        
         setViewingItem(null);
         loadData(false);
+        if (user.id) fetchWallet(user.id);
       } else {
         throw new Error("فشلت المعالجة المالية في النخاع.");
       }

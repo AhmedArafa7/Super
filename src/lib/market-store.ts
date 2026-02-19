@@ -4,8 +4,8 @@
 import { initializeFirebase } from '@/firebase';
 import { 
   collection, doc, getDocs, updateDoc, query, 
-  addDoc, where, limit, 
-  QueryConstraint, DocumentSnapshot
+  addDoc, where, limit, increment,
+  QueryConstraint, DocumentSnapshot, getDoc
 } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
@@ -55,11 +55,6 @@ export const SUB_CATEGORIES = [
   { id: 'desktop_apps', label: 'تطبيقات ديسكتوب', parent: 'software' },
 ];
 
-/**
- * [STABILITY_ANCHOR: CLIENT_SIDE_FALLBACK_V1]
- * تم تعطيل الترتيب في السيرفر مؤقتاً لتجاوز أخطاء الفهارس.
- * يتم الترتيب والتصفية الآن في جانب العميل لضمان استمرار التطوير.
- */
 export const getMarketItems = async (
   limitSize: number = 50, 
   lastDoc?: DocumentSnapshot,
@@ -69,7 +64,6 @@ export const getMarketItems = async (
 ): Promise<{ items: MarketItem[], lastVisible: DocumentSnapshot | null }> => {
   const { firestore } = initializeFirebase();
   
-  // استعلام بسيط جداً لا يحتاج فهارس مركبة
   let constraints: QueryConstraint[] = [
     limit(100) 
   ];
@@ -83,7 +77,6 @@ export const getMarketItems = async (
     ownerId: d.data().sellerId 
   } as MarketItem));
 
-  // تصفية وترتيب في جانب العميل (Client-side)
   if (mainCat && mainCat !== 'all') {
     items = items.filter(i => i.mainCategory === mainCat);
   }
@@ -98,7 +91,6 @@ export const getMarketItems = async (
     );
   }
 
-  // الترتيب حسب التاريخ (الأحدث أولاً)
   items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return { items: items.slice(0, limitSize), lastVisible: null };
@@ -122,6 +114,20 @@ export const updateMarketItem = async (itemId: string, updates: Partial<MarketIt
   return true;
 };
 
+export const decrementStock = async (itemId: string) => {
+  const { firestore } = initializeFirebase();
+  const itemRef = doc(firestore, 'products', itemId);
+  const snap = await getDoc(itemRef);
+  if (snap.exists() && snap.data().stockQuantity > 0) {
+    await updateDoc(itemRef, { 
+      stockQuantity: increment(-1),
+      status: snap.data().stockQuantity <= 1 ? 'sold' : 'active'
+    });
+    return true;
+  }
+  return false;
+};
+
 export const uploadMarketImage = async (file: File, onProgress?: (pct: number) => void): Promise<string> => {
   const { storage } = initializeFirebase();
   const filePath = `market/images/${Date.now()}-${file.name}`;
@@ -141,7 +147,9 @@ export const addMarketOffer = async (productId: string, sellerId: string, itemTi
   const { firestore } = initializeFirebase();
   await addDoc(collection(firestore, 'offers'), { 
     ...offer, 
-    productId, sellerId, itemTitle,
+    productId, 
+    sellerId, 
+    itemTitle,
     status: 'pending', 
     timestamp: new Date().toISOString() 
   });
@@ -150,15 +158,12 @@ export const addMarketOffer = async (productId: string, sellerId: string, itemTi
 
 export const getReceivedOffers = async (userId: string): Promise<any[]> => {
   const { firestore } = initializeFirebase();
-  // استعلام بسيط يتجنب الفهرس المركب مع الترتيب
   const q = query(
     collection(firestore, 'offers'), 
     where('sellerId', '==', userId)
   );
   const snap = await getDocs(q);
   const offers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  
-  // ترتيب في المتصفح
   return offers.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 

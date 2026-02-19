@@ -3,7 +3,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { ArrowLeft, Play, Download, Edit3, MessageCircle, Info, Loader2, Zap } from "lucide-react";
+import { ArrowLeft, Play, Download, Edit3, MessageCircle, Info, Loader2, Zap, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -44,11 +44,14 @@ export function MarketItemDetails({ item, userId, userBalance = 0, onBack, onLau
       return;
     }
 
-    if (!confirm(`هل أنت متأكد من رغبتك في استحواذ "${item.title}" مقابل ${item.price} Credits؟`)) return;
+    const warning = "\n\n⚠️ تنبيه هام: لا يمكن إرجاع البرمجيات بعد الاستحواذ إلا في حال وجود عطل تقني مثبت.";
+    if (!confirm(`هل أنت متأكد من رغبتك في استحواذ "${item.title}" مقابل ${item.price} Credits؟${warning}`)) return;
 
     setIsAcquiring(true);
     try {
       await onAcquire(item);
+    } catch (e) {
+      console.error(e);
     } finally {
       setIsAcquiring(false);
     }
@@ -90,6 +93,16 @@ export function MarketItemDetails({ item, userId, userBalance = 0, onBack, onLau
                 )}
               </div>
             </div>
+
+            <div className="p-6 bg-amber-500/5 border border-amber-500/10 rounded-[2rem] flex items-start gap-4 flex-row-reverse shadow-inner">
+              <AlertTriangle className="size-6 text-amber-500 shrink-0 mt-1" />
+              <div className="text-right space-y-1">
+                <p className="text-xs font-bold text-white">سياسة الاستحواذ الرقمي</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  لا يمكن إرجاع البرمجيات بعد الاستحواذ إلا في حال وجود عطل تقني مثبت من قبل مطور العقدة.
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-col space-y-8 text-right">
@@ -126,11 +139,11 @@ export function MarketItemDetails({ item, userId, userBalance = 0, onBack, onLau
                   />
                   <Button 
                     onClick={handleAcquireClick}
-                    disabled={isAcquiring}
+                    disabled={isAcquiring || item.stockQuantity <= 0}
                     className="h-16 bg-primary rounded-2xl font-bold text-lg shadow-2xl shadow-primary/20"
                   >
                     {isAcquiring ? <Loader2 className="animate-spin size-6" /> : <Zap className="size-6" />}
-                    {isAcquiring ? "جاري المزامنة..." : "استحواذ الآن"}
+                    {item.stockQuantity <= 0 ? "نفذت الكمية" : (isAcquiring ? "جاري المزامنة..." : "استحواذ الآن")}
                   </Button>
                 </>
               ) : (
