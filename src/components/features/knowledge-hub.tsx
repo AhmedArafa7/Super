@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { FileText, ChevronRight, BookOpen, Play, Music, Trophy, Plus, Trash2, Upload, Loader2, Globe, CheckCircle2, RefreshCcw, Lock, AlignLeft, Mic, AlertTriangle, ArrowRight } from "lucide-react";
+import { FileText, ChevronRight, BookOpen, Play, Music, Trophy, Plus, Trash2, Upload, Loader2, Globe, CheckCircle2, RefreshCcw, Lock, AlignLeft, Mic, AlertTriangle, ArrowRight, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,8 +20,8 @@ import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 
 /**
- * [STABILITY_ANCHOR: KNOWLEDGE_HUB_V3.0]
- * المنسق الرئيسي لقسم التعلم - تم تحسين تجربة الانتقال للمشغل المعرفي.
+ * [STABILITY_ANCHOR: KNOWLEDGE_HUB_V3.1]
+ * المنسق الرئيسي لقسم التعلم - تم إصلاح خطأ استيراد الأيقونات المفقودة.
  */
 export function KnowledgeHub() {
   const { user } = useAuth();
