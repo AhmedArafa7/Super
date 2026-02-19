@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   ShieldAlert, RefreshCcw, Users, MessageSquare, 
-  Video, ShoppingBag, Wallet, Megaphone
+  Video, ShoppingBag, Wallet, Megaphone, Activity
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -19,6 +19,7 @@ import { MediaCensorship } from "./admin/media-censorship";
 import { MarketManagement } from "./admin/market-management";
 import { FinancialLedger } from "./admin/financial-ledger";
 import { AdsManagement } from "./admin/ads-management";
+import { QuotaMonitor } from "./admin/quota-monitor";
 
 import { getStoredMessages } from "@/lib/chat-store";
 import { getStoredUsers } from "@/lib/auth-store";
@@ -28,8 +29,8 @@ import { getAllTransactionsAdmin } from "@/lib/wallet-store";
 import { getAds } from "@/lib/ads-store";
 
 /**
- * [STABILITY_ANCHOR: ADMIN_NEURAL_ORCHESTRATOR_V7.2]
- * لوحة التحكم المنسقة - تم إصلاح استخراج المصفوفات لمنع انهيار الفلترة.
+ * [STABILITY_ANCHOR: ADMIN_NEURAL_ORCHESTRATOR_V7.5]
+ * لوحة التحكم المنسقة - تم إضافة تبويب "مرصد الموارد" للمراقبة السيادية.
  */
 export function AdminPanel() {
   const { user: currentUser } = useAuth();
@@ -63,7 +64,6 @@ export function AdminPanel() {
         users: allUsers || [],
         videos: allVideos || [],
         offers: allOffers || [],
-        // استخراج المصفوفات من الكائنات الناتجة لضمان عمل دالة .filter و .map
         transactions: (txResult as any)?.transactions || [],
         ads: (adsResult as any)?.ads || []
       });
@@ -107,6 +107,7 @@ export function AdminPanel() {
       <Tabs defaultValue="users" className="flex-1 flex flex-col">
         <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 w-fit flex-wrap flex-row-reverse self-end h-auto gap-1">
           <TabsTrigger value="users" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600"><Users className="size-4" /> العقد البشرية</TabsTrigger>
+          <TabsTrigger value="vitals" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-red-600"><Activity className="size-4" /> مرصد النظام</TabsTrigger>
           <TabsTrigger value="chat" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600"><MessageSquare className="size-4" /> مراجعة الدردشة</TabsTrigger>
           <TabsTrigger value="media" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600"><Video className="size-4" /> الرقابة البصرية</TabsTrigger>
           <TabsTrigger value="market" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600"><ShoppingBag className="size-4" /> المتجر</TabsTrigger>
@@ -117,6 +118,10 @@ export function AdminPanel() {
         <div className="flex-1 animate-in slide-in-from-bottom-2 duration-500">
           <TabsContent value="users" className="outline-none">
             <UsersManagement users={data.users} currentUser={currentUser} onRefresh={loadAllData} />
+          </TabsContent>
+
+          <TabsContent value="vitals" className="outline-none">
+            <QuotaMonitor data={data} />
           </TabsContent>
 
           <TabsContent value="chat" className="outline-none">
