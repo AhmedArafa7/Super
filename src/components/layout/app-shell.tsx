@@ -21,7 +21,8 @@ import { PersistentPlayer } from "@/components/features/persistent-player";
 import { AppLauncher } from "@/components/features/app-launcher";
 import { NeuralLab } from "@/components/features/neural-lab";
 import { NodeDirectory } from "@/components/features/node-directory";
-import { AgentAI } from "@/components/features/agent-ai"; // القسم الجديد
+import { AgentAI } from "@/components/features/agent-ai";
+import { AdsCenter } from "@/components/features/ads-center";
 import { getNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
@@ -38,8 +39,8 @@ const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGaf
 const VAULT_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 /**
- * [STABILITY_ANCHOR: APPSHELL_ORCHESTRATOR_V4.5]
- * المكون المركزي المحدث - يدعم الملاحة العميقة للأقسام الفرعية و Direct Link والمهندس العصبي.
+ * [STABILITY_ANCHOR: APPSHELL_ORCHESTRATOR_V7.1]
+ * المكون المركزي المحدث - تم إصلاح أخطاء الاستيراد وتأمين لوحة الإدارة.
  */
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -103,7 +104,8 @@ export function AppShell() {
     switch (activeTab) {
       case "dashboard": return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
       case "chat": return <AIChat />;
-      case "agent-ai": return <AgentAI />; // ربط القسم الجديد
+      case "agent-ai": return <AgentAI />;
+      case "ads": return <AdsCenter />;
       case "peer-chat": return <PeerChat initialTargetId={activeRecipientId} />;
       case "stream": return <StreamHub onOpenVault={() => setLaunchedApp({url: VAULT_EMBED_URL, title: "Nexus Central Vault", isVault: true})} />;
       case "market": return <TechMarket onLaunchApp={(url, title) => setLaunchedApp({url, title})} />;
@@ -116,7 +118,9 @@ export function AppShell() {
         else setActiveTab(tab); 
       }} />;
       case "features": return <Capabilities />;
-      case "admin": return <AdminPanel />;
+      case "admin": 
+        if (user?.role === 'admin') return <AdminPanel />;
+        return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
       case "learning": return <KnowledgeHub />;
       case "hisn": return <HisnAlMuslim />;
       case "notifications": return <NotificationsView onSmartRoute={() => {}} />;

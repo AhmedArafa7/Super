@@ -8,7 +8,7 @@ import {
 import { 
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat, 
   BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, 
-  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu
+  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
     { id: "peer-chat", label: "Direct Link", icon: MessageCircle, restricted: false },
     { id: "stream", label: "StreamHub", icon: Video, restricted: false },
     { id: "market", label: "TechMarket", icon: ShoppingBag, restricted: false },
+    { id: "ads", label: "Ads Center", icon: Megaphone, restricted: false },
     { id: "launcher", label: "App Launcher", icon: Rocket, restricted: false },
     { id: "wallet", label: "Neural Wallet", icon: Wallet, restricted: false },
     { id: "offers", label: "Offers Inbox", icon: Repeat, badge: pendingOffersCount, restricted: false },

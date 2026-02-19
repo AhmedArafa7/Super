@@ -1,9 +1,10 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { 
   ShieldAlert, RefreshCcw, Users, MessageSquare, 
-  Video, ShoppingBag, Wallet
+  Video, ShoppingBag, Wallet, Megaphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -17,16 +18,18 @@ import { ChatReview } from "./admin/chat-review";
 import { MediaCensorship } from "./admin/media-censorship";
 import { MarketManagement } from "./admin/market-management";
 import { FinancialLedger } from "./admin/financial-ledger";
+import { AdsManagement } from "./admin/ads-management";
 
 import { getStoredMessages } from "@/lib/chat-store";
 import { getStoredUsers } from "@/lib/auth-store";
 import { getStoredVideos } from "@/lib/video-store";
 import { getAllOffersAdmin } from "@/lib/market-store";
 import { getAllTransactionsAdmin } from "@/lib/wallet-store";
+import { getAds } from "@/lib/ads-store";
 
 /**
- * [STABILITY_ANCHOR: ADMIN_NEURAL_ORCHESTRATOR_V6.0]
- * لوحة التحكم المنسقة - تم تقسيمها لمعالجة الضخامة البرمجية وضمان استقرار المزايا.
+ * [STABILITY_ANCHOR: ADMIN_NEURAL_ORCHESTRATOR_V7.1]
+ * لوحة التحكم المنسقة - تم تصحيح مسار استيراد useAuth لضمان استقرار البناء.
  */
 export function AdminPanel() {
   const { user: currentUser } = useAuth();
@@ -37,7 +40,8 @@ export function AdminPanel() {
     users: [] as any[],
     videos: [] as any[],
     offers: [] as any[],
-    transactions: [] as any[]
+    transactions: [] as any[],
+    ads: [] as any[]
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -45,12 +49,13 @@ export function AdminPanel() {
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [msgs, allUsers, allVideos, allOffers, allTxs] = await Promise.all([
+      const [msgs, allUsers, allVideos, allOffers, allTxs, allAds] = await Promise.all([
         getStoredMessages(undefined, true),
         getStoredUsers(),
         getStoredVideos(),
         getAllOffersAdmin(),
-        getAllTransactionsAdmin()
+        getAllTransactionsAdmin(),
+        getAds()
       ]);
       
       setData({
@@ -58,7 +63,8 @@ export function AdminPanel() {
         users: allUsers || [],
         videos: allVideos || [],
         offers: allOffers || [],
-        transactions: allTxs || []
+        transactions: allTxs || [],
+        ads: allAds || []
       });
     } catch (err) {
       console.error("Admin Sync Error:", err);
@@ -73,6 +79,14 @@ export function AdminPanel() {
     const interval = setInterval(loadAllData, 60000); 
     return () => clearInterval(interval);
   }, []);
+
+  if (currentUser?.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center h-full text-red-400 font-bold uppercase tracking-widest">
+        Unauthorized Access Detected
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 max-w-7xl mx-auto flex flex-col min-h-screen gap-8 animate-in fade-in duration-700 font-sans">
@@ -95,6 +109,7 @@ export function AdminPanel() {
           <TabsTrigger value="chat" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600"><MessageSquare className="size-4" /> مراجعة الدردشة</TabsTrigger>
           <TabsTrigger value="media" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600"><Video className="size-4" /> الرقابة البصرية</TabsTrigger>
           <TabsTrigger value="market" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600"><ShoppingBag className="size-4" /> المتجر</TabsTrigger>
+          <TabsTrigger value="ads" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600"><Megaphone className="size-4" /> الإعلانات</TabsTrigger>
           <TabsTrigger value="finances" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600"><Wallet className="size-4" /> السجل المالي</TabsTrigger>
         </TabsList>
 
@@ -113,6 +128,10 @@ export function AdminPanel() {
 
           <TabsContent value="market" className="outline-none">
             <MarketManagement offers={data.offers} />
+          </TabsContent>
+
+          <TabsContent value="ads" className="outline-none">
+            <AdsManagement ads={data.ads} onRefresh={loadAllData} />
           </TabsContent>
 
           <TabsContent value="finances" className="outline-none">
