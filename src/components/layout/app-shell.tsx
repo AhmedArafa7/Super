@@ -6,6 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AIChat } from "@/components/features/ai-chat";
+import { PeerChat } from "@/components/features/peer-chat";
 import { StreamHub } from "@/components/features/stream-hub";
 import { TechMarket } from "@/components/features/tech-market";
 import { Capabilities } from "@/components/features/capabilities";
@@ -36,8 +37,8 @@ const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGaf
 const VAULT_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 /**
- * [STABILITY_ANCHOR: APPSHELL_ORCHESTRATOR_V4.1]
- * المكون المركزي المحدث - يدعم الملاحة العميقة للأقسام الفرعية (Node Directory Linkage).
+ * [STABILITY_ANCHOR: APPSHELL_ORCHESTRATOR_V4.5]
+ * المكون المركزي المحدث - يدعم الملاحة العميقة للأقسام الفرعية و Direct Link.
  */
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -45,12 +46,12 @@ export function AppShell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingOffersCount, setPendingOffersCount] = useState(0);
   
-  const processOfflineQueue = useWalletStore(state => state.processOfflineQueue);
-  const uploadTasks = useUploadStore(state => state.tasks);
+  const [activeRecipientId, setActiveRecipientId] = useState<string | undefined>(undefined);
+  const [launchedApp, setLaunchedApp] = useState<{url: string, title: string, isVault?: boolean} | null>(null);
+
   const setCurrentTab = useStreamStore(state => state.setCurrentTab);
   const { isPinned, togglePin } = useSidebarStore();
-
-  const [launchedApp, setLaunchedApp] = useState<{url: string, title: string, isVault?: boolean} | null>(null);
+  const uploadTasks = useUploadStore(state => state.tasks);
 
   useEffect(() => {
     setCurrentTab(activeTab);
@@ -70,6 +71,11 @@ export function AppShell() {
   }, [isAuthenticated, user]);
 
   if (!isAuthenticated) return <LoginView />;
+
+  const handleNavigateToPeerChat = (userId: string) => {
+    setActiveRecipientId(userId);
+    setActiveTab("peer-chat");
+  };
 
   const renderContent = () => {
     if (launchedApp) {
@@ -96,13 +102,17 @@ export function AppShell() {
     switch (activeTab) {
       case "dashboard": return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
       case "chat": return <AIChat />;
+      case "peer-chat": return <PeerChat initialTargetId={activeRecipientId} />;
       case "stream": return <StreamHub onOpenVault={() => setLaunchedApp({url: VAULT_EMBED_URL, title: "Nexus Central Vault", isVault: true})} />;
       case "market": return <TechMarket onLaunchApp={(url, title) => setLaunchedApp({url, title})} />;
       case "launcher": return <AppLauncher />;
       case "wallet": return <WalletView />;
       case "offers": return <OffersInbox />;
       case "lab": return <NeuralLab />;
-      case "directory": return <NodeDirectory onNavigate={setActiveTab} />;
+      case "directory": return <NodeDirectory onNavigate={(tab, payload) => { 
+        if (tab === 'peer-chat' && payload) handleNavigateToPeerChat(payload);
+        else setActiveTab(tab); 
+      }} />;
       case "features": return <Capabilities />;
       case "admin": return <AdminPanel />;
       case "learning": return <KnowledgeHub />;
@@ -116,7 +126,7 @@ export function AppShell() {
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen w-full bg-background hero-gradient overflow-hidden">
         <AppSidebar 
-          activeTab={activeTab} onTabChange={(id: any) => { setActiveTab(id); setLaunchedApp(null); }} 
+          activeTab={activeTab} onTabChange={(id: any) => { setActiveTab(id); setLaunchedApp(null); setActiveRecipientId(undefined); }} 
           user={user} logout={logout} isPinned={isPinned} togglePin={togglePin} 
           uploadTasks={uploadTasks} unreadCount={unreadCount} pendingOffersCount={pendingOffersCount} 
         />

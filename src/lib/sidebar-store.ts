@@ -4,7 +4,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type NavItemId = "chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn" | "launcher" | "lab" | "directory";
+export type NavItemId = "chat" | "peer-chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn" | "launcher" | "lab" | "directory";
 
 interface SidebarState {
   pinnedItems: NavItemId[];
@@ -13,18 +13,16 @@ interface SidebarState {
 }
 
 /**
- * @fileOverview محرك تخصيص القائمة الجانبية - يسمح للمستخدم باختيار الأقسام التي تظهر في قائمته الرئيسية.
+ * @fileOverview محرك تخصيص القائمة الجانبية - تم إضافة Peer Chat للقائمة.
  */
 export const useSidebarStore = create<SidebarState>()(
   persist(
     (set, get) => ({
-      // الأقسام الافتراضية المثبتة
-      pinnedItems: ["dashboard", "chat", "stream", "market", "wallet"],
+      pinnedItems: ["dashboard", "chat", "peer-chat", "stream", "market", "wallet"],
 
       togglePin: (id) => {
         const { pinnedItems } = get();
         if (pinnedItems.includes(id)) {
-          // لا يمكن إلغاء تثبيت الداشبورد لضمان سهولة الوصول
           if (id === 'dashboard') return;
           set({ pinnedItems: pinnedItems.filter(item => item !== id) });
         } else {

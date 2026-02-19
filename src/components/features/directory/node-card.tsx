@@ -17,10 +17,10 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 /**
- * [STABILITY_ANCHOR: NODE_CARD_V2]
- * بطاقة العقدة المحدثة - تدعم التنقل الحقيقي والقائمة السيادية والصور الموثقة.
+ * [STABILITY_ANCHOR: NODE_CARD_V2.1]
+ * بطاقة العقدة المحدثة - تدعم Direct Link المباشر والصور الموثقة.
  */
-export function NodeCard({ user, onChat }: { user: any, onChat?: () => void }) {
+export function NodeCard({ user, onChat }: { user: any, onChat?: (userId: string) => void }) {
   const { toast } = useToast();
 
   const handleCopyId = () => {
@@ -69,7 +69,7 @@ export function NodeCard({ user, onChat }: { user: any, onChat?: () => void }) {
 
         <div className="flex items-center gap-3 w-full">
           <Button 
-            onClick={onChat}
+            onClick={() => onChat?.(user.id)}
             variant="outline" 
             className="flex-1 rounded-xl h-11 border-white/10 hover:bg-emerald-500/10 hover:text-emerald-400 transition-all text-xs font-bold gap-2"
           >

@@ -17,29 +17,24 @@
         "canManageCredits": { "type": "boolean", "description": "Independent authority to distribute credits, granted by the root admin." }
       }
     },
-    "Video": {
-      "title": "Video",
-      "description": "A broadcast clip or external link in StreamHub.",
+    "PeerMessage": {
+      "title": "Peer Message",
+      "description": "Direct message between two users.",
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "thumbnail": { "type": "string" },
-        "views": { "type": "string" },
-        "author": { "type": "string" },
-        "source": { "type": "string", "enum": ["local", "youtube"] },
-        "externalUrl": { "type": "string" },
-        "status": { "type": "string" }
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "isRead": { "type": "boolean" }
       }
     }
   },
   "firestore": {
     "/users/{userId}": { "description": "User profiles" },
-    "/users/{userId}/messages/{msgId}": { "description": "Chat history" },
+    "/users/{userId}/messages/{msgId}": { "description": "AI Chat history" },
     "/users/{userId}/wallet/main": { "description": "Credit balance" },
-    "/users/{userId}/transactions/{txId}": { "description": "Financial ledger" },
-    "/subjects/{subId}": { "description": "Learning subjects" },
-    "/products/{productId}": { "description": "Market items" },
-    "/offers/{offerId}": { "description": "Market negotiations" },
-    "/videos/{videoId}": { "description": "StreamHub videos and broadcasts" }
+    "/chats/{chatId}/messages/{msgId}": { "description": "Peer-to-peer messaging stream" },
+    "/videos/{videoId}": { "description": "StreamHub videos" }
   }
 }

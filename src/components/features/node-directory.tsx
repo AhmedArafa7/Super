@@ -9,10 +9,10 @@ import { NodeSearch } from "./directory/node-search";
 import { NodeCard } from "./directory/node-card";
 
 /**
- * [STABILITY_ANCHOR: SEGMENTED_DIRECTORY_V2]
- * المنسق الرئيسي لسجل العقد - يدعم الآن التمرير الوظيفي للنخاع.
+ * [STABILITY_ANCHOR: SEGMENTED_DIRECTORY_V2.1]
+ * المنسق الرئيسي لسجل العقد - يدعم الآن Direct Link المباشر بين المستخدمين.
  */
-export function NodeDirectory({ onNavigate }: { onNavigate?: (tab: any) => void }) {
+export function NodeDirectory({ onNavigate }: { onNavigate?: (tab: any, payload?: any) => void }) {
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState("");
@@ -71,7 +71,7 @@ export function NodeDirectory({ onNavigate }: { onNavigate?: (tab: any) => void 
             <NodeCard 
               key={u.id} 
               user={u} 
-              onChat={() => onNavigate?.("chat")} 
+              onChat={(userId) => onNavigate?.("peer-chat", userId)} 
             />
           ))
         )}
