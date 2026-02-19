@@ -1,8 +1,8 @@
 
 'use server';
 /**
- * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V6.1]
- * المحرك العصبي المطور - تحسين معالجة الأخطاء وتثبيت ربط الموديلات.
+ * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V6.5]
+ * المحرك العصبي المطور - تحصين الأوامر البرمجية ضد الانهيارات غير المتوقعة.
  */
 
 import {ai} from '@/ai/genkit';
@@ -36,8 +36,21 @@ const AIChatGenerateResponseInputSchema = z.object({
   })).optional(),
 });
 
+/**
+ * وظيفة معالجة الرد - محصنة لتعيد كائناً منظماً في حال الخطأ.
+ */
 export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerateResponseInputSchema>) {
-  return aiChatGenerateResponseFlow(input);
+  try {
+    const result = await aiChatGenerateResponseFlow(input);
+    return { success: true, ...result };
+  } catch (err: any) {
+    console.error("Critical Neural Failure:", err);
+    return { 
+      success: false, 
+      error: true, 
+      message: err.message || "حدث اضطراب في النخاع العصبي." 
+    };
+  }
 }
 
 const responsePrompt = ai.definePrompt({
@@ -67,43 +80,38 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
     inputSchema: AIChatGenerateResponseInputSchema,
   },
   async input => {
-    try {
-      // استخدام المسمى المستقر لضمان عدم حدوث 404
-      let modelToUse = input.isAutoMode ? 'googleai/gemini-1.5-flash' : (input.manualModel || 'googleai/gemini-1.5-flash');
-      let finalPrompt = input.message;
-      let optimizedText = null;
+    let modelToUse = input.isAutoMode ? 'googleai/gemini-1.5-flash' : (input.manualModel || 'googleai/gemini-1.5-flash');
+    let finalPrompt = input.message;
+    let optimizedText = null;
 
-      if (input.isAutoMode) {
-        try {
-          const { text: optimized } = await optimizePrompt({ message: input.message });
-          if (optimized && optimized.trim() !== input.message.trim()) {
-            finalPrompt = optimized;
-            optimizedText = optimized;
-          }
-        } catch (e) {
-          console.warn("Prompt optimization failed, falling back to original message.");
+    if (input.isAutoMode) {
+      try {
+        const { text: optimized } = await optimizePrompt({ message: input.message });
+        if (optimized && optimized.trim() !== input.message.trim()) {
+          finalPrompt = optimized;
+          optimizedText = optimized;
         }
+      } catch (e) {
+        console.warn("Prompt optimization failed, falling back to original message.");
       }
-      
-      const { text: responseText } = await responsePrompt({ 
-        message: finalPrompt, 
-        imageDataUri: input.imageDataUri,
-        history: input.history?.filter(h => !!h.content) 
-      }, { model: modelToUse as any });
-      
-      let engineName = "NexusAI";
-      if (modelToUse.includes('gemini-1.5-pro')) engineName = "Gemini Pro";
-      else if (modelToUse.includes('llama-3.3')) engineName = "Llama 3.3 70B";
-      else if (modelToUse.includes('groq/')) engineName = "Groq Engine";
-
-      return {
-        response: responseText || "تمت المعالجة عصبياً.",
-        engine: engineName,
-        optimizedText: optimizedText,
-        selectedModel: modelToUse
-      };
-    } catch (err: any) {
-      throw new Error(`Neural Failure: ${err.message || 'Unknown disturbance'}`);
     }
+    
+    const { text: responseText } = await responsePrompt({ 
+      message: finalPrompt, 
+      imageDataUri: input.imageDataUri,
+      history: input.history?.filter(h => !!h.content) 
+    }, { model: modelToUse as any });
+    
+    let engineName = "NexusAI";
+    if (modelToUse.includes('gemini-1.5-pro')) engineName = "Gemini Pro";
+    else if (modelToUse.includes('llama-3.3')) engineName = "Llama 3.3 70B";
+    else if (modelToUse.includes('groq/')) engineName = "Groq Engine";
+
+    return {
+      response: responseText || "تمت المعالجة عصبياً.",
+      engine: engineName,
+      optimizedText: optimizedText,
+      selectedModel: modelToUse
+    };
   }
 );

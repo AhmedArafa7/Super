@@ -1,8 +1,8 @@
 
 'use server';
 /**
- * @fileOverview [STABILITY_ANCHOR: AGENT_AI_ENGINE_V2]
- * محرك المهندس العصبي - تم إصلاح الربط المفقود بالموديل.
+ * @fileOverview [STABILITY_ANCHOR: AGENT_AI_ENGINE_V2.5]
+ * محرك المهندس العصبي - تحصين الأوامر ضد الانهيارات غير المتوقعة.
  */
 
 import { ai } from '@/ai/genkit';
@@ -27,7 +27,20 @@ const AgentCodeOutputSchema = z.object({
 });
 
 export async function processAgentTask(input: z.infer<typeof AgentCodeInputSchema>) {
-  return agentCodeFlow(input);
+  try {
+    const result = await agentCodeFlow(input);
+    return { success: true, ...result };
+  } catch (err: any) {
+    console.error("Agent Engine Failure:", err);
+    return { 
+      success: false, 
+      error: true, 
+      message: err.message || "فشل المهندس العصبي في معالجة المهمة.",
+      explanation: "حدث خطأ أثناء محاولة بناء العقد البرمجية.",
+      steps: ["توقف مفاجئ في النخاع"],
+      files: []
+    };
+  }
 }
 
 const agentPrompt = ai.definePrompt({

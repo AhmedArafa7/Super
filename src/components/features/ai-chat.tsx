@@ -19,8 +19,8 @@ import { ChatInput } from "./chat/chat-input";
 import { ChatSettings } from "./chat/chat-settings";
 
 /**
- * [STABILITY_ANCHOR: CHAT_ORCHESTRATOR_V6.3]
- * المنسق الرئيسي للدردشة الذكية - تفعيل ميزة نسخ الأخطاء التقنية لتسهيل الدعم.
+ * [STABILITY_ANCHOR: CHAT_ORCHESTRATOR_V6.5]
+ * المنسق الرئيسي للدردشة الذكية - تحصين معالجة الاستجابات القادمة من النخاع.
  */
 export function AIChat() {
   const { user } = useAuth();
@@ -143,6 +143,10 @@ export function AIChat() {
           history: messages.slice(-6).map(m => ({ role: m.status === 'replied' ? 'model' : 'user', content: m.response || m.text }))
         });
         
+        if (res.error) {
+          throw new Error(res.message);
+        }
+
         await provideAIResponse(savedMsgId, user.id, {
           response: res.response,
           engine: res.engine,

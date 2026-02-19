@@ -1,8 +1,7 @@
-
 'use server';
 /**
- * @fileOverview [STABILITY_ANCHOR: LAB_NEURAL_FLOWS_V2]
- * محرك المختبر العصبي - معالجة وتحسين الأوامر التقنية مع ربط الموديل الصحيح.
+ * @fileOverview [STABILITY_ANCHOR: LAB_NEURAL_FLOWS_V2.5]
+ * محرك المختبر العصبي - تحصين الأوامر ضد الانهيارات غير المتوقعة.
  */
 
 import { ai } from '@/ai/genkit';
@@ -18,7 +17,19 @@ const LabOptimizeOutputSchema = z.object({
 });
 
 export async function labOptimizePrompt(input: z.infer<typeof LabOptimizeInputSchema>) {
-  return labOptimizeFlow(input);
+  try {
+    const result = await labOptimizeFlow(input);
+    return { success: true, ...result };
+  } catch (err: any) {
+    console.error("Lab Engine Failure:", err);
+    return { 
+      success: false, 
+      error: true, 
+      message: err.message || "فشل في مزامنة المحاكي العصبى.",
+      optimizedPrompt: input.prompt,
+      analysis: "حدث خطأ تقني أثناء محاولة المحاكاة."
+    };
+  }
 }
 
 const labPrompt = ai.definePrompt({
