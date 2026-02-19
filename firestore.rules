@@ -2,10 +2,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // [STABILITY_ANCHOR: FORCE_DEPLOY_V8.7]
-    // نبضة نشر قسرية: تم تحديث الفهارس لتشمل نطاق COLLECTION و COLLECTION_GROUP لضمان مزامنة العروض والمتجر.
+    // [STABILITY_ANCHOR: FORCE_DEPLOY_V8.8_FINAL]
+    // نبضة نشر سيادية نهائية: تم تعميم الفهارس لتشمل النطاق الثلاثي للمتجر والفرز الزمني العالمي للعروض.
     
     match /{document=**} {
+      allow read, write: if true;
+    }
+
+    match /offers/{offerId} {
       allow read, write: if true;
     }
 

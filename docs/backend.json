@@ -18,6 +18,23 @@
         "canManageCredits": { "type": "boolean", "description": "Independent authority to distribute credits, granted by the root admin." }
       }
     },
+    "MarketOffer": {
+      "title": "Market Offer",
+      "description": "Acquisition proposal for a market item.",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "buyerId": { "type": "string" },
+        "buyerName": { "type": "string" },
+        "itemTitle": { "type": "string" },
+        "type": { "type": "string", "enum": ["price", "trade"] },
+        "value": { "type": "number" },
+        "details": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected"] },
+        "timestamp": { "type": "string" }
+      }
+    },
     "PeerMessage": {
       "title": "Peer Message",
       "description": "Direct message between two users.",
@@ -36,6 +53,7 @@
     "/users/{userId}/messages/{msgId}": { "description": "AI Chat history" },
     "/users/{userId}/wallet/main": { "description": "Credit balance" },
     "/chats/{chatId}/messages/{msgId}": { "description": "Peer-to-peer messaging stream" },
-    "/videos/{videoId}": { "description": "StreamHub videos" }
+    "/videos/{videoId}": { "description": "StreamHub videos" },
+    "/offers/{offerId}": { "schema": { "$ref": "#/backend/entities/MarketOffer" }, "description": "Global acquisition proposals" }
   }
 }
