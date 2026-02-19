@@ -21,7 +21,11 @@ interface AdsManagementProps {
   onRefresh: () => void;
 }
 
-export function AdsManagement({ ads, onRefresh }: AdsManagementProps) {
+/**
+ * [STABILITY_ANCHOR: ADS_MANAGEMENT_NODE_V1.1]
+ * تحصين مكون الإعلانات ضد أخطاء المصفوفات الفارغة.
+ */
+export function AdsManagement({ ads = [], onRefresh }: AdsManagementProps) {
   const { toast } = useToast();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,8 +71,10 @@ export function AdsManagement({ ads, onRefresh }: AdsManagementProps) {
     onRefresh();
   };
 
-  const pendingAds = ads.filter(a => a.status === 'pending_review');
-  const activeAds = ads.filter(a => a.status === 'active');
+  // ضمان أن ads هي مصفوفة دائماً قبل إجراء الفلترة
+  const safeAds = Array.isArray(ads) ? ads : [];
+  const pendingAds = safeAds.filter(a => a.status === 'pending_review');
+  const activeAds = safeAds.filter(a => a.status === 'active');
 
   return (
     <div className="space-y-8 text-right">

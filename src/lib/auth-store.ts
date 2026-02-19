@@ -60,12 +60,13 @@ export const addUser = async (userData: Omit<User, 'id'>) => {
     avatar_url: userData.avatar_url || `https://picsum.photos/seed/${userData.username}/100/100`,
     status: 'online',
     lastSeen: new Date().toISOString(),
+    // السيادة المالية: تبدأ العقدة بدون سلطة مالية افتراضياً
     canManageCredits: userData.canManageCredits || false
   };
   await setDoc(newUserRef, user);
   
   // [STABILITY_ANCHOR: ZERO_BALANCE_INIT]
-  // تم تصفير الرصيد الابتدائي لضمان السيادة المالية للمدير
+  // تم تصفير الرصيد الابتدائي لضمان السيادة المالية للمدير الجذر فقط
   await setDoc(doc(firestore, `users/${user.id}/wallet/main`), {
     balance: 0,
     frozenBalance: 0,

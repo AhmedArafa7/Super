@@ -28,8 +28,8 @@ import { getAllTransactionsAdmin } from "@/lib/wallet-store";
 import { getAds } from "@/lib/ads-store";
 
 /**
- * [STABILITY_ANCHOR: ADMIN_NEURAL_ORCHESTRATOR_V7.1]
- * لوحة التحكم المنسقة - تم تصحيح مسار استيراد useAuth لضمان استقرار البناء.
+ * [STABILITY_ANCHOR: ADMIN_NEURAL_ORCHESTRATOR_V7.2]
+ * لوحة التحكم المنسقة - تم إصلاح استخراج المصفوفات لمنع انهيار الفلترة.
  */
 export function AdminPanel() {
   const { user: currentUser } = useAuth();
@@ -49,7 +49,7 @@ export function AdminPanel() {
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [msgs, allUsers, allVideos, allOffers, allTxs, allAds] = await Promise.all([
+      const [msgs, allUsers, allVideos, allOffers, txResult, adsResult] = await Promise.all([
         getStoredMessages(undefined, true),
         getStoredUsers(),
         getStoredVideos(),
@@ -63,8 +63,9 @@ export function AdminPanel() {
         users: allUsers || [],
         videos: allVideos || [],
         offers: allOffers || [],
-        transactions: allTxs || [],
-        ads: allAds || []
+        // استخراج المصفوفات من الكائنات الناتجة لضمان عمل دالة .filter و .map
+        transactions: (txResult as any)?.transactions || [],
+        ads: (adsResult as any)?.ads || []
       });
     } catch (err) {
       console.error("Admin Sync Error:", err);
