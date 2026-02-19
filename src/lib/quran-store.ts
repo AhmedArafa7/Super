@@ -6,9 +6,8 @@ import { persist } from 'zustand/middleware';
 import { useGlobalStorage } from './global-storage-store';
 
 /**
- * @fileOverview [STABILITY_ANCHOR: QURAN_ENGINE_V1]
- * محرك القرآن الكريم - يعمل عبر API خارجي مع دعم التحميل الفيزيائي للجهاز.
- * يتم تخزين الملفات فعلياً في ذاكرة المتصفح (Cache API) لضمان العمل أوفلاين.
+ * [STABILITY_ANCHOR: QURAN_ENGINE_V2.0]
+ * محرك القرآن الكريم المطور - يدعم القراءة، الاستماع، والتحميل المتوازي.
  */
 
 export interface QuranSurah {
@@ -21,16 +20,26 @@ export interface QuranSurah {
   numberOfAyahs?: number;
 }
 
+export interface Ayah {
+  number: number;
+  text: string;
+  numberInSurah: number;
+}
+
 interface QuranState {
   surahs: QuranSurah[];
   currentSurah: QuranSurah | null;
+  currentReadingText: Ayah[] | null;
   isPlaying: boolean;
   isLoading: boolean;
+  isReadingLoading: boolean;
   
   fetchSurahs: () => Promise<void>;
+  fetchSurahText: (id: number) => Promise<void>;
   setCurrentSurah: (surah: QuranSurah | null) => void;
   setIsPlaying: (playing: boolean) => void;
   downloadToLocal: (surah: QuranSurah) => Promise<void>;
+  toggleFavoriteSurah: (id: number) => void;
 }
 
 export const useQuranStore = create<QuranState>()(
@@ -38,10 +47,11 @@ export const useQuranStore = create<QuranState>()(
     (set, get) => ({
       surahs: [],
       currentSurah: null,
+      currentReadingText: null,
       isPlaying: false,
       isLoading: false,
+      isReadingLoading: false,
 
-      // [STABILITY_ANCHOR: API_SYNC_PROTOCOL]
       fetchSurahs: async () => {
         set({ isLoading: true });
         try {
@@ -56,8 +66,6 @@ export const useQuranStore = create<QuranState>()(
               numberOfAyahs: s.numberOfAyahs,
               reciter: "مشاري العفاسي",
               url: `https://server8.mp3quran.net/afs/${s.number.toString().padStart(3, '0')}.mp3`,
-              // [STABILITY_ANCHOR: LOGICAL_SIZE_ESTIMATION]
-              // تقدير المساحة المنطقي: حوالي 0.4MB لكل آية في المتوسط لضمان الدقة التقنية
               sizeMB: Number((s.numberOfAyahs * 0.4).toFixed(1))
             }));
             set({ surahs: mapped, isLoading: false });
@@ -68,32 +76,59 @@ export const useQuranStore = create<QuranState>()(
         }
       },
 
+      fetchSurahText: async (id) => {
+        set({ isReadingLoading: true, currentReadingText: null });
+        try {
+          const response = await fetch(`https://api.alquran.cloud/v1/surah/${id}`);
+          const data = await response.json();
+          if (data.code === 200) {
+            set({ currentReadingText: data.data.ayahs, isReadingLoading: false });
+          }
+        } catch (err) {
+          set({ isReadingLoading: false });
+        }
+      },
+
       setCurrentSurah: (surah) => {
         set({ currentSurah: surah, isPlaying: !!surah });
+        // بمجرد البدء في الاستماع، نبدأ "المزامنة الخلفية" لتحميل الملف في الكاش إذا لم يكن موجوداً
+        if (surah) {
+          get().downloadToLocal(surah);
+        }
       },
 
       setIsPlaying: (isPlaying) => set({ isPlaying }),
 
-      // [STABILITY_ANCHOR: PHYSICAL_CACHE_STORAGE]
       downloadToLocal: async (surah) => {
+        const assetId = `quran-${surah.id}`;
+        const isAlreadyCached = useGlobalStorage.getState().cachedAssets.some(a => a.id === assetId);
+        
+        if (isAlreadyCached) return;
+
         try {
           const cache = await caches.open('nexus-quran-physical-cache');
+          // الاستماع والتحميل في آن واحد عبر fetch المتوازي
           const response = await fetch(surah.url);
-          if (!response.ok) throw new Error("Network response rejected by source.");
+          if (!response.ok) throw new Error("Network rejected stream.");
           
           await cache.put(surah.url, response);
           
           useGlobalStorage.getState().addAsset({
-            id: `quran-${surah.id}`,
+            id: assetId,
             type: 'quran',
-            title: surah.name,
+            title: `سورة ${surah.name}`,
             sizeMB: surah.sizeMB
           });
         } catch (err) {
-          console.error("Physical Node Download Failed:", err);
+          console.error("Background Sync Failed:", err);
         }
+      },
+
+      toggleFavoriteSurah: (id) => {
+        const assetId = `quran-${id}`;
+        useGlobalStorage.getState().toggleFavorite(assetId);
       }
     }),
-    { name: 'nexus-quran-prefs' }
+    { name: 'nexus-quran-prefs-v2' }
   )
 );
