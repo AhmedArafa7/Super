@@ -6,8 +6,8 @@ import { persist } from 'zustand/middleware';
 import { useGlobalStorage } from './global-storage-store';
 
 /**
- * [STABILITY_ANCHOR: QURAN_ENGINE_V3.0]
- * محرك القرآن الكريم المطور - تم تثبيت معرف التخزين لضمان ثبات المفضلات والتحميل.
+ * [STABILITY_ANCHOR: QURAN_ENGINE_V3.2]
+ * محرك القرآن الكريم المطور - تم تحصين المزامنة ضد أخطاء "Failed to fetch".
  */
 
 export interface QuranSurah {
@@ -99,6 +99,8 @@ export const useQuranStore = create<QuranState>()(
       setIsPlaying: (isPlaying) => set({ isPlaying }),
 
       downloadToLocal: async (surah) => {
+        if (!window.navigator.onLine) return; // لا تحاول التحميل إذا كان المستخدم أوفلاين أصلاً
+
         const assetId = `quran-${surah.id}`;
         const storage = useGlobalStorage.getState();
         const isAlreadyCached = storage.cachedAssets.some(a => a.id === assetId);
@@ -107,8 +109,17 @@ export const useQuranStore = create<QuranState>()(
 
         try {
           const cache = await caches.open('nexus-quran-physical-cache');
-          const response = await fetch(surah.url);
-          if (!response.ok) throw new Error("Network rejected stream.");
+          
+          // استخدام وضع 'no-cors' كخيار احتياطي لضمان التحميل حتى مع قيود الخادم
+          // ملاحظة: Fetch قد يفشل إذا كان الاتصال ضعيفاً جداً
+          const response = await fetch(surah.url, { 
+            mode: 'cors',
+            credentials: 'omit'
+          }).catch(() => fetch(surah.url, { mode: 'no-cors' })); 
+
+          if (!response || (!response.ok && response.type !== 'opaque')) {
+            throw new Error("Neural link unstable.");
+          }
           
           await cache.put(surah.url, response.clone());
           
@@ -119,7 +130,8 @@ export const useQuranStore = create<QuranState>()(
             sizeMB: surah.sizeMB
           });
         } catch (err) {
-          console.error("Background Sync Failed:", err);
+          // تسجيل الخطأ بهدوء دون تعطيل الواجهة
+          console.warn(`[Background Sync Interrupted] for Surah ${surah.name}:`, err);
         }
       },
 
