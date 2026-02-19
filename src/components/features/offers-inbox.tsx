@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -15,6 +14,7 @@ import { getReceivedOffers, respondToOffer, MarketOffer, OfferStatus } from '@/l
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/ui/empty-state';
+import { cn } from '@/lib/utils';
 
 export function OffersInbox() {
   const { user } = useAuth();
