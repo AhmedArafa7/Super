@@ -77,6 +77,7 @@ export const useWalletStore = create<WalletState>()(
       const { firestore } = initializeFirebase();
       try {
         const txRef = collection(firestore, 'users', userId, 'transactions');
+        // ترتيب بسيط على مستوى المجموعة الواحدة غالباً لا يتطلب فهرساً مركباً
         const q = query(txRef, orderBy('timestamp', 'desc'), limit(30));
         const snap = await getDocs(q);
         const txs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
@@ -137,23 +138,23 @@ export const useWalletStore = create<WalletState>()(
 
 /**
  * جلب كافة المعاملات للأدمن مع دعم التجزئة المتقدمة.
+ * تم إلغاء الـ orderBy من السيرفر لتجنب أخطاء الفهرسة واستبداله بالفرز في المتصفح.
  */
 export const getAllTransactionsAdmin = async (
-  limitSize = 50,
-  lastDoc?: DocumentSnapshot
+  limitSize = 100
 ): Promise<{ transactions: Transaction[], lastVisible: DocumentSnapshot | null }> => {
   const { firestore } = initializeFirebase();
   try {
-    let constraints: any[] = [orderBy('timestamp', 'desc'), limit(limitSize)];
-    if (lastDoc) constraints.push(startAfter(lastDoc));
-
-    const q = query(collectionGroup(firestore, 'transactions'), ...constraints);
+    // نجلب عينة كبيرة بدون ترتيب لتجنب طلب الفهرس المركب (Composite Index)
+    const q = query(collectionGroup(firestore, 'transactions'), limit(limitSize));
     const snap = await getDocs(q);
     
-    const transactions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
-    const lastVisible = snap.docs[snap.docs.length - 1] || null;
+    let transactions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
+    
+    // الفرز داخل المتصفح (Client-side sorting)
+    transactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-    return { transactions, lastVisible };
+    return { transactions, lastVisible: null };
   } catch (e) {
     console.error("Admin Ledger Fetch Error:", e);
     return { transactions: [], lastVisible: null };
