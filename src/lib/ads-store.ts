@@ -4,7 +4,7 @@
 import { initializeFirebase } from '@/firebase';
 import { 
   collection, doc, getDocs, updateDoc, query, 
-  orderBy, addDoc, deleteDoc, where, limit, startAfter,
+  addDoc, deleteDoc, where, limit, 
   DocumentSnapshot, QueryConstraint
 } from 'firebase/firestore';
 
@@ -26,36 +26,28 @@ export interface Ad {
 }
 
 /**
- * [STABILITY_ANCHOR: ADS_PAGINATED_V9]
- * جلب الإعلانات بنظام التجزئة القائم على المؤشر (Cursor) لتقليل الضغط على السيرفر.
+ * [STABILITY_ANCHOR: CLIENT_SIDE_ADS_V1]
+ * العودة لمنطق العميل لتجنب أخطاء الفهرسة.
  */
 export const getAds = async (
   status?: AdStatus, 
-  limitSize = 15,
-  lastDoc?: DocumentSnapshot
+  limitSize = 15
 ): Promise<{ ads: Ad[], lastVisible: DocumentSnapshot | null }> => {
   const { firestore } = initializeFirebase();
   try {
-    let constraints: QueryConstraint[] = [
-      orderBy('createdAt', 'desc'),
-      limit(limitSize)
-    ];
-
-    if (status) {
-      constraints.push(where('status', '==', status));
-    }
-
-    if (lastDoc) {
-      constraints.push(startAfter(lastDoc));
-    }
-
-    const q = query(collection(firestore, 'ads'), ...constraints);
+    const q = query(collection(firestore, 'ads'), limit(100));
     const snap = await getDocs(q);
     
-    const ads = snap.docs.map(d => ({ id: d.id, ...d.data() } as Ad));
-    const lastVisible = snap.docs[snap.docs.length - 1] || null;
+    let ads = snap.docs.map(d => ({ id: d.id, ...d.data() } as Ad));
 
-    return { ads, lastVisible };
+    // تصفية وترتيب في المتصفح
+    if (status) {
+      ads = ads.filter(a => a.status === status);
+    }
+    
+    ads.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return { ads: ads.slice(0, limitSize), lastVisible: null };
   } catch (e) {
     console.error("Fetch Ads Error:", e);
     return { ads: [], lastVisible: null };
@@ -86,10 +78,9 @@ export const deleteAd = async (id: string) => {
 export const recordAdClick = async (id: string) => {
   const { firestore } = initializeFirebase();
   const adRef = doc(firestore, 'ads', id);
-  // نستخدم تحديثاً جزئياً لتوفير القراءة
   try {
-    await updateDoc(adRef, { 
-      clicks: (await (await getDocs(query(collection(firestore, 'ads'), limit(1)))).docs[0]?.data()?.clicks || 0) + 1 
-    });
+    const snap = await getDocs(query(collection(firestore, 'ads'), limit(1)));
+    const currentClicks = snap.docs[0]?.data()?.clicks || 0;
+    await updateDoc(adRef, { clicks: currentClicks + 1 });
   } catch (e) {}
 };

@@ -4,7 +4,7 @@
 import { initializeFirebase } from '@/firebase';
 import { 
   collection, doc, getDocs, updateDoc, query, 
-  orderBy, addDoc, where, limit, startAfter,
+  addDoc, where, limit, 
   QueryConstraint, DocumentSnapshot
 } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -56,11 +56,12 @@ export const SUB_CATEGORIES = [
 ];
 
 /**
- * [STABILITY_ANCHOR: MARKET_PAGINATION_V9]
- * جلب منتجات المتجر بنظام المؤشر الحقيقي لضمان أقل ضغط ممكن على السيرفر.
+ * [STABILITY_ANCHOR: CLIENT_SIDE_FALLBACK_V1]
+ * تم تعطيل الترتيب في السيرفر مؤقتاً لتجاوز أخطاء الفهارس.
+ * يتم الترتيب والتصفية الآن في جانب العميل لضمان استمرار التطوير.
  */
 export const getMarketItems = async (
-  limitSize: number = 12, 
+  limitSize: number = 50, 
   lastDoc?: DocumentSnapshot,
   mainCat?: MainCategory,
   subCat?: string,
@@ -68,22 +69,10 @@ export const getMarketItems = async (
 ): Promise<{ items: MarketItem[], lastVisible: DocumentSnapshot | null }> => {
   const { firestore } = initializeFirebase();
   
+  // استعلام بسيط جداً لا يحتاج فهارس مركبة
   let constraints: QueryConstraint[] = [
-    orderBy('createdAt', 'desc'),
-    limit(limitSize)
+    limit(100) 
   ];
-
-  if (mainCat && mainCat !== 'all') {
-    constraints.push(where('mainCategory', '==', mainCat));
-  }
-
-  if (subCat && subCat !== 'all_subs') {
-    constraints.push(where('subCategory', '==', subCat));
-  }
-
-  if (lastDoc) {
-    constraints.push(startAfter(lastDoc));
-  }
 
   const q = query(collection(firestore, 'products'), ...constraints);
   const snap = await getDocs(q);
@@ -94,7 +83,13 @@ export const getMarketItems = async (
     ownerId: d.data().sellerId 
   } as MarketItem));
 
-  // البحث في جانب العميل للكلمات البسيطة لتقليل تعقيد الفهارس
+  // تصفية وترتيب في جانب العميل (Client-side)
+  if (mainCat && mainCat !== 'all') {
+    items = items.filter(i => i.mainCategory === mainCat);
+  }
+  if (subCat && subCat !== 'all_subs') {
+    items = items.filter(i => i.subCategory === subCat);
+  }
   if (search) {
     const s = search.toLowerCase();
     items = items.filter(i => 
@@ -103,9 +98,10 @@ export const getMarketItems = async (
     );
   }
 
-  const lastVisible = snap.docs[snap.docs.length - 1] || null;
+  // الترتيب حسب التاريخ (الأحدث أولاً)
+  items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  return { items, lastVisible };
+  return { items: items.slice(0, limitSize), lastVisible: null };
 };
 
 export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'status' | 'currency' | 'ownerId' | 'createdAt'>) => {
@@ -154,14 +150,16 @@ export const addMarketOffer = async (productId: string, sellerId: string, itemTi
 
 export const getReceivedOffers = async (userId: string): Promise<any[]> => {
   const { firestore } = initializeFirebase();
+  // استعلام بسيط يتجنب الفهرس المركب مع الترتيب
   const q = query(
     collection(firestore, 'offers'), 
-    where('sellerId', '==', userId),
-    orderBy('timestamp', 'desc'),
-    limit(50)
+    where('sellerId', '==', userId)
   );
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const offers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  
+  // ترتيب في المتصفح
+  return offers.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
 export const respondToOffer = async (offerId: string, status: 'accepted' | 'rejected', buyerId?: string, itemTitle?: string) => {
@@ -172,7 +170,7 @@ export const respondToOffer = async (offerId: string, status: 'accepted' | 'reje
 
 export const getAllOffersAdmin = async (): Promise<any[]> => {
   const { firestore } = initializeFirebase();
-  const q = query(collection(firestore, 'offers'), orderBy('timestamp', 'desc'), limit(100));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const snap = await getDocs(collection(firestore, 'offers'));
+  const offers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  return offers.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
