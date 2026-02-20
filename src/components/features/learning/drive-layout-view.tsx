@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from "react";
@@ -6,14 +5,22 @@ import {
   Folder, FileText, Video, Mic, 
   MoreVertical, ChevronRight, LayoutGrid, 
   List, HardDrive, ArrowLeft, Play,
-  ExternalLink, File, ShieldCheck
+  ExternalLink, File, ShieldCheck,
+  Pencil, Trash2, Share2, Eye
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
 import { Subject, Collection, LearningItem } from "@/lib/learning-store";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 
 interface DriveLayoutViewProps {
@@ -28,8 +35,8 @@ interface DriveLayoutViewProps {
 }
 
 /**
- * [STABILITY_ANCHOR: DRIVE_LAYOUT_VIEW_V1.0]
- * واجهة تحاكي Google Drive لعرض المحتوى التعليمي.
+ * [STABILITY_ANCHOR: DRIVE_LAYOUT_VIEW_V1.5]
+ * واجهة تحاكي Google Drive بدقة مع إصلاح تداخل الأحداث في القوائم.
  */
 export function DriveLayoutView({ 
   subjects, 
@@ -41,6 +48,7 @@ export function DriveLayoutView({
   onAddCollection,
   isAdmin
 }: DriveLayoutViewProps) {
+  const { toast } = useToast();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const getFileIcon = (type: string) => {
@@ -50,6 +58,11 @@ export function DriveLayoutView({
       case 'text': return <FileText className="size-5 text-blue-400" />;
       default: return <File className="size-5 text-slate-400" />;
     }
+  };
+
+  const handleAction = (e: React.MouseEvent, action: string, title: string) => {
+    e.stopPropagation();
+    toast({ title: `بروتوكول ${action}`, description: `جاري تنفيذ العملية على: ${title}` });
   };
 
   // عرض القطاعات (المجلدات الرئيسية)
@@ -73,7 +86,7 @@ export function DriveLayoutView({
               key={s.id} 
               onClick={() => onSelectSubject(s)}
               className={cn(
-                "group glass border-white/5 hover:border-primary/40 transition-all cursor-pointer flex items-center gap-4 flex-row-reverse",
+                "group glass border-white/5 hover:border-primary/40 transition-all cursor-pointer flex items-center gap-4 flex-row-reverse relative",
                 viewMode === 'grid' ? "p-6 rounded-[1.5rem] flex-col text-center" : "p-4 rounded-xl"
               )}
             >
@@ -87,18 +100,43 @@ export function DriveLayoutView({
                 <p dir="auto" className="font-bold text-white truncate">{s.title}</p>
                 <p className="text-[10px] text-muted-foreground uppercase mt-0.5">Subject Folder</p>
               </div>
-              <MoreVertical className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              
+              <div className="absolute top-2 left-2 sm:static">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="size-8 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                      <MoreVertical className="size-4 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="bg-slate-900 border-white/10 text-white min-w-[160px]">
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSelectSubject(s); }} className="flex-row-reverse gap-3 text-right">
+                      <Eye className="size-4 text-indigo-400" /> فتح القطاع
+                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <>
+                        <DropdownMenuItem onClick={(e) => handleAction(e, "التعديل", s.title)} className="flex-row-reverse gap-3 text-right">
+                          <Pencil className="size-4 text-indigo-400" /> إعادة تسمية
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="bg-white/5" />
+                        <DropdownMenuItem onClick={(e) => handleAction(e, "الحذف", s.title)} className="flex-row-reverse gap-3 text-right text-red-400 focus:text-red-400">
+                          <Trash2 className="size-4" /> حذف المجلد
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </Card>
           ))}
           {isAdmin && (
             <button 
-              onClick={onAddSubject}
+              onClick={(e) => { e.stopPropagation(); onAddSubject?.(); }}
               className={cn(
                 "border-2 border-dashed border-white/5 rounded-[1.5rem] flex flex-col items-center justify-center text-muted-foreground hover:border-primary/20 hover:bg-white/5 transition-all",
                 viewMode === 'grid' ? "h-40" : "h-14 flex-row gap-3"
               )}
             >
-              <HardDrive className="size-6 mb-2" />
+              <Plus className="size-6 mb-2" />
               <span className="text-xs font-bold">إنشاء قطاع جديد</span>
             </button>
           )}
@@ -112,7 +150,7 @@ export function DriveLayoutView({
     <div className="space-y-8 animate-in slide-in-from-left-4 duration-500 text-right">
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-2 text-xs font-bold flex-row-reverse">
-        <button onClick={() => onSelectSubject(null)} className="text-muted-foreground hover:text-white">الرئيسية</button>
+        <button onClick={() => onSelectSubject(null)} className="text-muted-foreground hover:text-white transition-colors">الرئيسية</button>
         <ChevronRight className="size-3 text-muted-foreground rotate-180" />
         <span className="text-primary truncate max-w-[200px]">{selectedSubject.title}</span>
       </nav>
@@ -124,18 +162,42 @@ export function DriveLayoutView({
               <div className="flex items-center gap-3 flex-row-reverse">
                 <Folder className="size-4 text-amber-400 fill-amber-400/20" />
                 <h4 dir="auto" className="font-bold text-white">{col.title}</h4>
-                <Link href={`/learn/${col.id}?subjectId=${selectedSubject.id}`}>
+                <Link href={`/learn/${col.id}?subjectId=${selectedSubject.id}`} onClick={(e) => e.stopPropagation()}>
                    <Button variant="ghost" size="sm" className="h-7 rounded-lg text-[10px] text-indigo-400 hover:bg-indigo-500/10 gap-1 px-2">
                      <Play className="size-2" /> دخول الدرس
                    </Button>
                 </Link>
               </div>
-              <Badge variant="outline" className="text-[8px] opacity-40 border-white/10">{itemsMap[col.id]?.length || 0} ملفات</Badge>
+              
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[8px] opacity-40 border-white/10">{itemsMap[col.id]?.length || 0} ملفات</Badge>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="size-7 rounded-lg">
+                      <MoreVertical className="size-3.5 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="bg-slate-900 border-white/10 text-white">
+                    <DropdownMenuItem onClick={(e) => handleAction(e, "المشاركة", col.title)} className="flex-row-reverse gap-3 text-right">
+                      <Share2 className="size-4 text-indigo-400" /> مشاركة الرابط
+                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem onClick={(e) => handleAction(e, "الحذف", col.title)} className="flex-row-reverse gap-3 text-right text-red-400">
+                        <Trash2 className="size-4" /> حذف الوحدة
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {itemsMap[col.id]?.map((item) => (
-                <Card key={item.id} className="p-4 glass border-white/5 hover:border-indigo-500/30 transition-all group flex items-center gap-4 flex-row-reverse">
+                <Card 
+                  key={item.id} 
+                  onClick={() => item.url && window.open(item.url, '_blank')}
+                  className="p-4 glass border-white/5 hover:border-indigo-500/30 transition-all group flex items-center gap-4 flex-row-reverse cursor-pointer"
+                >
                   <div className="size-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 group-hover:bg-indigo-500/10 group-hover:border-indigo-500/20 transition-all">
                     {getFileIcon(item.type)}
                   </div>
@@ -150,14 +212,34 @@ export function DriveLayoutView({
                       )}
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" className="size-8 rounded-lg opacity-0 group-hover:opacity-100" onClick={() => window.open(item.url, '_blank')}>
-                    <ExternalLink className="size-3" />
-                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="size-8 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                          <MoreVertical className="size-4 text-muted-foreground" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="bg-slate-900 border-white/10 text-white">
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); if(item.url) window.open(item.url, '_blank'); }} className="flex-row-reverse gap-3 text-right">
+                          <ExternalLink className="size-4 text-indigo-400" /> فتح في نافذة جديدة
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => handleAction(e, "المشاركة", item.title)} className="flex-row-reverse gap-3 text-right">
+                          <Share2 className="size-4 text-indigo-400" /> نسخ الرابط
+                        </DropdownMenuItem>
+                        {isAdmin && (
+                          <DropdownMenuItem onClick={(e) => handleAction(e, "الحذف", item.title)} className="flex-row-reverse gap-3 text-right text-red-400">
+                            <Trash2 className="size-4" /> حذف الملف
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </Card>
               ))}
               {isAdmin && (
                 <button 
-                  onClick={onAddCollection}
+                  onClick={(e) => { e.stopPropagation(); onAddCollection?.(); }}
                   className="border-2 border-dashed border-white/5 rounded-xl p-4 flex items-center justify-center gap-3 text-muted-foreground hover:border-primary/20 hover:bg-white/5 transition-all"
                 >
                   <Plus className="size-4" />
