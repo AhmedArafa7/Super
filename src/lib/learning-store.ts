@@ -59,6 +59,11 @@ export const addSubject = async (subject: Omit<Subject, 'id'>) => {
   return docRef.id;
 };
 
+export const updateSubject = async (id: string, updates: Partial<Subject>) => {
+  const { firestore } = initializeFirebase();
+  await updateDoc(doc(firestore, 'subjects', id), updates);
+};
+
 export const deleteSubject = async (id: string) => {
   const { firestore } = initializeFirebase();
   await deleteDoc(doc(firestore, 'subjects', id));
@@ -84,6 +89,11 @@ export const addCollection = async (data: { subjectId: string, title: string, de
   await addDoc(colRef, rest);
 };
 
+export const deleteCollection = async (subjectId: string, collectionId: string) => {
+  const { firestore } = initializeFirebase();
+  await deleteDoc(doc(firestore, 'subjects', subjectId, 'collections', collectionId));
+};
+
 export const getLearningItems = async (subjectId: string, collectionId: string): Promise<LearningItem[]> => {
   const { firestore } = initializeFirebase();
   try {
@@ -105,6 +115,11 @@ export const addLearningItem = async (data: { subjectId: string, collectionId: s
     ...rest,
     createdAt: new Date().toISOString()
   });
+};
+
+export const deleteLearningItem = async (subjectId: string, collectionId: string, itemId: string) => {
+  const { firestore } = initializeFirebase();
+  await deleteDoc(doc(firestore, 'subjects', subjectId, 'collections', collectionId, 'learning_items', itemId));
 };
 
 export const uploadLearningFile = async (file: File, onProgress?: (pct: number) => void): Promise<string> => {

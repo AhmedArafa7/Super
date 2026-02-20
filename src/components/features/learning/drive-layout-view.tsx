@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from "react";
@@ -31,12 +32,16 @@ interface DriveLayoutViewProps {
   onSelectSubject: (s: Subject | null) => void;
   onAddSubject?: () => void;
   onAddCollection?: () => void;
+  onDeleteSubject?: (id: string) => Promise<void>;
+  onRenameSubject?: (id: string, currentTitle: string) => Promise<void>;
+  onDeleteCollection?: (subjectId: string, colId: string) => Promise<void>;
+  onDeleteItem?: (subjectId: string, colId: string, itemId: string) => Promise<void>;
   isAdmin: boolean;
 }
 
 /**
- * [STABILITY_ANCHOR: DRIVE_LAYOUT_VIEW_V1.5]
- * واجهة تحاكي Google Drive بدقة مع إصلاح تداخل الأحداث في القوائم.
+ * [STABILITY_ANCHOR: DRIVE_LAYOUT_VIEW_V2.0]
+ * واجهة تحاكي Google Drive بدقة مع تفعيل وظائف الحذف والتسمية الحقيقية.
  */
 export function DriveLayoutView({ 
   subjects, 
@@ -46,6 +51,10 @@ export function DriveLayoutView({
   onSelectSubject,
   onAddSubject,
   onAddCollection,
+  onDeleteSubject,
+  onRenameSubject,
+  onDeleteCollection,
+  onDeleteItem,
   isAdmin
 }: DriveLayoutViewProps) {
   const { toast } = useToast();
@@ -60,12 +69,12 @@ export function DriveLayoutView({
     }
   };
 
-  const handleAction = (e: React.MouseEvent, action: string, title: string) => {
+  const handleCopyLink = (e: React.MouseEvent, url: string) => {
     e.stopPropagation();
-    toast({ title: `بروتوكول ${action}`, description: `جاري تنفيذ العملية على: ${title}` });
+    navigator.clipboard.writeText(url);
+    toast({ title: "تم نسخ الرابط", description: "رابط الأصل جاهز للمشاركة العصبية." });
   };
 
-  // عرض القطاعات (المجلدات الرئيسية)
   if (!selectedSubject) {
     return (
       <div className="space-y-8 animate-in fade-in duration-500 text-right">
@@ -114,11 +123,11 @@ export function DriveLayoutView({
                     </DropdownMenuItem>
                     {isAdmin && (
                       <>
-                        <DropdownMenuItem onClick={(e) => handleAction(e, "التعديل", s.title)} className="flex-row-reverse gap-3 text-right">
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRenameSubject?.(s.id, s.title); }} className="flex-row-reverse gap-3 text-right">
                           <Pencil className="size-4 text-indigo-400" /> إعادة تسمية
                         </DropdownMenuItem>
                         <DropdownMenuSeparator className="bg-white/5" />
-                        <DropdownMenuItem onClick={(e) => handleAction(e, "الحذف", s.title)} className="flex-row-reverse gap-3 text-right text-red-400 focus:text-red-400">
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDeleteSubject?.(s.id); }} className="flex-row-reverse gap-3 text-right text-red-400 focus:text-red-400">
                           <Trash2 className="size-4" /> حذف المجلد
                         </DropdownMenuItem>
                       </>
@@ -145,10 +154,8 @@ export function DriveLayoutView({
     );
   }
 
-  // عرض الدروس والأصول داخل قطاع محدد
   return (
     <div className="space-y-8 animate-in slide-in-from-left-4 duration-500 text-right">
-      {/* Breadcrumbs */}
       <nav className="flex items-center gap-2 text-xs font-bold flex-row-reverse">
         <button onClick={() => onSelectSubject(null)} className="text-muted-foreground hover:text-white transition-colors">الرئيسية</button>
         <ChevronRight className="size-3 text-muted-foreground rotate-180" />
@@ -178,11 +185,11 @@ export function DriveLayoutView({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="bg-slate-900 border-white/10 text-white">
-                    <DropdownMenuItem onClick={(e) => handleAction(e, "المشاركة", col.title)} className="flex-row-reverse gap-3 text-right">
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toast({ title: "بروتوكول المشاركة", description: "جاري توليد رابط الوحدة..." }); }} className="flex-row-reverse gap-3 text-right">
                       <Share2 className="size-4 text-indigo-400" /> مشاركة الرابط
                     </DropdownMenuItem>
                     {isAdmin && (
-                      <DropdownMenuItem onClick={(e) => handleAction(e, "الحذف", col.title)} className="flex-row-reverse gap-3 text-right text-red-400">
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDeleteCollection?.(selectedSubject.id, col.id); }} className="flex-row-reverse gap-3 text-right text-red-400 focus:text-red-400">
                         <Trash2 className="size-4" /> حذف الوحدة
                       </DropdownMenuItem>
                     )}
@@ -224,11 +231,11 @@ export function DriveLayoutView({
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); if(item.url) window.open(item.url, '_blank'); }} className="flex-row-reverse gap-3 text-right">
                           <ExternalLink className="size-4 text-indigo-400" /> فتح في نافذة جديدة
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => handleAction(e, "المشاركة", item.title)} className="flex-row-reverse gap-3 text-right">
+                        <DropdownMenuItem onClick={(e) => { if(item.url) handleCopyLink(e, item.url); }} className="flex-row-reverse gap-3 text-right">
                           <Share2 className="size-4 text-indigo-400" /> نسخ الرابط
                         </DropdownMenuItem>
                         {isAdmin && (
-                          <DropdownMenuItem onClick={(e) => handleAction(e, "الحذف", item.title)} className="flex-row-reverse gap-3 text-right text-red-400">
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDeleteItem?.(selectedSubject.id, col.id, item.id); }} className="flex-row-reverse gap-3 text-right text-red-400 focus:text-red-400">
                             <Trash2 className="size-4" /> حذف الملف
                           </DropdownMenuItem>
                         )}
@@ -256,20 +263,6 @@ export function DriveLayoutView({
 
 function Plus(props: any) {
   return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M5 12h14" />
-      <path d="M12 5v14" />
-    </svg>
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
   );
 }

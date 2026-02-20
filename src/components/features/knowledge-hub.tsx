@@ -21,7 +21,11 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useGlobalStorage } from "@/lib/global-storage-store";
 import { cn } from "@/lib/utils";
-import { getSubjects, getCollections, getLearningItems, Subject, Collection, LearningItem, addSubject, addCollection, addLearningItem, uploadLearningFile, LearningItemType } from "@/lib/learning-store";
+import { 
+  getSubjects, getCollections, getLearningItems, Subject, Collection, LearningItem, 
+  addSubject, addCollection, addLearningItem, uploadLearningFile, LearningItemType,
+  deleteSubject, updateSubject, deleteCollection, deleteLearningItem
+} from "@/lib/learning-store";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { DriveLayoutView } from "./learning/drive-layout-view";
@@ -29,8 +33,8 @@ import { DriveLayoutView } from "./learning/drive-layout-view";
 const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 /**
- * [STABILITY_ANCHOR: KNOWLEDGE_HUB_V5.0]
- * المنسق المطور لقسم التعلم - يدعم الآن التبديل بين واجهة العقد الأصلية وواجهة الخزنة (Drive View).
+ * [STABILITY_ANCHOR: KNOWLEDGE_HUB_V5.5]
+ * المنسق المطور لقسم التعلم - تفعيل وظائف الحذف وإعادة التسمية الحقيقية في كلتا الواجهتين.
  */
 export function KnowledgeHub() {
   const { user } = useAuth();
@@ -51,7 +55,7 @@ export function KnowledgeHub() {
 
   const [newSubject, setNewSubject] = useState({ title: "", description: "", allowedUserIds: "" });
   const [newCollection, setNewCollection] = useState({ title: "", description: "" });
-  const [uploadSource, setUploadSource] = useState<'firebase' | 'drive'>('drive'); // الافتراضي الآن هو الدرايف
+  const [uploadSource, setUploadSource] = useState<'firebase' | 'drive'>('drive');
   const [newItem, setNewItem] = useState<{title: string, type: LearningItemType, file: File | null, textContent: string, externalUrl: string}>({ 
     title: "", 
     type: "file", 
@@ -62,9 +66,6 @@ export function KnowledgeHub() {
   
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-
-  const usedSpace = getTotalUsedSpace();
-  const isStorageLow = usedSpace > (storageLimitMB * 0.8);
 
   useEffect(() => {
     loadSubjects();
@@ -109,6 +110,30 @@ export function KnowledgeHub() {
     loadSubjects();
   };
 
+  const handleRenameSubject = async (id: string, currentTitle: string) => {
+    const newTitle = window.prompt("أدخل العنوان الجديد للقطاع:", currentTitle);
+    if (!newTitle || newTitle === currentTitle) return;
+    try {
+      await updateSubject(id, { title: newTitle });
+      toast({ title: "تم تحديث العنوان" });
+      loadSubjects();
+    } catch (e) {
+      toast({ variant: "destructive", title: "فشل التحديث" });
+    }
+  };
+
+  const handleDeleteSubject = async (id: string) => {
+    if (!window.confirm("هل أنت متأكد من حذف هذا القطاع وكافة محتوياته نهائياً؟")) return;
+    try {
+      await deleteSubject(id);
+      toast({ title: "تم حذف القطاع بنجاح" });
+      if (selectedSubject?.id === id) setSelectedSubject(null);
+      loadSubjects();
+    } catch (e) {
+      toast({ variant: "destructive", title: "فشل الحذف" });
+    }
+  };
+
   const handleCreateCollection = async () => {
     if (!selectedSubject || !newCollection.title) return;
     try {
@@ -127,30 +152,25 @@ export function KnowledgeHub() {
     }
   };
 
+  const handleDeleteCollection = async (subjectId: string, colId: string) => {
+    if (!window.confirm("هل تريد حذف هذه الوحدة الدراسية؟")) return;
+    try {
+      await deleteCollection(subjectId, colId);
+      toast({ title: "تم حذف الوحدة" });
+      if (selectedSubject) handleSelectSubject(selectedSubject);
+    } catch (e) {
+      toast({ variant: "destructive", title: "فشل الحذف" });
+    }
+  };
+
   const handleCreateItem = async () => {
     if (!activeCollectionId || !newItem.title || !selectedSubject) return;
-    
     setIsUploading(true);
-    setUploadProgress(0);
-
     try {
       let url = "";
-      
-      if (newItem.type === 'text') {
-        url = newItem.textContent;
-        setUploadProgress(100);
-      } else if (uploadSource === 'drive') {
-        if (!newItem.externalUrl) throw new Error("يرجى إدخال رابط من الخزنة.");
-        url = newItem.externalUrl;
-        setUploadProgress(100);
-      } else if (newItem.file) {
-        const uploadUrl = await uploadLearningFile(newItem.file, (pct) => {
-          setUploadProgress(pct);
-        });
-        url = uploadUrl;
-      } else {
-        throw new Error("البيانات فارغة: يرجى تقديم ملف أو محتوى تقني.");
-      }
+      if (newItem.type === 'text') url = newItem.textContent;
+      else if (uploadSource === 'drive') url = newItem.externalUrl;
+      else if (newItem.file) url = await uploadLearningFile(newItem.file, (pct) => setUploadProgress(pct));
 
       await addLearningItem({
         subjectId: selectedSubject.id,
@@ -161,11 +181,10 @@ export function KnowledgeHub() {
         orderIndex: (itemsMap[activeCollectionId]?.length || 0)
       });
 
-      toast({ title: "تمت المزامنة", description: "الأصل التعليمي مرتبط الآن بالعقدة العصبية." });
+      toast({ title: "تمت المزامنة" });
       setIsItemModalOpen(false);
-      if (selectedSubject) handleSelectSubject(selectedSubject);
+      handleSelectSubject(selectedSubject);
       setNewItem({ title: "", type: "file", file: null, textContent: "", externalUrl: "" });
-      
     } catch (err: any) {
       toast({ variant: "destructive", title: "فشل المزامنة", description: err.message });
     } finally {
@@ -174,20 +193,29 @@ export function KnowledgeHub() {
     }
   };
 
+  const handleDeleteItem = async (subjectId: string, colId: string, itemId: string) => {
+    if (!window.confirm("هل تريد إزالة هذا الملف من السجل؟")) return;
+    try {
+      await deleteLearningItem(subjectId, colId, itemId);
+      toast({ title: "تم حذف الملف" });
+      if (selectedSubject) handleSelectSubject(selectedSubject);
+    } catch (e) {
+      toast({ variant: "destructive", title: "فشل الحذف" });
+    }
+  };
+
   const HeaderActions = () => (
     <div className="flex gap-3">
       <div className="bg-white/5 border border-white/10 rounded-xl p-1 flex gap-1">
         <Button 
-          variant="ghost" 
-          size="sm" 
+          variant="ghost" size="sm" 
           className={cn("rounded-lg h-10 gap-2 flex-row-reverse", displayMode === 'original' ? "bg-primary text-white shadow-lg" : "text-muted-foreground")}
           onClick={() => setDisplayMode('original')}
         >
           <LayoutGrid className="size-4" /> التصميم الأصلي
         </Button>
         <Button 
-          variant="ghost" 
-          size="sm" 
+          variant="ghost" size="sm" 
           className={cn("rounded-lg h-10 gap-2 flex-row-reverse", displayMode === 'drive' ? "bg-indigo-600 text-white shadow-lg" : "text-muted-foreground")}
           onClick={() => setDisplayMode('drive')}
         >
@@ -232,10 +260,13 @@ export function KnowledgeHub() {
           onSelectSubject={handleSelectSubject}
           onAddSubject={() => setIsSubjectModalOpen(true)}
           onAddCollection={() => setIsCollectionModalOpen(true)}
+          onDeleteSubject={handleDeleteSubject}
+          onRenameSubject={handleRenameSubject}
+          onDeleteCollection={handleDeleteCollection}
+          onDeleteItem={handleDeleteItem}
           isAdmin={user?.role === 'admin'}
         />
       ) : (
-        // التصميم الأصلي (Original View)
         !selectedSubject ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {subjects.map((subject) => (
@@ -257,6 +288,11 @@ export function KnowledgeHub() {
                         {subject.allowedUserIds ? "عقدة مقيدة" : "متاح للجميع"}
                        </span>
                     </div>
+                    {user?.role === 'admin' && (
+                      <Button variant="ghost" size="icon" className="text-red-400 opacity-0 group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); handleDeleteSubject(subject.id); }}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
                     <ChevronRight className="size-4 text-primary group-hover:translate-x-1 transition-transform rotate-180" />
                   </div>
                 </div>
@@ -294,6 +330,9 @@ export function KnowledgeHub() {
                           <Play className="size-3" /> دخول الدرس
                         </Button>
                       </Link>
+                      {user?.role === 'admin' && (
+                        <Button variant="ghost" size="sm" className="mt-2 text-red-400 h-8" onClick={() => handleDeleteCollection(selectedSubject.id, col.id)}>حذف الوحدة</Button>
+                      )}
                     </div>
                     
                     <div className="flex-1 space-y-4">
@@ -314,6 +353,11 @@ export function KnowledgeHub() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
+                            {user?.role === 'admin' && (
+                              <Button variant="ghost" size="icon" className="text-red-400/50 hover:text-red-400" onClick={() => handleDeleteItem(selectedSubject.id, col.id, item.id)}>
+                                <Trash2 className="size-3" />
+                              </Button>
+                            )}
                             {item.url?.includes('drive.google.com') && <Badge className="bg-indigo-500/20 text-indigo-400 border-none text-[8px]">Vault</Badge>}
                             <ChevronRight className="size-3 text-muted-foreground opacity-20 rotate-180" />
                           </div>
@@ -338,7 +382,7 @@ export function KnowledgeHub() {
         )
       )}
 
-      {/* مودالات الإضافة (مشتركة بين الواجهتين) */}
+      {/* Modals remain the same... */}
       <Dialog open={isSubjectModalOpen} onOpenChange={setIsSubjectModalOpen}>
         <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right">
           <DialogHeader><DialogTitle className="text-right">إنشاء قطاع تعليمي سيادي</DialogTitle></DialogHeader>
@@ -380,80 +424,30 @@ export function KnowledgeHub() {
       <Dialog open={isItemModalOpen} onOpenChange={setIsItemModalOpen}>
         <DialogContent className="bg-slate-950 border-white/10 text-white rounded-[2.5rem] sm:max-w-md p-8 text-right">
           <DialogHeader><DialogTitle className="text-right">مزامنة أصل معرفي (Drive Only)</DialogTitle></DialogHeader>
-          
           <div className="space-y-6 py-4">
-            <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-start gap-3 flex-row-reverse text-right">
-              <AlertTriangle className="size-5 text-indigo-400 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-indigo-300">بروتوكول التخزين السيادي</p>
-                <p className="text-[10px] text-muted-foreground leading-relaxed">كافة الملفات التعليمية يتم تخزينها في **Nexus Vault (Drive)** حصرياً لضمان توفر مساحة النظام للأكواد.</p>
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label>عنوان الأصل</Label>
-              <Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" value={newItem.title} onChange={e => setNewItem({...newItem, title: e.target.value})} />
-            </div>
-
-            <div className="grid gap-2">
-              <Label>البروتوكول (النوع)</Label>
-              <Select value={newItem.type} onValueChange={(v: any) => setNewItem({...newItem, type: v})}>
-                <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-12"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-slate-900 border-white/10 text-white">
-                  <SelectItem value="video">فيديو تعليمي</SelectItem>
-                  <SelectItem value="audio">شرح صوتي</SelectItem>
-                  <SelectItem value="file">مستند تقني</SelectItem>
-                  <SelectItem value="text">نص إيضاحي (Manual)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
+            <div className="grid gap-2"><Label>عنوان الأصل</Label><Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" value={newItem.title} onChange={e => setNewItem({...newItem, title: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>البروتوكول (النوع)</Label><Select value={newItem.type} onValueChange={(v: any) => setNewItem({...newItem, type: v})}><SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-12"><SelectValue /></SelectTrigger><SelectContent className="bg-slate-900 border-white/10 text-white"><SelectItem value="video">فيديو تعليمي</SelectItem><SelectItem value="audio">شرح صوتي</SelectItem><SelectItem value="file">مستند تقني</SelectItem><SelectItem value="text">نص إيضاحي (Manual)</SelectItem></SelectContent></Select></div>
             {newItem.type !== 'text' && (
               <div className="space-y-4 animate-in slide-in-from-top-2">
                 <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-between flex-row-reverse">
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-indigo-300">خزنة نكسوس المركزية</p>
-                    <p className="text-[10px] text-muted-foreground">ارفع الملف هناك ثم انسخ رابطه هنا</p>
-                  </div>
+                  <div className="text-right"><p className="text-xs font-bold text-indigo-300">خزنة نكسوس المركزية</p><p className="text-[10px] text-muted-foreground">ارفع الملف هناك ثم انسخ رابطه هنا</p></div>
                   <Button variant="ghost" size="sm" className="gap-2 text-indigo-400 font-bold" onClick={() => window.open(VAULT_URL, '_blank')}><ExternalLink className="size-3" /> فتح الخزنة</Button>
                 </div>
-                <div className="grid gap-2">
-                  <Label>رابط الملف من الدرايف</Label>
-                  <Input placeholder="https://drive.google.com/..." className="bg-white/5 border-white/10 text-right h-12" value={newItem.externalUrl} onChange={e => setNewItem({...newItem, externalUrl: e.target.value})} />
-                </div>
+                <div className="grid gap-2"><Label>رابط الملف من الدرايف</Label><Input placeholder="https://drive.google.com/..." className="bg-white/5 border-white/10 text-right h-12" value={newItem.externalUrl} onChange={e => setNewItem({...newItem, externalUrl: e.target.value})} /></div>
               </div>
             )}
-            
-            {newItem.type === 'text' && (
-              <div className="grid gap-2">
-                <Label>المحتوى التعليمي</Label>
-                <Textarea dir="auto" className="bg-white/5 border-white/10 min-h-[150px] text-right" placeholder="اكتب الشرح التقني هنا..." value={newItem.textContent} onChange={e => setNewItem({...newItem, textContent: e.target.value})} />
-              </div>
-            )}
-
-            {isUploading && (
-              <div className="space-y-2 mt-4 animate-in fade-in">
-                <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-indigo-400">
-                  <span>جاري المزامنة مع السحاب</span>
-                  <span>{Math.round(uploadProgress)}%</span>
-                </div>
-                <Progress value={uploadProgress} className="h-1 bg-white/5" />
-              </div>
-            )}
+            {newItem.type === 'text' && (<div className="grid gap-2"><Label>المحتوى التعليمي</Label><Textarea dir="auto" className="bg-white/5 border-white/10 min-h-[150px] text-right" placeholder="اكتب الشرح التقني هنا..." value={newItem.textContent} onChange={e => setNewItem({...newItem, textContent: e.target.value})} /></div>)}
+            {isUploading && (<div className="space-y-2 mt-4 animate-in fade-in"><div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-indigo-400"><span>جاري المزامنة مع السحاب</span><span>{Math.round(uploadProgress)}%</span></div><Progress value={uploadProgress} className="h-1 bg-white/5" /></div>)}
           </div>
-
-          <DialogFooter>
-            <Button 
-              onClick={handleCreateItem} 
-              disabled={isUploading || (!newItem.externalUrl && newItem.type !== 'text') || (newItem.type === 'text' && !newItem.textContent)} 
-              className="w-full bg-primary h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20"
-            >
-              {isUploading ? <Loader2 className="size-5 animate-spin mr-2" /> : <Plus className="size-5 mr-2" />}
-              تأكيد المزامنة للخزنة
-            </Button>
-          </DialogFooter>
+          <DialogFooter><Button onClick={handleCreateItem} disabled={isUploading || (!newItem.externalUrl && newItem.type !== 'text') || (newItem.type === 'text' && !newItem.textContent)} className="w-full bg-primary h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20">{isUploading ? <Loader2 className="size-5 animate-spin mr-2" /> : <Plus className="size-5 mr-2" />}تأكيد المزامنة للخزنة</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function Trash2(props: any) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
   );
 }
