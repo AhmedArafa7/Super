@@ -6,7 +6,7 @@ import {
   FileText, ChevronRight, BookOpen, Play, Trophy, Plus, 
   Upload, Loader2, Globe, CheckCircle2, RefreshCcw, 
   Lock, AlignLeft, Mic, GraduationCap, HardDrive, ExternalLink, AlertTriangle, Link2,
-  LayoutGrid, List as ListIcon, ShieldCheck
+  LayoutGrid, List as ListIcon, ShieldCheck, Info
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,8 +34,8 @@ const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE
 const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g#list";
 
 /**
- * [STABILITY_ANCHOR: KNOWLEDGE_HUB_V6.0]
- * المنسق المطور لقسم التعلم - إضافة وضع "الخزنة الحية" وربط حقيقي ببروتوكولات الدرايف.
+ * [STABILITY_ANCHOR: KNOWLEDGE_HUB_V6.5]
+ * المنسق المطور لقسم التعلم - تم تحصين واجهة المزامنة وتوضيح بروتوكول التخزين الهجين.
  */
 export function KnowledgeHub() {
   const { user } = useAuth();
@@ -55,17 +55,13 @@ export function KnowledgeHub() {
 
   const [newSubject, setNewSubject] = useState({ title: "", description: "", allowedUserIds: "" });
   const [newCollection, setNewCollection] = useState({ title: "", description: "" });
-  const [uploadSource, setUploadSource] = useState<'firebase' | 'drive'>('drive');
-  const [newItem, setNewItem] = useState<{title: string, type: LearningItemType, file: File | null, textContent: string, externalUrl: string}>({ 
+  const [newItem, setNewItem] = useState<{title: string, type: LearningItemType, externalUrl: string}>({ 
     title: "", 
-    type: "file", 
-    file: null,
-    textContent: "",
+    type: "video", 
     externalUrl: ""
   });
   
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     loadSubjects();
@@ -167,29 +163,23 @@ export function KnowledgeHub() {
     if (!activeCollectionId || !newItem.title || !selectedSubject) return;
     setIsUploading(true);
     try {
-      let url = "";
-      if (newItem.type === 'text') url = newItem.textContent;
-      else if (uploadSource === 'drive') url = newItem.externalUrl;
-      else if (newItem.file) url = await uploadLearningFile(newItem.file, (pct) => setUploadProgress(pct));
-
       await addLearningItem({
         subjectId: selectedSubject.id,
         collectionId: activeCollectionId,
         title: newItem.title,
         type: newItem.type,
-        url: url,
+        url: newItem.externalUrl,
         orderIndex: (itemsMap[activeCollectionId]?.length || 0)
       });
 
       toast({ title: "تم تسجيل الأصل" });
       setIsItemModalOpen(false);
       handleSelectSubject(selectedSubject);
-      setNewItem({ title: "", type: "file", file: null, textContent: "", externalUrl: "" });
+      setNewItem({ title: "", type: "video", externalUrl: "" });
     } catch (err: any) {
       toast({ variant: "destructive", title: "فشل التسجيل", description: err.message });
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
     }
   };
 
@@ -212,7 +202,7 @@ export function KnowledgeHub() {
           className={cn("rounded-lg h-10 gap-2 flex-row-reverse", displayMode === 'original' ? "bg-primary text-white shadow-lg" : "text-muted-foreground")}
           onClick={() => setDisplayMode('original')}
         >
-          <LayoutGrid className="size-4" /> الأصلي
+          <LayoutGrid className="size-4" /> التصميم الأصلي
         </Button>
         <Button 
           variant="ghost" size="sm" 
@@ -226,11 +216,11 @@ export function KnowledgeHub() {
           className={cn("rounded-lg h-10 gap-2 flex-row-reverse", displayMode === 'live_vault' ? "bg-amber-600 text-white shadow-lg" : "text-muted-foreground")}
           onClick={() => setDisplayMode('live_vault')}
         >
-          <Globe className="size-4" /> الخزنة الحية
+          <Globe className="size-4" /> الخزنة الحية (فعلي)
         </Button>
       </div>
       <Button variant="ghost" size="icon" onClick={loadSubjects} className="h-12 w-12 rounded-xl border border-white/10 bg-white/5">
-        <RefreshCcw className="size-5" />
+        <RefreshCcw className={cn("size-5", isLoading && "animate-spin")} />
       </Button>
       {user?.role === 'admin' && (
         <Button onClick={() => setIsSubjectModalOpen(true)} className="bg-primary rounded-xl h-12 px-6 shadow-lg shadow-primary/20 font-bold">
@@ -256,17 +246,26 @@ export function KnowledgeHub() {
         <HeaderActions />
       </div>
 
+      {displayMode === 'live_vault' && (
+        <div className="p-6 bg-amber-500/5 border border-amber-500/10 rounded-[2rem] flex items-center justify-between flex-row-reverse shadow-inner mb-8">
+          <div className="flex items-center gap-4 flex-row-reverse text-right">
+            <Info className="size-6 text-amber-400 shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-white">إدارة الملفات الفيزيائية</p>
+              <p className="text-xs text-muted-foreground">استخدم هذه الواجهة لرفع، حذف، أو تنظيم ملفاتك داخل Google Drive مباشرة. التغييرات هنا هي التي "تنفذ" فعلياً في السحاب.</p>
+            </div>
+          </div>
+          <Button variant="outline" className="border-amber-500/20 text-amber-400 hover:bg-amber-500/10 rounded-xl" onClick={() => window.open(VAULT_URL, '_blank')}>فتح في نافذة مستقلة</Button>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex flex-col items-center justify-center h-64 gap-4">
           <Loader2 className="size-12 animate-spin text-primary" />
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest animate-pulse">جاري المزامنة المعرفية...</p>
         </div>
       ) : displayMode === 'live_vault' ? (
-        <div className="h-[70vh] w-full rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl bg-slate-900 relative">
-          <div className="absolute top-4 right-4 z-10 flex items-center gap-3">
-             <Badge className="bg-amber-600/20 text-amber-400 border-amber-600/30 px-4 py-1">Direct Vault Access</Badge>
-             <Button variant="outline" size="sm" onClick={() => window.open(VAULT_URL, '_blank')} className="h-8 rounded-lg bg-black/40 backdrop-blur-md gap-2 border-white/10 text-white"><ExternalLink className="size-3" /> فتح في نافذة جديدة</Button>
-          </div>
+        <div className="h-[75vh] w-full rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl bg-slate-900 relative">
           <iframe 
             src={VAULT_EMBED_URL} 
             className="size-full border-none" 
@@ -409,7 +408,7 @@ export function KnowledgeHub() {
         <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right">
           <DialogHeader>
             <DialogTitle className="text-right">إنشاء قطاع تعليمي سيادي</DialogTitle>
-            <DialogDescription className="text-right text-[10px] text-amber-400/60">ملاحظة: هذا القطاع ينشئ مجلداً في سجل نكسوس فقط، وليس في الدرايف.</DialogDescription>
+            <DialogDescription className="text-right text-[10px] text-amber-400/60">ملاحظة: هذا القطاع ينشئ مجلداً في سجل نكسوس فقط لتنظيم المسار.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid gap-2">
@@ -450,21 +449,18 @@ export function KnowledgeHub() {
         <DialogContent className="bg-slate-950 border-white/10 text-white rounded-[2.5rem] sm:max-w-md p-8 text-right">
           <DialogHeader><DialogTitle className="text-right">مزامنة أصل معرفي (Drive Only)</DialogTitle></DialogHeader>
           <div className="space-y-6 py-4">
-            <div className="grid gap-2"><Label>عنوان الأصل</Label><Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" value={newItem.title} onChange={e => setNewItem({...newItem, title: e.target.value})} /></div>
-            <div className="grid gap-2"><Label>البروتوكول (النوع)</Label><Select value={newItem.type} onValueChange={(v: any) => setNewItem({...newItem, type: v})}><SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-12"><SelectValue /></SelectTrigger><SelectContent className="bg-slate-900 border-white/10 text-white"><SelectItem value="video">فيديو تعليمي</SelectItem><SelectItem value="audio">شرح صوتي</SelectItem><SelectItem value="file">مستند تقني</SelectItem><SelectItem value="text">نص إيضاحي (Manual)</SelectItem></SelectContent></Select></div>
-            {newItem.type !== 'text' && (
-              <div className="space-y-4 animate-in slide-in-from-top-2">
-                <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-between flex-row-reverse">
-                  <div className="text-right"><p className="text-xs font-bold text-indigo-300">بروتوكول التخزين السيادي</p><p className="text-[10px] text-muted-foreground">ارفع الملف في مجلد الدرايف الحقيقي ثم ضع الرابط هنا.</p></div>
-                  <Button variant="ghost" size="sm" className="gap-2 text-indigo-400 font-bold" onClick={() => window.open(VAULT_URL, '_blank')}><ExternalLink className="size-3" /> فتح الدرايف</Button>
-                </div>
-                <div className="grid gap-2"><Label>رابط الملف من الدرايف</Label><Input placeholder="https://drive.google.com/..." className="bg-white/5 border-white/10 text-right h-12" value={newItem.externalUrl} onChange={e => setNewItem({...newItem, externalUrl: e.target.value})} /></div>
+            <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-between flex-row-reverse">
+              <div className="text-right">
+                <p className="text-xs font-bold text-indigo-300">بروتوكول المزامنة الفيزيائية</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">ادخل على "الخزنة الحية" أولاً، ارفع ملفك، ثم انسخ رابطه وضعه هنا.</p>
               </div>
-            )}
-            {newItem.type === 'text' && (<div className="grid gap-2"><Label>المحتوى التعليمي</Label><Textarea dir="auto" className="bg-white/5 border-white/10 min-h-[150px] text-right" placeholder="اكتب الشرح التقني هنا..." value={newItem.textContent} onChange={e => setNewItem({...newItem, textContent: e.target.value})} /></div>)}
-            {isUploading && (<div className="space-y-2 mt-4 animate-in fade-in"><div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-indigo-400"><span>جاري المزامنة مع السجل</span><span>{Math.round(uploadProgress)}%</span></div><Progress value={uploadProgress} className="h-1 bg-white/5" /></div>)}
+              <Button variant="ghost" size="sm" className="gap-2 text-indigo-400 font-bold" onClick={() => setDisplayMode('live_vault')}><Globe className="size-3" /> الذهاب للخزنة</Button>
+            </div>
+            <div className="grid gap-2"><Label>عنوان الأصل</Label><Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" value={newItem.title} onChange={e => setNewItem({...newItem, title: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>النوع</Label><Select value={newItem.type} onValueChange={(v: any) => setNewItem({...newItem, type: v})}><SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-12"><SelectValue /></SelectTrigger><SelectContent className="bg-slate-900 border-white/10 text-white"><SelectItem value="video">فيديو</SelectItem><SelectItem value="audio">شرح صوتي</SelectItem><SelectItem value="file">مستند</SelectItem></SelectContent></Select></div>
+            <div className="grid gap-2"><Label>رابط الملف من الدرايف</Label><Input placeholder="https://drive.google.com/..." className="bg-white/5 border-white/10 text-right h-12" value={newItem.externalUrl} onChange={e => setNewItem({...newItem, externalUrl: e.target.value})} /></div>
           </div>
-          <DialogFooter><Button onClick={handleCreateItem} disabled={isUploading || (!newItem.externalUrl && newItem.type !== 'text') || (newItem.type === 'text' && !newItem.textContent)} className="w-full bg-primary h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20">{isUploading ? <Loader2 className="size-5 animate-spin mr-2" /> : <Plus className="size-5 mr-2" />}تأكيد التسجيل في السجل</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleCreateItem} disabled={isUploading || !newItem.externalUrl} className="w-full bg-primary h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20">{isUploading ? <Loader2 className="size-5 animate-spin mr-2" /> : <Plus className="size-5 mr-2" />}تسجيل الأصل في نكسوس</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

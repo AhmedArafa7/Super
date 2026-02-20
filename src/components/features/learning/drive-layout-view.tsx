@@ -7,7 +7,7 @@ import {
   MoreVertical, ChevronRight, LayoutGrid, 
   List, HardDrive, ArrowLeft, Play,
   ExternalLink, File, ShieldCheck,
-  Pencil, Trash2, Share2, Eye, Info, RefreshCw
+  Pencil, Trash2, Share2, Eye, Info, RefreshCw, Database
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,8 +42,8 @@ interface DriveLayoutViewProps {
 }
 
 /**
- * [STABILITY_ANCHOR: DRIVE_LAYOUT_VIEW_V3.0]
- * واجهة تحاكي Google Drive بدقة مع توضيح بروتوكول المزامنة (Metadata vs FileSystem).
+ * [STABILITY_ANCHOR: DRIVE_LAYOUT_VIEW_V3.5]
+ * واجهة تحاكي Google Drive بدقة مع توضيح بروتوكول المزامنة الهجينة.
  */
 export function DriveLayoutView({ 
   subjects, 
@@ -80,24 +80,26 @@ export function DriveLayoutView({
   if (!selectedSubject) {
     return (
       <div className="space-y-8 animate-in fade-in duration-500 text-right">
-        {/* معلومات المزامنة */}
-        <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl flex items-center justify-between flex-row-reverse shadow-inner">
-          <div className="flex items-center gap-3 flex-row-reverse">
-            <Info className="size-5 text-indigo-400" />
-            <p className="text-[11px] text-indigo-200/70 leading-relaxed text-right">
-              هذه الواجهة هي **سجل تنظيمي** (Metadata) لمجلداتك في الدرايف. التغييرات هنا تؤثر على الترتيب في نكسوس فقط.
-            </p>
+        {/* معلومات المزامنة الهجينة */}
+        <div className="p-6 bg-slate-900/40 border border-white/10 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6 flex-row-reverse text-right shadow-xl">
+          <div className="flex items-center gap-4 flex-row-reverse">
+            <div className="size-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+              <Database className="size-6 text-indigo-400" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white uppercase tracking-widest">Nexus Metadata Engine</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">هذه المجلدات مخزنة في Firestore كطبقة تنظيمية لروابط جوجل درايف الخاصة بك.</p>
+            </div>
           </div>
-          <Button variant="ghost" size="sm" className="text-indigo-400 gap-2 h-8 text-[10px] font-bold" onClick={() => window.open(VAULT_URL, '_blank')}>
-            <ExternalLink className="size-3" /> فتح المجلد الفيزيائي في Drive
-          </Button>
+          <div className="flex gap-3">
+             <Button variant="ghost" className="h-10 rounded-xl text-indigo-400 hover:bg-indigo-500/10 font-bold gap-2" onClick={() => window.open(VAULT_URL, '_blank')}>
+               <ExternalLink className="size-3" /> فتح Drive الحقيقي
+             </Button>
+          </div>
         </div>
 
         <div className="flex items-center justify-between flex-row-reverse mb-6">
-          <div className="text-right">
-            <h3 className="text-sm font-black text-white uppercase tracking-widest">مجلدات القطاعات (Nexus Folders)</h3>
-            <p className="text-[9px] text-muted-foreground mt-1">تتم المزامنة عبر Firestore</p>
-          </div>
+          <h3 className="text-sm font-black text-white uppercase tracking-widest">مجلدات القطاعات (Organization)</h3>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => setViewMode('grid')} className={cn("rounded-xl", viewMode === 'grid' && "bg-white/10 text-white")}><LayoutGrid className="size-4" /></Button>
             <Button variant="ghost" size="icon" onClick={() => setViewMode('list')} className={cn("rounded-xl", viewMode === 'list' && "bg-white/10 text-white")}><List className="size-4" /></Button>
