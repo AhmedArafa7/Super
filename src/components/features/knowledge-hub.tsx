@@ -2,10 +2,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { FileText, ChevronRight, BookOpen, Play, Music, Trophy, Plus, Trash2, Upload, Loader2, Globe, CheckCircle2, RefreshCcw, Lock, AlignLeft, Mic, AlertTriangle, ArrowRight, GraduationCap } from "lucide-react";
+import { 
+  FileText, ChevronRight, BookOpen, Play, Trophy, Plus, 
+  Upload, Loader2, Globe, CheckCircle2, RefreshCcw, 
+  Lock, AlignLeft, Mic, GraduationCap, HardDrive, ExternalLink, AlertTriangle, Link2
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,18 +18,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useGlobalStorage } from "@/lib/global-storage-store";
 import { cn } from "@/lib/utils";
 import { getSubjects, getCollections, getLearningItems, Subject, Collection, LearningItem, addSubject, addCollection, addLearningItem, uploadLearningFile, LearningItemType } from "@/lib/learning-store";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 
+const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
+
 /**
- * [STABILITY_ANCHOR: KNOWLEDGE_HUB_V3.1]
- * المنسق الرئيسي لقسم التعلم - تم إصلاح خطأ استيراد الأيقونات المفقودة.
+ * [STABILITY_ANCHOR: KNOWLEDGE_HUB_V4.0]
+ * المنسق المطور لقسم التعلم - يدعم التخزين الهجين (Firebase + Google Drive).
  */
 export function KnowledgeHub() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { getTotalUsedSpace, storageLimitMB } = useGlobalStorage();
+  
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -39,15 +48,20 @@ export function KnowledgeHub() {
 
   const [newSubject, setNewSubject] = useState({ title: "", description: "", allowedUserIds: "" });
   const [newCollection, setNewCollection] = useState({ title: "", description: "" });
-  const [newItem, setNewItem] = useState<{title: string, type: LearningItemType, file: File | null, textContent: string}>({ 
+  const [uploadSource, setUploadSource] = useState<'firebase' | 'drive'>('firebase');
+  const [newItem, setNewItem] = useState<{title: string, type: LearningItemType, file: File | null, textContent: string, externalUrl: string}>({ 
     title: "", 
     type: "file", 
     file: null,
-    textContent: ""
+    textContent: "",
+    externalUrl: ""
   });
   
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  const usedSpace = getTotalUsedSpace();
+  const isStorageLow = usedSpace > (storageLimitMB * 0.8);
 
   useEffect(() => {
     loadSubjects();
@@ -117,14 +131,14 @@ export function KnowledgeHub() {
       if (newItem.type === 'text') {
         url = newItem.textContent;
         setUploadProgress(100);
+      } else if (uploadSource === 'drive') {
+        if (!newItem.externalUrl) throw new Error("يرجى إدخال رابط من الخزنة.");
+        url = newItem.externalUrl;
+        setUploadProgress(100);
       } else if (newItem.file) {
         const uploadUrl = await uploadLearningFile(newItem.file, (pct) => {
           setUploadProgress(pct);
         });
-
-        if (!uploadUrl) {
-          throw new Error("لم تقبل أي عقدة تخزين هذا المحتوى.");
-        }
         url = uploadUrl;
       } else {
         throw new Error("البيانات فارغة: يرجى تقديم ملف أو محتوى تقني.");
@@ -142,14 +156,10 @@ export function KnowledgeHub() {
       toast({ title: "تمت المزامنة", description: "الأصل التعليمي مرتبط الآن بالعقدة العصبية." });
       setIsItemModalOpen(false);
       if (selectedSubject) handleSelectSubject(selectedSubject);
-      setNewItem({ title: "", type: "file", file: null, textContent: "" });
+      setNewItem({ title: "", type: "file", file: null, textContent: "", externalUrl: "" });
       
     } catch (err: any) {
-      toast({ 
-        variant: "destructive", 
-        title: "فشل المزامنة", 
-        description: err.message 
-      });
+      toast({ variant: "destructive", title: "فشل المزامنة", description: err.message });
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -283,7 +293,10 @@ export function KnowledgeHub() {
                         <p className="text-[8px] text-muted-foreground uppercase font-black">{item.type}</p>
                       </div>
                     </div>
-                    <ArrowRight className="size-3 text-muted-foreground opacity-20 rotate-180" />
+                    <div className="flex items-center gap-2">
+                      {item.url?.includes('drive.google.com') && <Badge className="bg-indigo-500/20 text-indigo-400 border-none text-[8px]">Vault</Badge>}
+                      <ChevronRight className="size-3 text-muted-foreground opacity-20 rotate-180" />
+                    </div>
                   </div>
                 ))}
                 
@@ -302,7 +315,6 @@ export function KnowledgeHub() {
         ))}
       </main>
 
-      {/* Modals for Admin */}
       <Dialog open={isCollectionModalOpen} onOpenChange={setIsCollectionModalOpen}>
         <DialogContent className="bg-slate-950 border-white/10 text-white rounded-[2.5rem] p-8 text-right">
           <DialogHeader><DialogTitle className="text-right">إضافة وحدة دراسية جديدة</DialogTitle></DialogHeader>
@@ -325,11 +337,23 @@ export function KnowledgeHub() {
       <Dialog open={isItemModalOpen} onOpenChange={setIsItemModalOpen}>
         <DialogContent className="bg-slate-950 border-white/10 text-white rounded-[2.5rem] sm:max-w-md p-8 text-right">
           <DialogHeader><DialogTitle className="text-right">مزامنة أصل معرفي</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-4">
+          
+          <div className="space-y-6 py-4">
+            {isStorageLow && (
+              <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start gap-3 flex-row-reverse text-right">
+                <AlertTriangle className="size-5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-amber-200">تحذير المساحة المحلية</p>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">لقد استهلكت أكثر من 80% من المساحة (500MB). يفضل استخدام **Nexus Vault (Drive)** للملفات الكبيرة.</p>
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-2">
               <Label>عنوان الأصل</Label>
               <Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" value={newItem.title} onChange={e => setNewItem({...newItem, title: e.target.value})} />
             </div>
+
             <div className="grid gap-2">
               <Label>البروتوكول (النوع)</Label>
               <Select value={newItem.type} onValueChange={(v: any) => setNewItem({...newItem, type: v})}>
@@ -339,33 +363,56 @@ export function KnowledgeHub() {
                   <SelectItem value="audio">شرح صوتي</SelectItem>
                   <SelectItem value="file">مستند تقني</SelectItem>
                   <SelectItem value="text">نص إيضاحي (Manual)</SelectItem>
-                  <SelectItem value="quiz_json">اختبار تقييمي</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {newItem.type !== 'text' && (
+              <div className="space-y-3">
+                <Label className="text-right block">طريقة التخزين</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    variant={uploadSource === 'firebase' ? 'default' : 'outline'} 
+                    onClick={() => setUploadSource('firebase')}
+                    className={cn("rounded-xl h-11 gap-2 text-[10px] uppercase font-bold", uploadSource === 'firebase' ? "bg-primary" : "border-white/5")}
+                  >
+                    <HardDrive className="size-3" /> Direct Upload
+                  </Button>
+                  <Button 
+                    variant={uploadSource === 'drive' ? 'default' : 'outline'} 
+                    onClick={() => setUploadSource('drive')}
+                    className={cn("rounded-xl h-11 gap-2 text-[10px] uppercase font-bold", uploadSource === 'drive' ? "bg-indigo-600" : "border-white/5")}
+                  >
+                    <Link2 className="size-3" /> Nexus Vault
+                  </Button>
+                </div>
+              </div>
+            )}
             
             {newItem.type === 'text' ? (
               <div className="grid gap-2">
                 <Label>المحتوى التعليمي</Label>
-                <Textarea 
-                  dir="auto"
-                  className="bg-white/5 border-white/10 min-h-[150px] text-right" 
-                  placeholder="اكتب الشرح التقني هنا..."
-                  value={newItem.textContent}
-                  onChange={e => setNewItem({...newItem, textContent: e.target.value})}
-                />
+                <Textarea dir="auto" className="bg-white/5 border-white/10 min-h-[150px] text-right" placeholder="اكتب الشرح التقني هنا..." value={newItem.textContent} onChange={e => setNewItem({...newItem, textContent: e.target.value})} />
+              </div>
+            ) : uploadSource === 'drive' ? (
+              <div className="space-y-4 animate-in slide-in-from-top-2">
+                <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-between flex-row-reverse">
+                  <div className="text-right">
+                    <p className="text-xs font-bold text-indigo-300">خزنة نكسوس المركزية</p>
+                    <p className="text-[10px] text-muted-foreground">ارفع الملف هناك ثم انسخ رابطه هنا</p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="gap-2 text-indigo-400 font-bold" onClick={() => window.open(VAULT_URL, '_blank')}><ExternalLink className="size-3" /> فتح الخزنة</Button>
+                </div>
+                <div className="grid gap-2">
+                  <Label>رابط الملف من الدرايف</Label>
+                  <Input placeholder="https://drive.google.com/..." className="bg-white/5 border-white/10 text-right h-12" value={newItem.externalUrl} onChange={e => setNewItem({...newItem, externalUrl: e.target.value})} />
+                </div>
               </div>
             ) : (
-              <div className="grid gap-2">
-                <Label>رفع الملف</Label>
+              <div className="grid gap-2 animate-in slide-in-from-top-2">
+                <Label>رفع الملف للـ Storage</Label>
                 <div className="relative border-2 border-dashed border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center bg-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
-                  <input 
-                    type="file" 
-                    className="absolute inset-0 opacity-0 cursor-pointer" 
-                    onChange={e => setNewItem({...newItem, file: e.target.files?.[0] || null})} 
-                    accept={newItem.type === 'audio' ? 'audio/*' : newItem.type === 'video' ? 'video/*' : '*/*'}
-                    disabled={isUploading}
-                  />
+                  <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setNewItem({...newItem, file: e.target.files?.[0] || null})} accept={newItem.type === 'audio' ? 'audio/*' : newItem.type === 'video' ? 'video/*' : '*/*'} disabled={isUploading} />
                   {newItem.file ? (
                     <div className="flex items-center gap-2 text-primary font-bold">
                       <CheckCircle2 className="size-5" />
@@ -391,10 +438,11 @@ export function KnowledgeHub() {
               </div>
             )}
           </div>
+
           <DialogFooter>
             <Button 
               onClick={handleCreateItem} 
-              disabled={isUploading || (!newItem.file && newItem.type !== 'text') || (newItem.type === 'text' && !newItem.textContent)} 
+              disabled={isUploading || (!newItem.file && uploadSource === 'firebase' && newItem.type !== 'text') || (uploadSource === 'drive' && !newItem.externalUrl) || (newItem.type === 'text' && !newItem.textContent)} 
               className="w-full bg-primary h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20"
             >
               {isUploading ? <Loader2 className="size-5 animate-spin mr-2" /> : <Plus className="size-5 mr-2" />}

@@ -13,32 +13,39 @@ import {
   Menu, 
   X, 
   CheckCircle2, 
-  Circle,
   ArrowLeft,
   AlignLeft,
   Mic,
-  Volume2
+  Volume2,
+  ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { initializeFirebase } from "@/firebase";
-import { collectionGroup, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collectionGroup, query, where, getDocs } from "firebase/firestore";
 import { LearningItem } from "@/lib/learning-store";
 import { QuizPlayer } from "./quiz-player";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
-// Dynamic import for ReactPlayer to avoid hydration issues
 const ReactPlayer = dynamic(() => import("react-player/lazy"), { ssr: false });
 
 interface CoursePlayerProps {
   collectionId: string;
 }
 
+const formatMediaUrl = (url?: string) => {
+  if (!url) return "";
+  if (url.includes('drive.google.com')) {
+    return url.replace('/view', '/preview').replace('/edit', '/preview');
+  }
+  return url;
+};
+
 /**
- * [STABILITY_ANCHOR: COURSE_PLAYER_V2.5]
- * مشغل المسارات التعليمية - تم تحويله ليعمل عبر Collection Group لضمان جلب الأصول دون الحاجة لمعرف الأب.
+ * [STABILITY_ANCHOR: COURSE_PLAYER_V3.0]
+ * مشغل المسارات التعليمية - يدعم التخزين الهجين وروابط Nexus Vault.
  */
 export function CoursePlayer({ collectionId }: CoursePlayerProps) {
   const [items, setItems] = useState<LearningItem[]>([]);
@@ -56,7 +63,6 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
     setIsLoading(true);
     const { firestore } = initializeFirebase();
     try {
-      // استخدام استعلام المجموعة لجلب العناصر التي تنتمي لهذا الدرس في أي قطاع
       const q = query(
         collectionGroup(firestore, 'learning_items'),
         where('collectionId', '==', collectionId)
@@ -68,7 +74,6 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
         ...doc.data()
       })) as LearningItem[];
 
-      // الترتيب اليدوي لضمان التسلسل الصحيح (Client-side sorting)
       const sortedItems = fetchedItems.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
 
       setItems(sortedItems);
@@ -135,9 +140,11 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
     );
   }
 
+  const finalUrl = activeItem?.url ? formatMediaUrl(activeItem.url) : "";
+  const isVaultItem = activeItem?.url?.includes('drive.google.com');
+
   return (
     <div className="flex h-screen bg-slate-950 overflow-hidden text-slate-50 font-sans">
-      {/* Sidebar Overlay for Mobile */}
       {!isSidebarOpen && (
         <Button 
           variant="ghost" 
@@ -149,12 +156,10 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
         </Button>
       )}
 
-      {/* Main Content Area */}
       <div className={cn(
         "flex-1 flex flex-col min-w-0 transition-all duration-300",
         isSidebarOpen ? "md:mr-0" : ""
       )}>
-        {/* Top Header */}
         <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-md shrink-0 flex-row-reverse">
           <div className="flex items-center gap-4 flex-row-reverse">
             <Link href="/dashboard">
@@ -163,9 +168,12 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
               </Button>
             </Link>
             <div className="h-8 w-px bg-white/10" />
-            <h1 dir="auto" className="font-bold text-sm truncate max-w-[200px] md:max-w-md text-right text-white">
-              {activeItem?.title}
-            </h1>
+            <div className="flex items-center gap-2 flex-row-reverse">
+              <h1 dir="auto" className="font-bold text-sm truncate max-w-[200px] md:max-w-md text-right text-white">
+                {activeItem?.title}
+              </h1>
+              {isVaultItem && <Badge className="bg-indigo-500/20 text-indigo-400 border-none text-[8px] h-4">Vault</Badge>}
+            </div>
           </div>
           <Button 
             variant="ghost" 
@@ -178,21 +186,21 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
           </Button>
         </header>
 
-        {/* Player Container */}
         <div className="flex-1 bg-black relative flex flex-col">
           <div className="flex-1 relative overflow-y-auto">
             {activeItem?.type === 'video' ? (
               <div className="absolute inset-0 flex items-center justify-center">
                 {mounted && (
                   <ReactPlayer
-                    url={activeItem.url}
+                    url={finalUrl}
                     width="100%"
                     height="100%"
                     controls
                     playing
                     onEnded={handleNext}
                     config={{
-                      youtube: { playerVars: { showinfo: 0, rel: 0 } }
+                      youtube: { playerVars: { showinfo: 0, rel: 0 } },
+                      file: { attributes: { controlsList: 'nodownload' } }
                     }}
                   />
                 )}
@@ -207,7 +215,7 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
                   <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
                     {mounted && (
                       <audio controls className="w-full">
-                        <source src={activeItem.url} />
+                        <source src={finalUrl} />
                         Your browser does not support the audio element.
                       </audio>
                     )}
@@ -230,20 +238,6 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
                   </div>
                 </ScrollArea>
               </div>
-            ) : activeItem?.type === 'quiz_json' ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/50 p-6">
-                {activeItem.quizData ? (
-                  <QuizPlayer 
-                    data={activeItem.quizData} 
-                    onComplete={(score) => console.log(`Quiz finished with score: ${score}`)}
-                  />
-                ) : (
-                  <div className="p-8 text-center glass border-white/10 rounded-3xl">
-                    <Trophy className="size-12 text-amber-400 mx-auto mb-4" />
-                    <p className="text-muted-foreground">لا توجد بيانات متاحة لهذا الاختبار حالياً.</p>
-                  </div>
-                )}
-              </div>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
                 <div className="max-w-md w-full p-8 glass border-white/10 rounded-[2.5rem] text-center">
@@ -252,11 +246,11 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
                   </div>
                   <h3 dir="auto" className="text-2xl font-bold mb-2 text-white">{activeItem?.title}</h3>
                   <p className="text-muted-foreground mb-8 text-sm leading-relaxed">
-                    هذا الدرس يحتوي على أصل رقمي خارجي (PDF أو وثيقة تقنية).
+                    {isVaultItem ? "هذا المستند مخزن في خزنة Nexus Vault السيادية." : "هذا الدرس يحتوي على أصل رقمي خارجي."}
                   </p>
-                  <a href={activeItem?.url} target="_blank" rel="noopener noreferrer">
-                    <Button className="w-full h-12 bg-indigo-600 rounded-xl font-bold shadow-lg shadow-indigo-600/20">
-                      جلب الأصل الرقمي
+                  <a href={activeItem?.url} target="_blank" rel="noopener noreferrer" className="w-full">
+                    <Button className="w-full h-12 bg-indigo-600 rounded-xl font-bold shadow-lg shadow-indigo-600/20 gap-2">
+                      <ExternalLink className="size-4" /> فتح الأصل الرقمي
                     </Button>
                   </a>
                 </div>
@@ -264,7 +258,6 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
             )}
           </div>
 
-          {/* Bottom Controls */}
           <div className="h-20 border-t border-white/5 bg-slate-900/80 backdrop-blur-xl flex items-center justify-between px-8 shrink-0 flex-row-reverse">
             <Button 
               className="rounded-xl bg-primary h-11 px-6 group font-bold"
@@ -293,21 +286,13 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
         </div>
       </div>
 
-      {/* Playlist Sidebar */}
       <aside className={cn(
         "w-80 border-l border-white/5 bg-slate-900/90 backdrop-blur-2xl flex flex-col transition-all duration-300 absolute inset-y-0 right-0 z-40 md:relative translate-x-full md:translate-x-0",
         isSidebarOpen ? "translate-x-0" : ""
       )}>
         <div className="p-6 border-b border-white/5 flex items-center justify-between flex-row-reverse">
           <h3 className="font-bold text-xs uppercase tracking-[0.2em] text-indigo-400 text-right">قائمة المسار العصبي</h3>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="md:hidden rounded-full h-8 w-8"
-            onClick={() => setIsSidebarOpen(false)}
-          >
-            <X className="size-4" />
-          </Button>
+          <Button variant="ghost" size="icon" className="md:hidden rounded-full h-8 w-8" onClick={() => setIsSidebarOpen(false)}><X className="size-4" /></Button>
         </div>
 
         <ScrollArea className="flex-1">
@@ -351,9 +336,7 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
                       <span className="text-[10px] text-muted-foreground font-mono">
                         {(index + 1).toString().padStart(2, '0')}
                       </span>
-                      <Badge variant="outline" className="text-[8px] h-4 py-0 border-white/10 opacity-60 uppercase">
-                        {item.type === 'quiz_json' ? 'Quiz' : item.type}
-                      </Badge>
+                      {item.url?.includes('drive.google.com') && <Badge className="bg-indigo-500/10 text-indigo-400 border-none text-[7px] py-0 px-1">VAULT</Badge>}
                     </div>
                   </div>
                 </button>
@@ -368,10 +351,7 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
             <span className="text-[10px] font-mono text-primary">{Math.round((activeIndex / items.length) * 100)}%</span>
           </div>
           <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary transition-all duration-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" 
-              style={{ width: `${(activeIndex / items.length) * 100}%` }}
-            />
+            <div className="h-full bg-primary transition-all duration-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" style={{ width: `${(activeIndex / items.length) * 100}%` }} />
           </div>
         </div>
       </aside>
