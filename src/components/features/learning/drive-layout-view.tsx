@@ -1,13 +1,12 @@
 
 'use client';
 
-import React, { useState } from "react";
+import React from "react";
 import { 
   Folder, FileText, Video, Mic, 
-  MoreVertical, ChevronRight, LayoutGrid, 
-  List, HardDrive, ArrowLeft, Play,
-  ExternalLink, File, ShieldCheck,
-  Pencil, Trash2, Share2, Eye, Info, RefreshCw, Database
+  MoreVertical, ChevronRight, HardDrive, 
+  Play, ExternalLink, File, ShieldCheck,
+  Pencil, Trash2, Share2, Eye, Plus, Database
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,8 +23,6 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 
-const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
-
 interface DriveLayoutViewProps {
   subjects: Subject[];
   collections: Collection[];
@@ -34,17 +31,15 @@ interface DriveLayoutViewProps {
   onSelectSubject: (s: Subject | null) => void;
   onAddSubject?: () => void;
   onAddCollection?: () => void;
+  onAddItem?: (colId: string) => void;
   onDeleteSubject?: (id: string) => Promise<void>;
   onRenameSubject?: (id: string, currentTitle: string) => Promise<void>;
   onDeleteCollection?: (subjectId: string, colId: string) => Promise<void>;
   onDeleteItem?: (subjectId: string, colId: string, itemId: string) => Promise<void>;
   isAdmin: boolean;
+  viewMode: 'grid' | 'list';
 }
 
-/**
- * [STABILITY_ANCHOR: DRIVE_LAYOUT_VIEW_V3.5]
- * واجهة تحاكي Google Drive بدقة مع توضيح بروتوكول المزامنة الهجينة.
- */
 export function DriveLayoutView({ 
   subjects, 
   collections, 
@@ -53,14 +48,15 @@ export function DriveLayoutView({
   onSelectSubject,
   onAddSubject,
   onAddCollection,
+  onAddItem,
   onDeleteSubject,
   onRenameSubject,
   onDeleteCollection,
   onDeleteItem,
-  isAdmin
+  isAdmin,
+  viewMode
 }: DriveLayoutViewProps) {
   const { toast } = useToast();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const getFileIcon = (type: string) => {
     switch (type) {
@@ -71,39 +67,11 @@ export function DriveLayoutView({
     }
   };
 
-  const handleCopyLink = (e: React.MouseEvent, url: string) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(url);
-    toast({ title: "تم نسخ الرابط", description: "رابط الأصل جاهز للمشاركة العصبية." });
-  };
-
   if (!selectedSubject) {
     return (
-      <div className="space-y-8 animate-in fade-in duration-500 text-right">
-        {/* معلومات المزامنة الهجينة */}
-        <div className="p-6 bg-slate-900/40 border border-white/10 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6 flex-row-reverse text-right shadow-xl">
-          <div className="flex items-center gap-4 flex-row-reverse">
-            <div className="size-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-              <Database className="size-6 text-indigo-400" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-white uppercase tracking-widest">Nexus Metadata Engine</p>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">هذه المجلدات مخزنة في Firestore كطبقة تنظيمية لروابط جوجل درايف الخاصة بك.</p>
-            </div>
-          </div>
-          <div className="flex gap-3">
-             <Button variant="ghost" className="h-10 rounded-xl text-indigo-400 hover:bg-indigo-500/10 font-bold gap-2" onClick={() => window.open(VAULT_URL, '_blank')}>
-               <ExternalLink className="size-3" /> فتح Drive الحقيقي
-             </Button>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between flex-row-reverse mb-6">
-          <h3 className="text-sm font-black text-white uppercase tracking-widest">مجلدات القطاعات (Organization)</h3>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => setViewMode('grid')} className={cn("rounded-xl", viewMode === 'grid' && "bg-white/10 text-white")}><LayoutGrid className="size-4" /></Button>
-            <Button variant="ghost" size="icon" onClick={() => setViewMode('list')} className={cn("rounded-xl", viewMode === 'list' && "bg-white/10 text-white")}><List className="size-4" /></Button>
-          </div>
+      <div className="space-y-6 animate-in fade-in duration-500 text-right">
+        <div className="flex items-center justify-between flex-row-reverse mb-4">
+          <h3 className="text-sm font-black text-white uppercase tracking-widest">المجلدات الرئيسية</h3>
         </div>
 
         <div className={cn(
@@ -127,10 +95,10 @@ export function DriveLayoutView({
               </div>
               <div className="flex-1 min-w-0">
                 <p dir="auto" className="font-bold text-white truncate">{s.title}</p>
-                <p className="text-[10px] text-muted-foreground uppercase mt-0.5">Subject Node</p>
+                <p className="text-[10px] text-muted-foreground uppercase mt-0.5">مجلد رئيسي</p>
               </div>
               
-              <div className="absolute top-2 left-2 sm:static">
+              <div className="absolute top-2 left-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                     <Button variant="ghost" size="icon" className="size-8 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
@@ -139,7 +107,7 @@ export function DriveLayoutView({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="bg-slate-900 border-white/10 text-white min-w-[160px]">
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSelectSubject(s); }} className="flex-row-reverse gap-3 text-right">
-                      <Eye className="size-4 text-indigo-400" /> فتح القطاع
+                      <Eye className="size-4 text-indigo-400" /> فتح
                     </DropdownMenuItem>
                     {isAdmin && (
                       <>
@@ -148,7 +116,7 @@ export function DriveLayoutView({
                         </DropdownMenuItem>
                         <DropdownMenuSeparator className="bg-white/5" />
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDeleteSubject?.(s.id); }} className="flex-row-reverse gap-3 text-right text-red-400 focus:text-red-400">
-                          <Trash2 className="size-4" /> حذف من السجل
+                          <Trash2 className="size-4" /> حذف
                         </DropdownMenuItem>
                       </>
                     )}
@@ -166,7 +134,7 @@ export function DriveLayoutView({
               )}
             >
               <Plus className="size-6 mb-2" />
-              <span className="text-xs font-bold">إضافة قطاع للسجل</span>
+              <span className="text-xs font-bold">إضافة مجلد</span>
             </button>
           )}
         </div>
@@ -178,13 +146,9 @@ export function DriveLayoutView({
     <div className="space-y-8 animate-in slide-in-from-left-4 duration-500 text-right">
       <nav className="flex items-center justify-between flex-row-reverse">
         <div className="flex items-center gap-2 text-xs font-bold flex-row-reverse">
-          <button onClick={() => onSelectSubject(null)} className="text-muted-foreground hover:text-white transition-colors">الرئيسية</button>
+          <button onClick={() => onSelectSubject(null)} className="text-muted-foreground hover:text-white transition-colors">المكتبة</button>
           <ChevronRight className="size-3 text-muted-foreground rotate-180" />
           <span className="text-primary truncate max-w-[200px]">{selectedSubject.title}</span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full">
-           <RefreshCw className="size-2 text-green-400 animate-spin" />
-           <span className="text-[8px] font-black uppercase text-green-400">Nexus Metadata Sync Active</span>
         </div>
       </nav>
 
@@ -211,12 +175,12 @@ export function DriveLayoutView({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="bg-slate-900 border-white/10 text-white">
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toast({ title: "بروتوكول المشاركة", description: "جاري توليد رابط الوحدة..." }); }} className="flex-row-reverse gap-3 text-right">
-                      <Share2 className="size-4 text-indigo-400" /> مشاركة الرابط
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); toast({ title: "تم نسخ الرابط" }); }} className="flex-row-reverse gap-3 text-right">
+                      <Share2 className="size-4 text-indigo-400" /> مشاركة
                     </DropdownMenuItem>
                     {isAdmin && (
                       <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDeleteCollection?.(selectedSubject.id, col.id); }} className="flex-row-reverse gap-3 text-right text-red-400 focus:text-red-400">
-                        <Trash2 className="size-4" /> حذف من السجل
+                        <Trash2 className="size-4" /> حذف المجلد
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
@@ -258,14 +222,11 @@ export function DriveLayoutView({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="bg-slate-900 border-white/10 text-white">
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); if(item.url) window.open(item.url, '_blank'); }} className="flex-row-reverse gap-3 text-right">
-                          <ExternalLink className="size-4 text-indigo-400" /> فتح المصدر الأصلي
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => { if(item.url) handleCopyLink(e, item.url); }} className="flex-row-reverse gap-3 text-right">
-                          <Share2 className="size-4 text-indigo-400" /> نسخ الرابط
+                          <ExternalLink className="size-4 text-indigo-400" /> فتح المصدر
                         </DropdownMenuItem>
                         {isAdmin && (
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDeleteItem?.(selectedSubject.id, col.id, item.id); }} className="flex-row-reverse gap-3 text-right text-red-400 focus:text-red-400">
-                            <Trash2 className="size-4" /> إزالة من السجل
+                            <Trash2 className="size-4" /> إزالة
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>
@@ -275,23 +236,22 @@ export function DriveLayoutView({
               ))}
               {isAdmin && (
                 <button 
-                  onClick={(e) => { e.stopPropagation(); onAddCollection?.(); }}
+                  onClick={(e) => { e.stopPropagation(); onAddItem?.(col.id); }}
                   className="border-2 border-dashed border-white/5 rounded-xl p-4 flex items-center justify-center gap-3 text-muted-foreground hover:border-primary/20 hover:bg-white/5 transition-all"
                 >
                   <Plus className="size-4" />
-                  <span className="text-[10px] font-bold">تسجيل أصل جديد</span>
+                  <span className="text-[10px] font-bold">ربط ملف جديد</span>
                 </button>
               )}
             </div>
           </div>
         ))}
+        {isAdmin && (
+          <Button variant="outline" className="w-full border-dashed border-2 h-16 rounded-[1.5rem] text-muted-foreground hover:bg-white/5" onClick={onAddCollection}>
+            <Plus className="size-5 ml-2" /> إضافة مجلد دروس جديد
+          </Button>
+        )}
       </div>
     </div>
-  );
-}
-
-function Plus(props: any) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
   );
 }
