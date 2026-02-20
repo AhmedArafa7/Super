@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { initializeFirebase } from "@/firebase";
-import { collectionGroup, query, where, getDocs } from "firebase/firestore";
+import { collection, query, orderBy, getDocs } from "firebase/firestore";
 import { LearningItem } from "@/lib/learning-store";
 import { QuizPlayer } from "./quiz-player";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,7 @@ const ReactPlayer = dynamic(() => import("react-player/lazy"), { ssr: false });
 
 interface CoursePlayerProps {
   collectionId: string;
+  subjectId?: string | null;
 }
 
 const formatMediaUrl = (url?: string) => {
@@ -44,10 +45,10 @@ const formatMediaUrl = (url?: string) => {
 };
 
 /**
- * [STABILITY_ANCHOR: COURSE_PLAYER_V3.0]
- * مشغل المسارات التعليمية - يدعم التخزين الهجين وروابط Nexus Vault.
+ * [STABILITY_ANCHOR: COURSE_PLAYER_V3.1]
+ * مشغل المسارات التعليمية - تم إصلاح أخطاء الفهرسة عبر استخدام المسارات المباشرة.
  */
-export function CoursePlayer({ collectionId }: CoursePlayerProps) {
+export function CoursePlayer({ collectionId, subjectId }: CoursePlayerProps) {
   const [items, setItems] = useState<LearningItem[]>([]);
   const [activeItem, setActiveItem] = useState<LearningItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,17 +57,19 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
 
   useEffect(() => {
     setMounted(true);
-    fetchCollectionItems();
-  }, [collectionId]);
+    if (subjectId) {
+      fetchCollectionItems();
+    }
+  }, [collectionId, subjectId]);
 
   const fetchCollectionItems = async () => {
+    if (!subjectId) return;
     setIsLoading(true);
     const { firestore } = initializeFirebase();
     try {
-      const q = query(
-        collectionGroup(firestore, 'learning_items'),
-        where('collectionId', '==', collectionId)
-      );
+      // استخدام مسار مباشر لتجنب الحاجة لفهارس Collection Group
+      const itemsRef = collection(firestore, 'subjects', subjectId, 'collections', collectionId, 'learning_items');
+      const q = query(itemsRef, orderBy('orderIndex', 'asc'));
 
       const snapshot = await getDocs(q);
       const fetchedItems = snapshot.docs.map(doc => ({
@@ -74,11 +77,9 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
         ...doc.data()
       })) as LearningItem[];
 
-      const sortedItems = fetchedItems.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-
-      setItems(sortedItems);
-      if (sortedItems.length > 0) {
-        setActiveItem(sortedItems[0]);
+      setItems(fetchedItems);
+      if (fetchedItems.length > 0) {
+        setActiveItem(fetchedItems[0]);
       }
     } catch (err) {
       console.error("Neural Fetch Failure:", err);
@@ -119,7 +120,7 @@ export function CoursePlayer({ collectionId }: CoursePlayerProps) {
       <div className="flex h-screen bg-slate-950 items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="size-12 animate-spin text-primary" />
-          <p className="text-muted-foreground animate-pulse font-bold uppercase tracking-widest text-xs">جاري مزامنة المحتوى التعليمي...</p>
+          <p className="text-muted-foreground animate-pulse font-bold uppercase tracking-widest text-xs">جاري استدعاء العقد التعليمية...</p>
         </div>
       </div>
     );

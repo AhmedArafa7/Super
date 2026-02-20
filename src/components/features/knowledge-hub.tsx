@@ -27,8 +27,8 @@ import Link from "next/link";
 const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 /**
- * [STABILITY_ANCHOR: KNOWLEDGE_HUB_V4.0]
- * المنسق المطور لقسم التعلم - يدعم التخزين الهجين (Firebase + Google Drive).
+ * [STABILITY_ANCHOR: KNOWLEDGE_HUB_V4.1]
+ * المنسق المطور لقسم التعلم - تم تحسين الروابط لتجنب أخطاء الفهرسة.
  */
 export function KnowledgeHub() {
   const { user } = useAuth();
@@ -269,7 +269,7 @@ export function KnowledgeHub() {
               <div className="w-full md:w-48 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-l border-white/5 pb-6 md:pb-0 md:pl-8">
                 <span className="text-6xl font-black text-white/10">{(idx + 1).toString().padStart(2, '0')}</span>
                 <p dir="auto" className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mt-2">{col.title}</p>
-                <Link href={`/learn/${col.id}`} className="mt-6 w-full">
+                <Link href={`/learn/${col.id}?subjectId=${selectedSubject.id}`} className="mt-6 w-full">
                   <Button className="w-full bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold gap-2 flex-row-reverse">
                     <Play className="size-3" /> دخول الدرس
                   </Button>

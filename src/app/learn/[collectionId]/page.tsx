@@ -5,6 +5,7 @@ import React, { use } from "react";
 import { CoursePlayer } from "@/components/features/learning/course-player";
 import { useAuth } from "@/components/auth/auth-provider";
 import { LoginView } from "@/components/auth/login-view";
+import { useSearchParams } from "next/navigation";
 
 interface LearnPageProps {
   params: Promise<{ collectionId: string }>;
@@ -13,6 +14,8 @@ interface LearnPageProps {
 export default function LearnPage({ params }: LearnPageProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const { collectionId } = use(params);
+  const searchParams = useSearchParams();
+  const subjectId = searchParams.get('subjectId');
 
   if (isLoading) {
     return (
@@ -28,7 +31,7 @@ export default function LearnPage({ params }: LearnPageProps) {
 
   return (
     <div className="h-screen bg-black overflow-hidden">
-      <CoursePlayer collectionId={collectionId} />
+      <CoursePlayer collectionId={collectionId} subjectId={subjectId} />
     </div>
   );
 }
