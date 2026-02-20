@@ -3,8 +3,8 @@
 
 import React from "react";
 import { 
-  Activity, Database, Cloud, HardDrive, Zap, 
-  AlertTriangle, ShieldCheck, TrendingUp, Info, Clock, Calendar, Gauge
+  Activity, Database, Cloud, Zap, 
+  ExternalLink, Info, Clock, Calendar, Gauge
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -14,10 +14,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 
 /**
- * [STABILITY_ANCHOR: QUOTA_MONITOR_FINAL_V1.5]
- * مرصد الموارد السيادي المطور - يعرض كافة ليميتات النظام مع توضيح الدورة الزمنية.
+ * [STABILITY_ANCHOR: QUOTA_MONITOR_FINAL_V1.6]
+ * مرصد الموارد السيادي المطور - يدعم الآن الروابط المباشرة للوحات التحكم الأصلية.
  */
 export function QuotaMonitor({ data }: { data: any }) {
+  const projectId = "studio-3522991053-84d29"; // معرف المشروع الخاص بك
+
   // حساب الإحصائيات الحقيقية من البيانات الممرة
   const totalUsers = data?.users?.length || 0;
   const totalMessages = data?.messages?.length || 0;
@@ -29,9 +31,10 @@ export function QuotaMonitor({ data }: { data: any }) {
       title: "محركات الذكاء الاصطناعي (AI Engines)",
       period: "الدورة: في الدقيقة (RPM)",
       icon: Zap,
+      consoleUrl: "https://aistudio.google.com/app/plan_usage",
       items: [
         { label: "Google Gemini 1.5 Flash", used: 2, limit: 15, unit: "Req/Min", desc: "سرعة معالجة النبضات العصبية الأساسية", color: "text-blue-400" },
-        { label: "Groq Llama 3.3 70B", used: 1, limit: 30, unit: "Req/Min", desc: "محرك الاستجابة الفائقة", color: "text-orange-400" },
+        { label: "Groq Llama 3.3 70B", used: 1, limit: 30, unit: "Req/Min", desc: "محرك الاستجابة الفائقة عبر Groq Console", color: "text-orange-400", extraLink: "https://console.groq.com/usage" },
         { label: "Imagen 4.0 (Daily)", used: 5, limit: 100, unit: "Images/Day", desc: "توليد الوسائط البصرية", color: "text-indigo-400", isDaily: true }
       ]
     },
@@ -39,6 +42,7 @@ export function QuotaMonitor({ data }: { data: any }) {
       title: "قاعدة البيانات (Firestore Ops)",
       period: "الدورة: يومي (Daily Reset)",
       icon: Database,
+      consoleUrl: `https://console.firebase.google.com/project/${projectId}/firestore/usage`,
       items: [
         { label: "عمليات القراءة (Reads)", used: totalMessages * 5 + totalUsers, limit: 50000, unit: "Ops/Day", desc: "جلب البيانات من السجل العالمي", color: "text-emerald-400" },
         { label: "عمليات الكتابة (Writes)", used: totalTxs + totalMessages, limit: 20000, unit: "Ops/Day", desc: "تسجيل المعاملات والرسائل الجديدة", color: "text-amber-400" },
@@ -49,10 +53,11 @@ export function QuotaMonitor({ data }: { data: any }) {
       title: "التخزين والسحاب (Cloud Nodes)",
       period: "الدورة: كلي / شهري",
       icon: Cloud,
+      consoleUrl: `https://console.firebase.google.com/project/${projectId}/storage/usage`,
       items: [
         { label: "Firebase Storage", used: 120, limit: 5120, unit: "MB (Total)", desc: "المساحة الكلية للصور والملفات الصغيرة", color: "text-cyan-400", isTotal: true },
-        { label: "Nexus Vault (Drive)", used: 2.4, limit: 15, unit: "GB (Total)", desc: "خزنة الفيديوهات والأصول الضخمة", color: "text-indigo-400", isTotal: true },
-        { label: "Vercel Bandwidth", used: 15, limit: 100, unit: "GB (Monthly)", desc: "معدل نقل البيانات الشهري للموقع", color: "text-white", isMonthly: true }
+        { label: "Nexus Vault (Drive)", used: 2.4, limit: 15, unit: "GB (Total)", desc: "خزنة الفيديوهات والأصول الضخمة", color: "text-indigo-400", isTotal: true, extraLink: "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g" },
+        { label: "Vercel Bandwidth", used: 15, limit: 100, unit: "GB (Monthly)", desc: "معدل نقل البيانات الشهري للموقع", color: "text-white", isMonthly: true, extraLink: "https://vercel.com/dashboard" }
       ]
     }
   ];
@@ -77,7 +82,14 @@ export function QuotaMonitor({ data }: { data: any }) {
           <Card key={gIdx} className="glass border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col">
             <div className="p-6 border-b border-white/5 bg-white/5 flex items-center justify-between flex-row-reverse">
               <div className="text-right">
-                <h3 className="text-sm font-black text-white uppercase">{group.title}</h3>
+                <div className="flex items-center gap-2 justify-end">
+                  <h3 className="text-sm font-black text-white uppercase">{group.title}</h3>
+                  {group.consoleUrl && (
+                    <a href={group.consoleUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 transition-colors">
+                      <ExternalLink className="size-3" />
+                    </a>
+                  )}
+                </div>
                 <p className="text-[9px] text-muted-foreground font-bold">{group.period}</p>
               </div>
               <group.icon className="size-5 text-primary opacity-50" />
@@ -94,6 +106,11 @@ export function QuotaMonitor({ data }: { data: any }) {
                       <div className="text-right">
                         <div className="flex items-center gap-2 justify-end">
                           <p className={cn("font-bold text-sm", item.color)}>{item.label}</p>
+                          {item.extraLink && (
+                            <a href={item.extraLink} target="_blank" rel="noopener noreferrer" className="opacity-0 group-hover/item:opacity-100 transition-opacity">
+                              <ExternalLink className="size-2 text-muted-foreground" />
+                            </a>
+                          )}
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger><Info className="size-3 text-muted-foreground opacity-40" /></TooltipTrigger>
@@ -141,14 +158,14 @@ export function QuotaMonitor({ data }: { data: any }) {
         <div className="text-right space-y-1">
           <h4 className="text-lg font-bold text-amber-400 flex items-center gap-2 justify-end">
             بروتوكول إدارة التكاليف
-            <AlertTriangle className="size-5" />
+            <Activity className="size-5" />
           </h4>
           <p className="text-sm text-slate-400 max-w-2xl leading-relaxed">
-            يتم تحديث هذه البيانات عبر نبضات دورية كل 60 ثانية. في حال وصول أي مورد يومي إلى 90%، سيقوم النظام تلقائياً بتقليل جودة البث وتعطيل تحسين الأوامر (Silent Optimization) للحفاظ على استمرارية العقدة حتى موعد إعادة التعيين القادم.
+            يتم تحديث هذه البيانات عبر نبضات دورية كل 60 ثانية. الروابط العلوية تنقلك للوحات التحكم الأصلية لمزودي الخدمة (Firebase/Google/Groq) للتحقق من الاستهلاك الرسمي.
           </p>
         </div>
         <Button className="bg-amber-600 hover:bg-amber-500 rounded-xl px-10 h-14 font-black shadow-lg shadow-amber-600/20 active:scale-95 transition-all">
-          تفعيل وضع توفير النخاع
+          تحميل تقرير الموارد الشامل
         </Button>
       </div>
     </div>
