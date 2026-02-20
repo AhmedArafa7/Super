@@ -2,18 +2,21 @@
 'use client';
 
 import { initializeFirebase } from '@/firebase';
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc, deleteDoc, where } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 export type LearningItemType = 'video' | 'audio' | 'file' | 'quiz_json' | 'text';
+export type ApprovalStatus = 'approved' | 'pending';
 
 export interface LearningItem {
   id: string;
   collectionId: string;
+  subjectId: string;
   title: string;
   type: LearningItemType;
   url?: string;
-  quizData?: any;
+  status: ApprovalStatus;
+  authorId: string;
   orderIndex: number;
   createdAt?: string;
 }
@@ -22,6 +25,8 @@ export interface Collection {
   id: string;
   title: string;
   description?: string;
+  status: ApprovalStatus;
+  authorId: string;
   orderIndex: number;
 }
 
@@ -29,11 +34,16 @@ export interface Subject {
   id: string;
   title: string;
   description: string;
+  status: ApprovalStatus;
+  authorId: string;
   allowedUserIds: string[] | null;
 }
 
+// مفتاح API لجوجل درايف (يجب إضافته في .env)
+const DRIVE_API_KEY = process.env.NEXT_PUBLIC_DRIVE_API_KEY || "";
+
 /**
- * جلب المواد التعليمية مع دعم صلاحيات الأدمن لرؤية كل شيء.
+ * جلب المواد التعليمية مع مراعاة حالة الموافقة.
  */
 export const getSubjects = async (userId?: string, isAdmin = false): Promise<Subject[]> => {
   const { firestore } = initializeFirebase();
@@ -43,7 +53,12 @@ export const getSubjects = async (userId?: string, isAdmin = false): Promise<Sub
     
     if (isAdmin) return subjects;
 
+    // المستخدم العادي يرى المعتمد فقط أو ما يخصه إذا كان ينتظر المراجعة
     return subjects.filter(s => {
+      const isApproved = s.status === 'approved';
+      const isMine = s.authorId === userId;
+      if (!isApproved && !isMine) return false;
+      
       if (!s.allowedUserIds || s.allowedUserIds.length === 0) return true;
       return userId && s.allowedUserIds.includes(userId);
     });
@@ -53,10 +68,18 @@ export const getSubjects = async (userId?: string, isAdmin = false): Promise<Sub
   }
 };
 
-export const addSubject = async (subject: Omit<Subject, 'id'>) => {
+export const addSubject = async (subject: Omit<Subject, 'id' | 'status'>, isAdmin = false) => {
   const { firestore } = initializeFirebase();
-  const docRef = await addDoc(collection(firestore, 'subjects'), subject);
+  const docRef = await addDoc(collection(firestore, 'subjects'), {
+    ...subject,
+    status: isAdmin ? 'approved' : 'pending'
+  });
   return docRef.id;
+};
+
+export const approveSubject = async (id: string) => {
+  const { firestore } = initializeFirebase();
+  await updateDoc(doc(firestore, 'subjects', id), { status: 'approved' });
 };
 
 export const updateSubject = async (id: string, updates: Partial<Subject>) => {
@@ -69,24 +92,35 @@ export const deleteSubject = async (id: string) => {
   await deleteDoc(doc(firestore, 'subjects', id));
 };
 
-export const getCollections = async (subjectId: string): Promise<Collection[]> => {
+export const getCollections = async (subjectId: string, userId?: string, isAdmin = false): Promise<Collection[]> => {
   const { firestore } = initializeFirebase();
   try {
     const colRef = collection(firestore, 'subjects', subjectId, 'collections');
     const q = query(colRef, orderBy('orderIndex', 'asc'));
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as Collection));
+    const cols = snap.docs.map(d => ({ id: d.id, ...d.data() } as Collection));
+    
+    if (isAdmin) return cols;
+    return cols.filter(c => c.status === 'approved' || c.authorId === userId);
   } catch (e) {
     console.error("Fetch Collections Error:", e);
     return [];
   }
 };
 
-export const addCollection = async (data: { subjectId: string, title: string, description?: string, orderIndex: number }) => {
+export const addCollection = async (data: { subjectId: string, title: string, authorId: string, description?: string, orderIndex: number }, isAdmin = false) => {
   const { firestore } = initializeFirebase();
   const { subjectId, ...rest } = data;
   const colRef = collection(firestore, 'subjects', subjectId, 'collections');
-  await addDoc(colRef, rest);
+  await addDoc(colRef, {
+    ...rest,
+    status: isAdmin ? 'approved' : 'pending'
+  });
+};
+
+export const approveCollection = async (subjectId: string, collectionId: string) => {
+  const { firestore } = initializeFirebase();
+  await updateDoc(doc(firestore, 'subjects', subjectId, 'collections', collectionId), { status: 'approved' });
 };
 
 export const deleteCollection = async (subjectId: string, collectionId: string) => {
@@ -94,27 +128,37 @@ export const deleteCollection = async (subjectId: string, collectionId: string) 
   await deleteDoc(doc(firestore, 'subjects', subjectId, 'collections', collectionId));
 };
 
-export const getLearningItems = async (subjectId: string, collectionId: string): Promise<LearningItem[]> => {
+export const getLearningItems = async (subjectId: string, collectionId: string, userId?: string, isAdmin = false): Promise<LearningItem[]> => {
   const { firestore } = initializeFirebase();
   try {
     const itemsRef = collection(firestore, 'subjects', subjectId, 'collections', collectionId, 'learning_items');
     const q = query(itemsRef, orderBy('orderIndex', 'asc'));
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data(), collectionId } as LearningItem));
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data(), collectionId, subjectId } as LearningItem));
+    
+    if (isAdmin) return items;
+    return items.filter(i => i.status === 'approved' || i.authorId === userId);
   } catch (e) {
     console.error("Fetch Learning Items Error:", e);
     return [];
   }
 };
 
-export const addLearningItem = async (data: { subjectId: string, collectionId: string, title: string, type: LearningItemType, url: string, orderIndex: number }) => {
+export const addLearningItem = async (data: { subjectId: string, collectionId: string, title: string, type: LearningItemType, url: string, authorId: string, orderIndex: number }, isAdmin = false) => {
   const { firestore } = initializeFirebase();
   const { subjectId, collectionId, ...rest } = data;
   const itemsRef = collection(firestore, 'subjects', subjectId, 'collections', collectionId, 'learning_items');
+  
   await addDoc(itemsRef, {
     ...rest,
+    status: isAdmin ? 'approved' : 'pending',
     createdAt: new Date().toISOString()
   });
+};
+
+export const approveLearningItem = async (subjectId: string, collectionId: string, itemId: string) => {
+  const { firestore } = initializeFirebase();
+  await updateDoc(doc(firestore, 'subjects', subjectId, 'collections', collectionId, 'learning_items', itemId), { status: 'approved' });
 };
 
 export const deleteLearningItem = async (subjectId: string, collectionId: string, itemId: string) => {
