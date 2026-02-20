@@ -7,7 +7,7 @@ import {
   MoreVertical, ChevronRight, LayoutGrid, 
   List, HardDrive, ArrowLeft, Play,
   ExternalLink, File, ShieldCheck,
-  Pencil, Trash2, Share2, Eye
+  Pencil, Trash2, Share2, Eye, Info, RefreshCw
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,8 @@ import { Subject, Collection, LearningItem } from "@/lib/learning-store";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+
+const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 interface DriveLayoutViewProps {
   subjects: Subject[];
@@ -40,8 +42,8 @@ interface DriveLayoutViewProps {
 }
 
 /**
- * [STABILITY_ANCHOR: DRIVE_LAYOUT_VIEW_V2.0]
- * واجهة تحاكي Google Drive بدقة مع تفعيل وظائف الحذف والتسمية الحقيقية.
+ * [STABILITY_ANCHOR: DRIVE_LAYOUT_VIEW_V3.0]
+ * واجهة تحاكي Google Drive بدقة مع توضيح بروتوكول المزامنة (Metadata vs FileSystem).
  */
 export function DriveLayoutView({ 
   subjects, 
@@ -78,8 +80,24 @@ export function DriveLayoutView({
   if (!selectedSubject) {
     return (
       <div className="space-y-8 animate-in fade-in duration-500 text-right">
+        {/* معلومات المزامنة */}
+        <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl flex items-center justify-between flex-row-reverse shadow-inner">
+          <div className="flex items-center gap-3 flex-row-reverse">
+            <Info className="size-5 text-indigo-400" />
+            <p className="text-[11px] text-indigo-200/70 leading-relaxed text-right">
+              هذه الواجهة هي **سجل تنظيمي** (Metadata) لمجلداتك في الدرايف. التغييرات هنا تؤثر على الترتيب في نكسوس فقط.
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" className="text-indigo-400 gap-2 h-8 text-[10px] font-bold" onClick={() => window.open(VAULT_URL, '_blank')}>
+            <ExternalLink className="size-3" /> فتح المجلد الفيزيائي في Drive
+          </Button>
+        </div>
+
         <div className="flex items-center justify-between flex-row-reverse mb-6">
-          <h3 className="text-sm font-black text-indigo-400 uppercase tracking-widest">المجلدات التعليمية (القطاعات)</h3>
+          <div className="text-right">
+            <h3 className="text-sm font-black text-white uppercase tracking-widest">مجلدات القطاعات (Nexus Folders)</h3>
+            <p className="text-[9px] text-muted-foreground mt-1">تتم المزامنة عبر Firestore</p>
+          </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => setViewMode('grid')} className={cn("rounded-xl", viewMode === 'grid' && "bg-white/10 text-white")}><LayoutGrid className="size-4" /></Button>
             <Button variant="ghost" size="icon" onClick={() => setViewMode('list')} className={cn("rounded-xl", viewMode === 'list' && "bg-white/10 text-white")}><List className="size-4" /></Button>
@@ -107,7 +125,7 @@ export function DriveLayoutView({
               </div>
               <div className="flex-1 min-w-0">
                 <p dir="auto" className="font-bold text-white truncate">{s.title}</p>
-                <p className="text-[10px] text-muted-foreground uppercase mt-0.5">Subject Folder</p>
+                <p className="text-[10px] text-muted-foreground uppercase mt-0.5">Subject Node</p>
               </div>
               
               <div className="absolute top-2 left-2 sm:static">
@@ -128,7 +146,7 @@ export function DriveLayoutView({
                         </DropdownMenuItem>
                         <DropdownMenuSeparator className="bg-white/5" />
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDeleteSubject?.(s.id); }} className="flex-row-reverse gap-3 text-right text-red-400 focus:text-red-400">
-                          <Trash2 className="size-4" /> حذف المجلد
+                          <Trash2 className="size-4" /> حذف من السجل
                         </DropdownMenuItem>
                       </>
                     )}
@@ -146,7 +164,7 @@ export function DriveLayoutView({
               )}
             >
               <Plus className="size-6 mb-2" />
-              <span className="text-xs font-bold">إنشاء قطاع جديد</span>
+              <span className="text-xs font-bold">إضافة قطاع للسجل</span>
             </button>
           )}
         </div>
@@ -156,10 +174,16 @@ export function DriveLayoutView({
 
   return (
     <div className="space-y-8 animate-in slide-in-from-left-4 duration-500 text-right">
-      <nav className="flex items-center gap-2 text-xs font-bold flex-row-reverse">
-        <button onClick={() => onSelectSubject(null)} className="text-muted-foreground hover:text-white transition-colors">الرئيسية</button>
-        <ChevronRight className="size-3 text-muted-foreground rotate-180" />
-        <span className="text-primary truncate max-w-[200px]">{selectedSubject.title}</span>
+      <nav className="flex items-center justify-between flex-row-reverse">
+        <div className="flex items-center gap-2 text-xs font-bold flex-row-reverse">
+          <button onClick={() => onSelectSubject(null)} className="text-muted-foreground hover:text-white transition-colors">الرئيسية</button>
+          <ChevronRight className="size-3 text-muted-foreground rotate-180" />
+          <span className="text-primary truncate max-w-[200px]">{selectedSubject.title}</span>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full">
+           <RefreshCw className="size-2 text-green-400 animate-spin" />
+           <span className="text-[8px] font-black uppercase text-green-400">Nexus Metadata Sync Active</span>
+        </div>
       </nav>
 
       <div className="space-y-10">
@@ -190,7 +214,7 @@ export function DriveLayoutView({
                     </DropdownMenuItem>
                     {isAdmin && (
                       <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDeleteCollection?.(selectedSubject.id, col.id); }} className="flex-row-reverse gap-3 text-right text-red-400 focus:text-red-400">
-                        <Trash2 className="size-4" /> حذف الوحدة
+                        <Trash2 className="size-4" /> حذف من السجل
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
@@ -198,7 +222,10 @@ export function DriveLayoutView({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={cn(
+              "grid gap-4",
+              viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
+            )}>
               {itemsMap[col.id]?.map((item) => (
                 <Card 
                   key={item.id} 
@@ -229,14 +256,14 @@ export function DriveLayoutView({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="bg-slate-900 border-white/10 text-white">
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); if(item.url) window.open(item.url, '_blank'); }} className="flex-row-reverse gap-3 text-right">
-                          <ExternalLink className="size-4 text-indigo-400" /> فتح في نافذة جديدة
+                          <ExternalLink className="size-4 text-indigo-400" /> فتح المصدر الأصلي
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={(e) => { if(item.url) handleCopyLink(e, item.url); }} className="flex-row-reverse gap-3 text-right">
                           <Share2 className="size-4 text-indigo-400" /> نسخ الرابط
                         </DropdownMenuItem>
                         {isAdmin && (
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDeleteItem?.(selectedSubject.id, col.id, item.id); }} className="flex-row-reverse gap-3 text-right text-red-400 focus:text-red-400">
-                            <Trash2 className="size-4" /> حذف الملف
+                            <Trash2 className="size-4" /> إزالة من السجل
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>
@@ -250,7 +277,7 @@ export function DriveLayoutView({
                   className="border-2 border-dashed border-white/5 rounded-xl p-4 flex items-center justify-center gap-3 text-muted-foreground hover:border-primary/20 hover:bg-white/5 transition-all"
                 >
                   <Plus className="size-4" />
-                  <span className="text-[10px] font-bold">إلحاق ملف</span>
+                  <span className="text-[10px] font-bold">تسجيل أصل جديد</span>
                 </button>
               )}
             </div>
