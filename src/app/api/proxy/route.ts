@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * [STABILITY_ANCHOR: NEURAL_HIJACK_NUCLEAR_V27.0]
- * محرك الاستحواذ النووي: إعادة كتابة المحتوى من جهة السيرفر واختطاف شامل للملاحة والأحداث.
+ * [STABILITY_ANCHOR: NEURAL_HIJACK_NUCLEAR_V28.0]
+ * محرك الاستحواذ النووي المطور: يدعم سجل أخطاء البروكسي وإعادة الكتابة الذكية.
  */
 
 async function handleProxyRequest(request: NextRequest) {
@@ -19,12 +19,14 @@ async function handleProxyRequest(request: NextRequest) {
     let body: any = undefined;
     
     if (method !== 'GET' && method !== 'HEAD') {
-      const contentType = request.headers.get('content-type');
-      if (contentType?.includes('application/json')) {
-        body = JSON.stringify(await request.json());
-      } else {
-        body = await request.text();
-      }
+      try {
+        const contentType = request.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          body = JSON.stringify(await request.json());
+        } else {
+          body = await request.text();
+        }
+      } catch (e) { body = undefined; }
     }
 
     const headers = new Headers();
@@ -37,148 +39,120 @@ async function handleProxyRequest(request: NextRequest) {
 
     headers.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); 
+    const response = await fetch(targetUrl, {
+      method,
+      headers,
+      body,
+      redirect: 'follow'
+    });
 
-    try {
-      const response = await fetch(targetUrl, {
-        method,
-        headers,
-        body,
-        redirect: 'follow',
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
+    const contentType = response.headers.get('content-type') || '';
+    
+    if (contentType.includes('text/html')) {
+      let html = await response.text();
+      const targetOrigin = new URL(targetUrl).origin;
+      const proxyPath = request.nextUrl.pathname;
 
-      const contentType = response.headers.get('content-type') || '';
-      
-      if (contentType.includes('text/html')) {
-        let html = await response.text();
-        const targetOrigin = new URL(targetUrl).origin;
-        const proxyPath = request.nextUrl.pathname;
+      // حقن سكريبت المراقبة والتشخيص (The Spy Client)
+      const spyScript = `
+        <script>
+          (function() {
+            const PROXY_PATH = "${proxyPath}";
+            const TARGET_ORIGIN = "${targetOrigin}";
 
-        // 1. إعادة كتابة الروابط من جهة السيرفر (Server-Side URL Rewriting)
-        // هذا يضمن أن حتى الروابط التي لا يلتقطها الـ JS تمر عبر البروكسي
-        const rewriteUrl = (url: string) => {
-          if (!url || url.startsWith('data:') || url.startsWith('#') || url.startsWith('javascript:')) return url;
-          try {
-            const absolute = new URL(url, targetOrigin).href;
-            return `${proxyPath}?url=${encodeURIComponent(absolute)}`;
-          } catch(e) { return url; }
-        };
+            const getProxyUrl = (url) => {
+              if (!url || typeof url !== 'string' || url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('javascript:') || url.startsWith('#')) return url;
+              try {
+                const absoluteUrl = new URL(url, TARGET_ORIGIN).href;
+                if (absoluteUrl.startsWith(window.location.origin + PROXY_PATH)) return url;
+                return PROXY_PATH + '?url=' + encodeURIComponent(absoluteUrl);
+              } catch(e) { return url; }
+            };
 
-        // حقن بروتوكول الاستحواذ النووي في الـ HTML
-        const neuralScript = `
-          <script>
-            (function() {
-              console.log("🚀 Nexus Nuclear Interceptor V27: ACTIVATED");
-              const proxyPath = "${proxyPath}";
-              const targetOrigin = "${targetOrigin}";
+            const logError = (data) => {
+              fetch('/api/proxy/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...data, sourceUrl: window.location.href, targetOrigin: TARGET_ORIGIN })
+              }).catch(() => {});
+            };
 
-              const getProxyUrl = (url) => {
-                if (!url || typeof url !== 'string' || url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('javascript:') || url.startsWith('#')) return url;
-                try {
-                  const absoluteUrl = new URL(url, targetOrigin).href;
-                  if (absoluteUrl.startsWith(window.location.origin + proxyPath)) return url;
-                  return proxyPath + '?url=' + encodeURIComponent(absoluteUrl);
-                } catch(e) { return url; }
-              };
+            // 📡 اختطاف FETCH مع تسجيل الأخطاء
+            const originalFetch = window.fetch;
+            window.fetch = function(input, init) {
+              let url = typeof input === 'string' ? input : (input.url || input);
+              const proxiedUrl = getProxyUrl(url);
+              console.log("📡 Proxy Fetch:", url);
+              return originalFetch(proxiedUrl, init).catch(err => {
+                logError({ type: 'fetch_failed', failedUrl: url, error: err.message });
+                throw err;
+              });
+            };
 
-              // 📡 اختطاف FETCH & XHR
-              const originalFetch = window.fetch;
-              window.fetch = function(input, init) {
-                let url = typeof input === 'string' ? input : (input.url || input);
-                return originalFetch(getProxyUrl(url), init);
-              };
+            // 📡 اختطاف XHR
+            const originalOpen = XMLHttpRequest.prototype.open;
+            XMLHttpRequest.prototype.open = function(method, url) {
+              const proxiedUrl = getProxyUrl(url);
+              this._targetUrl = url;
+              return originalOpen.apply(this, [method, proxiedUrl, ...Array.from(arguments).slice(2)]);
+            };
 
-              const originalOpen = XMLHttpRequest.prototype.open;
-              XMLHttpRequest.prototype.open = function(method, url) {
-                return originalOpen.apply(this, [method, getProxyUrl(url), ...Array.from(arguments).slice(2)]);
-              };
+            // 📡 اختطاف الملاحة والتاريخ
+            const originalPushState = history.pushState;
+            window.history.pushState = function(state, title, url) {
+              return originalPushState.apply(this, [state, title, getProxyUrl(url)]);
+            };
 
-              // 📡 اختطاف النوافذ المنبثقة (Popups)
-              const originalOpenWin = window.open;
-              window.open = function(url, name, specs) {
-                return originalOpenWin(getProxyUrl(url), name, specs);
-              };
-
-              // 📡 اختطاف التاريخ والملاحة
-              const originalPushState = history.pushState;
-              window.history.pushState = function(state, title, url) {
-                return originalPushState.apply(this, [state, title, getProxyUrl(url)]);
-              };
-
-              // 📡 اختطاف كافة النقرات في مرحلة الـ Capture (لحل مشكلة الأزرار)
-              document.addEventListener('click', function(e) {
-                const target = e.target.closest('a, button, [role="button"]');
-                if (target) {
-                  console.log("📡 Intercepted Click on:", target);
-                  // إذا كان عنصراً يحمل رابطاً صريحاً
-                  if (target.tagName === 'A' && target.href) {
-                    const newUrl = getProxyUrl(target.href);
-                    if (newUrl !== target.href) {
-                      e.preventDefault();
-                      window.location.href = newUrl;
-                    }
-                  }
-                }
-              }, true);
-
-              // 📡 مراقب التغييرات الديناميكية لإصلاح النماذج
-              const observer = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                  mutation.addedNodes.forEach((node) => {
-                    if (node.tagName === 'FORM') {
-                      node.action = getProxyUrl(node.action);
-                    }
-                  });
+            // 📡 اختطاف الروابط الديناميكية (Attribute Observer)
+            const observer = new MutationObserver((mutations) => {
+              mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                  if (node.tagName === 'A') node.href = getProxyUrl(node.href);
+                  if (node.tagName === 'FORM') node.action = getProxyUrl(node.action);
                 });
               });
-              observer.observe(document.body, { childList: true, subtree: true });
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
 
-              // منع محاولات الهروب من الإطار
-              window.onbeforeunload = function() { return null; };
-            })();
-          </script>
-        `;
+            // 📡 اعتراض النقرات الشامل
+            document.addEventListener('click', function(e) {
+              const target = e.target.closest('a, button, [role="button"]');
+              if (target && target.tagName === 'A' && target.href) {
+                const newUrl = getProxyUrl(target.href);
+                if (newUrl !== target.href) {
+                  e.preventDefault();
+                  window.location.href = newUrl;
+                }
+              }
+            }, true);
 
-        // تنظيف الـ HTML وحقن السكريبتات والـ Base
-        html = html.replace('<head>', `<head><base href="${targetOrigin}/">`);
-        html = html.replace('</body>', `${neuralScript}</body>`);
+            console.log("🚀 Nexus Spy Client V28: ACTIVE");
+          })();
+        </script>
+      `;
 
-        const res = new NextResponse(html, {
-          status: response.status,
-          headers: { 
-            'Content-Type': 'text/html',
-            'X-Frame-Options': 'ALLOWALL',
-            'Access-Control-Allow-Origin': '*',
-            'Content-Security-Policy': "default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline';"
-          },
-        });
+      html = html.replace('<head>', `<head><base href="${targetOrigin}/">`);
+      html = html.replace('</body>', `${spyScript}</body>`);
 
-        // مسح كافة رؤوس الأمان التي تسبب Refused to connect
-        const securityHeaders = [
-          'content-security-policy', 'x-frame-options', 'x-content-type-options', 
-          'x-xss-protection', 'permissions-policy', 'cross-origin-opener-policy',
-          'cross-origin-embedder-policy', 'cross-origin-resource-policy'
-        ];
-        
-        securityHeaders.forEach(h => res.headers.delete(h));
-
-        const setCookie = response.headers.get('set-cookie');
-        if (setCookie) res.headers.set('set-cookie', setCookie);
-        
-        return res;
-      }
-
-      return new NextResponse(response.body, {
+      const res = new NextResponse(html, {
         status: response.status,
-        headers: response.headers,
+        headers: { 
+          'Content-Type': 'text/html',
+          'X-Frame-Options': 'ALLOWALL',
+          'Access-Control-Allow-Origin': '*',
+        },
       });
 
-    } catch (fetchErr: any) {
-      return NextResponse.json({ error: 'Neural Link Timeout' }, { status: 504 });
+      const securityHeaders = ['content-security-policy', 'x-frame-options', 'x-content-type-options', 'permissions-policy'];
+      securityHeaders.forEach(h => res.headers.delete(h));
+      
+      return res;
     }
+
+    return new NextResponse(response.body, {
+      status: response.status,
+      headers: response.headers,
+    });
 
   } catch (err: any) {
     return NextResponse.json({ error: 'Neural Gateway Disturbance' }, { status: 502 });
