@@ -70,13 +70,22 @@ async function handleProxyRequest(request: NextRequest) {
                 getItem: (k) => realStore.getItem(prefix + k),
                 setItem: (k, v) => realStore.setItem(prefix + k, v),
                 removeItem: (k) => realStore.removeItem(prefix + k),
-                clear: () => Object.keys(realStore).forEach(k => k.startsWith(prefix) && realStore.removeItem(k)),
-                key: (i) => Object.keys(realStore).filter(k => k.startsWith(prefix))[i]?.replace(prefix, '') || null,
-                get length() { return Object.keys(realStore).filter(k => k.startsWith(prefix)).length; }
+                clear: () => {
+                  Object.keys(realStore).forEach(k => {
+                    if (k.startsWith(prefix)) realStore.removeItem(k);
+                  });
+                },
+                key: (i) => {
+                  const keys = Object.keys(realStore).filter(k => k.startsWith(prefix));
+                  return keys[i] ? keys[i].replace(prefix, '') : null;
+                },
+                get length() {
+                  return Object.keys(realStore).filter(k => k.startsWith(prefix)).length;
+                }
               };
             };
 
-            // حقن المتاجر الافتراضية
+            // حقن المتاجر الافتراضية لحماية بيانات المستخدم وعزل الموقع
             const vLocal = createVirtualStore('localStorage');
             const vSession = createVirtualStore('sessionStorage');
             Object.defineProperty(window, 'localStorage', { get: () => vLocal });
@@ -97,6 +106,7 @@ async function handleProxyRequest(request: NextRequest) {
             // 3. اختطاف مسجل الخدمة (SW Double Virtualization)
             const originalRegister = navigator.serviceWorker.register;
             navigator.serviceWorker.register = function(url, options) {
+              // حظر أي محاولة خارجية لتسجيل SW (مثل جوجل) لمنع كسر البروكسي
               if (url && !url.toString().includes(window.location.origin)) {
                 console.log('🛡️ Nexus Guard: Blocked external SW registration:', url);
                 return Promise.reject(new Error("External SW disabled in Nexus Sandbox"));
@@ -104,7 +114,7 @@ async function handleProxyRequest(request: NextRequest) {
               return originalRegister.apply(navigator.serviceWorker, arguments);
             };
 
-            // 4. تسجيل نكسوس السيادي (Relative Path)
+            // 4. تسجيل نكسوس السيادي (استخدام المسار النسبي لضمان التوافق)
             if ('serviceWorker' in navigator) {
               navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(reg => {
                 console.log('🚀 Nexus Sovereign SW: Registered');
@@ -114,7 +124,7 @@ async function handleProxyRequest(request: NextRequest) {
               }).catch(err => console.error('❌ Sovereign SW Fail:', err));
             }
 
-            // 5. اختطاف الملاحة
+            // 5. اختطاف الملاحة لضمان البقاء داخل نكسوس
             const originalOpen = window.open;
             window.open = function(url, name, specs) {
               if (url && typeof url === 'string' && !url.startsWith(window.location.origin)) {
@@ -126,6 +136,7 @@ async function handleProxyRequest(request: NextRequest) {
         </script>
       `;
 
+      // حقن السكريبت في البداية لضمان السيطرة قبل تحميل أي ملفات JS أخرى
       html = html.replace('<head>', `<head><base href="${targetOrigin}/">${bootScript}`);
 
       const res = new NextResponse(html, {
@@ -137,7 +148,7 @@ async function handleProxyRequest(request: NextRequest) {
         },
       });
 
-      // تنقية الكوكيز السيرفرية
+      // تنقية الكوكيز السيرفرية وتجاوز قيود النطاق
       response.headers.forEach((value, key) => {
         if (key.toLowerCase() === 'set-cookie') {
           const cleanCookie = value

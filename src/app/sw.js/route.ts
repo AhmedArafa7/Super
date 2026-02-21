@@ -12,12 +12,12 @@ export async function GET() {
     const PROXY_PATH = '/api/proxy?url=';
 
     self.addEventListener('install', (event) => {
-      // إجبار الـ SW الجديد على التنشيط فوراً
+      // إجبار الـ SW الجديد على التنشيط فوراً وتجاوز الانتظار التقليدي
       self.skipWaiting();
     });
 
     self.addEventListener('activate', (event) => {
-      // السيطرة على كافة الصفحات المفتوحة فوراً دون انتظار Refresh
+      // السيطرة على كافة الصفحات المفتوحة فوراً دون الحاجة لإعادة تحميل (Refresh)
       event.waitUntil(self.clients.claim());
     });
 
@@ -33,12 +33,12 @@ export async function GET() {
     self.addEventListener('fetch', (event) => {
       const url = new URL(event.request.url);
       
-      // 1. استثناء طلبات نكسوس الداخلية لمنع اللانهائية
+      // 1. استثناء طلبات نكسوس الداخلية لمنع الحلقات اللانهائية
       if (url.origin === self.location.origin && (url.pathname.startsWith('/api/') || url.pathname.startsWith('/sw.js'))) {
         return;
       }
 
-      // 2. بناء الرابط المستهدف المطلق
+      // 2. بناء الرابط المستهدف المطلق (تحويل الروابط النسبية إلى كاملة)
       let absoluteUrl = event.request.url;
       if (url.origin === self.location.origin && targetOrigin) {
         absoluteUrl = targetOrigin + url.pathname + url.search;
@@ -46,7 +46,7 @@ export async function GET() {
 
       const proxyUrl = self.location.origin + PROXY_PATH + encodeURIComponent(absoluteUrl);
       
-      // 3. حقن الكوكيز والبيانات الافتراضية في الطلب
+      // 3. حقن الكوكيز والبيانات الافتراضية في كل طلب يخرج
       const modifiedHeaders = new Headers(event.request.headers);
       if (virtualCookies) {
         modifiedHeaders.set('X-Nexus-Virtual-Cookies', virtualCookies);
