@@ -50,7 +50,7 @@ export const useAgentStore = create<AgentAIState>((set) => ({
       text,
       type,
       timestamp: new Date().toLocaleTimeString()
-    }].slice(-50) // الاحتفاظ بآخر 50 سجل فقط
+    }].slice(-50)
   })),
 
   clearWorkspace: () => set({ files: [], activeFilePath: null, logs: [] }),

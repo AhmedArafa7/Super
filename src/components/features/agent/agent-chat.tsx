@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from "react";
-import { Send, Loader2, Wand2, Terminal as TerminalIcon, Sparkles } from "lucide-react";
+import { Wand2, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAgentStore } from "@/lib/agent-store";
@@ -31,28 +31,28 @@ export function AgentChat() {
 
       if (result.files && result.files.length > 0) {
         setFiles(result.files);
-        addLog(`اكتمل البناء بنجاح. تم توليد ${result.files.length} ملفات.`, 'success');
+        addLog(`اكتمل البناء. تم تحديث ${result.files.length} ملفات.`, 'success');
         result.steps.forEach(step => addLog(step, 'info'));
       }
       
       toast({ title: "تم التحديث عصبياً", description: result.explanation });
     } catch (err) {
       addLog("فشل الوكيل في المزامنة البرمجية.", 'error');
-      toast({ variant: "destructive", title: "خطأ في المعالجة", description: "تعذر الوصول للنخاع المهندس." });
+      toast({ variant: "destructive", title: "خطأ في المعالجة" });
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <div className="p-6 bg-slate-900/40 border-t border-white/5">
+    <div className="p-6 bg-slate-900/40 border-t border-white/5 rounded-b-[2.5rem]">
       <div className="flex gap-4 items-center max-w-4xl mx-auto">
         <div className="relative flex-1">
           <Input 
             value={input} 
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend()}
-            placeholder="أمر المهندس: 'اصنع لي صفحة تسجيل دخول باستخدام Tailwind'..."
+            placeholder="أمر المهندس: 'اصنع لي صفحة تسجيل دخول' أو 'عدل ملف index.js'..."
             className="h-14 bg-white/5 border-white/10 rounded-2xl pr-6 pl-14 text-right text-white shadow-inner focus-visible:ring-primary"
             dir="auto"
             disabled={isProcessing}
