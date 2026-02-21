@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * [STABILITY_ANCHOR: NEURAL_PROXY_V33.0_FINAL]
- * محرك البوابة العصبية السيادي: تطبيق الافتراضية المزدوجة وجرة الكوكيز.
+ * [STABILITY_ANCHOR: NEURAL_PROXY_V34.0_FINAL]
+ * محرك البوابة العصبية السيادي: الافتراضية الشاملة (Cookies + LocalStorage + SessionStorage).
  */
 
 async function handleProxyRequest(request: NextRequest) {
@@ -55,56 +55,70 @@ async function handleProxyRequest(request: NextRequest) {
       const targetOrigin = new URL(targetUrl).origin;
       const nexusOrigin = request.nextUrl.origin;
 
-      // سكريبت الافتراضية المزدوجة وجرة الكوكيز
+      // سكريبت الافتراضية المزدوجة (Universal Isolation)
       const bootScript = `
         <script>
           (function() {
             window.__NEXUS_TARGET_ORIGIN__ = "${targetOrigin}";
             window.__NEXUS_ORIGIN__ = "${nexusOrigin}";
             
-            // 1. اختطاف محرك تسجيل الـ Service Worker (Double Virtualization)
-            const originalRegister = navigator.serviceWorker.register;
-            navigator.serviceWorker.register = function(url, options) {
-              // إذا كان الرابط لا يبدأ بنطاق نكسوس، فهو محاولة من الموقع الأصلي ويجب حظرها
-              if (url && !url.toString().includes(window.__NEXUS_ORIGIN__)) {
-                console.log('🛡️ Nexus Guard: Blocked external SW registration attempt for:', url);
-                return Promise.reject(new Error("External SW registration disabled in Nexus Sandbox"));
-              }
-              return originalRegister.apply(navigator.serviceWorker, arguments);
+            // 1. الافتراضية الشاملة للتخزين (Virtual Storage Jar)
+            const createVirtualStore = (type) => {
+              const prefix = "__nexus_" + btoa(window.__NEXUS_TARGET_ORIGIN__).substring(0, 8) + "_";
+              const realStore = window[type];
+              return {
+                getItem: (k) => realStore.getItem(prefix + k),
+                setItem: (k, v) => realStore.setItem(prefix + k, v),
+                removeItem: (k) => realStore.removeItem(prefix + k),
+                clear: () => Object.keys(realStore).forEach(k => k.startsWith(prefix) && realStore.removeItem(k)),
+                key: (i) => Object.keys(realStore).filter(k => k.startsWith(prefix))[i]?.replace(prefix, '') || null,
+                get length() { return Object.keys(realStore).filter(k => k.startsWith(prefix)).length; }
+              };
             };
 
-            // 2. إدارة الكوكيز الافتراضية (Virtual Cookie Jar)
+            // حقن المتاجر الافتراضية
+            const vLocal = createVirtualStore('localStorage');
+            const vSession = createVirtualStore('sessionStorage');
+            Object.defineProperty(window, 'localStorage', { get: () => vLocal });
+            Object.defineProperty(window, 'sessionStorage', { get: () => vSession });
+
+            // 2. اختطاف الكوكيز الافتراضية
             let virtualCookies = document.cookie;
             Object.defineProperty(document, 'cookie', {
               get: () => virtualCookies,
               set: (val) => {
                 virtualCookies = val;
-                // إبلاغ الـ SW بتحديث الكوكيز
                 if (navigator.serviceWorker.controller) {
                   navigator.serviceWorker.controller.postMessage({ type: 'UPDATE_COOKIES', cookies: val });
                 }
               }
             });
 
-            // 3. تسجيل الـ SW الخاص بنكسوس باستخدام المحرك الأصلي المخفي
+            // 3. اختطاف مسجل الخدمة (SW Double Virtualization)
+            const originalRegister = navigator.serviceWorker.register;
+            navigator.serviceWorker.register = function(url, options) {
+              if (url && !url.toString().includes(window.location.origin)) {
+                console.log('🛡️ Nexus Guard: Blocked external SW registration:', url);
+                return Promise.reject(new Error("External SW disabled in Nexus Sandbox"));
+              }
+              return originalRegister.apply(navigator.serviceWorker, arguments);
+            };
+
+            // 4. تسجيل نكسوس السيادي (Relative Path)
             if ('serviceWorker' in navigator) {
-              originalRegister.call(navigator.serviceWorker, window.__NEXUS_ORIGIN__ + '/sw.js', { scope: '/' }).then(reg => {
-                console.log('🚀 Nexus Sovereign SW: Registered successfully');
-                // تفعيل المزامنة الفورية للـ Origin
+              navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(reg => {
+                console.log('🚀 Nexus Sovereign SW: Registered');
                 if (reg.active) {
-                  reg.active.postMessage({ type: 'SET_TARGET', origin: "${targetOrigin}" });
-                }
-                if (!navigator.serviceWorker.controller) {
-                  window.location.reload(); // إعادة تحميل واحدة لفرض السيطرة
+                  reg.active.postMessage({ type: 'SET_TARGET', origin: window.__NEXUS_TARGET_ORIGIN__ });
                 }
               }).catch(err => console.error('❌ Sovereign SW Fail:', err));
             }
 
-            // 4. اختطاف الملاحة لضمان المسار العصبي
+            // 5. اختطاف الملاحة
             const originalOpen = window.open;
             window.open = function(url, name, specs) {
               if (url && typeof url === 'string' && !url.startsWith(window.location.origin)) {
-                url = window.__NEXUS_ORIGIN__ + '/api/proxy?url=' + encodeURIComponent(new URL(url, "${targetOrigin}").href);
+                url = window.location.origin + '/api/proxy?url=' + encodeURIComponent(new URL(url, window.__NEXUS_TARGET_ORIGIN__).href);
               }
               return originalOpen.call(window, url, name, specs);
             };
@@ -123,7 +137,7 @@ async function handleProxyRequest(request: NextRequest) {
         },
       });
 
-      // تطهير الكوكيز السيادي
+      // تنقية الكوكيز السيرفرية
       response.headers.forEach((value, key) => {
         if (key.toLowerCase() === 'set-cookie') {
           const cleanCookie = value
@@ -145,10 +159,6 @@ async function handleProxyRequest(request: NextRequest) {
     });
     proxyRes.headers.set('Access-Control-Allow-Origin', '*');
     
-    if (targetUrl.includes('.js') || targetUrl.includes('/js/')) {
-      proxyRes.headers.set('Content-Type', 'application/javascript');
-    }
-
     return proxyRes;
 
   } catch (err: any) {

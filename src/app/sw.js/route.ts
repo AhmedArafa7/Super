@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * [STABILITY_ANCHOR: PROXY_SERVICE_WORKER_V3.0_FINAL]
- * خادم الـ Service Worker المطور - التحكم المطلق في الشبكة والكوكيز الافتراضية.
+ * [STABILITY_ANCHOR: PROXY_SERVICE_WORKER_V34.0_FINAL]
+ * خادم الـ Service Worker السيادي: السيطرة اللحظية (skipWaiting) والافتراضية الشاملة للشبكة.
  */
 export async function GET() {
   const swCode = `
@@ -12,10 +12,12 @@ export async function GET() {
     const PROXY_PATH = '/api/proxy?url=';
 
     self.addEventListener('install', (event) => {
+      // إجبار الـ SW الجديد على التنشيط فوراً
       self.skipWaiting();
     });
 
     self.addEventListener('activate', (event) => {
+      // السيطرة على كافة الصفحات المفتوحة فوراً دون انتظار Refresh
       event.waitUntil(self.clients.claim());
     });
 
@@ -31,12 +33,12 @@ export async function GET() {
     self.addEventListener('fetch', (event) => {
       const url = new URL(event.request.url);
       
-      // 1. استثناء طلبات نكسوس الداخلية
+      // 1. استثناء طلبات نكسوس الداخلية لمنع اللانهائية
       if (url.origin === self.location.origin && (url.pathname.startsWith('/api/') || url.pathname.startsWith('/sw.js'))) {
         return;
       }
 
-      // 2. بناء الرابط المستهدف
+      // 2. بناء الرابط المستهدف المطلق
       let absoluteUrl = event.request.url;
       if (url.origin === self.location.origin && targetOrigin) {
         absoluteUrl = targetOrigin + url.pathname + url.search;
@@ -44,7 +46,7 @@ export async function GET() {
 
       const proxyUrl = self.location.origin + PROXY_PATH + encodeURIComponent(absoluteUrl);
       
-      // 3. حقن الكوكيز الافتراضية في الطلب
+      // 3. حقن الكوكيز والبيانات الافتراضية في الطلب
       const modifiedHeaders = new Headers(event.request.headers);
       if (virtualCookies) {
         modifiedHeaders.set('X-Nexus-Virtual-Cookies', virtualCookies);
