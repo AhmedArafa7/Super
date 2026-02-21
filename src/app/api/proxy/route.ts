@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * [STABILITY_ANCHOR: NEURAL_PROXY_V32.0_SOVEREIGN]
- * محرك البوابة العصبية السيادي: تطبيق الافتراضية المزدوجة وتطهير الكوكيز.
+ * [STABILITY_ANCHOR: NEURAL_PROXY_V33.0_FINAL]
+ * محرك البوابة العصبية السيادي: تطبيق الافتراضية المزدوجة وجرة الكوكيز.
  */
 
 async function handleProxyRequest(request: NextRequest) {
@@ -55,7 +55,7 @@ async function handleProxyRequest(request: NextRequest) {
       const targetOrigin = new URL(targetUrl).origin;
       const nexusOrigin = request.nextUrl.origin;
 
-      // سكريبت الافتراضية المزدوجة: اختطاف الـ SW ومنع الموقع الأصلي من تسجيل عامله
+      // سكريبت الافتراضية المزدوجة وجرة الكوكيز
       const bootScript = `
         <script>
           (function() {
@@ -65,21 +65,42 @@ async function handleProxyRequest(request: NextRequest) {
             // 1. اختطاف محرك تسجيل الـ Service Worker (Double Virtualization)
             const originalRegister = navigator.serviceWorker.register;
             navigator.serviceWorker.register = function(url, options) {
-              console.log('🛡️ Nexus Guard: Blocked external SW registration attempt for:', url);
-              return Promise.reject(new Error("External SW registration disabled in Nexus Sandbox"));
+              // إذا كان الرابط لا يبدأ بنطاق نكسوس، فهو محاولة من الموقع الأصلي ويجب حظرها
+              if (url && !url.toString().includes(window.__NEXUS_ORIGIN__)) {
+                console.log('🛡️ Nexus Guard: Blocked external SW registration attempt for:', url);
+                return Promise.reject(new Error("External SW registration disabled in Nexus Sandbox"));
+              }
+              return originalRegister.apply(navigator.serviceWorker, arguments);
             };
 
-            // 2. تسجيل الـ SW الخاص بنكسوس من النطاق الصحيح
+            // 2. إدارة الكوكيز الافتراضية (Virtual Cookie Jar)
+            let virtualCookies = document.cookie;
+            Object.defineProperty(document, 'cookie', {
+              get: () => virtualCookies,
+              set: (val) => {
+                virtualCookies = val;
+                // إبلاغ الـ SW بتحديث الكوكيز
+                if (navigator.serviceWorker.controller) {
+                  navigator.serviceWorker.controller.postMessage({ type: 'UPDATE_COOKIES', cookies: val });
+                }
+              }
+            });
+
+            // 3. تسجيل الـ SW الخاص بنكسوس باستخدام المحرك الأصلي المخفي
             if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.register(window.__NEXUS_ORIGIN__ + '/sw.js', { scope: '/' }).then(reg => {
+              originalRegister.call(navigator.serviceWorker, window.__NEXUS_ORIGIN__ + '/sw.js', { scope: '/' }).then(reg => {
                 console.log('🚀 Nexus Sovereign SW: Registered successfully');
+                // تفعيل المزامنة الفورية للـ Origin
+                if (reg.active) {
+                  reg.active.postMessage({ type: 'SET_TARGET', origin: "${targetOrigin}" });
+                }
                 if (!navigator.serviceWorker.controller) {
-                  window.location.reload();
+                  window.location.reload(); // إعادة تحميل واحدة لفرض السيطرة
                 }
               }).catch(err => console.error('❌ Sovereign SW Fail:', err));
             }
 
-            // 3. اختطاف الـ Fetch و XHR لضمان المسار العصبي
+            // 4. اختطاف الملاحة لضمان المسار العصبي
             const originalOpen = window.open;
             window.open = function(url, name, specs) {
               if (url && typeof url === 'string' && !url.startsWith(window.location.origin)) {
@@ -102,7 +123,7 @@ async function handleProxyRequest(request: NextRequest) {
         },
       });
 
-      // تطهير الكوكيز السيادي: إزالة قيود الـ Domain و SameSite
+      // تطهير الكوكيز السيادي
       response.headers.forEach((value, key) => {
         if (key.toLowerCase() === 'set-cookie') {
           const cleanCookie = value
@@ -113,20 +134,17 @@ async function handleProxyRequest(request: NextRequest) {
         }
       });
 
-      // حذف قيود الحماية
       ['content-security-policy', 'x-frame-options', 'permissions-policy', 'x-content-type-options', 'cross-origin-opener-policy'].forEach(h => res.headers.delete(h));
       
       return res;
     }
 
-    // للموارد الأخرى (JS, CSS, Images)
     const proxyRes = new NextResponse(response.body, {
       status: response.status,
       headers: response.headers,
     });
     proxyRes.headers.set('Access-Control-Allow-Origin', '*');
     
-    // تصحيح MIME type لملفات جوجل
     if (targetUrl.includes('.js') || targetUrl.includes('/js/')) {
       proxyRes.headers.set('Content-Type', 'application/javascript');
     }
