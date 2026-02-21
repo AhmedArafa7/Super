@@ -2,8 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * [STABILITY_ANCHOR: NEURAL_GATEWAY_PROXY_V1.0]
- * محرك البوابة العصبية (Method 1): يقوم بجلب المواقع الخارجية وضغطها لخدمة المستخدمين بإنترنت ضعيف.
+ * [STABILITY_ANCHOR: NEURAL_HEADLESS_STREAM_V2.0]
+ * محرك البوابة العصبية المتطور: يقوم بجلب المواقع وتجريدها من قيود الأمان (Headers Stripping)
+ * لضمان فتح أي موقع داخل نكسوس بغض النظر عن سياسات X-Frame.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -16,33 +17,58 @@ export async function GET(request: NextRequest) {
   try {
     const response = await fetch(targetUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) NexusAI-Neural-Gateway/1.0',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
       },
     });
 
     if (!response.ok) throw new Error('Target Unreachable');
 
     let html = await response.text();
-
-    // بروتوكول الضغط والتنقية:
-    // 1. حذف الإعلانات الثقيلة (Simple Regex)
-    html = html.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, (match) => {
-      if (match.includes('adsbygoogle') || match.includes('analytics')) return '<!-- Optimized by Nexus -->';
-      return match;
-    });
-
-    // 2. معالجة الروابط لتعمل داخل البوابة (Rewrite Links)
-    // ملاحظة: هذه معالجة بسيطة، المواقع المعقدة تحتاج موازن روابط متطور
     const baseUrl = new URL(targetUrl).origin;
-    html = html.replace(/(href|src)="(\/|#)([^"]*)"/g, `$1="${baseUrl}/$3"`);
 
-    return new NextResponse(html, {
+    // 1. بروتوكول تجريد الحماية (Headers Stripping & URL Rewriting)
+    // حقن وسوم Base لضمان تحميل الصور والملفات من المصدر الأصلي
+    const baseTag = `<base href="${baseUrl}/">`;
+    html = html.replace('<head>', `<head>${baseTag}`);
+
+    // 2. حقن "المحرك العصبي" لإجبار الروابط على البقاء داخل البروكسي
+    const neuralScript = `
+      <script>
+        document.addEventListener('click', function(e) {
+          const target = e.target.closest('a');
+          if (target && target.href && !target.href.startsWith('javascript:')) {
+            // منع الخروج من نكسوس وإعادة التوجيه عبر البروكسي
+            if (!target.href.includes(window.location.host)) {
+              e.preventDefault();
+              window.location.href = window.location.pathname + '?url=' + encodeURIComponent(target.href);
+            }
+          }
+        }, true);
+      </script>
+    `;
+    html = html.replace('</body>', `${neuralScript}</body>`);
+
+    // 3. تنظيف الأكواد التي قد تعطل الـ Iframe (Frame Busting scripts)
+    html = html.replace(/if\s*\(window\.top\s*!==\s*window\.self\)/gi, 'if(false)');
+    html = html.replace(/window\.top\.location\s*=/gi, 'window.self.location =');
+
+    // إنشاء الاستجابة مع حذف الـ Headers التي تحظر الـ Iframe
+    const res = new NextResponse(html, {
       headers: {
         'Content-Type': 'text/html',
-        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=59',
-        'X-Neural-Optimized': 'true'
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
+        'X-Neural-Stream': 'active'
       },
     });
+
+    // حذف قيود الحماية من الاستجابة النهائية
+    res.headers.delete('content-security-policy');
+    res.headers.delete('x-frame-options');
+    res.headers.delete('x-content-type-options');
+
+    return res;
   } catch (err) {
     return NextResponse.json({ error: 'Neural Gateway Timeout' }, { status: 504 });
   }

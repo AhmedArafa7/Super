@@ -6,7 +6,7 @@ import {
   Rocket, Globe, Lock, Play, ArrowLeft, 
   Search, LayoutGrid, Cpu, Code2, ShieldCheck, 
   ExternalLink, Info, Zap, Terminal, Laptop, Plus, Loader2,
-  Settings2, Activity, ShieldAlert, X, UserCheck, AlertCircle
+  Settings2, Activity, ShieldAlert, X, UserCheck, AlertCircle, RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +33,10 @@ const FrameworkIcon = ({ framework }: { framework: AppFramework }) => {
   }
 };
 
+/**
+ * [STABILITY_ANCHOR: APP_LAUNCHER_HEADLESS_V2.0]
+ * مشغل التطبيقات المطور: يدعم الآن بروتوكول البث السحابي (Neural Stream) لفتح كافة المواقع.
+ */
 export function AppLauncher() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -43,7 +47,7 @@ export function AppLauncher() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeProject, setActiveProject] = useState<WebProject | null>(null);
   const [search, setSearch] = useState("");
-  const [isOptimizedMode, setIsOptimizedMode] = useState(false); // الوضع المباشر هو الافتراضي لمنع أخطاء تسجيل الدخول
+  const [isHeadlessStream, setIsHeadlessStream] = useState(true); // البث السحابي هو الافتراضي الآن للقوة
 
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -106,7 +110,7 @@ export function AppLauncher() {
   );
 
   if (activeProject) {
-    const finalFrameUrl = isOptimizedMode 
+    const finalFrameUrl = isHeadlessStream 
       ? `/api/proxy?url=${encodeURIComponent(activeProject.url)}`
       : activeProject.url;
 
@@ -118,9 +122,9 @@ export function AppLauncher() {
             <div className="text-right">
               <h2 className="text-sm font-bold text-white">{activeProject.title}</h2>
               <div className="flex items-center gap-2 justify-end">
-                <span className={cn("size-1.5 rounded-full animate-pulse", isOptimizedMode ? "bg-amber-500" : "bg-green-500")} />
+                <span className={cn("size-1.5 rounded-full animate-pulse", isHeadlessStream ? "bg-amber-500" : "bg-green-500")} />
                 <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">
-                  {isOptimizedMode ? 'Neural Optimized Mode (Anonymous)' : 'Direct Session Node (Authenticated)'}
+                  {isHeadlessStream ? 'Neural Stream Node (Headless)' : 'Direct Session Node (Personal)'}
                 </p>
               </div>
             </div>
@@ -130,11 +134,11 @@ export function AppLauncher() {
             <div className="flex flex-col items-end gap-1">
               <div className="flex items-center gap-3 bg-white/5 px-4 py-1.5 rounded-2xl border border-white/10">
                 <div className="text-right">
-                  <Label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block">تحسين السرعة</Label>
-                  <p className="text-[7px] text-amber-500 font-bold uppercase tracking-tighter">مجهول الهوية</p>
+                  <Label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block">بث عصبي شامل</Label>
+                  <p className="text-[7px] text-amber-500 font-bold uppercase tracking-tighter">فتح كافة المواقع</p>
                 </div>
-                <Switch checked={isOptimizedMode} onCheckedChange={setIsOptimizedMode} />
-                <Zap className={cn("size-3", isOptimizedMode ? "text-amber-400 fill-amber-400" : "text-muted-foreground")} />
+                <Switch checked={isHeadlessStream} onCheckedChange={setIsHeadlessStream} />
+                <Zap className={cn("size-3", isHeadlessStream ? "text-amber-400 fill-amber-400" : "text-muted-foreground")} />
               </div>
             </div>
             
@@ -146,29 +150,27 @@ export function AppLauncher() {
           </div>
         </header>
         
-        {isOptimizedMode && (
+        {isHeadlessStream && (
           <div className="bg-amber-600/90 text-white px-6 py-2 flex items-center justify-center gap-3 animate-in slide-in-from-top-full duration-300 z-30">
-            <AlertCircle className="size-4 animate-pulse" />
-            <p className="text-[10px] font-bold uppercase tracking-widest">
-              وضع التحسين نشط: لا تحاول تسجيل الدخول في هذا الوضع. أغلق "تحسين السرعة" لاستخدام حساباتك الشخصية.
+            <RefreshCw className="size-4 animate-spin" />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-center">
+              بروتوكول البث نشط: يتم تجاوز قيود الأمان الآن لتشغيل الموقع بشكل كامل. لا تقم بتسجيل الدخول في هذا الوضع.
             </p>
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-[8px] bg-white/10 hover:bg-white/20 border border-white/20" onClick={() => setIsOptimizedMode(false)}>
-              إغلاق وتحميل حسابي
-            </Button>
           </div>
         )}
 
         <div className="flex-1 relative bg-white">
           <iframe 
+            key={isHeadlessStream ? 'headless' : 'direct'}
             src={finalFrameUrl} 
             className="absolute inset-0 size-full border-none" 
             title={activeProject.title} 
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups" 
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals" 
           />
-          {!isOptimizedMode && (
+          {!isHeadlessStream && (
             <div className="absolute top-4 right-4 pointer-events-none">
               <Badge className="bg-green-600 text-white border-none text-[8px] font-black uppercase py-1 shadow-lg flex items-center gap-1">
-                <UserCheck className="size-2" /> Session Active
+                <UserCheck className="size-2" /> Personal Session Active
               </Badge>
             </div>
           )}
@@ -181,12 +183,12 @@ export function AppLauncher() {
     <div className="p-8 max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700 font-sans">
       <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 flex-row-reverse text-right">
         <div className="space-y-2">
-          <Badge className="bg-primary/20 text-primary border-primary/30 px-4 py-1 uppercase tracking-widest font-bold text-[10px]">Neural Sandbox v2.0</Badge>
+          <Badge className="bg-primary/20 text-primary border-primary/30 px-4 py-1 uppercase tracking-widest font-bold text-[10px]">Neural Stream Protocol v2.0</Badge>
           <h1 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
             منصة التطبيقات
             <Rocket className="text-primary size-10" />
           </h1>
-          <p className="text-muted-foreground text-lg">شغل تطبيقاتك السحابية مباشرة مع إمكانية التبديل بين وضع السرعة ووضع الحسابات الشخصية.</p>
+          <p className="text-muted-foreground text-lg">شغل أي موقع في العالم دون استثناء عبر بروتوكول البث السحابي العابر للقيود.</p>
         </div>
         <Dialog open={isSubmitModalOpen} onOpenChange={setIsSubmitModalOpen}>
           <DialogTrigger asChild>
