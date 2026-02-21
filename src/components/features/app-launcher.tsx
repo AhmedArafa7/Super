@@ -6,7 +6,7 @@ import {
   Rocket, Globe, Lock, Play, ArrowLeft, 
   Search, LayoutGrid, Cpu, Code2, ShieldCheck, 
   ExternalLink, Info, Zap, Terminal, Laptop, Plus, Loader2,
-  Settings2, Activity, ShieldAlert, X, UserCheck
+  Settings2, Activity, ShieldAlert, X, UserCheck, AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,7 +43,7 @@ export function AppLauncher() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeProject, setActiveProject] = useState<WebProject | null>(null);
   const [search, setSearch] = useState("");
-  const [isOptimizedMode, setIsOptimizedMode] = useState(false); // تم جعل الوضع المباشر هو الافتراضي للحفاظ على الجلسات
+  const [isOptimizedMode, setIsOptimizedMode] = useState(false); // الوضع المباشر هو الافتراضي لمنع أخطاء تسجيل الدخول
 
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -129,13 +129,13 @@ export function AppLauncher() {
           <div className="flex items-center gap-6">
             <div className="flex flex-col items-end gap-1">
               <div className="flex items-center gap-3 bg-white/5 px-4 py-1.5 rounded-2xl border border-white/10">
-                <Label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">تحسين السرعة</Label>
+                <div className="text-right">
+                  <Label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block">تحسين السرعة</Label>
+                  <p className="text-[7px] text-amber-500 font-bold uppercase tracking-tighter">مجهول الهوية</p>
+                </div>
                 <Switch checked={isOptimizedMode} onCheckedChange={setIsOptimizedMode} />
                 <Zap className={cn("size-3", isOptimizedMode ? "text-amber-400 fill-amber-400" : "text-muted-foreground")} />
               </div>
-              <p className="text-[8px] text-muted-foreground italic px-2">
-                {isOptimizedMode ? "وضع السرعة: مجهول الهوية" : "وضع الربط: يستخدم حساباتك المسجلة"}
-              </p>
             </div>
             
             <div className="h-8 w-px bg-white/10" />
@@ -146,6 +146,18 @@ export function AppLauncher() {
           </div>
         </header>
         
+        {isOptimizedMode && (
+          <div className="bg-amber-600/90 text-white px-6 py-2 flex items-center justify-center gap-3 animate-in slide-in-from-top-full duration-300 z-30">
+            <AlertCircle className="size-4 animate-pulse" />
+            <p className="text-[10px] font-bold uppercase tracking-widest">
+              وضع التحسين نشط: لا تحاول تسجيل الدخول في هذا الوضع. أغلق "تحسين السرعة" لاستخدام حساباتك الشخصية.
+            </p>
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-[8px] bg-white/10 hover:bg-white/20 border border-white/20" onClick={() => setIsOptimizedMode(false)}>
+              إغلاق وتحميل حسابي
+            </Button>
+          </div>
+        )}
+
         <div className="flex-1 relative bg-white">
           <iframe 
             src={finalFrameUrl} 
@@ -153,11 +165,7 @@ export function AppLauncher() {
             title={activeProject.title} 
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups" 
           />
-          {isOptimizedMode ? (
-            <div className="absolute top-4 right-4 pointer-events-none">
-              <Badge className="bg-amber-600 text-white border-none text-[8px] font-black uppercase py-1 shadow-lg">Optimized & Anonymous</Badge>
-            </div>
-          ) : (
+          {!isOptimizedMode && (
             <div className="absolute top-4 right-4 pointer-events-none">
               <Badge className="bg-green-600 text-white border-none text-[8px] font-black uppercase py-1 shadow-lg flex items-center gap-1">
                 <UserCheck className="size-2" /> Session Active
@@ -199,7 +207,7 @@ export function AppLauncher() {
                 <Label>التقنية المستخدمة</Label>
                 <Select value={formData.framework} onValueChange={(v: any) => setFormData({...formData, framework: v})}>
                   <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-11"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-slate-900 text-white"><SelectItem value="react">React</SelectItem><SelectItem value="angular">Angular</SelectItem><SelectItem value="nextjs">Next.js</SelectItem><SelectItem value="html">Static HTML</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent>
+                  <SelectContent className="bg-slate-900 border-white/10 text-white"><SelectItem value="react">React</SelectItem><SelectItem value="angular">Angular</SelectItem><SelectItem value="nextjs">Next.js</SelectItem><SelectItem value="html">Static HTML</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent>
                 </Select>
               </div>
             </div>
