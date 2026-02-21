@@ -13,12 +13,12 @@ interface SidebarState {
 }
 
 /**
- * @fileOverview محرك تخصيص القائمة الجانبية - تم إضافة المهندس العصبي (Agent AI) وقسم الإعلانات ومستكشف الخزنة.
+ * @fileOverview محرك تخصيص القائمة الجانبية - تم إضافة المهندس العصبي (Agent AI) وقسم الإعلانات ومستكشف الخزنة ومنصة التطبيقات.
  */
 export const useSidebarStore = create<SidebarState>()(
   persist(
     (set, get) => ({
-      pinnedItems: ["dashboard", "chat", "vault", "agent-ai", "peer-chat", "stream", "market", "ads", "wallet"],
+      pinnedItems: ["dashboard", "chat", "vault", "agent-ai", "peer-chat", "stream", "market", "launcher", "ads", "wallet"],
 
       togglePin: (id) => {
         const { pinnedItems } = get();
