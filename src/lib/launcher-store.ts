@@ -1,3 +1,4 @@
+
 'use client';
 
 import { initializeFirebase } from '@/firebase';
@@ -26,19 +27,23 @@ export interface WebProject {
 }
 
 /**
- * [STABILITY_ANCHOR: LAUNCHER_STORE_DYNAMIC_V1]
+ * [STABILITY_ANCHOR: LAUNCHER_STORE_DYNAMIC_V1.1]
+ * تم تحويل الفرز ليكون برمجياً في جهة العميل لتجنب أخطاء الفهارس المركبة.
  */
 
 export const getApprovedApps = async (): Promise<WebProject[]> => {
   const { firestore } = initializeFirebase();
   try {
+    // جلب التطبيقات المعتمدة فقط بدون أمر فرز في الكويري لتجنب طلب الفهارس المركبة
     const q = query(
       collection(firestore, 'app_launcher'), 
-      where('status', '==', 'approved'),
-      orderBy('createdAt', 'desc')
+      where('status', '==', 'approved')
     );
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as WebProject));
+    const apps = snap.docs.map(d => ({ id: d.id, ...d.data() } as WebProject));
+    
+    // الفرز يدوياً حسب التاريخ (الأحدث أولاً) لضمان الاستقرار بدون فهارس إضافية
+    return apps.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   } catch (e) {
     console.error("Fetch Apps Error:", e);
     return [];
@@ -47,12 +52,19 @@ export const getApprovedApps = async (): Promise<WebProject[]> => {
 
 export const getPendingAppsAdmin = async (): Promise<WebProject[]> => {
   const { firestore } = initializeFirebase();
-  const q = query(
-    collection(firestore, 'app_launcher'), 
-    where('status', '==', 'pending')
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as WebProject));
+  try {
+    const q = query(
+      collection(firestore, 'app_launcher'), 
+      where('status', '==', 'pending')
+    );
+    const snap = await getDocs(q);
+    const apps = snap.docs.map(d => ({ id: d.id, ...d.data() } as WebProject));
+    // الفرز برمجياً للأدمن أيضاً
+    return apps.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } catch (e) {
+    console.error("Fetch Pending Apps Error:", e);
+    return [];
+  }
 };
 
 export const submitAppRequest = async (app: Omit<WebProject, 'id' | 'status' | 'createdAt' | 'price' | 'access'>) => {
