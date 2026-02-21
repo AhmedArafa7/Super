@@ -6,7 +6,7 @@ import {
   Rocket, Globe, Lock, Play, ArrowLeft, 
   Search, LayoutGrid, Cpu, Code2, ShieldCheck, 
   ExternalLink, Info, Zap, Terminal, Laptop, Plus, Loader2,
-  Settings2, Activity, ShieldAlert, X
+  Settings2, Activity, ShieldAlert, X, UserCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,7 +43,7 @@ export function AppLauncher() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeProject, setActiveProject] = useState<WebProject | null>(null);
   const [search, setSearch] = useState("");
-  const [isOptimizedMode, setIsOptimizedMode] = useState(true);
+  const [isOptimizedMode, setIsOptimizedMode] = useState(false); // تم جعل الوضع المباشر هو الافتراضي للحفاظ على الجلسات
 
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -106,7 +106,6 @@ export function AppLauncher() {
   );
 
   if (activeProject) {
-    // تحديد الرابط النهائي: إما عبر البوابة العصبية (Optimized) أو مباشر
     const finalFrameUrl = isOptimizedMode 
       ? `/api/proxy?url=${encodeURIComponent(activeProject.url)}`
       : activeProject.url;
@@ -119,19 +118,24 @@ export function AppLauncher() {
             <div className="text-right">
               <h2 className="text-sm font-bold text-white">{activeProject.title}</h2>
               <div className="flex items-center gap-2 justify-end">
-                <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
+                <span className={cn("size-1.5 rounded-full animate-pulse", isOptimizedMode ? "bg-amber-500" : "bg-green-500")} />
                 <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">
-                  {isOptimizedMode ? 'Neural Optimized Mode' : 'Direct Production Node'}
+                  {isOptimizedMode ? 'Neural Optimized Mode (Anonymous)' : 'Direct Session Node (Authenticated)'}
                 </p>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3 bg-white/5 px-4 py-1.5 rounded-2xl border border-white/10">
-              <Label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">تحسين السرعة</Label>
-              <Switch checked={isOptimizedMode} onCheckedChange={setIsOptimizedMode} />
-              <Zap className={cn("size-3", isOptimizedMode ? "text-amber-400 fill-amber-400" : "text-muted-foreground")} />
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-3 bg-white/5 px-4 py-1.5 rounded-2xl border border-white/10">
+                <Label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">تحسين السرعة</Label>
+                <Switch checked={isOptimizedMode} onCheckedChange={setIsOptimizedMode} />
+                <Zap className={cn("size-3", isOptimizedMode ? "text-amber-400 fill-amber-400" : "text-muted-foreground")} />
+              </div>
+              <p className="text-[8px] text-muted-foreground italic px-2">
+                {isOptimizedMode ? "وضع السرعة: مجهول الهوية" : "وضع الربط: يستخدم حساباتك المسجلة"}
+              </p>
             </div>
             
             <div className="h-8 w-px bg-white/10" />
@@ -149,9 +153,15 @@ export function AppLauncher() {
             title={activeProject.title} 
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups" 
           />
-          {isOptimizedMode && (
-            <div className="absolute top-4 right-4 pointer-events-none opacity-50">
-              <Badge className="bg-indigo-600 text-white border-none text-[8px] font-black uppercase py-1">Optimized by Nexus Gateway</Badge>
+          {isOptimizedMode ? (
+            <div className="absolute top-4 right-4 pointer-events-none">
+              <Badge className="bg-amber-600 text-white border-none text-[8px] font-black uppercase py-1 shadow-lg">Optimized & Anonymous</Badge>
+            </div>
+          ) : (
+            <div className="absolute top-4 right-4 pointer-events-none">
+              <Badge className="bg-green-600 text-white border-none text-[8px] font-black uppercase py-1 shadow-lg flex items-center gap-1">
+                <UserCheck className="size-2" /> Session Active
+              </Badge>
             </div>
           )}
         </div>
@@ -168,7 +178,7 @@ export function AppLauncher() {
             منصة التطبيقات
             <Rocket className="text-primary size-10" />
           </h1>
-          <p className="text-muted-foreground text-lg">شغل تطبيقاتك السحابية مباشرة عبر البوابة العصبية لضمان السرعة والضغط.</p>
+          <p className="text-muted-foreground text-lg">شغل تطبيقاتك السحابية مباشرة مع إمكانية التبديل بين وضع السرعة ووضع الحسابات الشخصية.</p>
         </div>
         <Dialog open={isSubmitModalOpen} onOpenChange={setIsSubmitModalOpen}>
           <DialogTrigger asChild>
@@ -225,8 +235,8 @@ export function AppLauncher() {
                 </Badge>
               </div>
               <div className="relative aspect-video overflow-hidden bg-slate-900">
-                <img src={project.thumbnail} className="size-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80" />
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                <img src={project.thumbnail} className="size-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-black/40">
                   <Button onClick={() => handleLaunch(project)} className="rounded-full size-16 bg-primary/20 backdrop-blur-md border border-white/20 shadow-2xl"><Play className="text-white size-8 fill-white" /></Button>
                 </div>
               </div>
