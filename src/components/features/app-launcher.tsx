@@ -6,7 +6,7 @@ import {
   Rocket, Globe, Lock, Play, ArrowLeft, 
   Search, LayoutGrid, Cpu, Code2, ShieldCheck, 
   ExternalLink, Info, Zap, Terminal, Laptop, Plus, Loader2,
-  Settings2, Activity, ShieldAlert, X, UserCheck, AlertCircle, RefreshCw
+  Settings2, Activity, ShieldAlert, X, UserCheck, AlertCircle, RefreshCw, Bug
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,8 +34,8 @@ const FrameworkIcon = ({ framework }: { framework: AppFramework }) => {
 };
 
 /**
- * [STABILITY_ANCHOR: APP_LAUNCHER_HEADLESS_V4.0]
- * مشغل التطبيقات المطور: يدعم الآن بروتوكول البث السحابي الشامل مع اعتراض النماذج لضمان عمل أزرار "Next".
+ * [STABILITY_ANCHOR: APP_LAUNCHER_HEADLESS_V5.0]
+ * مشغل التطبيقات المطور: تفعيل بروتوكول الاستحواذ العميق (Deep Hijack) لحل مشكلة الأزرار.
  */
 export function AppLauncher() {
   const { user } = useAuth();
@@ -124,7 +124,7 @@ export function AppLauncher() {
               <div className="flex items-center gap-2 justify-end">
                 <span className={cn("size-1.5 rounded-full animate-pulse", isHeadlessStream ? "bg-amber-500" : "bg-green-500")} />
                 <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">
-                  {isHeadlessStream ? 'Neural Stream Node (Headless)' : 'Direct Session Node (Personal)'}
+                  {isHeadlessStream ? 'Neural Deep Hijack Protocol v5.0' : 'Direct Session Node (Personal)'}
                 </p>
               </div>
             </div>
@@ -134,8 +134,8 @@ export function AppLauncher() {
             <div className="flex flex-col items-end gap-1">
               <div className="flex items-center gap-3 bg-white/5 px-4 py-1.5 rounded-2xl border border-white/10">
                 <div className="text-right">
-                  <Label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block">بث عصبي شامل</Label>
-                  <p className="text-[7px] text-amber-500 font-bold uppercase tracking-tighter">فتح كافة المواقع</p>
+                  <Label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block text-right">استحواذ عميق</Label>
+                  <p className="text-[7px] text-amber-500 font-bold uppercase tracking-tighter text-right">تفعيل كافة الأزرار</p>
                 </div>
                 <Switch checked={isHeadlessStream} onCheckedChange={setIsHeadlessStream} />
                 <Zap className={cn("size-3", isHeadlessStream ? "text-amber-400 fill-amber-400" : "text-muted-foreground")} />
@@ -151,17 +151,17 @@ export function AppLauncher() {
         </header>
         
         {isHeadlessStream && (
-          <div className="bg-amber-600/90 text-white px-6 py-2 flex items-center justify-center gap-3 animate-in slide-in-from-top-full duration-300 z-30">
-            <RefreshCw className="size-4 animate-spin" />
+          <div className="bg-indigo-600/90 text-white px-6 py-2 flex items-center justify-center gap-3 animate-in slide-in-from-top-full duration-300 z-30">
+            <Bug className="size-4 animate-pulse" />
             <p className="text-[10px] font-bold uppercase tracking-widest text-center">
-              بروتوكول البث نشط: تم تفعيل معالج النماذج (Form Interceptor) لضمان عمل أزرار الدخول.
+              نظام الاستحواذ العميق نشط: إذا لم يعمل الزر، اضغط F12 وراجع سجلات "Intercepted" في الـ Console لتحديد السبب.
             </p>
           </div>
         )}
 
         <div className="flex-1 relative bg-white">
           <iframe 
-            key={isHeadlessStream ? `headless-${activeProject.id}` : `direct-${activeProject.id}`}
+            key={isHeadlessStream ? `deep-hijack-${activeProject.id}` : `direct-${activeProject.id}`}
             src={finalFrameUrl} 
             className="absolute inset-0 size-full border-none" 
             title={activeProject.title} 
@@ -183,12 +183,12 @@ export function AppLauncher() {
     <div className="p-8 max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700 font-sans">
       <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 flex-row-reverse text-right">
         <div className="space-y-2">
-          <Badge className="bg-primary/20 text-primary border-primary/30 px-4 py-1 uppercase tracking-widest font-bold text-[10px]">Neural Stream Protocol v4.0</Badge>
+          <Badge className="bg-primary/20 text-primary border-primary/30 px-4 py-1 uppercase tracking-widest font-bold text-[10px]">Neural Stream Protocol v5.0</Badge>
           <h1 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
             منصة التطبيقات
             <Rocket className="text-primary size-10" />
           </h1>
-          <p className="text-muted-foreground text-lg">شغل أي موقع في العالم دون استثناء مع دعم كامل لعمليات تسجيل الدخول والتفاعل عبر البث السحابي.</p>
+          <p className="text-muted-foreground text-lg">شغل أي موقع في العالم مع "الاستحواذ العميق" لضمان تفاعل الأزرار والمزامنة الكاملة للجلسة.</p>
         </div>
         <Dialog open={isSubmitModalOpen} onOpenChange={setIsSubmitModalOpen}>
           <DialogTrigger asChild>
@@ -258,7 +258,7 @@ export function AppLauncher() {
                 <p dir="auto" className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-8 h-10">{project.description}</p>
                 <div className="flex items-center justify-between pt-6 border-t border-white/5 flex-row-reverse">
                   <div className="text-right">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">المالك</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest text-right">المالك</p>
                     <p className="text-xs font-bold text-indigo-400">@{project.authorName}</p>
                   </div>
                   <div className="flex items-center gap-2">
