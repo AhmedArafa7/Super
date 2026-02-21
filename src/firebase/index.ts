@@ -4,13 +4,18 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence, Firestore } from 'firebase/firestore';
+import { 
+  getFirestore, 
+  initializeFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager,
+  Firestore 
+} from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 /**
- * [STABILITY_ANCHOR: FIREBASE_CORE_V8.1]
- * تهيئة خدمات Firebase مع ضمان تفعيل "بروتوكول التخزين المستمر" لمرة واحدة فقط.
- * تم استخدام نمط الـ Singleton لمنع خطأ "Firestore has already been started".
+ * [STABILITY_ANCHOR: FIREBASE_CORE_V8.2]
+ * تهيئة خدمات Firebase مع تحديث نظام التخزين المحلي لإزالة التحذيرات deprecation.
  */
 
 let cachedSdks: {
@@ -20,10 +25,7 @@ let cachedSdks: {
   storage: FirebaseStorage;
 } | null = null;
 
-let isPersistenceAttempted = false;
-
 export function initializeFirebase() {
-  // العودة للنسخة المخزنة إذا كانت موجودة لضمان استقرار الأداء ومنع إعادة التهيئة
   if (cachedSdks) return cachedSdks;
 
   let app: FirebaseApp;
@@ -34,7 +36,14 @@ export function initializeFirebase() {
   }
 
   const auth = getAuth(app);
-  const firestore = getFirestore(app);
+  
+  // تحديث طريقة تفعيل الـ Persistence للتوافق مع الإصدارات الحديثة ومنع التحذيرات
+  const firestore = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
+  });
+
   const storage = getStorage(app);
 
   cachedSdks = {
@@ -44,26 +53,10 @@ export function initializeFirebase() {
     storage
   };
 
-  // تفعيل التخزين المحلي المستمر (Persistence) لمرة واحدة فقط عند بداية التشغيل
-  // هذا يضمن عمل التطبيق أوفلاين بكفاءة دون حدوث تضارب في الذاكرة
-  if (typeof window !== 'undefined' && !isPersistenceAttempted) {
-    isPersistenceAttempted = true;
-    enableIndexedDbPersistence(firestore).catch((err) => {
-      if (err.code === 'failed-precondition') {
-        // احتمالية وجود عدة تبويبات مفتوحة للنظام
-        console.warn("Persistence failed: Multiple tabs open.");
-      } else if (err.code === 'unimplemented') {
-        // المتصفح الحالي لا يدعم تقنية التخزين المحلي المستمر
-        console.warn("Persistence is not supported in this browser.");
-      }
-    });
-  }
-
   return cachedSdks;
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
-  // وظيفة مساعدة لجلب الخدمات الملحقة بالعقدة
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),

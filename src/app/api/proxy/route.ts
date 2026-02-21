@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * [STABILITY_ANCHOR: NEURAL_HIJACK_ULTIMATE_V25.0]
- * محرك البث العصبي المطور: الاستحواذ الكامل على طلبات الشبكة، النماذج، والـ Cookies.
+ * [STABILITY_ANCHOR: NEURAL_HIJACK_ULTIMATE_V26.0]
+ * محرك البث العصبي المطور: الاستحواذ الشامل على الملاحة، التاريخ، وطلبات الشبكة.
  */
 
 async function handleProxyRequest(request: NextRequest) {
@@ -31,13 +31,12 @@ async function handleProxyRequest(request: NextRequest) {
     
     // 1. نقل الرؤوس الأساسية والكوكيز مع استبعاد العوائق
     request.headers.forEach((value, key) => {
-      const forbiddenHeaders = ['host', 'origin', 'referer', 'connection', 'content-length', 'accept-encoding'];
+      const forbiddenHeaders = ['host', 'origin', 'referer', 'connection', 'content-length', 'accept-encoding', 'content-security-policy'];
       if (!forbiddenHeaders.includes(key.toLowerCase())) {
         headers.set(key, value);
       }
     });
 
-    // إضافة User-Agent حقيقي لتجنب اكتشاف البوتات
     headers.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
     const controller = new AbortController();
@@ -59,12 +58,12 @@ async function handleProxyRequest(request: NextRequest) {
         let html = await response.text();
         const targetOrigin = new URL(targetUrl).origin;
 
-        // 2. حقن بروتوكول الاستحواذ الشامل (The Deep Interceptor)
+        // 2. حقن بروتوكول الاستحواذ الشامل (The Deep Interceptor V2)
         const baseTag = `<base href="${targetOrigin}/">`;
         const neuralScript = `
           <script>
             (function() {
-              console.log("🚀 Nexus Deep Interceptor: ACTIVATED");
+              console.log("🚀 Nexus Deep Interceptor V2: ACTIVATED");
               const proxyPath = window.location.pathname;
 
               const getProxyUrl = (url) => {
@@ -81,7 +80,6 @@ async function handleProxyRequest(request: NextRequest) {
               window.fetch = function(input, init) {
                 let url = typeof input === 'string' ? input : (input.url || input);
                 const newUrl = getProxyUrl(url);
-                console.log("📡 Intercepted Fetch:", url, "->", newUrl);
                 if (typeof input === 'string') return originalFetch(newUrl, init);
                 return originalFetch(new Request(newUrl, input), init);
               };
@@ -90,32 +88,32 @@ async function handleProxyRequest(request: NextRequest) {
               const originalOpen = XMLHttpRequest.prototype.open;
               XMLHttpRequest.prototype.open = function(method, url) {
                 const newUrl = getProxyUrl(url);
-                console.log("📡 Intercepted XHR:", url, "->", newUrl);
                 return originalOpen.apply(this, [method, newUrl, ...Array.from(arguments).slice(2)]);
               };
 
-              // 📡 اختطاف النماذج (Forms) - حل مشكلة أزرار Next
-              const originalSubmit = HTMLFormElement.prototype.submit;
-              HTMLFormElement.prototype.submit = function() {
-                this.action = getProxyUrl(this.action);
-                console.log("📡 Intercepted Form Submit (Prototype):", this.action);
-                return originalSubmit.apply(this, arguments);
+              // 📡 اختطاف التاريخ والملاحة (History API)
+              const originalPushState = history.pushState;
+              window.history.pushState = function(state, title, url) {
+                return originalPushState.apply(this, [state, title, getProxyUrl(url)]);
+              };
+              const originalReplaceState = history.replaceState;
+              window.history.replaceState = function(state, title, url) {
+                return originalReplaceState.apply(this, [state, title, getProxyUrl(url)]);
               };
 
+              // 📡 اختطاف النماذج (Forms)
               document.addEventListener('submit', function(e) {
                 const form = e.target;
                 const originalAction = form.action || window.location.href;
                 form.action = getProxyUrl(originalAction);
-                console.log("📡 Intercepted Form Submit (Event):", originalAction, "->", form.action);
               }, true);
 
-              // 📡 اختطاف الروابط
+              // 📡 اختطاف النقرات والأزرار (Global Link Hijack)
               document.addEventListener('click', function(e) {
                 const target = e.target.closest('a');
                 if (target && target.href && !target.href.startsWith('javascript:') && !target.href.startsWith('#')) {
                   const newUrl = getProxyUrl(target.href);
                   if (newUrl !== target.href) {
-                    console.log("📡 Intercepted Click:", target.href, "->", newUrl);
                     e.preventDefault();
                     window.location.href = newUrl;
                   }
@@ -141,18 +139,17 @@ async function handleProxyRequest(request: NextRequest) {
           headers: { 
             'Content-Type': 'text/html',
             'X-Frame-Options': 'ALLOWALL',
-            'Access-Control-Allow-Origin': '*'
+            'Access-Control-Allow-Origin': '*',
+            'Content-Security-Policy': "default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline';"
           },
         });
 
-        // مزامنة الكوكيز مع المتصفح
         const setCookie = response.headers.get('set-cookie');
         if (setCookie) res.headers.set('set-cookie', setCookie);
         
         return res;
       }
 
-      // الموارد الأخرى (JS, CSS, Images)
       return new NextResponse(response.body, {
         status: response.status,
         headers: response.headers,
