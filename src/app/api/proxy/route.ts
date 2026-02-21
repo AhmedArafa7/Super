@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * [STABILITY_ANCHOR: NEURAL_HEADLESS_STREAM_V4.0]
- * محرك البوابة العصبية المتقدم: يدعم الآن الـ POST واعتراض النماذج لضمان عمل أزرار "Next" وتسجيل الدخول.
+ * [STABILITY_ANCHOR: NEURAL_HEADLESS_STREAM_V5.0]
+ * محرك البوابة العصبية المتقدم: تم تحصين الاتصال ضد أخطاء Timeout وتحسين تنقية الهيدرز.
  */
 
 async function handleProxyRequest(request: NextRequest) {
@@ -19,114 +19,124 @@ async function handleProxyRequest(request: NextRequest) {
     const body = method !== 'GET' && method !== 'HEAD' ? await request.text() : undefined;
     const headers = new Headers();
     
-    // نقل الهيدرز الأساسية مع تجنب القيود
+    // 1. بروتوكول تنقية الرؤوس لضمان استقرار الاتصال
     request.headers.forEach((value, key) => {
-      if (!['host', 'origin', 'referer', 'cookie'].includes(key.toLowerCase())) {
+      const forbiddenHeaders = ['host', 'origin', 'referer', 'cookie', 'connection', 'content-length', 'accept-encoding'];
+      if (!forbiddenHeaders.includes(key.toLowerCase())) {
         headers.set(key, value);
       }
     });
 
     headers.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-    const response = await fetch(targetUrl, {
-      method,
-      headers,
-      body,
-      redirect: 'follow',
-    });
+    // 2. التحكم في وقت الاستجابة (Timeout) لمنع تعليق السيرفر
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 seconds timeout
 
-    if (!response.ok && response.status !== 401) {
-       // السماح بمرور صفحات الخطأ الرسمية للموقع (مثل صفحة الباسورد بعد الخطأ)
-    }
+    try {
+      const response = await fetch(targetUrl, {
+        method,
+        headers,
+        body,
+        redirect: 'follow',
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
 
-    const contentType = response.headers.get('content-type') || '';
-    
-    if (contentType.includes('text/html')) {
-      let html = await response.text();
-      const baseUrl = new URL(targetUrl).origin;
+      const contentType = response.headers.get('content-type') || '';
+      
+      if (contentType.includes('text/html')) {
+        let html = await response.text();
+        const baseUrl = new URL(targetUrl).origin;
 
-      // 1. بروتوكول تجريد الحماية
-      const baseTag = `<base href="${baseUrl}/">`;
-      html = html.replace('<head>', `<head>${baseTag}`);
+        // 3. بروتوكول تجريد الحماية وإعادة صياغة المسارات
+        const baseTag = `<base href="${baseUrl}/">`;
+        html = html.replace('<head>', `<head>${baseTag}`);
 
-      // 2. حقن المحرك العصبي للملاحة والنماذج
-      const neuralScript = `
-        <script>
-          // منع المواقع من كسر الـ Iframe
-          window.onbeforeunload = function() {};
-          
-          // اعتراض الروابط
-          document.addEventListener('click', function(e) {
-            const target = e.target.closest('a');
-            if (target && target.href && !target.href.startsWith('javascript:') && !target.href.startsWith('#')) {
-              const targetUrl = target.href;
-              const currentHost = window.location.host;
-              if (!targetUrl.includes(currentHost)) {
-                e.preventDefault();
-                window.location.href = window.location.pathname + '?url=' + encodeURIComponent(targetUrl);
-              }
-            }
-          }, true);
-
-          // اعتراض النماذج (Forms) - هذا يحل مشكلة أزرار Next
-          document.addEventListener('submit', function(e) {
-            const form = e.target;
-            const action = form.action || window.location.href;
-            const currentHost = window.location.host;
+        // 4. حقن المحرك العصبي للملاحة والنماذج
+        const neuralScript = `
+          <script>
+            // منع المواقع من كسر الـ Iframe
+            window.onbeforeunload = function() {};
             
-            if (!action.includes(currentHost)) {
-              e.preventDefault();
-              const proxyUrl = window.location.pathname + '?url=' + encodeURIComponent(action);
+            // اعتراض الروابط
+            document.addEventListener('click', function(e) {
+              const target = e.target.closest('a');
+              if (target && target.href && !target.href.startsWith('javascript:') && !target.href.startsWith('#')) {
+                const targetUrl = target.href;
+                const currentHost = window.location.host;
+                if (!targetUrl.includes(currentHost)) {
+                  e.preventDefault();
+                  window.location.href = window.location.pathname + '?url=' + encodeURIComponent(targetUrl);
+                }
+              }
+            }, true);
+
+            // اعتراض النماذج (Forms)
+            document.addEventListener('submit', function(e) {
+              const form = e.target;
+              const action = form.action || window.location.href;
+              const currentHost = window.location.host;
               
-              // تحويل الـ Form ليعمل عبر البروكسي
-              const formData = new FormData(form);
-              const params = new URLSearchParams();
-              for (const pair of formData) {
-                params.append(pair[0], pair[1]);
+              if (!action.includes(currentHost)) {
+                e.preventDefault();
+                const proxyUrl = window.location.pathname + '?url=' + encodeURIComponent(action);
+                
+                if (form.method.toLowerCase() === 'get') {
+                  const formData = new FormData(form);
+                  const params = new URLSearchParams();
+                  for (const pair of formData) {
+                    params.append(pair[0], pair[1]);
+                  }
+                  window.location.href = proxyUrl + '&' + params.toString();
+                } else {
+                  // في حالة الـ POST، نوجه المستخدم للرابط المطلوب عبر البروكسي
+                  window.location.href = proxyUrl;
+                }
               }
+            }, true);
 
-              // إذا كان النموذج يستخدم GET
-              if (form.method.toLowerCase() === 'get') {
-                window.location.href = proxyUrl + '&' + params.toString();
-              } else {
-                // للأسف الـ POST يتطلب معالجة معقدة، سنحاول توجيه الصفحة للرابط المطلوب عبر البروكسي
-                // كخيار مستقر: سنعيد تحميل الصفحة بالرابط الجديد
-                window.location.href = proxyUrl;
-              }
-            }
-          }, true);
+            // تنظيف الأكواد التي تعطل الـ Iframe
+            const clearBusters = () => {
+              try {
+                window.top = window.self;
+                window.parent = window.self;
+              } catch(e) {}
+            };
+            setInterval(clearBusters, 500);
+            console.log("Nexus Neural Link: Stabilized V5.0");
+          </script>
+        `;
+        html = html.replace('</body>', `${neuralScript}</body>`);
 
-          // تنظيف الأكواد التي تعطل الـ Iframe
-          const clearBusters = () => {
-            window.top = window.self;
-            window.parent = window.self;
-          };
-          setInterval(clearBusters, 500);
-          console.log("Nexus Neural Link: Stabilized V4.0");
-        </script>
-      `;
-      html = html.replace('</body>', `${neuralScript}</body>`);
+        const res = new NextResponse(html, {
+          headers: {
+            'Content-Type': 'text/html',
+            'X-Neural-Stream': 'active'
+          },
+        });
 
-      const res = new NextResponse(html, {
-        headers: {
-          'Content-Type': 'text/html',
-          'X-Neural-Stream': 'active'
-        },
+        res.headers.delete('content-security-policy');
+        res.headers.delete('x-frame-options');
+        return res;
+      }
+
+      // للملفات الأخرى (صور، سكريبتات)
+      return new NextResponse(response.body, {
+        status: response.status,
+        headers: response.headers,
       });
 
-      res.headers.delete('content-security-policy');
-      res.headers.delete('x-frame-options');
-      return res;
+    } catch (fetchErr: any) {
+      if (fetchErr.name === 'AbortError') {
+        return NextResponse.json({ error: 'Neural Gateway Timeout (Target unreachable)' }, { status: 504 });
+      }
+      throw fetchErr;
     }
 
-    // للملفات الأخرى (صور، سكريبتات)
-    return new NextResponse(response.body, {
-      status: response.status,
-      headers: response.headers,
-    });
-
-  } catch (err) {
-    return NextResponse.json({ error: 'Neural Gateway Timeout' }, { status: 504 });
+  } catch (err: any) {
+    console.error("Proxy Failure:", err);
+    return NextResponse.json({ error: 'Neural Gateway Disturbance', detail: err.message }, { status: 502 });
   }
 }
 
