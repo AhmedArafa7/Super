@@ -1,10 +1,9 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { 
   ShieldAlert, RefreshCcw, Users, MessageSquare, 
-  Video, ShoppingBag, Wallet, Megaphone, Activity, GraduationCap, CheckCircle2, XCircle
+  Video, ShoppingBag, Wallet, Megaphone, Activity, GraduationCap, CheckCircle2, XCircle, Rocket
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -21,6 +20,7 @@ import { MarketManagement } from "./admin/market-management";
 import { FinancialLedger } from "./admin/financial-ledger";
 import { AdsManagement } from "./admin/ads-management";
 import { QuotaMonitor } from "./admin/quota-monitor";
+import { AppReview } from "./admin/app-review";
 
 import { getStoredMessages } from "@/lib/chat-store";
 import { getStoredUsers } from "@/lib/auth-store";
@@ -29,6 +29,7 @@ import { getAllOffersAdmin } from "@/lib/market-store";
 import { getAllTransactionsAdmin } from "@/lib/wallet-store";
 import { getAds } from "@/lib/ads-store";
 import { getSubjects, getCollections, getLearningItems, approveSubject, approveCollection, approveLearningItem, deleteSubject, deleteCollection, deleteLearningItem } from "@/lib/learning-store";
+import { getPendingAppsAdmin } from "@/lib/launcher-store";
 
 export function AdminPanel() {
   const { user: currentUser } = useAuth();
@@ -41,7 +42,8 @@ export function AdminPanel() {
     offers: [] as any[],
     transactions: [] as any[],
     ads: [] as any[],
-    pendingKnowledge: [] as any[]
+    pendingKnowledge: [] as any[],
+    pendingApps: [] as any[]
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -49,17 +51,17 @@ export function AdminPanel() {
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [msgs, allUsers, allVideos, allOffers, txResult, adsResult, allSubjects] = await Promise.all([
+      const [msgs, allUsers, allVideos, allOffers, txResult, adsResult, allSubjects, pendingApps] = await Promise.all([
         getStoredMessages(undefined, true),
         getStoredUsers(),
         getStoredVideos(),
         getAllOffersAdmin(),
         getAllTransactionsAdmin(),
         getAds(),
-        getSubjects(undefined, true)
+        getSubjects(undefined, true),
+        getPendingAppsAdmin()
       ]);
       
-      // جلب العناصر المعلقة في المحتوى التعليمي
       const pendingItems: any[] = [];
       for (const s of allSubjects) {
         if (s.status === 'pending') pendingItems.push({ ...s, type: 'subject' });
@@ -80,7 +82,8 @@ export function AdminPanel() {
         offers: allOffers || [],
         transactions: (txResult as any)?.transactions || [],
         ads: (adsResult as any)?.ads || [],
-        pendingKnowledge: pendingItems
+        pendingKnowledge: pendingItems,
+        pendingApps: pendingApps || []
       });
     } catch (err) {
       console.error("Admin Sync Error:", err);
@@ -143,8 +146,13 @@ export function AdminPanel() {
         <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 w-fit flex-wrap flex-row-reverse self-end h-auto gap-1">
           <TabsTrigger value="knowledge" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600">
             <GraduationCap className="size-4" /> 
-            مراجعة المعرفة 
+            المعرفة 
             {data.pendingKnowledge.length > 0 && <Badge className="bg-red-500 h-4 w-4 p-0 flex items-center justify-center text-[10px]">{data.pendingKnowledge.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="apps" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600">
+            <Rocket className="size-4" /> 
+            التطبيقات 
+            {data.pendingApps.length > 0 && <Badge className="bg-red-500 h-4 w-4 p-0 flex items-center justify-center text-[10px]">{data.pendingApps.length}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="users" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600"><Users className="size-4" /> العقد</TabsTrigger>
           <TabsTrigger value="vitals" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-red-600"><Activity className="size-4" /> المرصد</TabsTrigger>
@@ -159,17 +167,16 @@ export function AdminPanel() {
           <TabsContent value="knowledge">
             <div className="space-y-4">
               {data.pendingKnowledge.length === 0 ? (
-                <div className="py-20 text-center opacity-30 border-2 border-dashed border-white/5 rounded-[2rem]">لا توجد طلبات إضافة جديدة في المكتبة.</div>
+                <div className="py-20 text-center opacity-30 border-2 border-dashed border-white/5 rounded-[2rem]">لا توجد طلبات معرفة جديدة.</div>
               ) : (
                 data.pendingKnowledge.map((item, idx) => (
                   <Card key={idx} className="p-6 glass border-amber-500/20 rounded-3xl flex items-center justify-between flex-row-reverse">
                     <div className="text-right">
                       <div className="flex items-center gap-2 justify-end">
                         <h4 className="font-bold text-white text-lg">{item.title}</h4>
-                        <Badge variant="outline" className="text-[10px]">{item.type.toUpperCase()}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{item.type?.toUpperCase()}</Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">بواسطة: @{item.authorId.substring(0,8)}</p>
-                      {item.url && <p className="text-[10px] text-indigo-400 mt-2 truncate max-w-md">{item.url}</p>}
+                      <p className="text-xs text-muted-foreground mt-1">بواسطة: @{item.authorId?.substring(0,8)}</p>
                     </div>
                     <div className="flex gap-2">
                       <Button className="bg-green-600 hover:bg-green-500 rounded-xl" onClick={() => handleApproveKnowledge(item)}><CheckCircle2 className="size-4 mr-2" /> اعتماد</Button>
@@ -179,6 +186,10 @@ export function AdminPanel() {
                 ))
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="apps">
+            <AppReview apps={data.pendingApps} onRefresh={loadAllData} />
           </TabsContent>
 
           <TabsContent value="users">
