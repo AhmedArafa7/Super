@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * [STABILITY_ANCHOR: NEURAL_HEADLESS_STREAM_V2.0]
- * محرك البوابة العصبية المتطور: يقوم بجلب المواقع وتجريدها من قيود الأمان (Headers Stripping)
+ * [STABILITY_ANCHOR: NEURAL_HEADLESS_STREAM_V3.0]
+ * محرك البوابة العصبية المتقدم: يقوم بجلب المواقع وتجريدها من قيود الأمان (Headers Stripping)
  * لضمان فتح أي موقع داخل نكسوس بغض النظر عن سياسات X-Frame.
  */
 export async function GET(request: NextRequest) {
@@ -36,16 +36,25 @@ export async function GET(request: NextRequest) {
     // 2. حقن "المحرك العصبي" لإجبار الروابط على البقاء داخل البروكسي
     const neuralScript = `
       <script>
+        // منع المواقع من كسر الـ Iframe (Anti Frame-Busting)
+        window.onbeforeunload = function() {};
+        
         document.addEventListener('click', function(e) {
           const target = e.target.closest('a');
-          if (target && target.href && !target.href.startsWith('javascript:')) {
+          if (target && target.href && !target.href.startsWith('javascript:') && !target.href.startsWith('#')) {
             // منع الخروج من نكسوس وإعادة التوجيه عبر البروكسي
-            if (!target.href.includes(window.location.host)) {
+            const targetUrl = target.href;
+            const currentHost = window.location.host;
+            
+            if (!targetUrl.includes(currentHost)) {
               e.preventDefault();
-              window.location.href = window.location.pathname + '?url=' + encodeURIComponent(target.href);
+              window.location.href = window.location.pathname + '?url=' + encodeURIComponent(targetUrl);
             }
           }
         }, true);
+
+        // محاكاة استقرار المتصفح
+        console.log("Nexus Neural Link: Stabilized");
       </script>
     `;
     html = html.replace('</body>', `${neuralScript}</body>`);
@@ -63,9 +72,10 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // حذف قيود الحماية من الاستجابة النهائية
+    // حذف قيود الحماية من الاستجابة النهائية بشكل كامل
     res.headers.delete('content-security-policy');
     res.headers.delete('x-frame-options');
+    res.headers.delete('frame-options');
     res.headers.delete('x-content-type-options');
 
     return res;

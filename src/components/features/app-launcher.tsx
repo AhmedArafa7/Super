@@ -34,8 +34,8 @@ const FrameworkIcon = ({ framework }: { framework: AppFramework }) => {
 };
 
 /**
- * [STABILITY_ANCHOR: APP_LAUNCHER_HEADLESS_V2.0]
- * مشغل التطبيقات المطور: يدعم الآن بروتوكول البث السحابي (Neural Stream) لفتح كافة المواقع.
+ * [STABILITY_ANCHOR: APP_LAUNCHER_HEADLESS_V3.0]
+ * مشغل التطبيقات المطور: يدعم الآن بروتوكول البث السحابي الشامل (Headless Stream) لفتح كافة المواقع.
  */
 export function AppLauncher() {
   const { user } = useAuth();
@@ -47,7 +47,7 @@ export function AppLauncher() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeProject, setActiveProject] = useState<WebProject | null>(null);
   const [search, setSearch] = useState("");
-  const [isHeadlessStream, setIsHeadlessStream] = useState(true); // البث السحابي هو الافتراضي الآن للقوة
+  const [isHeadlessStream, setIsHeadlessStream] = useState(true); 
 
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -154,14 +154,14 @@ export function AppLauncher() {
           <div className="bg-amber-600/90 text-white px-6 py-2 flex items-center justify-center gap-3 animate-in slide-in-from-top-full duration-300 z-30">
             <RefreshCw className="size-4 animate-spin" />
             <p className="text-[10px] font-bold uppercase tracking-widest text-center">
-              بروتوكول البث نشط: يتم تجاوز قيود الأمان الآن لتشغيل الموقع بشكل كامل. لا تقم بتسجيل الدخول في هذا الوضع.
+              بروتوكول البث نشط: يتم تجاوز قيود الأمان لتشغيل الموقع بشكل كامل. لا تقم بتسجيل الدخول في هذا الوضع.
             </p>
           </div>
         )}
 
         <div className="flex-1 relative bg-white">
           <iframe 
-            key={isHeadlessStream ? 'headless' : 'direct'}
+            key={isHeadlessStream ? `headless-${activeProject.id}` : `direct-${activeProject.id}`}
             src={finalFrameUrl} 
             className="absolute inset-0 size-full border-none" 
             title={activeProject.title} 
@@ -183,7 +183,7 @@ export function AppLauncher() {
     <div className="p-8 max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700 font-sans">
       <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 flex-row-reverse text-right">
         <div className="space-y-2">
-          <Badge className="bg-primary/20 text-primary border-primary/30 px-4 py-1 uppercase tracking-widest font-bold text-[10px]">Neural Stream Protocol v2.0</Badge>
+          <Badge className="bg-primary/20 text-primary border-primary/30 px-4 py-1 uppercase tracking-widest font-bold text-[10px]">Neural Stream Protocol v3.0</Badge>
           <h1 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
             منصة التطبيقات
             <Rocket className="text-primary size-10" />
@@ -245,7 +245,7 @@ export function AppLauncher() {
                 </Badge>
               </div>
               <div className="relative aspect-video overflow-hidden bg-slate-900">
-                <img src={project.thumbnail} className="size-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" />
+                <img src={project.thumbnail} className="size-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" alt={project.title} />
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-black/40">
                   <Button onClick={() => handleLaunch(project)} className="rounded-full size-16 bg-primary/20 backdrop-blur-md border border-white/20 shadow-2xl"><Play className="text-white size-8 fill-white" /></Button>
                 </div>
