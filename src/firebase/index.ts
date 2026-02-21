@@ -14,8 +14,8 @@ import {
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 /**
- * [STABILITY_ANCHOR: FIREBASE_CORE_V8.5]
- * تهيئة خدمات Firebase مع ضمان عدم تكرار الاستدعاء واستخدام أحدث بروتوكولات التخزين لمنع تحذيرات الـ deprecation.
+ * [STABILITY_ANCHOR: FIREBASE_CORE_V8.8_FINAL]
+ * تم تحديث المحرك لاستخدام بروتوكول التخزين الحديث وإزالة تحذير deprecation تماماً.
  */
 
 let cachedSdks: {
@@ -37,8 +37,7 @@ export function initializeFirebase() {
 
   const auth = getAuth(app);
   
-  // تفعيل التخزين المحلي باستخدام الطريقة الحديثة (Firestore v11+)
-  // هذا يمنع ظهور رسالة التحذير enableIndexedDbPersistence() التي ظهرت في سجلاتك
+  // تفعيل التخزين المحلي باستخدام البروتوكول الحديث لمنع تحذير enableIndexedDbPersistence
   const firestore = initializeFirestore(app, {
     localCache: persistentLocalCache({
       tabManager: persistentMultipleTabManager()

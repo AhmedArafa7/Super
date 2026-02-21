@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * [STABILITY_ANCHOR: NEURAL_HIJACK_NUCLEAR_V29.0]
+ * [STABILITY_ANCHOR: NEURAL_HIJACK_NUCLEAR_V30.0]
  * محرك الاستحواذ النووي المطور: إعادة كتابة شاملة للمحتوى لكسر حظر CORS وتفعيل الأزرار.
  */
 
@@ -58,7 +58,10 @@ async function handleProxyRequest(request: NextRequest) {
       const getProxyUrl = (url: string) => {
         if (!url || typeof url !== 'string' || url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('javascript:') || url.startsWith('#')) return url;
         try {
+          // تحويل الروابط النسبية إلى مطلقة قبل تشفيرها في البروكسي
           const absoluteUrl = new URL(url, targetUrl).href;
+          // فلتر المحتوى: منع ملفات التتبع لزيادة السرعة
+          if (absoluteUrl.includes('google-analytics') || absoluteUrl.includes('doubleclick')) return '';
           return `${proxyPath}?url=${encodeURIComponent(absoluteUrl)}`;
         } catch(e) { return url; }
       };
@@ -66,10 +69,11 @@ async function handleProxyRequest(request: NextRequest) {
       // إعادة كتابة الروابط في الـ HTML (Scripts, Links, Images, Forms)
       // هذا يحل مشكلة CORS لأن المتصفح سيراها كروابط داخلية من نكسوس
       html = html.replace(/(src|href|action|data-src)=["'](.*?)["']/gi, (match, attr, url) => {
-        return `${attr}="${getProxyUrl(url)}"`;
+        const proxied = getProxyUrl(url);
+        return proxied ? `${attr}="${proxied}"` : '';
       });
 
-      // حقن سكريبت المراقبة والتشخيص المطور (The Spy Client V29)
+      // حقن سكريبت الاستحواذ العميق (Deep Hijack V30)
       const spyScript = `
         <script>
           (function() {
@@ -89,7 +93,8 @@ async function handleProxyRequest(request: NextRequest) {
             const originalCreateElement = document.createElement;
             document.createElement = function(tagName) {
               const el = originalCreateElement.apply(this, arguments);
-              if (tagName.toLowerCase() === 'script' || tagName.toLowerCase() === 'link' || tagName.toLowerCase() === 'img') {
+              const tag = tagName.toLowerCase();
+              if (tag === 'script' || tag === 'link' || tag === 'img' || tag === 'iframe') {
                 const originalSetAttribute = el.setAttribute;
                 el.setAttribute = function(name, value) {
                   if (name === 'src' || name === 'href') {
@@ -98,7 +103,7 @@ async function handleProxyRequest(request: NextRequest) {
                   return originalSetAttribute.apply(this, [name, value]);
                 };
                 
-                // اعتراض خاصية .src مباشرة
+                // اعتراض خاصية .src مباشرة عبر Prototype
                 Object.defineProperty(el, 'src', {
                   set: function(val) { el.setAttribute('src', val); },
                   get: function() { return el.getAttribute('src'); }
@@ -119,14 +124,19 @@ async function handleProxyRequest(request: NextRequest) {
               return originalOpen.apply(this, [method, getProxyUrl(url), ...Array.from(arguments).slice(2)]);
             };
 
-            console.log("🚀 Nexus Spy Client V29: DEEP RESOURCE HIJACK ACTIVE");
+            // 📡 اختطاف الـ Location لضمان بقاء الأزرار داخل الإطار
+            const originalPushState = history.pushState;
+            history.pushState = function(state, title, url) {
+              return originalPushState.apply(this, [state, title, getProxyUrl(url)]);
+            };
+
+            console.log("🚀 Nexus Nuclear Hijack V30: DEEP INTERCEPTION ACTIVE");
           })();
         </script>
       `;
 
-      // إضافة base href لضمان تحميل الروابط النسبية
+      // إضافة base href وحقن السكريبت
       html = html.replace('<head>', `<head><base href="${targetOrigin}/">`);
-      // حقن السكريبت في نهاية الـ body
       html = html.replace('</body>', `${spyScript}</body>`);
 
       const res = new NextResponse(html, {
@@ -138,8 +148,8 @@ async function handleProxyRequest(request: NextRequest) {
         },
       });
 
-      // حذف قيود الحماية التي قد تمنع العرض
-      ['content-security-policy', 'x-frame-options', 'permissions-policy'].forEach(h => res.headers.delete(h));
+      // حذف كافة قيود الحماية التي قد تمنع العرض أو عمل الأزرار
+      ['content-security-policy', 'x-frame-options', 'permissions-policy', 'x-content-type-options'].forEach(h => res.headers.delete(h));
       
       return res;
     }
@@ -150,6 +160,10 @@ async function handleProxyRequest(request: NextRequest) {
       headers: response.headers,
     });
     proxyRes.headers.set('Access-Control-Allow-Origin', '*');
+    // إجبار المتصفح على معالجة الملفات كـ JS إذا كانت قادمة من نطاقات برمجية
+    if (targetUrl.includes('.js') || targetUrl.includes('boq-identity')) {
+      proxyRes.headers.set('Content-Type', 'application/javascript');
+    }
     return proxyRes;
 
   } catch (err: any) {
