@@ -26,8 +26,8 @@ import { DriveLayoutView } from "./learning/drive-layout-view";
 const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 /**
- * [STABILITY_ANCHOR: KNOWLEDGE_HUB_MODERATED_V8.0]
- * واجهة التعلم - تم تفعيل نظام المراجعة الإدارية الإلزامي وربط وظائف الحذف.
+ * [STABILITY_ANCHOR: KNOWLEDGE_HUB_MODERATED_V8.5]
+ * واجهة التعلم - تم تفعيل نظام المراجعة الإدارية الإلزامي وجلب بيانات الدرايف الحقيقية.
  */
 export function KnowledgeHub() {
   const { user } = useAuth();

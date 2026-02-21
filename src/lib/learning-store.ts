@@ -19,6 +19,7 @@ export interface LearningItem {
   authorId: string;
   orderIndex: number;
   createdAt?: string;
+  size?: string; // مضاف من API درايف
 }
 
 export interface Collection {
@@ -28,6 +29,7 @@ export interface Collection {
   status: ApprovalStatus;
   authorId: string;
   orderIndex: number;
+  subjectId: string;
 }
 
 export interface Subject {
@@ -39,31 +41,37 @@ export interface Subject {
   allowedUserIds: string[] | null;
 }
 
-// مفتاح API لجوجل درايف (يجب إضافته في .env)
 const DRIVE_API_KEY = process.env.NEXT_PUBLIC_DRIVE_API_KEY || "";
 
 /**
- * جلب المواد التعليمية مع مراعاة حالة الموافقة.
+ * وظيفة استخراج ID الملف من رابط جوجل درايف
  */
+export const extractDriveId = (url: string) => {
+  const match = url.match(/[-\w]{25,}/);
+  return match ? match[0] : null;
+};
+
+/**
+ * جلب بيانات الملف الحقيقية من Google Drive API
+ */
+export const fetchDriveMetadata = async (fileId: string) => {
+  if (!DRIVE_API_KEY) return null;
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=name,size,mimeType&key=${DRIVE_API_KEY}`);
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+};
+
 export const getSubjects = async (userId?: string, isAdmin = false): Promise<Subject[]> => {
   const { firestore } = initializeFirebase();
   try {
     const snap = await getDocs(collection(firestore, 'subjects'));
     const subjects = snap.docs.map(d => ({ id: d.id, ...d.data() } as Subject));
-    
     if (isAdmin) return subjects;
-
-    // المستخدم العادي يرى المعتمد فقط أو ما يخصه إذا كان ينتظر المراجعة
-    return subjects.filter(s => {
-      const isApproved = s.status === 'approved';
-      const isMine = s.authorId === userId;
-      if (!isApproved && !isMine) return false;
-      
-      if (!s.allowedUserIds || s.allowedUserIds.length === 0) return true;
-      return userId && s.allowedUserIds.includes(userId);
-    });
+    return subjects.filter(s => s.status === 'approved' || s.authorId === userId);
   } catch (e) {
-    console.error("Fetch Subjects Error:", e);
     return [];
   }
 };
@@ -98,12 +106,9 @@ export const getCollections = async (subjectId: string, userId?: string, isAdmin
     const colRef = collection(firestore, 'subjects', subjectId, 'collections');
     const q = query(colRef, orderBy('orderIndex', 'asc'));
     const snap = await getDocs(q);
-    const cols = snap.docs.map(d => ({ id: d.id, ...d.data() } as Collection));
-    
-    if (isAdmin) return cols;
-    return cols.filter(c => c.status === 'approved' || c.authorId === userId);
+    return snap.docs.map(d => ({ id: d.id, ...d.data(), subjectId } as Collection))
+      .filter(c => isAdmin || c.status === 'approved' || c.authorId === userId);
   } catch (e) {
-    console.error("Fetch Collections Error:", e);
     return [];
   }
 };
@@ -134,12 +139,9 @@ export const getLearningItems = async (subjectId: string, collectionId: string, 
     const itemsRef = collection(firestore, 'subjects', subjectId, 'collections', collectionId, 'learning_items');
     const q = query(itemsRef, orderBy('orderIndex', 'asc'));
     const snap = await getDocs(q);
-    const items = snap.docs.map(d => ({ id: d.id, ...d.data(), collectionId, subjectId } as LearningItem));
-    
-    if (isAdmin) return items;
-    return items.filter(i => i.status === 'approved' || i.authorId === userId);
+    return snap.docs.map(d => ({ id: d.id, ...d.data(), collectionId, subjectId } as LearningItem))
+      .filter(i => isAdmin || i.status === 'approved' || i.authorId === userId);
   } catch (e) {
-    console.error("Fetch Learning Items Error:", e);
     return [];
   }
 };
@@ -149,8 +151,17 @@ export const addLearningItem = async (data: { subjectId: string, collectionId: s
   const { subjectId, collectionId, ...rest } = data;
   const itemsRef = collection(firestore, 'subjects', subjectId, 'collections', collectionId, 'learning_items');
   
+  // محاولة جلب ميتا-داتا إذا كان الرابط من درايف
+  let size = "Unknown";
+  const driveId = extractDriveId(data.url);
+  if (driveId) {
+    const meta = await fetchDriveMetadata(driveId);
+    if (meta && meta.size) size = `${(parseInt(meta.size) / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
   await addDoc(itemsRef, {
     ...rest,
+    size,
     status: isAdmin ? 'approved' : 'pending',
     createdAt: new Date().toISOString()
   });
@@ -173,20 +184,10 @@ export const uploadLearningFile = async (file: File, onProgress?: (pct: number) 
   
   return new Promise((resolve, reject) => {
     const uploadTask = uploadBytesResumable(storageRef, file);
-    
     uploadTask.on('state_changed', 
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        onProgress?.(progress);
-      }, 
-      (error) => {
-        console.error("Firebase Storage Upload Error:", error);
-        reject(error);
-      }, 
-      async () => {
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        resolve(downloadURL);
-      }
+      (snapshot) => onProgress?.((snapshot.bytesTransferred / snapshot.totalBytes) * 100), 
+      (error) => reject(error), 
+      async () => resolve(await getDownloadURL(uploadTask.snapshot.ref))
     );
   });
 };
