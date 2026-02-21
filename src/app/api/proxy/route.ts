@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * [STABILITY_ANCHOR: NEURAL_HIJACK_NUCLEAR_V30.0]
- * محرك الاستحواذ النووي المطور: إعادة كتابة شاملة للمحتوى لكسر حظر CORS وتفعيل الأزرار.
+ * [STABILITY_ANCHOR: NEURAL_PROXY_V31.0_SW_CORE]
+ * محرك البوابة العصبية 3.0: التوقف عن تعديل الكود يدوياً والاعتماد على Service Worker.
  */
 
 async function handleProxyRequest(request: NextRequest) {
@@ -23,6 +23,8 @@ async function handleProxyRequest(request: NextRequest) {
         const contentType = request.headers.get('content-type');
         if (contentType?.includes('application/json')) {
           body = JSON.stringify(await request.json());
+        } else if (contentType?.includes('form')) {
+          body = await request.formData();
         } else {
           body = await request.text();
         }
@@ -48,96 +50,42 @@ async function handleProxyRequest(request: NextRequest) {
 
     const contentType = response.headers.get('content-type') || '';
     
-    // إذا كان المحتوى HTML، نقوم بإعادة كتابة الروابط وحقن السكريبت
+    // إذا كان المحتوى HTML، نقوم بحقن سكريبت تسجيل الـ Service Worker
     if (contentType.includes('text/html')) {
       let html = await response.text();
       const targetOrigin = new URL(targetUrl).origin;
-      const proxyPath = request.nextUrl.pathname;
 
-      // وظيفة مساعدة لتحويل الروابط داخل الـ HTML
-      const getProxyUrl = (url: string) => {
-        if (!url || typeof url !== 'string' || url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('javascript:') || url.startsWith('#')) return url;
-        try {
-          // تحويل الروابط النسبية إلى مطلقة قبل تشفيرها في البروكسي
-          const absoluteUrl = new URL(url, targetUrl).href;
-          // فلتر المحتوى: منع ملفات التتبع لزيادة السرعة
-          if (absoluteUrl.includes('google-analytics') || absoluteUrl.includes('doubleclick')) return '';
-          return `${proxyPath}?url=${encodeURIComponent(absoluteUrl)}`;
-        } catch(e) { return url; }
-      };
-
-      // إعادة كتابة الروابط في الـ HTML (Scripts, Links, Images, Forms)
-      // هذا يحل مشكلة CORS لأن المتصفح سيراها كروابط داخلية من نكسوس
-      html = html.replace(/(src|href|action|data-src)=["'](.*?)["']/gi, (match, attr, url) => {
-        const proxied = getProxyUrl(url);
-        return proxied ? `${attr}="${proxied}"` : '';
-      });
-
-      // حقن سكريبت الاستحواذ العميق (Deep Hijack V30)
-      const spyScript = `
+      // سكريبت التهيئة وتسجيل الـ SW
+      const bootScript = `
         <script>
           (function() {
-            const PROXY_PATH = "${proxyPath}";
-            const TARGET_ORIGIN = "${targetOrigin}";
+            window.__NEXUS_TARGET_ORIGIN__ = "${targetOrigin}";
+            
+            // تسجيل الـ Service Worker على مستوى النطاق
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.register('/sw.js').then(reg => {
+                console.log('🚀 Nexus Proxy SW: Registered', reg.scope);
+                // إجبار الصفحة على التحديث إذا كان الـ SW جديداً لضمان السيطرة
+                if (!navigator.serviceWorker.controller) {
+                  window.location.reload();
+                }
+              }).catch(err => console.error('❌ Proxy SW Fail:', err));
+            }
 
-            const getProxyUrl = (url) => {
-              if (!url || typeof url !== 'string' || url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('javascript:') || url.startsWith('#')) return url;
-              try {
-                const absoluteUrl = new URL(url, window.location.href).href;
-                if (absoluteUrl.includes(PROXY_PATH + '?url=')) return url;
-                return PROXY_PATH + '?url=' + encodeURIComponent(absoluteUrl);
-              } catch(e) { return url; }
-            };
-
-            // 📡 اختطاف إنشاء العناصر (لحل مشكلة gstatic وغيرها من الموارد الديناميكية)
-            const originalCreateElement = document.createElement;
-            document.createElement = function(tagName) {
-              const el = originalCreateElement.apply(this, arguments);
-              const tag = tagName.toLowerCase();
-              if (tag === 'script' || tag === 'link' || tag === 'img' || tag === 'iframe') {
-                const originalSetAttribute = el.setAttribute;
-                el.setAttribute = function(name, value) {
-                  if (name === 'src' || name === 'href') {
-                    value = getProxyUrl(value);
-                  }
-                  return originalSetAttribute.apply(this, [name, value]);
-                };
-                
-                // اعتراض خاصية .src مباشرة عبر Prototype
-                Object.defineProperty(el, 'src', {
-                  set: function(val) { el.setAttribute('src', val); },
-                  get: function() { return el.getAttribute('src'); }
-                });
+            // اختطاف الـ Location لضمان بقاء الروابط داخل الجسر
+            const originalOpen = window.open;
+            window.open = function(url, name, specs) {
+              if (url && typeof url === 'string' && !url.startsWith(window.location.origin)) {
+                url = '/api/proxy?url=' + encodeURIComponent(new URL(url, "${targetOrigin}").href);
               }
-              return el;
+              return originalOpen.call(window, url, name, specs);
             };
-
-            // 📡 اختطاف FETCH و XHR لضمان بقاء البيانات داخل الجسر
-            const originalFetch = window.fetch;
-            window.fetch = function(input, init) {
-              let url = typeof input === 'string' ? input : (input.url || input);
-              return originalFetch(getProxyUrl(url), init);
-            };
-
-            const originalOpen = XMLHttpRequest.prototype.open;
-            XMLHttpRequest.prototype.open = function(method, url) {
-              return originalOpen.apply(this, [method, getProxyUrl(url), ...Array.from(arguments).slice(2)]);
-            };
-
-            // 📡 اختطاف الـ Location لضمان بقاء الأزرار داخل الإطار
-            const originalPushState = history.pushState;
-            history.pushState = function(state, title, url) {
-              return originalPushState.apply(this, [state, title, getProxyUrl(url)]);
-            };
-
-            console.log("🚀 Nexus Nuclear Hijack V30: DEEP INTERCEPTION ACTIVE");
           })();
         </script>
       `;
 
-      // إضافة base href وحقن السكريبت
-      html = html.replace('<head>', `<head><base href="${targetOrigin}/">`);
-      html = html.replace('</body>', `${spyScript}</body>`);
+      // حقن الـ Base والـ BootScript
+      html = html.replace('<head>', `<head><base href="${targetOrigin}/">${bootScript}`);
 
       const res = new NextResponse(html, {
         status: response.status,
@@ -148,22 +96,24 @@ async function handleProxyRequest(request: NextRequest) {
         },
       });
 
-      // حذف كافة قيود الحماية التي قد تمنع العرض أو عمل الأزرار
+      // حذف قيود الحماية
       ['content-security-policy', 'x-frame-options', 'permissions-policy', 'x-content-type-options'].forEach(h => res.headers.delete(h));
       
       return res;
     }
 
-    // إذا لم يكن HTML (مثل ملفات JS من gstatic)، نمرره مع السماح بـ CORS
+    // للموارد الأخرى (JS, CSS, Images)
     const proxyRes = new NextResponse(response.body, {
       status: response.status,
       headers: response.headers,
     });
     proxyRes.headers.set('Access-Control-Allow-Origin', '*');
-    // إجبار المتصفح على معالجة الملفات كـ JS إذا كانت قادمة من نطاقات برمجية
-    if (targetUrl.includes('.js') || targetUrl.includes('boq-identity')) {
+    
+    // تصحيح MIME type لملفات جوجل
+    if (targetUrl.includes('.js') || targetUrl.includes('/js/')) {
       proxyRes.headers.set('Content-Type', 'application/javascript');
     }
+
     return proxyRes;
 
   } catch (err: any) {
