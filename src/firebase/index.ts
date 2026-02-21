@@ -14,8 +14,8 @@ import {
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 /**
- * [STABILITY_ANCHOR: FIREBASE_CORE_V8.2]
- * تهيئة خدمات Firebase مع تحديث نظام التخزين المحلي لإزالة التحذيرات deprecation.
+ * [STABILITY_ANCHOR: FIREBASE_CORE_V8.5]
+ * تهيئة خدمات Firebase مع ضمان عدم تكرار الاستدعاء واستخدام أحدث بروتوكولات التخزين لمنع تحذيرات الـ deprecation.
  */
 
 let cachedSdks: {
@@ -37,7 +37,8 @@ export function initializeFirebase() {
 
   const auth = getAuth(app);
   
-  // تحديث طريقة تفعيل الـ Persistence للتوافق مع الإصدارات الحديثة ومنع التحذيرات
+  // تفعيل التخزين المحلي باستخدام الطريقة الحديثة (Firestore v11+)
+  // هذا يمنع ظهور رسالة التحذير enableIndexedDbPersistence()
   const firestore = initializeFirestore(app, {
     localCache: persistentLocalCache({
       tabManager: persistentMultipleTabManager()
@@ -57,11 +58,13 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
+  // نستخدم initializeFirebase لضمان الحصول على النسخة المهيأة بالـ Cache الصحيح
+  const sdks = initializeFirebase();
   return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp),
-    storage: getStorage(firebaseApp)
+    firebaseApp: sdks.firebaseApp,
+    auth: sdks.auth,
+    firestore: sdks.firestore,
+    storage: sdks.storage
   };
 }
 
