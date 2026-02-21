@@ -19,7 +19,7 @@ export interface LearningItem {
   authorId: string;
   orderIndex: number;
   createdAt?: string;
-  size?: string; // مضاف من API درايف
+  size?: string;
 }
 
 export interface Collection {
@@ -44,23 +44,40 @@ export interface Subject {
 const DRIVE_API_KEY = process.env.NEXT_PUBLIC_DRIVE_API_KEY || "";
 
 /**
- * وظيفة استخراج ID الملف من رابط جوجل درايف
+ * [STABILITY_ANCHOR: DRIVE_API_ORCHESTRATOR]
+ * محرك الربط الحقيقي مع Google Drive API لضمان استقرار جلب البيانات.
  */
+
 export const extractDriveId = (url: string) => {
   const match = url.match(/[-\w]{25,}/);
   return match ? match[0] : null;
 };
 
-/**
- * جلب بيانات الملف الحقيقية من Google Drive API
- */
 export const fetchDriveMetadata = async (fileId: string) => {
   if (!DRIVE_API_KEY) return null;
   try {
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=name,size,mimeType&key=${DRIVE_API_KEY}`);
-    return await res.json();
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=name,size,mimeType,thumbnailLink,iconLink&key=${DRIVE_API_KEY}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    return data;
   } catch (e) {
+    console.error("Drive API Fetch Error:", e);
     return null;
+  }
+};
+
+/**
+ * جلب قائمة الملفات من مجلد معين في درايف باستخدام الـ API Key
+ */
+export const fetchDriveFolderFiles = async (folderId: string) => {
+  if (!DRIVE_API_KEY) return [];
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&fields=files(id,name,mimeType,size,webViewLink,iconLink,thumbnailLink)&key=${DRIVE_API_KEY}`);
+    const data = await res.json();
+    return data.files || [];
+  } catch (e) {
+    console.error("Folder Fetch Error:", e);
+    return [];
   }
 };
 
@@ -151,7 +168,6 @@ export const addLearningItem = async (data: { subjectId: string, collectionId: s
   const { subjectId, collectionId, ...rest } = data;
   const itemsRef = collection(firestore, 'subjects', subjectId, 'collections', collectionId, 'learning_items');
   
-  // محاولة جلب ميتا-داتا إذا كان الرابط من درايف
   let size = "Unknown";
   const driveId = extractDriveId(data.url);
   if (driveId) {
