@@ -48,6 +48,7 @@ async function handleProxyRequest(request: NextRequest) {
 
     const contentType = response.headers.get('content-type') || '';
     
+    // إذا كان المحتوى HTML، نقوم بإعادة كتابة الروابط وحقن السكريبت
     if (contentType.includes('text/html')) {
       let html = await response.text();
       const targetOrigin = new URL(targetUrl).origin;
@@ -63,6 +64,7 @@ async function handleProxyRequest(request: NextRequest) {
       };
 
       // إعادة كتابة الروابط في الـ HTML (Scripts, Links, Images, Forms)
+      // هذا يحل مشكلة CORS لأن المتصفح سيراها كروابط داخلية من نكسوس
       html = html.replace(/(src|href|action|data-src)=["'](.*?)["']/gi, (match, attr, url) => {
         return `${attr}="${getProxyUrl(url)}"`;
       });
@@ -83,7 +85,7 @@ async function handleProxyRequest(request: NextRequest) {
               } catch(e) { return url; }
             };
 
-            // 📡 اختطاف إنشاء العناصر (لحل مشكلة gstatic)
+            // 📡 اختطاف إنشاء العناصر (لحل مشكلة gstatic وغيرها من الموارد الديناميكية)
             const originalCreateElement = document.createElement;
             document.createElement = function(tagName) {
               const el = originalCreateElement.apply(this, arguments);
@@ -95,6 +97,8 @@ async function handleProxyRequest(request: NextRequest) {
                   }
                   return originalSetAttribute.apply(this, [name, value]);
                 };
+                
+                // اعتراض خاصية .src مباشرة
                 Object.defineProperty(el, 'src', {
                   set: function(val) { el.setAttribute('src', val); },
                   get: function() { return el.getAttribute('src'); }
@@ -103,7 +107,7 @@ async function handleProxyRequest(request: NextRequest) {
               return el;
             };
 
-            // 📡 اختطاف FETCH و XHR
+            // 📡 اختطاف FETCH و XHR لضمان بقاء البيانات داخل الجسر
             const originalFetch = window.fetch;
             window.fetch = function(input, init) {
               let url = typeof input === 'string' ? input : (input.url || input);
@@ -120,7 +124,9 @@ async function handleProxyRequest(request: NextRequest) {
         </script>
       `;
 
+      // إضافة base href لضمان تحميل الروابط النسبية
       html = html.replace('<head>', `<head><base href="${targetOrigin}/">`);
+      // حقن السكريبت في نهاية الـ body
       html = html.replace('</body>', `${spyScript}</body>`);
 
       const res = new NextResponse(html, {
@@ -132,7 +138,7 @@ async function handleProxyRequest(request: NextRequest) {
         },
       });
 
-      // حذف قيود الحماية
+      // حذف قيود الحماية التي قد تمنع العرض
       ['content-security-policy', 'x-frame-options', 'permissions-policy'].forEach(h => res.headers.delete(h));
       
       return res;

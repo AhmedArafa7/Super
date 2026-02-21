@@ -38,7 +38,7 @@ export function initializeFirebase() {
   const auth = getAuth(app);
   
   // تفعيل التخزين المحلي باستخدام الطريقة الحديثة (Firestore v11+)
-  // هذا يمنع ظهور رسالة التحذير enableIndexedDbPersistence()
+  // هذا يمنع ظهور رسالة التحذير enableIndexedDbPersistence() التي ظهرت في سجلاتك
   const firestore = initializeFirestore(app, {
     localCache: persistentLocalCache({
       tabManager: persistentMultipleTabManager()
@@ -58,7 +58,6 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
-  // نستخدم initializeFirebase لضمان الحصول على النسخة المهيأة بالـ Cache الصحيح
   const sdks = initializeFirebase();
   return {
     firebaseApp: sdks.firebaseApp,
