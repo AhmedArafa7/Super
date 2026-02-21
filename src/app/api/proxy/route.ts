@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * [STABILITY_ANCHOR: NEURAL_HIJACK_NUCLEAR_V28.0]
- * محرك الاستحواذ النووي المطور: يدعم سجل أخطاء البروكسي وإعادة الكتابة الذكية.
+ * [STABILITY_ANCHOR: NEURAL_HIJACK_NUCLEAR_V29.0]
+ * محرك الاستحواذ النووي المطور: إعادة كتابة شاملة للمحتوى لكسر حظر CORS وتفعيل الأزرار.
  */
 
 async function handleProxyRequest(request: NextRequest) {
@@ -53,7 +53,21 @@ async function handleProxyRequest(request: NextRequest) {
       const targetOrigin = new URL(targetUrl).origin;
       const proxyPath = request.nextUrl.pathname;
 
-      // حقن سكريبت المراقبة والتشخيص (The Spy Client)
+      // وظيفة مساعدة لتحويل الروابط داخل الـ HTML
+      const getProxyUrl = (url: string) => {
+        if (!url || typeof url !== 'string' || url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('javascript:') || url.startsWith('#')) return url;
+        try {
+          const absoluteUrl = new URL(url, targetUrl).href;
+          return `${proxyPath}?url=${encodeURIComponent(absoluteUrl)}`;
+        } catch(e) { return url; }
+      };
+
+      // إعادة كتابة الروابط في الـ HTML (Scripts, Links, Images, Forms)
+      html = html.replace(/(src|href|action|data-src)=["'](.*?)["']/gi, (match, attr, url) => {
+        return `${attr}="${getProxyUrl(url)}"`;
+      });
+
+      // حقن سكريبت المراقبة والتشخيص المطور (The Spy Client V29)
       const spyScript = `
         <script>
           (function() {
@@ -63,70 +77,45 @@ async function handleProxyRequest(request: NextRequest) {
             const getProxyUrl = (url) => {
               if (!url || typeof url !== 'string' || url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('javascript:') || url.startsWith('#')) return url;
               try {
-                const absoluteUrl = new URL(url, TARGET_ORIGIN).href;
-                if (absoluteUrl.startsWith(window.location.origin + PROXY_PATH)) return url;
+                const absoluteUrl = new URL(url, window.location.href).href;
+                if (absoluteUrl.includes(PROXY_PATH + '?url=')) return url;
                 return PROXY_PATH + '?url=' + encodeURIComponent(absoluteUrl);
               } catch(e) { return url; }
             };
 
-            const logError = (data) => {
-              fetch('/api/proxy/log', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...data, sourceUrl: window.location.href, targetOrigin: TARGET_ORIGIN })
-              }).catch(() => {});
+            // 📡 اختطاف إنشاء العناصر (لحل مشكلة gstatic)
+            const originalCreateElement = document.createElement;
+            document.createElement = function(tagName) {
+              const el = originalCreateElement.apply(this, arguments);
+              if (tagName.toLowerCase() === 'script' || tagName.toLowerCase() === 'link' || tagName.toLowerCase() === 'img') {
+                const originalSetAttribute = el.setAttribute;
+                el.setAttribute = function(name, value) {
+                  if (name === 'src' || name === 'href') {
+                    value = getProxyUrl(value);
+                  }
+                  return originalSetAttribute.apply(this, [name, value]);
+                };
+                Object.defineProperty(el, 'src', {
+                  set: function(val) { el.setAttribute('src', val); },
+                  get: function() { return el.getAttribute('src'); }
+                });
+              }
+              return el;
             };
 
-            // 📡 اختطاف FETCH مع تسجيل الأخطاء
+            // 📡 اختطاف FETCH و XHR
             const originalFetch = window.fetch;
             window.fetch = function(input, init) {
               let url = typeof input === 'string' ? input : (input.url || input);
-              const proxiedUrl = getProxyUrl(url);
-              console.log("📡 Proxy Fetch:", url);
-              return originalFetch(proxiedUrl, init).catch(err => {
-                logError({ type: 'fetch_failed', failedUrl: url, error: err.message });
-                throw err;
-              });
+              return originalFetch(getProxyUrl(url), init);
             };
 
-            // 📡 اختطاف XHR
             const originalOpen = XMLHttpRequest.prototype.open;
             XMLHttpRequest.prototype.open = function(method, url) {
-              const proxiedUrl = getProxyUrl(url);
-              this._targetUrl = url;
-              return originalOpen.apply(this, [method, proxiedUrl, ...Array.from(arguments).slice(2)]);
+              return originalOpen.apply(this, [method, getProxyUrl(url), ...Array.from(arguments).slice(2)]);
             };
 
-            // 📡 اختطاف الملاحة والتاريخ
-            const originalPushState = history.pushState;
-            window.history.pushState = function(state, title, url) {
-              return originalPushState.apply(this, [state, title, getProxyUrl(url)]);
-            };
-
-            // 📡 اختطاف الروابط الديناميكية (Attribute Observer)
-            const observer = new MutationObserver((mutations) => {
-              mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                  if (node.tagName === 'A') node.href = getProxyUrl(node.href);
-                  if (node.tagName === 'FORM') node.action = getProxyUrl(node.action);
-                });
-              });
-            });
-            observer.observe(document.body, { childList: true, subtree: true });
-
-            // 📡 اعتراض النقرات الشامل
-            document.addEventListener('click', function(e) {
-              const target = e.target.closest('a, button, [role="button"]');
-              if (target && target.tagName === 'A' && target.href) {
-                const newUrl = getProxyUrl(target.href);
-                if (newUrl !== target.href) {
-                  e.preventDefault();
-                  window.location.href = newUrl;
-                }
-              }
-            }, true);
-
-            console.log("🚀 Nexus Spy Client V28: ACTIVE");
+            console.log("🚀 Nexus Spy Client V29: DEEP RESOURCE HIJACK ACTIVE");
           })();
         </script>
       `;
@@ -138,24 +127,27 @@ async function handleProxyRequest(request: NextRequest) {
         status: response.status,
         headers: { 
           'Content-Type': 'text/html',
-          'X-Frame-Options': 'ALLOWALL',
           'Access-Control-Allow-Origin': '*',
+          'X-Frame-Options': 'ALLOWALL'
         },
       });
 
-      const securityHeaders = ['content-security-policy', 'x-frame-options', 'x-content-type-options', 'permissions-policy'];
-      securityHeaders.forEach(h => res.headers.delete(h));
+      // حذف قيود الحماية
+      ['content-security-policy', 'x-frame-options', 'permissions-policy'].forEach(h => res.headers.delete(h));
       
       return res;
     }
 
-    return new NextResponse(response.body, {
+    // إذا لم يكن HTML (مثل ملفات JS من gstatic)، نمرره مع السماح بـ CORS
+    const proxyRes = new NextResponse(response.body, {
       status: response.status,
       headers: response.headers,
     });
+    proxyRes.headers.set('Access-Control-Allow-Origin', '*');
+    return proxyRes;
 
   } catch (err: any) {
-    return NextResponse.json({ error: 'Neural Gateway Disturbance' }, { status: 502 });
+    return NextResponse.json({ error: 'Neural Gateway Timeout' }, { status: 504 });
   }
 }
 
