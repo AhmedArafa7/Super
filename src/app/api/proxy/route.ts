@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * [STABILITY_ANCHOR: NEURAL_PROXY_V31.0_SW_CORE]
- * محرك البوابة العصبية 3.0: التوقف عن تعديل الكود يدوياً والاعتماد على Service Worker.
+ * [STABILITY_ANCHOR: NEURAL_PROXY_V32.0_SOVEREIGN]
+ * محرك البوابة العصبية السيادي: تطبيق الافتراضية المزدوجة وتطهير الكوكيز.
  */
 
 async function handleProxyRequest(request: NextRequest) {
@@ -50,33 +50,40 @@ async function handleProxyRequest(request: NextRequest) {
 
     const contentType = response.headers.get('content-type') || '';
     
-    // إذا كان المحتوى HTML، نقوم بحقن سكريبت تسجيل الـ Service Worker
     if (contentType.includes('text/html')) {
       let html = await response.text();
       const targetOrigin = new URL(targetUrl).origin;
+      const nexusOrigin = request.nextUrl.origin;
 
-      // سكريبت التهيئة وتسجيل الـ SW
+      // سكريبت الافتراضية المزدوجة: اختطاف الـ SW ومنع الموقع الأصلي من تسجيل عامله
       const bootScript = `
         <script>
           (function() {
             window.__NEXUS_TARGET_ORIGIN__ = "${targetOrigin}";
+            window.__NEXUS_ORIGIN__ = "${nexusOrigin}";
             
-            // تسجيل الـ Service Worker على مستوى النطاق
+            // 1. اختطاف محرك تسجيل الـ Service Worker (Double Virtualization)
+            const originalRegister = navigator.serviceWorker.register;
+            navigator.serviceWorker.register = function(url, options) {
+              console.log('🛡️ Nexus Guard: Blocked external SW registration attempt for:', url);
+              return Promise.reject(new Error("External SW registration disabled in Nexus Sandbox"));
+            };
+
+            // 2. تسجيل الـ SW الخاص بنكسوس من النطاق الصحيح
             if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.register('/sw.js').then(reg => {
-                console.log('🚀 Nexus Proxy SW: Registered', reg.scope);
-                // إجبار الصفحة على التحديث إذا كان الـ SW جديداً لضمان السيطرة
+              navigator.serviceWorker.register(window.__NEXUS_ORIGIN__ + '/sw.js', { scope: '/' }).then(reg => {
+                console.log('🚀 Nexus Sovereign SW: Registered successfully');
                 if (!navigator.serviceWorker.controller) {
                   window.location.reload();
                 }
-              }).catch(err => console.error('❌ Proxy SW Fail:', err));
+              }).catch(err => console.error('❌ Sovereign SW Fail:', err));
             }
 
-            // اختطاف الـ Location لضمان بقاء الروابط داخل الجسر
+            // 3. اختطاف الـ Fetch و XHR لضمان المسار العصبي
             const originalOpen = window.open;
             window.open = function(url, name, specs) {
               if (url && typeof url === 'string' && !url.startsWith(window.location.origin)) {
-                url = '/api/proxy?url=' + encodeURIComponent(new URL(url, "${targetOrigin}").href);
+                url = window.__NEXUS_ORIGIN__ + '/api/proxy?url=' + encodeURIComponent(new URL(url, "${targetOrigin}").href);
               }
               return originalOpen.call(window, url, name, specs);
             };
@@ -84,7 +91,6 @@ async function handleProxyRequest(request: NextRequest) {
         </script>
       `;
 
-      // حقن الـ Base والـ BootScript
       html = html.replace('<head>', `<head><base href="${targetOrigin}/">${bootScript}`);
 
       const res = new NextResponse(html, {
@@ -96,8 +102,19 @@ async function handleProxyRequest(request: NextRequest) {
         },
       });
 
+      // تطهير الكوكيز السيادي: إزالة قيود الـ Domain و SameSite
+      response.headers.forEach((value, key) => {
+        if (key.toLowerCase() === 'set-cookie') {
+          const cleanCookie = value
+            .replace(/Domain=[^;]+;?/gi, '')
+            .replace(/SameSite=[^;]+;?/gi, 'SameSite=Lax')
+            .replace(/Secure;?/gi, '');
+          res.headers.append('Set-Cookie', cleanCookie);
+        }
+      });
+
       // حذف قيود الحماية
-      ['content-security-policy', 'x-frame-options', 'permissions-policy', 'x-content-type-options'].forEach(h => res.headers.delete(h));
+      ['content-security-policy', 'x-frame-options', 'permissions-policy', 'x-content-type-options', 'cross-origin-opener-policy'].forEach(h => res.headers.delete(h));
       
       return res;
     }
