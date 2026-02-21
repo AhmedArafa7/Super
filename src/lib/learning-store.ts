@@ -44,8 +44,8 @@ export interface Subject {
 const DRIVE_API_KEY = process.env.NEXT_PUBLIC_DRIVE_API_KEY || "";
 
 /**
- * [STABILITY_ANCHOR: DRIVE_API_ORCHESTRATOR]
- * محرك الربط الحقيقي مع Google Drive API لضمان استقرار جلب البيانات.
+ * [STABILITY_ANCHOR: LEARNING_STORE_V4.1]
+ * محرك إدارة المحتوى المعرفي - تم إضافة وظيفة جلب ملفات المجلد لدعم Vault Explorer.
  */
 
 export const extractDriveId = (url: string) => {
@@ -58,25 +58,30 @@ export const fetchDriveMetadata = async (fileId: string) => {
   try {
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=name,size,mimeType,thumbnailLink,iconLink&key=${DRIVE_API_KEY}`);
     const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
+    if (data.error) return null;
     return data;
   } catch (e) {
-    console.error("Drive API Fetch Error:", e);
     return null;
   }
 };
 
 /**
- * جلب قائمة الملفات من مجلد معين في درايف باستخدام الـ API Key
+ * جلب قائمة الملفات من مجلد محدد في Google Drive.
  */
 export const fetchDriveFolderFiles = async (folderId: string) => {
-  if (!DRIVE_API_KEY) return [];
+  if (!DRIVE_API_KEY) {
+    console.warn("DRIVE_API_KEY_MISSING: يرجى إعداد مفتاح API في المتغيرات البيئية.");
+    return [];
+  }
   try {
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&fields=files(id,name,mimeType,size,webViewLink,iconLink,thumbnailLink)&key=${DRIVE_API_KEY}`);
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&fields=files(id,name,size,mimeType,webViewLink,thumbnailLink)&key=${DRIVE_API_KEY}`
+    );
     const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
     return data.files || [];
   } catch (e) {
-    console.error("Folder Fetch Error:", e);
+    console.error("Fetch Drive Folder Error:", e);
     return [];
   }
 };
@@ -85,8 +90,10 @@ export const getSubjects = async (userId?: string, isAdmin = false): Promise<Sub
   const { firestore } = initializeFirebase();
   try {
     const snap = await getDocs(collection(firestore, 'subjects'));
-    const subjects = snap.docs.map(d => ({ id: d.id, ...d.data() } as Subject));
+    let subjects = snap.docs.map(d => ({ id: d.id, ...d.data() } as Subject));
+    
     if (isAdmin) return subjects;
+    // المستخدم يرى المعتمد + ما قام بإنشائه هو شخصياً
     return subjects.filter(s => s.status === 'approved' || s.authorId === userId);
   } catch (e) {
     return [];

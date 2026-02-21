@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   Plus, Loader2, RefreshCcw, GraduationCap, 
-  LayoutGrid, List as ListIcon, ShieldCheck, Clock
+  LayoutGrid, List as ListIcon, ShieldCheck, Clock, Library
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,8 +26,8 @@ import { DriveLayoutView } from "./learning/drive-layout-view";
 const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 /**
- * [STABILITY_ANCHOR: KNOWLEDGE_HUB_MODERATED_V8.5]
- * واجهة التعلم - تم تفعيل نظام المراجعة الإدارية الإلزامي وجلب بيانات الدرايف الحقيقية.
+ * [STABILITY_ANCHOR: KNOWLEDGE_HUB_V4.0]
+ * واجهة المكتبة المركزية - تدعم الرقابة وعرض المحتوى المقترح للمؤلف فقط قبل الاعتماد.
  */
 export function KnowledgeHub() {
   const { user } = useAuth();
@@ -96,8 +96,8 @@ export function KnowledgeHub() {
     }, user.role === 'admin');
     
     toast({ 
-      title: user.role === 'admin' ? "تم الإنشاء" : "تم إرسال الطلب", 
-      description: user.role === 'admin' ? "المجلد متاح الآن للجميع." : "طلبك قيد المراجعة الإدارية حالياً." 
+      title: user.role === 'admin' ? "تم إنشاء المجلد" : "تم إرسال المقترح", 
+      description: user.role === 'admin' ? "المحتوى متاح للجميع الآن." : "سيظهر طلبك في المكتبة العامة بعد مراجعة الأدمن." 
     });
     
     setIsSubjectModalOpen(false);
@@ -115,7 +115,7 @@ export function KnowledgeHub() {
       orderIndex: collections.length
     }, user.role === 'admin');
     
-    toast({ title: user.role === 'admin' ? "تم الإنشاء" : "تم إرسال الطلب" });
+    toast({ title: user.role === 'admin' ? "تم الإنشاء بنجاح" : "قيد المراجعة الإدارية" });
     setIsCollectionModalOpen(false);
     setNewCollection({ title: "", description: "" });
     handleSelectSubject(selectedSubject);
@@ -133,17 +133,17 @@ export function KnowledgeHub() {
       orderIndex: (itemsMap[activeCollectionId]?.length || 0)
     }, user.role === 'admin');
     
-    toast({ title: user.role === 'admin' ? "تم الربط" : "تم إرسال الطلب" });
+    toast({ title: user.role === 'admin' ? "تم إضافة الدرس" : "طلب الإضافة قيد المراجعة" });
     setIsItemModalOpen(false);
     handleSelectSubject(selectedSubject);
     setNewItem({ title: "", type: "video", externalUrl: "" });
   };
 
   const handleDeleteSubject = async (id: string) => {
-    if (!confirm("هل أنت متأكد من حذف هذا المجلد وكل ما بداخله؟")) return;
+    if (!confirm("هل أنت متأكد؟ سيتم حذف المجلد وكافة محتوياته.")) return;
     try {
       await deleteSubject(id);
-      toast({ title: "تم الحذف بنجاح" });
+      toast({ title: "تم مسح المجلد" });
       loadSubjects();
     } catch (e) {
       toast({ variant: "destructive", title: "فشل الحذف" });
@@ -151,36 +151,14 @@ export function KnowledgeHub() {
   };
 
   const handleRenameSubject = async (id: string, currentTitle: string) => {
-    const newTitle = prompt("أدخل الاسم الجديد للمجلد:", currentTitle);
+    const newTitle = prompt("أدخل الاسم الجديد:", currentTitle);
     if (!newTitle || newTitle === currentTitle) return;
     try {
       await updateSubject(id, { title: newTitle });
-      toast({ title: "تم تحديث الاسم" });
+      toast({ title: "تم تحديث العنوان" });
       loadSubjects();
     } catch (e) {
       toast({ variant: "destructive", title: "فشل التحديث" });
-    }
-  };
-
-  const handleDeleteCollection = async (subjectId: string, colId: string) => {
-    if (!confirm("هل أنت متأكد من حذف هذا المجلد الفرعي؟")) return;
-    try {
-      await deleteCollection(subjectId, colId);
-      toast({ title: "تم الحذف بنجاح" });
-      if (selectedSubject) handleSelectSubject(selectedSubject);
-    } catch (e) {
-      toast({ variant: "destructive", title: "فشل الحذف" });
-    }
-  };
-
-  const handleDeleteItem = async (subjectId: string, colId: string, itemId: string) => {
-    if (!confirm("هل أنت متأكد من حذف هذا الملف؟")) return;
-    try {
-      await deleteLearningItem(subjectId, colId, itemId);
-      toast({ title: "تم الحذف بنجاح" });
-      if (selectedSubject) handleSelectSubject(selectedSubject);
-    } catch (e) {
-      toast({ variant: "destructive", title: "فشل الحذف" });
     }
   };
 
@@ -190,9 +168,9 @@ export function KnowledgeHub() {
         <div className="space-y-1">
           <h1 className="text-4xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
             المكتبة التعليمية
-            <GraduationCap className="text-primary size-10" />
+            <Library className="text-primary size-10" />
           </h1>
-          <p className="text-muted-foreground text-xs italic">كل ما ترفعه يخضع للمراجعة الإدارية قبل النشر.</p>
+          <p className="text-muted-foreground text-sm">استكشف وساهم في بناء المعرفة السيادية لنكسوس.</p>
         </div>
         
         <div className="flex gap-3 items-center">
@@ -204,7 +182,7 @@ export function KnowledgeHub() {
             <RefreshCcw className={cn("size-4", isLoading && "animate-spin")} />
           </Button>
           <Button onClick={() => setIsSubjectModalOpen(true)} className="bg-primary rounded-xl h-11 px-6 shadow-lg font-bold">
-            <Plus className="mr-2 size-4" /> طلب مجلد جديد
+            <Plus className="mr-2 size-4" /> إضافة مجلد رئيسي
           </Button>
         </div>
       </header>
@@ -212,7 +190,7 @@ export function KnowledgeHub() {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-32 gap-4">
           <Loader2 className="size-10 animate-spin text-primary" />
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">جاري فتح المكتبة...</p>
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">جاري فتح المجلدات...</p>
         </div>
       ) : (
         <DriveLayoutView 
@@ -226,8 +204,8 @@ export function KnowledgeHub() {
           onAddItem={(colId) => { setActiveCollectionId(colId); setIsItemModalOpen(true); }}
           onDeleteSubject={handleDeleteSubject}
           onRenameSubject={handleRenameSubject}
-          onDeleteCollection={handleDeleteCollection}
-          onDeleteItem={handleDeleteItem}
+          onDeleteCollection={deleteCollection}
+          onDeleteItem={deleteLearningItem}
           isAdmin={user?.role === 'admin'}
           currentUserId={user?.id}
           viewMode={isListView ? 'list' : 'grid'}
@@ -239,45 +217,46 @@ export function KnowledgeHub() {
         <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right">
           <DialogHeader>
             <DialogTitle className="text-right">إنشاء مجلد رئيسي</DialogTitle>
-            <DialogDescription className="text-right text-xs">سيتم إرسال طلبك للأدمن للموافقة عليه قبل الظهور للعامة.</DialogDescription>
+            <DialogDescription className="text-right text-xs">اقتراحك سيخضع للمراجعة الإدارية لضمان جودة المحتوى.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid gap-2"><Label>اسم المجلد</Label><Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" value={newSubject.title} onChange={e => setNewSubject({...newSubject, title: e.target.value})} /></div>
-            <div className="grid gap-2"><Label>الوصف (اختياري)</Label><Textarea dir="auto" className="bg-white/5 border-white/10 text-right" value={newSubject.description} onChange={e => setNewSubject({...newSubject, description: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>العنوان</Label><Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" value={newSubject.title} onChange={e => setNewSubject({...newSubject, title: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>الوصف</Label><Textarea dir="auto" className="bg-white/5 border-white/10 text-right" value={newSubject.description} onChange={e => setNewSubject({...newSubject, description: e.target.value})} /></div>
           </div>
-          <DialogFooter><Button onClick={handleCreateSubject} className="w-full bg-primary h-12 rounded-xl font-bold">إرسال الطلب</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleCreateSubject} className="w-full bg-primary h-12 rounded-xl font-bold">إرسال الاقتراح</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isCollectionModalOpen} onOpenChange={setIsCollectionModalOpen}>
         <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right">
-          <DialogHeader><DialogTitle className="text-right">إنشاء مجلد فرعي</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-right">إضافة مسار تعليمي (Collection)</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid gap-2"><Label>اسم المجلد</Label><Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" value={newCollection.title} onChange={e => setNewCollection({...newCollection, title: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>اسم المسار</Label><Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" value={newCollection.title} onChange={e => setNewCollection({...newCollection, title: e.target.value})} /></div>
           </div>
-          <DialogFooter><Button onClick={handleCreateCollection} className="w-full bg-primary h-12 rounded-xl font-bold">إرسال الطلب</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleCreateCollection} className="w-full bg-primary h-12 rounded-xl font-bold">تأكيد الإضافة</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isItemModalOpen} onOpenChange={setIsItemModalOpen}>
         <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-right">ربط ملف من الدرايف</DialogTitle>
-            <DialogDescription className="text-right text-xs">سيتم استخدام API Key الخاص بك لجلب تفاصيل الملف فور اعتماده.</DialogDescription>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="text-right">ربط محتوى جديد</DialogTitle></DialogHeader>
           <div className="space-y-5 py-4">
-            <div className="grid gap-2"><Label>عنوان الملف</Label><Input dir="auto" className="bg-white/5 border-white/10 text-right h-11" value={newItem.title} onChange={e => setNewItem({...newItem, title: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>عنوان الدرس/الملف</Label><Input dir="auto" className="bg-white/5 border-white/10 text-right h-11" value={newItem.title} onChange={e => setNewItem({...newItem, title: e.target.value})} /></div>
             <div className="grid gap-2">
-              <Label>نوع المحتوى</Label>
+              <Label>نوع المورد</Label>
               <Select value={newItem.type} onValueChange={(v: any) => setNewItem({...newItem, type: v})}>
                 <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-11"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-slate-900 border-white/10 text-white"><SelectItem value="video">فيديو</SelectItem><SelectItem value="audio">صوت</SelectItem><SelectItem value="file">مستند</SelectItem></SelectContent>
+                <SelectContent className="bg-slate-900 border-white/10 text-white">
+                  <SelectItem value="video">فيديو</SelectItem>
+                  <SelectItem value="audio">صوت</SelectItem>
+                  <SelectItem value="text">نص برمجى/مقالة</SelectItem>
+                  <SelectItem value="file">مستند تحميل</SelectItem>
+                </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2"><Label>رابط جوجل درايف</Label><Input placeholder="https://drive.google.com/..." className="bg-white/5 border-white/10 text-right h-11" value={newItem.externalUrl} onChange={e => setNewItem({...newItem, externalUrl: e.target.value})} /></div>
-            <Button variant="ghost" className="w-full text-indigo-400 text-xs gap-2" onClick={() => window.open(VAULT_URL, '_blank')}>فتح المجلد المشترك للرفع <RefreshCcw className="size-3" /></Button>
+            <div className="grid gap-2"><Label>الرابط (Drive/YouTube/Direct)</Label><Input placeholder="https://..." className="bg-white/5 border-white/10 text-right h-11" value={newItem.externalUrl} onChange={e => setNewItem({...newItem, externalUrl: e.target.value})} /></div>
           </div>
-          <DialogFooter><Button onClick={handleCreateItem} disabled={!newItem.externalUrl} className="w-full bg-primary h-12 rounded-xl font-bold">إرسال للمراجعة</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleCreateItem} disabled={!newItem.externalUrl} className="w-full bg-primary h-12 rounded-xl font-bold">حفظ كمسودة للمراجعة</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
