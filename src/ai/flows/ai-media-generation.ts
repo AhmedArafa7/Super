@@ -1,8 +1,7 @@
-
 'use server';
 /**
- * @fileOverview وحدة توليد الوسائط الفائقة (صورة وفيديو).
- * تم تحسين تشخيص الأخطاء لتوجيه المستخدم لصفحة الإعدادات الصحيحة.
+ * @fileOverview وحدة توليد الوسائط الفائقة.
+ * تم تحسين تشخيص الأخطاء لتوجيه المستخدم لصفحة الـ Credentials الصحيحة.
  */
 
 import {ai} from '@/ai/genkit';
@@ -16,10 +15,10 @@ export async function generateNeuralImage(prompt: string) {
   } catch (err: any) {
     console.error("Image Generation Error:", err);
     const msg = err.message || "";
-    if (msg.includes('Generative Language API') || msg.includes('403')) {
-      throw new Error(`يجب التأكد من إنشاء API Key صالح لهذا المشروع: https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com?project=${PROJECT_ID}`);
+    if (msg.includes('Generative Language API') || msg.includes('403') || msg.includes('permission')) {
+      throw new Error(`يجب إنشاء مفتاح API جديد من تبويب Credentials هنا: https://console.cloud.google.com/apis/credentials?project=${PROJECT_ID}`);
     }
-    throw new Error("فشل توليد الصورة عصبياً. تأكد من اتصالك بالشبكة.");
+    throw new Error("فشل توليد الصورة عصبياً. تأكد من صحة المفتاح واتصالك بالشبكة.");
   }
 }
 
@@ -57,7 +56,7 @@ const generateVideoFlow = ai.defineFlow(
   },
   async (prompt) => {
     const { operation } = await ai.generate({
-      model: 'googleai/veo-3.0-generate-preview',
+      model: googleAI.model('veo-3.0-generate-preview'),
       prompt: `High-end cinematic cinematic 4k: ${prompt}`,
     });
 

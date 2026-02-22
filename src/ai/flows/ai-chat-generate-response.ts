@@ -1,8 +1,7 @@
-
 'use server';
 /**
- * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V7.0]
- * المحرك العصبي المطور - تم تحسين تشخيص أخطاء التفعيل والربط مع Google Cloud.
+ * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V7.5]
+ * المحرك العصبي المطور - تم تحسين رسائل الخطأ لتشمل خطوات الحل البرمجي.
  */
 
 import {ai} from '@/ai/genkit';
@@ -45,16 +44,19 @@ export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerat
     
     const errorMsg = err.message || "";
     
-    // تشخيص خطأ تفعيل الـ API وتوفير رابط مباشر
-    if (errorMsg.includes('Generative Language API') || errorMsg.includes('403')) {
+    // تشخيص دقيق لخطأ المفتاح والـ API
+    if (errorMsg.includes('Generative Language API') || errorMsg.includes('403') || errorMsg.includes('permission')) {
       return { 
         success: false, 
         error: true, 
-        message: `الـ API مفعل ولكن هناك تعارض في المفتاح. يرجى التأكد من إنشاء API Key من تبويب 'Credentials' داخل هذا المشروع: https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com?project=${PROJECT_ID}` 
+        message: `خطأ في الهوية (403): الـ API مفعل ولكن المفتاح المستخدم لا يتبع لهذا المشروع.
+الخطوات للحل:
+1. اذهب لتبويب Credentials في هذا الرابط: https://console.cloud.google.com/apis/credentials?project=${PROJECT_ID}
+2. اضغط Create Credentials ثم API Key.
+3. انسخ المفتاح الجديد وضعه في ملف .env` 
       };
     }
 
-    // تشخيص خطأ الحصص (Quota)
     if (errorMsg.includes('429') || errorMsg.includes('quota')) {
       return { 
         success: false, 
@@ -66,7 +68,7 @@ export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerat
     return { 
       success: false, 
       error: true, 
-      message: "حدث اضطراب في الاتصال بالنخاع العصبي. تأكد من صحة الـ API Key في ملف الإعدادات." 
+      message: "حدث اضطراب في الاتصال بالنخاع العصبي. تأكد من صحة الـ API Key الجديد في ملف الإعدادات." 
     };
   }
 }
