@@ -1,8 +1,8 @@
 
 'use server';
 /**
- * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V7.6]
- * المحرك العصبي المطور - تم تحسين تشخيص الأخطاء لدعم المفتاح الجديد.
+ * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V7.7]
+ * المحرك العصبي المطور - تم تحسين تشخيص الأخطاء لدعم المفتاح الجديد وتوضيح خطوات التفعيل.
  */
 
 import {ai} from '@/ai/genkit';
@@ -58,6 +58,14 @@ export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerat
       };
     }
 
+    if (errorMsg.includes('Failed to fetch')) {
+      return {
+        success: false,
+        error: true,
+        message: "خطأ في الاتصال (Failed to fetch): يبدو أن هناك جدار حماية يمنع الاتصال بخوادم جوجل، أو أن المفتاح الجديد لم يتم قراءته بعد. يرجى تجربة تحديث الصفحة وإعادة المحاولة."
+      };
+    }
+
     if (errorMsg.includes('429') || errorMsg.includes('quota')) {
       return { 
         success: false, 
@@ -69,7 +77,7 @@ export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerat
     return { 
       success: false, 
       error: true, 
-      message: `حدث اضطراب في الاتصال العصبى: ${errorMsg.substring(0, 50)}... تأكد من صحة الـ API Key الجديد.` 
+      message: `حدث اضطراب في الاتصال العصبى: ${errorMsg.substring(0, 100)}...` 
     };
   }
 }
