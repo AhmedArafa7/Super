@@ -9,6 +9,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
+const PROJECT_ID = "studio-3522991053-84d29";
 
 const optimizePrompt = ai.definePrompt({
   name: 'optimizePrompt',
@@ -43,12 +44,12 @@ export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerat
   } catch (err: any) {
     console.error("Critical Neural Failure:", err);
     
-    // تشخيص خطأ تفعيل الـ API
+    // تشخيص خطأ تفعيل الـ API وتوفير رابط مباشر
     if (err.message?.includes('Generative Language API') || err.message?.includes('403')) {
       return { 
         success: false, 
         error: true, 
-        message: "يجب تفعيل 'Generative Language API' في Google Cloud Console لهذا المشروع لكي يعمل الذكاء الاصطناعي. يرجى مراجعة الأدمن." 
+        message: `يجب تفعيل 'Generative Language API' لمشروعك السحابي لكي يعمل الذكاء الاصطناعي. اضغط هنا للتفعيل: https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com?project=${PROJECT_ID}` 
       };
     }
 
