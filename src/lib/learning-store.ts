@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeFirebase } from '@/firebase';
@@ -45,8 +44,8 @@ export interface Subject {
 const DRIVE_API_KEY = process.env.NEXT_PUBLIC_DRIVE_API_KEY || "";
 
 /**
- * [STABILITY_ANCHOR: LEARNING_STORE_V4.2]
- * محرك إدارة المحتوى المعرفي - تم تحصين الوظائف ضد أخطاء المفاتيح المفقودة.
+ * [STABILITY_ANCHOR: LEARNING_STORE_V4.3]
+ * محرك إدارة المحتوى المعرفي - تم تحصين الوظائف ضد أخطاء المفاتيح المفقودة أو غير الصالحة.
  */
 
 export const extractDriveId = (url: string) => {
@@ -68,11 +67,11 @@ export const fetchDriveMetadata = async (fileId: string) => {
 
 /**
  * جلب قائمة الملفات من مجلد محدد في Google Drive.
- * تم تحصينها لتعيد مصفوفة فارغة بدلاً من الانهيار عند فقدان المفتاح.
+ * تم تحصينها لتعيد مصفوفة فارغة وتستخدم console.warn لمنع ظهور أخطاء UI في Next.js.
  */
 export const fetchDriveFolderFiles = async (folderId: string) => {
   if (!DRIVE_API_KEY) {
-    console.warn("DRIVE_API_KEY_MISSING: يرجى إعداد مفتاح API في المتغيرات البيئية لتمويل الخزنة.");
+    console.warn("DRIVE_API_KEY_MISSING: يرجى إعداد مفتاح API في المتغيرات البيئية.");
     return [];
   }
   try {
@@ -82,13 +81,14 @@ export const fetchDriveFolderFiles = async (folderId: string) => {
     const data = await res.json();
     
     if (data.error) {
-      console.error("Google Drive API Error:", data.error.message);
+      // استخدام warn بدلاً من error لمنع تفعيل واجهة الخطأ في Next.js
+      console.warn("Google Drive API Notice:", data.error.message);
       return [];
     }
     
     return data.files || [];
   } catch (e) {
-    console.error("Fetch Drive Folder Network Error:", e);
+    console.warn("Fetch Drive Folder Network Notice:", e);
     return [];
   }
 };

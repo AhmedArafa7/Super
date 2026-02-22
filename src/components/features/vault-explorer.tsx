@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -22,8 +21,8 @@ const VAULT_FOLDER_ID = "16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g";
 const DRIVE_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 /**
- * [STABILITY_ANCHOR: NATIVE_VAULT_V2.1]
- * مستكشف الخزنة الأصلي - تم تحصينه ضد أخطاء مفاتيح API المفقودة.
+ * [STABILITY_ANCHOR: NATIVE_VAULT_V2.2]
+ * مستكشف الخزنة المطور - يعالج حالات تعطل الـ API بدون إظهار أخطاء برمجية للمستخدم.
  */
 export function VaultExplorer() {
   const { user } = useAuth();
@@ -43,18 +42,28 @@ export function VaultExplorer() {
     setIsLoading(true);
     setIsKeyKeyMissing(false);
     try {
+      const apiKey = process.env.NEXT_PUBLIC_DRIVE_API_KEY;
+      
       // التحقق من وجود المفتاح قبل المحاولة
-      if (!process.env.NEXT_PUBLIC_DRIVE_API_KEY) {
+      if (!apiKey || apiKey === 'YOUR_GOOGLE_DRIVE_API_KEY') {
         setIsKeyKeyMissing(true);
+        setAssets([]);
         setIsLoading(false);
         return;
       }
 
       const files = await fetchDriveFolderFiles(VAULT_FOLDER_ID);
+      
+      // إذا عادت المصفوفة فارغة بالرغم من وجود مفتاح، فالمفتاح غالباً غير صالح
+      if (files.length === 0 && apiKey) {
+        // لا نقوم بتغيير حالة isKeyMissing هنا فوراً للسماح للمستخدم بـ Refresh
+        // لكننا نضمن عدم انهيار الواجهة
+      }
+      
       setAssets(files || []);
     } catch (err) {
-      console.error("Vault Sync Error:", err);
-      toast({ variant: "destructive", title: "خطأ في المزامنة", description: "تعذر الاتصال بـ Google Drive API." });
+      console.warn("Vault Sync Interrupted:", err);
+      // تجنب إظهار toast مزعج لأخطاء الـ API المتوقعة عند غياب المفتاح
     } finally {
       setIsLoading(false);
     }
@@ -111,12 +120,12 @@ export function VaultExplorer() {
           <div className="flex items-center justify-between flex-row-reverse text-[10px] font-bold">
             <span className="text-indigo-400">Nexus Vault Status</span>
             <span className={cn(isKeyMissing ? "text-amber-400" : "text-green-400")}>
-              {isKeyMissing ? "API Key Missing" : "API Active"}
+              {isKeyMissing ? "API Inactive" : "API Handshake"}
             </span>
           </div>
           <p className="text-[9px] text-muted-foreground text-center leading-relaxed">
             {isKeyMissing 
-              ? "يرجى تهيئة مفتاح API في إعدادات النظام لتفعيل المزامنة التلقائية للملفات." 
+              ? "يرجى تهيئة مفتاح API صالح في المتغيرات البيئية لتفعيل المزامنة التلقائية للملفات." 
               : "تعمل الخزنة الآن بنظام المزامنة المباشرة. يتم جلب البيانات من جوجل ومعالجتها عصبياً هنا."}
           </p>
         </div>
@@ -149,7 +158,7 @@ export function VaultExplorer() {
               <ShieldCheck className="size-5 text-indigo-400" />
             </h2>
             <Badge variant="outline" className="border-indigo-500/20 text-indigo-400 text-[10px] uppercase">
-              {isKeyMissing ? "Demo Mode" : `${filteredAssets.length} Physical Assets Synced`}
+              {isKeyMissing ? "Maintenance Mode" : `${filteredAssets.length} Physical Assets Synced`}
             </Badge>
           </div>
 
@@ -159,15 +168,15 @@ export function VaultExplorer() {
                 <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">جاري استدعاء السجل السحابي...</p>
               </div>
-            ) : isKeyMissing ? (
+            ) : (isKeyMissing || (assets.length === 0 && !isLoading)) ? (
               <div className="flex flex-col items-center justify-center py-32 text-center space-y-6">
                 <div className="size-24 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20 shadow-2xl">
                   <AlertTriangle className="size-12 text-amber-500" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-white">مفتاح API غير مكتمل</h3>
+                  <h3 className="text-xl font-bold text-white">تعذر الاتصال التلقائي بـ Drive</h3>
                   <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
-                    لا يمكن جلب الملفات تلقائياً بدون مفتاح Google Drive API. يمكنك الوصول للمجلد يدوياً عبر الزر أدناه.
+                    يبدو أن مفتاح API غير صالح أو غير موجود. يمكنك الوصول للملفات ورفعها يدوياً عبر الرابط المباشر للمجلد.
                   </p>
                 </div>
                 <Button 
@@ -176,11 +185,6 @@ export function VaultExplorer() {
                 >
                   <ExternalLink className="size-4" /> فتح المجلد يدوياً
                 </Button>
-              </div>
-            ) : filteredAssets.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-32 opacity-20 italic">
-                <HardDrive className="size-20 mb-4" />
-                <p>لم نجد أي ملفات في هذا المجلد على جوجل درايف.</p>
               </div>
             ) : (
               <div className={cn(
