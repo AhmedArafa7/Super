@@ -1,8 +1,8 @@
 
 'use server';
 /**
- * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V6.8]
- * المحرك العصبي المطور - تم تثبيت مسميات الموديلات لضمان استقرار الربط.
+ * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V6.9]
+ * المحرك العصبي المطور - تم تحسين معالجة أخطاء الصلاحيات والحصص (API Enablement).
  */
 
 import {ai} from '@/ai/genkit';
@@ -42,10 +42,29 @@ export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerat
     return { success: true, ...result };
   } catch (err: any) {
     console.error("Critical Neural Failure:", err);
+    
+    // تشخيص خطأ تفعيل الـ API
+    if (err.message?.includes('Generative Language API') || err.message?.includes('403')) {
+      return { 
+        success: false, 
+        error: true, 
+        message: "يجب تفعيل 'Generative Language API' في Google Cloud Console لهذا المشروع لكي يعمل الذكاء الاصطناعي. يرجى مراجعة الأدمن." 
+      };
+    }
+
+    // تشخيص خطأ الحصص (Quota)
+    if (err.message?.includes('429') || err.message?.includes('quota')) {
+      return { 
+        success: false, 
+        error: true, 
+        message: "لقد تجاوزت حد الاستهلاك المسموح به حالياً. يرجى المحاولة بعد دقيقة واحدة." 
+      };
+    }
+
     return { 
       success: false, 
       error: true, 
-      message: err.message || "حدث اضطراب في النخاع العصبي." 
+      message: "حدث اضطراب في النخاع العصبي. يرجى التأكد من اتصالك بالشبكة السيادية." 
     };
   }
 }

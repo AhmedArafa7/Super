@@ -2,14 +2,22 @@
 'use server';
 /**
  * @fileOverview وحدة توليد الوسائط الفائقة (صورة وفيديو).
- * يستخدم Imagen 4 للصور و Veo 3 للفيديو.
+ * تم تحسين معالجة أخطاء الصلاحيات والحصص لضمان استقرار النظام البصري.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 export async function generateNeuralImage(prompt: string) {
-  return generateImageFlow(prompt);
+  try {
+    return await generateImageFlow(prompt);
+  } catch (err: any) {
+    console.error("Image Generation Error:", err);
+    if (err.message?.includes('Generative Language API') || err.message?.includes('403')) {
+      throw new Error("يجب تفعيل 'Generative Language API' لتوليد الصور عصبياً.");
+    }
+    throw err;
+  }
 }
 
 const generateImageFlow = ai.defineFlow(
@@ -30,7 +38,15 @@ const generateImageFlow = ai.defineFlow(
 );
 
 export async function generateNeuralVideo(prompt: string) {
-  return generateVideoFlow(prompt);
+  try {
+    return await generateVideoFlow(prompt);
+  } catch (err: any) {
+    console.error("Video Generation Error:", err);
+    if (err.message?.includes('Generative Language API') || err.message?.includes('403')) {
+      throw new Error("يجب تفعيل 'Generative Language API' لتوليد الفيديوهات عصبياً.");
+    }
+    throw err;
+  }
 }
 
 const generateVideoFlow = ai.defineFlow(
