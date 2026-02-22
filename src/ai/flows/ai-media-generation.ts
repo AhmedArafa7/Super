@@ -2,21 +2,24 @@
 'use server';
 /**
  * @fileOverview وحدة توليد الوسائط الفائقة (صورة وفيديو).
- * تم تحسين معالجة أخطاء الصلاحيات والحصص لضمان استقرار النظام البصري.
+ * تم تحسين تشخيص الأخطاء لتوجيه المستخدم لصفحة الإعدادات الصحيحة.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+
+const PROJECT_ID = "studio-3522991053-84d29";
 
 export async function generateNeuralImage(prompt: string) {
   try {
     return await generateImageFlow(prompt);
   } catch (err: any) {
     console.error("Image Generation Error:", err);
-    if (err.message?.includes('Generative Language API') || err.message?.includes('403')) {
-      throw new Error("يجب تفعيل 'Generative Language API' لتوليد الصور عصبياً.");
+    const msg = err.message || "";
+    if (msg.includes('Generative Language API') || msg.includes('403')) {
+      throw new Error(`يجب التأكد من إنشاء API Key صالح لهذا المشروع: https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com?project=${PROJECT_ID}`);
     }
-    throw err;
+    throw new Error("فشل توليد الصورة عصبياً. تأكد من اتصالك بالشبكة.");
   }
 }
 
@@ -42,10 +45,7 @@ export async function generateNeuralVideo(prompt: string) {
     return await generateVideoFlow(prompt);
   } catch (err: any) {
     console.error("Video Generation Error:", err);
-    if (err.message?.includes('Generative Language API') || err.message?.includes('403')) {
-      throw new Error("يجب تفعيل 'Generative Language API' لتوليد الفيديوهات عصبياً.");
-    }
-    throw err;
+    throw new Error("توليد الفيديو يتطلب حصصاً مرتفعة ومفتاح API خاص بالمؤسسات.");
   }
 }
 
@@ -56,7 +56,6 @@ const generateVideoFlow = ai.defineFlow(
     outputSchema: z.object({ url: z.string(), status: z.string() }),
   },
   async (prompt) => {
-    // ملاحظة: Veo 3 يتطلب وقت طويل للمزامنة
     const { operation } = await ai.generate({
       model: 'googleai/veo-3.0-generate-preview',
       prompt: `High-end cinematic cinematic 4k: ${prompt}`,
@@ -65,7 +64,7 @@ const generateVideoFlow = ai.defineFlow(
     if (!operation) throw new Error("Video Node Unreachable");
     
     return { 
-      url: "", // سيعود لاحقاً عبر التحديثات
+      url: "", 
       status: "Operation Started",
       opId: operation.name 
     };

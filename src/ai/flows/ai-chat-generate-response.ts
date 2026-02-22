@@ -1,14 +1,13 @@
 
 'use server';
 /**
- * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V6.9]
- * المحرك العصبي المطور - تم تحسين معالجة أخطاء الصلاحيات والحصص (API Enablement).
+ * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V7.0]
+ * المحرك العصبي المطور - تم تحسين تشخيص أخطاء التفعيل والربط مع Google Cloud.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 const PROJECT_ID = "studio-3522991053-84d29";
 
 const optimizePrompt = ai.definePrompt({
@@ -44,17 +43,19 @@ export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerat
   } catch (err: any) {
     console.error("Critical Neural Failure:", err);
     
+    const errorMsg = err.message || "";
+    
     // تشخيص خطأ تفعيل الـ API وتوفير رابط مباشر
-    if (err.message?.includes('Generative Language API') || err.message?.includes('403')) {
+    if (errorMsg.includes('Generative Language API') || errorMsg.includes('403')) {
       return { 
         success: false, 
         error: true, 
-        message: `يجب تفعيل 'Generative Language API' لمشروعك السحابي لكي يعمل الذكاء الاصطناعي. اضغط هنا للتفعيل: https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com?project=${PROJECT_ID}` 
+        message: `الـ API مفعل ولكن هناك تعارض في المفتاح. يرجى التأكد من إنشاء API Key من تبويب 'Credentials' داخل هذا المشروع: https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com?project=${PROJECT_ID}` 
       };
     }
 
     // تشخيص خطأ الحصص (Quota)
-    if (err.message?.includes('429') || err.message?.includes('quota')) {
+    if (errorMsg.includes('429') || errorMsg.includes('quota')) {
       return { 
         success: false, 
         error: true, 
@@ -65,21 +66,20 @@ export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerat
     return { 
       success: false, 
       error: true, 
-      message: "حدث اضطراب في النخاع العصبي. يرجى التأكد من اتصالك بالشبكة السيادية." 
+      message: "حدث اضطراب في الاتصال بالنخاع العصبي. تأكد من صحة الـ API Key في ملف الإعدادات." 
     };
   }
 }
 
 const responsePrompt = ai.definePrompt({
   name: 'aiChatGenerateResponsePrompt',
-  model: 'googleai/gemini-1.5-flash', // الموديل الافتراضي
+  model: 'googleai/gemini-1.5-flash',
   input: {schema: z.object({ 
     message: z.string(),
     imageDataUri: z.string().optional(),
     history: z.array(z.object({ role: z.enum(['user', 'model']), content: z.string() })).optional()
   })},
   prompt: `أنت مساعد NexusAI المتقدم. أجب بالعربية الفصحى وبأسلوب مستقبلي.
-لدينا خزنة Nexus Vault للملفات: ${VAULT_URL}.
 
 {{#if imageDataUri}}لقد أرفق المستخدم صورة: {{media url=imageDataUri}}{{/if}}
 
