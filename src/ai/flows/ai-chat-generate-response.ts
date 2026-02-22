@@ -1,7 +1,8 @@
+
 'use server';
 /**
- * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V7.5]
- * المحرك العصبي المطور - تم تحسين رسائل الخطأ لتشمل خطوات الحل البرمجي.
+ * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V7.6]
+ * المحرك العصبي المطور - تم تحسين تشخيص الأخطاء لدعم المفتاح الجديد.
  */
 
 import {ai} from '@/ai/genkit';
@@ -44,16 +45,16 @@ export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerat
     
     const errorMsg = err.message || "";
     
-    // تشخيص دقيق لخطأ المفتاح والـ API
-    if (errorMsg.includes('Generative Language API') || errorMsg.includes('403') || errorMsg.includes('permission')) {
+    // تشخيص دقيق لخطأ الهوية والـ API
+    if (errorMsg.includes('Generative Language API') || errorMsg.includes('403') || errorMsg.includes('permission') || errorMsg.includes('API_KEY_INVALID')) {
       return { 
         success: false, 
         error: true, 
-        message: `خطأ في الهوية (403): الـ API مفعل ولكن المفتاح المستخدم لا يتبع لهذا المشروع.
+        message: `خطأ في المزامنة (403): يبدو أن النظام يحتاج لإعادة تحميل الإعدادات أو أن المفتاح الجديد لم يتفعل بعد.
 الخطوات للحل:
-1. اذهب لتبويب Credentials في هذا الرابط: https://console.cloud.google.com/apis/credentials?project=${PROJECT_ID}
-2. اضغط Create Credentials ثم API Key.
-3. انسخ المفتاح الجديد وضعه في ملف .env` 
+1. تأكد من أنك قمت بنسخ المفتاح بالكامل بدون مسافات.
+2. انتظر دقيقة واحدة حتى تعمم جوجل المفتاح في خوادمها.
+3. إذا استمر الخطأ، اذهب هنا: https://console.cloud.google.com/apis/credentials?project=${PROJECT_ID} وتأكد أن المفتاح فعال.` 
       };
     }
 
@@ -68,7 +69,7 @@ export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerat
     return { 
       success: false, 
       error: true, 
-      message: "حدث اضطراب في الاتصال بالنخاع العصبي. تأكد من صحة الـ API Key الجديد في ملف الإعدادات." 
+      message: `حدث اضطراب في الاتصال العصبى: ${errorMsg.substring(0, 50)}... تأكد من صحة الـ API Key الجديد.` 
     };
   }
 }

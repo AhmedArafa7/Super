@@ -5,9 +5,9 @@ import Groq from 'groq-sdk';
 
 /**
  * تهيئة Genkit ليكون محركاً مرناً يدعم Gemini و Groq معاً.
- * تم تحسين تمرير المفاتيح لضمان استقرار الربط العصبي ومنع الانهيار عند التحميل.
+ * تم تحديث الربط لاستخدام المفتاح السيادي الجديد لضمان استقرار المزامنة.
  */
-const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY || "MISSING_KEY";
+const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY;
 
 export const ai = genkit({
   plugins: [
