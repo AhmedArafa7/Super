@@ -6,15 +6,13 @@ import {
   HardDrive, Plus, Search, Grid, List, 
   MoreVertical, FileText, Video, Music, 
   ExternalLink, Trash2, Clock, Star, 
-  ShieldCheck, Loader2, Info, ArrowLeft, X, RefreshCw, Eye
+  ShieldCheck, Loader2, Info, ArrowLeft, X, RefreshCw, Eye, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/components/auth/auth-provider";
 import { fetchDriveFolderFiles } from "@/lib/learning-store";
 import { useToast } from "@/hooks/use-toast";
@@ -24,9 +22,8 @@ const VAULT_FOLDER_ID = "16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g";
 const DRIVE_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 /**
- * [STABILITY_ANCHOR: NATIVE_VAULT_V2.0]
- * مستكشف الخزنة الأصلي - متصل بـ API جوجل درايف مباشرة.
- * يحل مشكلة البطء عبر جلب البيانات (Metadata) فقط دون تحميل الموقع الثقيل.
+ * [STABILITY_ANCHOR: NATIVE_VAULT_V2.1]
+ * مستكشف الخزنة الأصلي - تم تحصينه ضد أخطاء مفاتيح API المفقودة.
  */
 export function VaultExplorer() {
   const { user } = useAuth();
@@ -36,6 +33,7 @@ export function VaultExplorer() {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [activeTab, setActiveTab] = useState<'all' | 'recent' | 'favorites'>('all');
+  const [isKeyMissing, setIsKeyKeyMissing] = useState(false);
 
   useEffect(() => {
     loadRealDriveData();
@@ -43,10 +41,19 @@ export function VaultExplorer() {
 
   const loadRealDriveData = async () => {
     setIsLoading(true);
+    setIsKeyKeyMissing(false);
     try {
+      // التحقق من وجود المفتاح قبل المحاولة
+      if (!process.env.NEXT_PUBLIC_DRIVE_API_KEY) {
+        setIsKeyKeyMissing(true);
+        setIsLoading(false);
+        return;
+      }
+
       const files = await fetchDriveFolderFiles(VAULT_FOLDER_ID);
-      setAssets(files);
+      setAssets(files || []);
     } catch (err) {
+      console.error("Vault Sync Error:", err);
       toast({ variant: "destructive", title: "خطأ في المزامنة", description: "تعذر الاتصال بـ Google Drive API." });
     } finally {
       setIsLoading(false);
@@ -103,10 +110,14 @@ export function VaultExplorer() {
         <div className="mt-auto p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 space-y-3">
           <div className="flex items-center justify-between flex-row-reverse text-[10px] font-bold">
             <span className="text-indigo-400">Nexus Vault Status</span>
-            <span className="text-green-400">API Active</span>
+            <span className={cn(isKeyMissing ? "text-amber-400" : "text-green-400")}>
+              {isKeyMissing ? "API Key Missing" : "API Active"}
+            </span>
           </div>
           <p className="text-[9px] text-muted-foreground text-center leading-relaxed">
-            تعمل الخزنة الآن بنظام المزامنة المباشرة. يتم جلب البيانات من جوجل ومعالجتها عصبياً هنا.
+            {isKeyMissing 
+              ? "يرجى تهيئة مفتاح API في إعدادات النظام لتفعيل المزامنة التلقائية للملفات." 
+              : "تعمل الخزنة الآن بنظام المزامنة المباشرة. يتم جلب البيانات من جوجل ومعالجتها عصبياً هنا."}
           </p>
         </div>
       </aside>
@@ -118,7 +129,7 @@ export function VaultExplorer() {
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input 
               dir="auto" 
-              placeholder="البحث في ملفات الخزنة الحقيقية..." 
+              placeholder="البحث في ملفات الخزنة..." 
               className="h-10 pr-10 bg-white/5 border-white/10 rounded-xl text-right text-sm focus-visible:ring-indigo-500" 
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -138,7 +149,7 @@ export function VaultExplorer() {
               <ShieldCheck className="size-5 text-indigo-400" />
             </h2>
             <Badge variant="outline" className="border-indigo-500/20 text-indigo-400 text-[10px] uppercase">
-              {filteredAssets.length} Physical Assets Synced
+              {isKeyMissing ? "Demo Mode" : `${filteredAssets.length} Physical Assets Synced`}
             </Badge>
           </div>
 
@@ -147,6 +158,24 @@ export function VaultExplorer() {
               <div className="flex flex-col items-center justify-center py-32 gap-4">
                 <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">جاري استدعاء السجل السحابي...</p>
+              </div>
+            ) : isKeyMissing ? (
+              <div className="flex flex-col items-center justify-center py-32 text-center space-y-6">
+                <div className="size-24 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20 shadow-2xl">
+                  <AlertTriangle className="size-12 text-amber-500" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-white">مفتاح API غير مكتمل</h3>
+                  <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
+                    لا يمكن جلب الملفات تلقائياً بدون مفتاح Google Drive API. يمكنك الوصول للمجلد يدوياً عبر الزر أدناه.
+                  </p>
+                </div>
+                <Button 
+                  className="bg-indigo-600 hover:bg-indigo-500 rounded-xl px-8 h-12 font-bold gap-2"
+                  onClick={() => window.open(DRIVE_SHARE_URL, '_blank')}
+                >
+                  <ExternalLink className="size-4" /> فتح المجلد يدوياً
+                </Button>
               </div>
             ) : filteredAssets.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-32 opacity-20 italic">

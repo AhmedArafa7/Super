@@ -41,11 +41,12 @@ export interface Subject {
   allowedUserIds: string[] | null;
 }
 
+// مفتاح API لـ Google Drive - يجب إضافته في ملف .env
 const DRIVE_API_KEY = process.env.NEXT_PUBLIC_DRIVE_API_KEY || "";
 
 /**
- * [STABILITY_ANCHOR: LEARNING_STORE_V4.1]
- * محرك إدارة المحتوى المعرفي - تم إضافة وظيفة جلب ملفات المجلد لدعم Vault Explorer.
+ * [STABILITY_ANCHOR: LEARNING_STORE_V4.2]
+ * محرك إدارة المحتوى المعرفي - تم تحصين الوظائف ضد أخطاء المفاتيح المفقودة.
  */
 
 export const extractDriveId = (url: string) => {
@@ -67,10 +68,11 @@ export const fetchDriveMetadata = async (fileId: string) => {
 
 /**
  * جلب قائمة الملفات من مجلد محدد في Google Drive.
+ * تم تحصينها لتعيد مصفوفة فارغة بدلاً من الانهيار عند فقدان المفتاح.
  */
 export const fetchDriveFolderFiles = async (folderId: string) => {
   if (!DRIVE_API_KEY) {
-    console.warn("DRIVE_API_KEY_MISSING: يرجى إعداد مفتاح API في المتغيرات البيئية.");
+    console.warn("DRIVE_API_KEY_MISSING: يرجى إعداد مفتاح API في المتغيرات البيئية لتمويل الخزنة.");
     return [];
   }
   try {
@@ -78,10 +80,15 @@ export const fetchDriveFolderFiles = async (folderId: string) => {
       `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&fields=files(id,name,size,mimeType,webViewLink,thumbnailLink)&key=${DRIVE_API_KEY}`
     );
     const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
+    
+    if (data.error) {
+      console.error("Google Drive API Error:", data.error.message);
+      return [];
+    }
+    
     return data.files || [];
   } catch (e) {
-    console.error("Fetch Drive Folder Error:", e);
+    console.error("Fetch Drive Folder Network Error:", e);
     return [];
   }
 };
@@ -93,7 +100,6 @@ export const getSubjects = async (userId?: string, isAdmin = false): Promise<Sub
     let subjects = snap.docs.map(d => ({ id: d.id, ...d.data() } as Subject));
     
     if (isAdmin) return subjects;
-    // المستخدم يرى المعتمد + ما قام بإنشائه هو شخصياً
     return subjects.filter(s => s.status === 'approved' || s.authorId === userId);
   } catch (e) {
     return [];
