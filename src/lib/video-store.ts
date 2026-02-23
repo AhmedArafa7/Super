@@ -63,7 +63,16 @@ export const addVideo = async (video: Omit<Video, 'id' | 'createdAt' | 'views'>)
 export const updateVideoStatus = async (id: string, status: VideoStatus, feedback?: string) => {
   const { firestore } = initializeFirebase();
   const videoRef = doc(firestore, 'videos', id);
-  await updateDoc(videoRef, { status, adminFeedback: feedback });
+  
+  // بناء كائن التحديث مع تجنب القيم undefined التي تسبب الانهيار في Firestore
+  const updates: any = { status };
+  if (feedback !== undefined) {
+    updates.adminFeedback = feedback;
+  } else {
+    updates.adminFeedback = ""; // القيمة الافتراضية بدلاً من undefined
+  }
+  
+  await updateDoc(videoRef, updates);
   
   window.dispatchEvent(new Event('videos-update'));
 };

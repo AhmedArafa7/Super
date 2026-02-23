@@ -106,7 +106,13 @@ export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'status' | 'cu
 export const updateMarketItem = async (itemId: string, updates: Partial<MarketItem>) => {
   const { firestore } = initializeFirebase();
   const itemRef = doc(firestore, 'products', itemId);
-  await updateDoc(itemRef, updates);
+  
+  // تصفية القيم undefined لتجنب أخطاء Firestore
+  const cleanUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([_, v]) => v !== undefined)
+  );
+  
+  await updateDoc(itemRef, cleanUpdates);
   return true;
 };
 
