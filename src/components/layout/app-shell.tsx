@@ -24,6 +24,7 @@ import { NodeDirectory } from "@/components/features/node-directory";
 import { AgentAI } from "@/components/features/agent-ai";
 import { AdsCenter } from "@/components/features/ads-center";
 import { VaultExplorer } from "@/components/features/vault-explorer";
+import { DownloadCenter } from "@/components/features/download-center";
 import { getNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
@@ -40,8 +41,8 @@ const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGaf
 const VAULT_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 /**
- * [STABILITY_ANCHOR: APPSHELL_ORCHESTRATOR_V7.2]
- * المكون المركزي المحدث - تم إضافة Vault Explorer لتجربة شبيهة بـ Google Drive.
+ * [STABILITY_ANCHOR: APPSHELL_ORCHESTRATOR_V7.5]
+ * المكون المركزي المحدث - إضافة مركز التحميل لدعم تجربة الأوفلاين والتطبيقات المادية.
  */
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -108,6 +109,7 @@ export function AppShell() {
       case "agent-ai": return <AgentAI />;
       case "vault": return <VaultExplorer />;
       case "ads": return <AdsCenter />;
+      case "downloads": return <DownloadCenter />;
       case "peer-chat": return <PeerChat initialTargetId={activeRecipientId} />;
       case "stream": return <StreamHub onOpenVault={() => setLaunchedApp({url: VAULT_EMBED_URL, title: "Nexus Central Vault", isVault: true})} />;
       case "market": return <TechMarket onLaunchApp={(url, title) => setLaunchedApp({url, title})} />;

@@ -4,7 +4,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type NavItemId = "chat" | "peer-chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn" | "launcher" | "lab" | "directory" | "agent-ai" | "ads" | "vault";
+export type NavItemId = "chat" | "peer-chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn" | "launcher" | "lab" | "directory" | "agent-ai" | "ads" | "vault" | "downloads";
 
 interface SidebarState {
   pinnedItems: NavItemId[];
@@ -13,12 +13,12 @@ interface SidebarState {
 }
 
 /**
- * @fileOverview محرك تخصيص القائمة الجانبية - تم إضافة المهندس العصبي (Agent AI) وقسم الإعلانات ومستكشف الخزنة ومنصة التطبيقات.
+ * @fileOverview محرك تخصيص القائمة الجانبية - تم إضافة مركز التحميل (Downloads).
  */
 export const useSidebarStore = create<SidebarState>()(
   persist(
     (set, get) => ({
-      pinnedItems: ["dashboard", "chat", "vault", "agent-ai", "peer-chat", "stream", "market", "launcher", "ads", "wallet"],
+      pinnedItems: ["dashboard", "chat", "vault", "agent-ai", "peer-chat", "stream", "market", "launcher", "ads", "downloads", "wallet"],
 
       togglePin: (id) => {
         const { pinnedItems } = get();

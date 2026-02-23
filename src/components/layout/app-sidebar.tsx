@@ -8,7 +8,7 @@ import {
 import { 
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat, 
   BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, 
-  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive
+  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
     { id: "stream", label: "StreamHub", icon: Video, restricted: false },
     { id: "market", label: "TechMarket", icon: ShoppingBag, restricted: false },
     { id: "ads", label: "Ads Center", icon: Megaphone, restricted: false },
+    { id: "downloads", label: "Downloads", icon: DownloadCloud, restricted: false },
     { id: "launcher", label: "App Launcher", icon: Rocket, restricted: false },
     { id: "wallet", label: "Neural Wallet", icon: Wallet, restricted: false },
     { id: "offers", label: "Offers Inbox", icon: Repeat, badge: pendingOffersCount, restricted: false },
@@ -68,7 +69,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
                   activeTab === item.id ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
                 )}
               >
-                <item.icon className={cn("size-5", item.id === 'admin' && "text-indigo-400", item.id === 'vault' && "text-amber-400")} />
+                <item.icon className={cn("size-5", item.id === 'admin' && "text-indigo-400", item.id === 'vault' && "text-amber-400", item.id === 'downloads' && "text-primary")} />
                 <span className="font-medium">{item.label}</span>
                 {item.badge !== undefined && item.badge > 0 && (
                    <Badge className="mr-auto bg-indigo-500 h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full">{item.badge}</Badge>
