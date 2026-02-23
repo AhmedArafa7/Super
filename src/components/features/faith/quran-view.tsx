@@ -17,8 +17,8 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 /**
- * [STABILITY_ANCHOR: QURAN_VIEW_V3.5]
- * واجهة القرآن المحدثة - تحسين بطاقات السور ودعم نمط المصحف في القارئ.
+ * [STABILITY_ANCHOR: QURAN_VIEW_V3.6]
+ * واجهة القرآن المحدثة - تم تمرير معرف السورة لضمان دقة معالجة البسملة في القارئ.
  */
 export function QuranView() {
   const { toast } = useToast();
@@ -124,6 +124,7 @@ export function QuranView() {
                         </Button>
                       </DialogTrigger>
                       <SurahReader 
+                        surahId={readingSurah?.id}
                         surahName={readingSurah?.name} 
                         englishName={readingSurah?.englishName} 
                         ayahs={currentReadingText} 

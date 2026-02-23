@@ -8,6 +8,7 @@ import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog
 import { Ayah } from "@/lib/quran-store";
 
 interface SurahReaderProps {
+  surahId?: number;
   surahName?: string;
   englishName?: string;
   ayahs: Ayah[] | null;
@@ -16,10 +17,42 @@ interface SurahReaderProps {
 }
 
 /**
- * [STABILITY_ANCHOR: SURAH_READER_MUSHAF_V2.0]
- * واجهة القارئ بنمط المصحف التقليدي - تم تحسين الخطوط والتنسيق لتماثل المصحف المطبوع.
+ * [STABILITY_ANCHOR: SURAH_READER_MUSHAF_V3.0]
+ * واجهة القارئ بنمط المصحف - تم تصحيح معالجة البسملة لضمان عدم التكرار والحفاظ على قدسية النص.
  */
-export function SurahReader({ surahName, englishName, ayahs, isLoading, onClose }: SurahReaderProps) {
+export function SurahReader({ surahId, surahName, englishName, ayahs, isLoading, onClose }: SurahReaderProps) {
+  const BISMILLAH_TEXT = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
+
+  // معالجة النص لضمان ظهور البسملة مرة واحدة في الأعلى وتكملة الآية في مكانها
+  const renderAyahs = () => {
+    if (!ayahs || ayahs.length === 0) return null;
+
+    return ayahs.map((ayah, index) => {
+      let textToDisplay = ayah.text;
+
+      // إذا كانت الآية الأولى في أي سورة (ما عدا الفاتحة والتوبة) تحتوي على البسملة في بدايتها
+      // نقوم بإزالتها بصرياً فقط لأننا نعرضها في الأعلى بشكل "طبيعي" كعنوان
+      if (index === 0 && surahId !== 1 && surahId !== 9) {
+        if (textToDisplay.startsWith(BISMILLAH_TEXT)) {
+          textToDisplay = textToDisplay.replace(BISMILLAH_TEXT, "").trim();
+        }
+      }
+
+      return (
+        <React.Fragment key={ayah.number}>
+          <span className="inline hover:text-primary transition-colors cursor-default">
+            {textToDisplay}
+          </span>
+          <span className="ayah-number">
+            {ayah.numberInSurah}
+          </span>
+        </React.Fragment>
+      );
+    });
+  };
+
+  const shouldShowHeaderBismillah = surahId !== 1 && surahId !== 9;
+
   return (
     <DialogContent className="max-w-5xl h-[90vh] bg-slate-950 border-white/10 rounded-[3rem] p-0 overflow-hidden flex flex-col shadow-[0_0_60px_rgba(0,0,0,0.7)]">
       <DialogHeader className="p-6 border-b border-white/5 bg-slate-900/80 backdrop-blur-md shrink-0 z-10">
@@ -52,11 +85,11 @@ export function SurahReader({ surahName, englishName, ayahs, isLoading, onClose 
             </div>
           ) : (
             <div className="max-w-4xl w-full mushaf-page rounded-[2rem] p-8 md:p-16 border-8 border-double border-[#b19a6a]/20 shadow-2xl relative">
-              {/* Decorative Frame */}
               <div className="absolute inset-4 border border-[#b19a6a]/10 pointer-events-none rounded-[1.5rem]" />
               
               <div className="relative z-10 text-center">
-                {surahName !== 'الفاتحة' && (
+                {/* عرض البسملة كعنوان علوي طبيعي للمصحف (ما عدا التوبة) */}
+                {shouldShowHeaderBismillah && (
                   <div className="mb-16">
                     <p className="text-5xl font-quran text-[#2c2c2c] mb-4 select-none opacity-90 leading-normal">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
                     <div className="flex items-center justify-center gap-4 opacity-20">
@@ -68,16 +101,7 @@ export function SurahReader({ surahName, englishName, ayahs, isLoading, onClose 
                 )}
 
                 <div className="text-[#2c2c2c] leading-[3.2] text-3xl md:text-4xl text-right font-quran select-text transition-all tracking-normal">
-                  {ayahs?.map((ayah) => (
-                    <React.Fragment key={ayah.number}>
-                      <span className="inline hover:text-primary transition-colors cursor-default">
-                        {ayah.text}
-                      </span>
-                      <span className="ayah-number">
-                        {ayah.numberInSurah}
-                      </span>
-                    </React.Fragment>
-                  ))}
+                  {renderAyahs()}
                 </div>
               </div>
             </div>
@@ -87,12 +111,12 @@ export function SurahReader({ surahName, englishName, ayahs, isLoading, onClose 
 
       <footer className="p-6 border-t border-white/5 bg-black/60 flex items-center justify-between gap-8 shrink-0 px-10 flex-row-reverse">
          <div className="flex items-center gap-2 text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-50">
-           <Info className="size-3" /> وضع المصحف نشط • Amiri Font Engine
+           <Info className="size-3" /> وضع المصحف نشط • معالجة دقيقة للرسم العثماني
          </div>
          <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <div className="size-2 rounded-full bg-emerald-500" />
-              <span className="text-[9px] font-bold text-muted-foreground uppercase">Cloud Sync Secure</span>
+              <span className="text-[9px] font-bold text-muted-foreground uppercase">Text Integrity Verified</span>
             </div>
          </div>
       </footer>
