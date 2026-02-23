@@ -1,10 +1,18 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    match /avatars/{userId}/{allPaths=**} {
+      // السماح بالرفع فقط إذا كان الملف صورة وبحجم أقل من 2 ميجابايت
+      allow write: if request.auth != null 
+                   && request.resource.contentType.matches('image/.*') 
+                   && request.resource.size < 2 * 1024 * 1024;
+      allow read: if true;
+    }
+    
     match /{allPaths=**} {
-      // Simplified rules for Beta testing to ensure connectivity.
-      // This allows both read and write for any user.
-      allow read, write: if true;
+      // قواعد افتراضية لبقية الأقسام (يمكن تخصيصها لاحقاً)
+      allow read: if true;
+      allow write: if request.auth != null && request.resource.size < 5 * 1024 * 1024;
     }
   }
 }

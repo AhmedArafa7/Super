@@ -12,8 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 /**
- * [STABILITY_ANCHOR: PROFILE_SETTINGS_V3.0]
- * واجهة إعدادات الهوية المحدثة - تدعم رفع الصور الشخصية والمزامنة العصبية.
+ * [STABILITY_ANCHOR: PROFILE_SETTINGS_V3.5]
+ * واجهة إعدادات الهوية المحدثة - تدعم الضغط التلقائي للصور والمزامنة العصبية.
  */
 export function ProfileSettings({ user }: any) {
   const { toast } = useToast();
@@ -40,9 +40,9 @@ export function ProfileSettings({ user }: any) {
     const file = e.target.files?.[0];
     if (!file || !user?.id) return;
 
-    // التحقق من الحجم (بحد أقصى 2 ميجابايت)
-    if (file.size > 2 * 1024 * 1024) {
-      toast({ variant: "destructive", title: "حجم الملف كبير", description: "يرجى اختيار صورة أقل من 2 ميجابايت لضمان سرعة المزامنة." });
+    // التحقق من النوع
+    if (!file.type.startsWith('image/')) {
+      toast({ variant: "destructive", title: "نوع غير مدعوم", description: "يرجى اختيار صورة صالحة (JPG, PNG, WEBP)." });
       return;
     }
 
@@ -50,15 +50,23 @@ export function ProfileSettings({ user }: any) {
     setUploadProgress(0);
 
     try {
+      // سيتم الضغط تلقائياً داخل uploadAvatar
       const url = await uploadAvatar(file, (pct) => setUploadProgress(pct));
       await updateUserProfile(user.id, { avatar_url: url });
-      toast({ title: "تم تحديث الصورة", description: "تمت مزامنة أيقونة الهوية الجديدة مع السجل العالمي." });
+      toast({ title: "تمت المزامنة البصرية", description: "تم ضغط الصورة ورفعها بنجاح." });
     } catch (err: any) {
       console.error("Upload Error:", err);
-      toast({ variant: "destructive", title: "فشل الرفع", description: "حدث اضطراب في الاتصال بحاوية التخزين السحابية." });
+      toast({ 
+        variant: "destructive", 
+        title: "فشل الرفع السحابي", 
+        description: err.message?.includes('permission') 
+          ? "تم رفض العملية من قبل بروتوكول الأمان (الحجم أو النوع غير مسموح)." 
+          : "حدث اضطراب في الاتصال بحاوية التخزين." 
+      });
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -105,7 +113,9 @@ export function ProfileSettings({ user }: any) {
         {isUploading && (
           <div className="w-full space-y-2 mb-4 animate-in fade-in">
             <Progress value={uploadProgress} className="h-1 bg-white/5" />
-            <p className="text-[8px] font-bold text-indigo-400 uppercase tracking-widest">جاري مزامنة الأيقونة العصبية...</p>
+            <p className="text-[8px] font-bold text-indigo-400 uppercase tracking-widest">
+              {uploadProgress < 10 ? "جاري المعالجة العصبية (الضغط)..." : "جاري المزامنة السحابية..."}
+            </p>
           </div>
         )}
 
