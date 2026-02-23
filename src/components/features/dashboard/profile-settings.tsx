@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef } from "react";
@@ -29,9 +28,9 @@ export function ProfileSettings({ user }: any) {
     setIsUpdating(true);
     try {
       await updateUserProfile(user.id, { name: displayName });
-      toast({ title: "Profile Updated", description: "Your neural identity has been synchronized." });
+      toast({ title: "تم تحديث الملف", description: "تمت مزامنة هويتك العصبية مع السجل العالمي." });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Update Failed", description: err.message });
+      toast({ variant: "destructive", title: "فشل التحديث", description: err.message });
     } finally {
       setIsUpdating(false);
     }
@@ -41,9 +40,9 @@ export function ProfileSettings({ user }: any) {
     const file = e.target.files?.[0];
     if (!file || !user?.id) return;
 
-    // التحقق من الحجم (مثلاً بحد أقصى 2 ميجابايت)
+    // التحقق من الحجم (بحد أقصى 2 ميجابايت)
     if (file.size > 2 * 1024 * 1024) {
-      toast({ variant: "destructive", title: "حجم كبير جداً", description: "يرجى اختيار صورة أقل من 2 ميجابايت." });
+      toast({ variant: "destructive", title: "حجم الملف كبير", description: "يرجى اختيار صورة أقل من 2 ميجابايت لضمان سرعة المزامنة." });
       return;
     }
 
@@ -53,9 +52,10 @@ export function ProfileSettings({ user }: any) {
     try {
       const url = await uploadAvatar(file, (pct) => setUploadProgress(pct));
       await updateUserProfile(user.id, { avatar_url: url });
-      toast({ title: "تم تحديث الصورة", description: "تمت مزامنة أيقونة الهوية مع السجل العالمي." });
+      toast({ title: "تم تحديث الصورة", description: "تمت مزامنة أيقونة الهوية الجديدة مع السجل العالمي." });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "فشل الرفع", description: "حدث اضطراب في الاتصال بحاوية التخزين." });
+      console.error("Upload Error:", err);
+      toast({ variant: "destructive", title: "فشل الرفع", description: "حدث اضطراب في الاتصال بحاوية التخزين السحابية." });
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -88,7 +88,7 @@ export function ProfileSettings({ user }: any) {
             {isUploading && (
               <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-4 gap-2">
                 <Loader2 className="size-8 text-primary animate-spin" />
-                <span className="text-[8px] font-black text-white">{Math.round(uploadProgress)}%</span>
+                <span className="text-[10px] font-black text-white">{Math.round(uploadProgress)}%</span>
               </div>
             )}
           </div>
@@ -105,7 +105,7 @@ export function ProfileSettings({ user }: any) {
         {isUploading && (
           <div className="w-full space-y-2 mb-4 animate-in fade-in">
             <Progress value={uploadProgress} className="h-1 bg-white/5" />
-            <p className="text-[8px] font-bold text-indigo-400 uppercase tracking-widest">Synchronizing Neural Icon...</p>
+            <p className="text-[8px] font-bold text-indigo-400 uppercase tracking-widest">جاري مزامنة الأيقونة العصبية...</p>
           </div>
         )}
 
@@ -119,7 +119,7 @@ export function ProfileSettings({ user }: any) {
           disabled={isUploading}
           className="mt-6 text-[10px] uppercase font-bold text-indigo-400 hover:bg-indigo-500/10 rounded-xl h-9 px-6 border-white/5 bg-white/5"
         >
-          {user?.avatar_url ? "Change Identity Icon" : "Upload Icon"}
+          {user?.avatar_url ? "تغيير أيقونة الهوية" : "رفع أيقونة الهوية"}
         </Button>
       </Card>
 

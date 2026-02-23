@@ -1,4 +1,3 @@
-
 'use client';
 
 import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
@@ -104,6 +103,11 @@ export const updateUserProfile = async (userId: string, updates: Partial<User>) 
   }
 };
 
+/**
+ * وظيفة رفع الصورة الشخصية إلى Firebase Storage.
+ * @param file الملف المراد رفعه
+ * @param onProgress دالة رد نداء لتحديث شريط التقدم
+ */
 export const uploadAvatar = async (file: File, onProgress?: (pct: number) => void): Promise<string> => {
   const { storage } = initializeFirebase();
   const filePath = `avatars/${Date.now()}-${file.name}`;
@@ -112,9 +116,15 @@ export const uploadAvatar = async (file: File, onProgress?: (pct: number) => voi
   return new Promise((resolve, reject) => {
     const uploadTask = uploadBytesResumable(storageRef, file);
     uploadTask.on('state_changed', 
-      (snapshot) => onProgress?.((snapshot.bytesTransferred / snapshot.totalBytes) * 100), 
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        onProgress?.(progress);
+      }, 
       (error) => reject(error), 
-      async () => resolve(await getDownloadURL(uploadTask.snapshot.ref))
+      async () => {
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        resolve(downloadURL);
+      }
     );
   });
 };
