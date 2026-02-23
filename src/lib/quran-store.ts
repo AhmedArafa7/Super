@@ -2,9 +2,8 @@
 'use client';
 
 /**
- * [STABILITY_ANCHOR: QURAN_ENGINE_V4.5]
+ * [STABILITY_ANCHOR: QURAN_ENGINE_V5.0]
  * محرك القرآن الكريم المطور - يدعم التفسير الميسر والمزامنة الكلية للأوفلاين.
- * تم تصحيح التوجيهات البرمجية لضمان عمل المتجر في بيئة العميل فقط.
  */
 
 import { create } from 'zustand';
@@ -86,14 +85,27 @@ export const useQuranStore = create<QuranState>()(
       fetchSurahText: async (id) => {
         set({ isReadingLoading: true, currentReadingText: null });
         try {
-          // جلب النص العثماني والتفسير الميسر في آن واحد لضمان دقة المعاني
-          const [textRes, tafsirRes] = await Promise.all([
-            fetch(`https://api.alquran.cloud/v1/surah/${id}/quran-uthmani`),
-            fetch(`https://api.alquran.cloud/v1/surah/${id}/ar.muyassar`)
-          ]);
-          
-          const textData = await textRes.json();
-          const tafsirData = await tafsirRes.json();
+          // محاولة الجلب من الكاش أولاً
+          const cache = await caches.open('nexus-quran-text-cache');
+          const textUrl = `https://api.alquran.cloud/v1/surah/${id}/quran-uthmani`;
+          const tafsirUrl = `https://api.alquran.cloud/v1/surah/${id}/ar.muyassar`;
+
+          let textData, tafsirData;
+
+          const cachedText = await cache.match(textUrl);
+          const cachedTafsir = await cache.match(tafsirUrl);
+
+          if (cachedText && cachedTafsir) {
+            textData = await cachedText.json();
+            tafsirData = await cachedTafsir.json();
+          } else {
+            const [textRes, tafsirRes] = await Promise.all([
+              fetch(textUrl),
+              fetch(tafsirUrl)
+            ]);
+            textData = await textRes.json();
+            tafsirData = await tafsirRes.json();
+          }
 
           if (textData.code === 200 && tafsirData.code === 200) {
             const combinedAyahs = textData.data.ayahs.map((ayah: any, index: number) => ({
@@ -175,10 +187,16 @@ export const useQuranStore = create<QuranState>()(
             const textUrl = `https://api.alquran.cloud/v1/surah/${i}/quran-uthmani`;
             const tafsirUrl = `https://api.alquran.cloud/v1/surah/${i}/ar.muyassar`;
             
-            await Promise.all([
-              cache.add(textUrl),
-              cache.add(tafsirUrl)
+            // جلب البيانات وحفظها في الكاش
+            const [textRes, tafsirRes] = await Promise.all([
+              fetch(textUrl),
+              fetch(tafsirUrl)
             ]);
+
+            if (textRes.ok && tafsirRes.ok) {
+              await cache.put(textUrl, textRes.clone());
+              await cache.put(tafsirUrl, tafsirRes.clone());
+            }
             
             set({ bulkSyncProgress: Math.round((i / 114) * 100) });
           }

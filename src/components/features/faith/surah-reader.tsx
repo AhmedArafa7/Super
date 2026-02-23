@@ -21,14 +21,14 @@ interface SurahReaderProps {
 }
 
 /**
- * [STABILITY_ANCHOR: SURAH_READER_MUSHAF_V4.5]
- * واجهة القارئ بنمط المصحف - تم إصلاح تكرار البسملة عبر مطابقة الرسم العثماني بدقة.
+ * [STABILITY_ANCHOR: SURAH_READER_MUSHAF_V5.0]
+ * واجهة القارئ بنمط المصحف - تم دمج التفسير الميسر الموثوق.
  */
 export function SurahReader({ surahId, surahName, englishName, ayahs, isLoading, onClose }: SurahReaderProps) {
   const [fontSize, setFontSize] = useState(32);
   const [selectedAyah, setSelectedAyah] = useState<Ayah | null>(null);
 
-  // البسملة الرسمية في الرسم العثماني (Uthmani Script) كما تظهر في API (مع همزة الوصل ٱ)
+  // البسملة الرسمية في الرسم العثماني (Uthmani Script) كما تظهر في API
   const BISMILLAH_UTHMANI = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
 
   const renderAyahs = () => {
@@ -37,8 +37,7 @@ export function SurahReader({ surahId, surahName, englishName, ayahs, isLoading,
     return ayahs.map((ayah, index) => {
       let textToDisplay = ayah.text;
 
-      // بروتوكول عزل البسملة: إذا كانت السورة ليست الفاتحة وليست التوبة، وكان النص يبدأ بالبسملة
-      // نقوم بإزالتها بَصرياً من متن الآية الأولى لأنها تظهر كعنوان في الأعلى
+      // بروتوكول عزل البسملة بَصرياً من متن الآية الأولى
       if (surahId !== 1 && surahId !== 9 && index === 0) {
         if (textToDisplay.startsWith(BISMILLAH_UTHMANI)) {
           textToDisplay = textToDisplay.substring(BISMILLAH_UTHMANI.length).trim();
@@ -64,7 +63,7 @@ export function SurahReader({ surahId, surahName, englishName, ayahs, isLoading,
     });
   };
 
-  const shouldShowHeaderBismillah = surahId !== 9; // البسملة تظهر في الأعلى لكل السور عدا التوبة
+  const shouldShowHeaderBismillah = surahId !== 9;
 
   return (
     <DialogContent className="max-w-5xl h-[90vh] bg-slate-950 border-white/10 rounded-[3rem] p-0 overflow-hidden flex flex-col shadow-[0_0_60px_rgba(0,0,0,0.7)] outline-none">
@@ -100,7 +99,7 @@ export function SurahReader({ surahId, surahName, englishName, ayahs, isLoading,
       </DialogHeader>
       
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        {/* التفسير الجانبي (تفسير الميسر) */}
+        {/* التفسير الجانبي الموثوق */}
         {selectedAyah && (
           <aside className="w-full md:w-80 border-r border-white/5 bg-slate-900/40 p-6 flex flex-col gap-4 animate-in slide-in-from-left-4">
             <div className="flex items-center justify-between flex-row-reverse">
@@ -110,7 +109,7 @@ export function SurahReader({ surahId, surahName, englishName, ayahs, isLoading,
               <Badge variant="outline" className="text-[10px]">الآية {selectedAyah.numberInSurah}</Badge>
             </div>
             <ScrollArea className="flex-1">
-              <p className="text-sm text-slate-300 leading-loose text-right italic p-4 bg-white/5 rounded-2xl border border-white/5 shadow-inner">
+              <p dir="rtl" className="text-sm text-slate-300 leading-loose text-right italic p-4 bg-white/5 rounded-2xl border border-white/5 shadow-inner">
                 "{selectedAyah.tafsir}"
               </p>
             </ScrollArea>

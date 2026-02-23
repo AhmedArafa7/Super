@@ -1,11 +1,10 @@
+
 'use client';
 
 import React from "react";
-import { HardDrive, Database, Music, Trash2, ZoomIn, ZoomOut, Heart, ShieldCheck, Zap, Download, Loader2 } from "lucide-react";
+import { HardDrive, Database, Music, Trash2, Heart, ShieldCheck, Download, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +13,7 @@ import { useQuranStore } from "@/lib/quran-store";
 import { cn } from "@/lib/utils";
 
 /**
- * [STABILITY_ANCHOR: STORAGE_VIEW_V4]
+ * [STABILITY_ANCHOR: STORAGE_VIEW_V5.0]
  * مدير الذاكرة السيادي - تم إضافة ميزة المزامنة الكلية للمصحف (نص وتفسير).
  */
 export function StorageView() {
