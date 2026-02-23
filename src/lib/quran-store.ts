@@ -1,14 +1,15 @@
 
 'use client';
 
+/**
+ * [STABILITY_ANCHOR: QURAN_ENGINE_V4.5]
+ * محرك القرآن الكريم المطور - يدعم التفسير الميسر والمزامنة الكلية للأوفلاين.
+ * تم تصحيح التوجيهات البرمجية لضمان عمل المتجر في بيئة العميل فقط.
+ */
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useGlobalStorage } from './global-storage-store';
-
-/**
- * [STABILITY_ANCHOR: QURAN_ENGINE_V3.2]
- * محرك القرآن الكريم المطور - تم تحصين المزامنة ضد أخطاء "Failed to fetch".
- */
 
 export interface QuranSurah {
   id: number;
@@ -24,6 +25,7 @@ export interface Ayah {
   number: number;
   text: string;
   numberInSurah: number;
+  tafsir?: string;
 }
 
 interface QuranState {
@@ -33,6 +35,8 @@ interface QuranState {
   isPlaying: boolean;
   isLoading: boolean;
   isReadingLoading: boolean;
+  isBulkSyncing: boolean;
+  bulkSyncProgress: number;
   
   fetchSurahs: () => Promise<void>;
   fetchSurahText: (id: number) => Promise<void>;
@@ -40,6 +44,7 @@ interface QuranState {
   setIsPlaying: (playing: boolean) => void;
   downloadToLocal: (surah: QuranSurah) => Promise<void>;
   toggleFavoriteSurah: (id: number) => void;
+  syncAllQuranText: () => Promise<void>;
 }
 
 export const useQuranStore = create<QuranState>()(
@@ -51,6 +56,8 @@ export const useQuranStore = create<QuranState>()(
       isPlaying: false,
       isLoading: false,
       isReadingLoading: false,
+      isBulkSyncing: false,
+      bulkSyncProgress: 0,
 
       fetchSurahs: async () => {
         set({ isLoading: true });
@@ -79,10 +86,21 @@ export const useQuranStore = create<QuranState>()(
       fetchSurahText: async (id) => {
         set({ isReadingLoading: true, currentReadingText: null });
         try {
-          const response = await fetch(`https://api.alquran.cloud/v1/surah/${id}/quran-uthmani`);
-          const data = await response.json();
-          if (data.code === 200) {
-            set({ currentReadingText: data.data.ayahs, isReadingLoading: false });
+          // جلب النص العثماني والتفسير الميسر في آن واحد لضمان دقة المعاني
+          const [textRes, tafsirRes] = await Promise.all([
+            fetch(`https://api.alquran.cloud/v1/surah/${id}/quran-uthmani`),
+            fetch(`https://api.alquran.cloud/v1/surah/${id}/ar.muyassar`)
+          ]);
+          
+          const textData = await textRes.json();
+          const tafsirData = await tafsirRes.json();
+
+          if (textData.code === 200 && tafsirData.code === 200) {
+            const combinedAyahs = textData.data.ayahs.map((ayah: any, index: number) => ({
+              ...ayah,
+              tafsir: tafsirData.data.ayahs[index].text
+            }));
+            set({ currentReadingText: combinedAyahs, isReadingLoading: false });
           }
         } catch (err) {
           set({ isReadingLoading: false });
@@ -99,7 +117,7 @@ export const useQuranStore = create<QuranState>()(
       setIsPlaying: (isPlaying) => set({ isPlaying }),
 
       downloadToLocal: async (surah) => {
-        if (!window.navigator.onLine) return; // لا تحاول التحميل إذا كان المستخدم أوفلاين أصلاً
+        if (!window.navigator.onLine) return;
 
         const assetId = `quran-${surah.id}`;
         const storage = useGlobalStorage.getState();
@@ -109,17 +127,9 @@ export const useQuranStore = create<QuranState>()(
 
         try {
           const cache = await caches.open('nexus-quran-physical-cache');
-          
-          // استخدام وضع 'no-cors' كخيار احتياطي لضمان التحميل حتى مع قيود الخادم
-          // ملاحظة: Fetch قد يفشل إذا كان الاتصال ضعيفاً جداً
-          const response = await fetch(surah.url, { 
-            mode: 'cors',
-            credentials: 'omit'
-          }).catch(() => fetch(surah.url, { mode: 'no-cors' })); 
+          const response = await fetch(surah.url, { mode: 'cors', credentials: 'omit' }).catch(() => fetch(surah.url, { mode: 'no-cors' })); 
 
-          if (!response || (!response.ok && response.type !== 'opaque')) {
-            throw new Error("Neural link unstable.");
-          }
+          if (!response) throw new Error("Neural link unstable.");
           
           await cache.put(surah.url, response.clone());
           
@@ -130,7 +140,6 @@ export const useQuranStore = create<QuranState>()(
             sizeMB: surah.sizeMB
           });
         } catch (err) {
-          // تسجيل الخطأ بهدوء دون تعطيل الواجهة
           console.warn(`[Background Sync Interrupted] for Surah ${surah.name}:`, err);
         }
       },
@@ -152,6 +161,40 @@ export const useQuranStore = create<QuranState>()(
           }
         }
         storage.toggleFavorite(assetId);
+      },
+
+      syncAllQuranText: async () => {
+        if (get().isBulkSyncing) return;
+        set({ isBulkSyncing: true, bulkSyncProgress: 0 });
+        
+        const cache = await caches.open('nexus-quran-text-cache');
+        const storage = useGlobalStorage.getState();
+        
+        try {
+          for (let i = 1; i <= 114; i++) {
+            const textUrl = `https://api.alquran.cloud/v1/surah/${i}/quran-uthmani`;
+            const tafsirUrl = `https://api.alquran.cloud/v1/surah/${i}/ar.muyassar`;
+            
+            await Promise.all([
+              cache.add(textUrl),
+              cache.add(tafsirUrl)
+            ]);
+            
+            set({ bulkSyncProgress: Math.round((i / 114) * 100) });
+          }
+          
+          storage.addAsset({
+            id: 'quran-full-text',
+            type: 'learning_asset',
+            title: 'المصحف الشريف كاملاً (نص + تفسير)',
+            sizeMB: 15
+          });
+          
+          set({ isBulkSyncing: false });
+        } catch (e) {
+          set({ isBulkSyncing: false });
+          console.error("Bulk Sync Failed", e);
+        }
       }
     }),
     { 

@@ -1,8 +1,7 @@
-
 'use client';
 
 import React from "react";
-import { HardDrive, Database, Music, Trash2, ZoomIn, ZoomOut, Heart, ShieldCheck, Zap } from "lucide-react";
+import { HardDrive, Database, Music, Trash2, ZoomIn, ZoomOut, Heart, ShieldCheck, Zap, Download, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
@@ -11,14 +10,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useGlobalStorage } from "@/lib/global-storage-store";
+import { useQuranStore } from "@/lib/quran-store";
 import { cn } from "@/lib/utils";
 
 /**
- * [STABILITY_ANCHOR: STORAGE_VIEW_V3]
- * مدير الذاكرة السيادي - يدعم تمييز المفضلات كأصول "محمية" ضد الحذف التلقائي.
+ * [STABILITY_ANCHOR: STORAGE_VIEW_V4]
+ * مدير الذاكرة السيادي - تم إضافة ميزة المزامنة الكلية للمصحف (نص وتفسير).
  */
 export function StorageView() {
   const { cachedAssets, storageLimitMB, removeAsset, toggleFavorite, getTotalUsedSpace } = useGlobalStorage();
+  const { syncAllQuranText, isBulkSyncing, bulkSyncProgress } = useQuranStore();
   
   const usedStorage = getTotalUsedSpace();
   const storagePercentage = Math.round((usedStorage / storageLimitMB) * 100);
@@ -36,13 +37,28 @@ export function StorageView() {
             </div>
             <Progress value={storagePercentage} className="h-2 bg-white/5" />
           </div>
-          <div className="p-6 bg-red-500/5 rounded-[2rem] border border-red-500/10 flex items-start gap-4 flex-row-reverse shadow-inner">
-            <ShieldCheck className="size-6 text-red-500 shrink-0 mt-1" />
-            <div className="text-right space-y-1">
-              <p className="text-xs font-bold text-white">بروتوكول حماية المفضلات (Shield)</p>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">
-                الأصول المميزة بالقلب الأحمر **لن تُمسح أبداً** تلقائياً. عند امتلاء الذاكرة، سيقوم النظام بالتخلص من الملفات القديمة "غير المحمية" فقط.
-              </p>
+          
+          <div className="pt-6 border-t border-white/5 space-y-4">
+            <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">مزامنة البيانات الكبرى</p>
+            <div className="flex flex-col gap-3">
+              <Button 
+                onClick={syncAllQuranText}
+                disabled={isBulkSyncing}
+                className="w-full h-14 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-bold gap-3 shadow-xl shadow-indigo-600/20"
+              >
+                {isBulkSyncing ? (
+                  <>
+                    <Loader2 className="size-5 animate-spin" />
+                    جاري المزامنة... {bulkSyncProgress}%
+                  </>
+                ) : (
+                  <>
+                    <Download className="size-5" />
+                    حفظ نص القرآن والتفسير كاملاً للأوفلاين
+                  </>
+                )}
+              </Button>
+              {isBulkSyncing && <Progress value={bulkSyncProgress} className="h-1 bg-white/5" />}
             </div>
           </div>
         </Card>
@@ -51,12 +67,11 @@ export function StorageView() {
           <h3 className="text-2xl font-bold text-white text-right">إعدادات النخاع المحلي</h3>
           <div className="space-y-6 text-right">
             <div className="flex items-center justify-between flex-row-reverse">
-              <Label className="text-sm font-bold">حجم خط القراءة</Label>
-              <div className="flex items-center gap-4 w-48">
-                <ZoomOut className="size-4 opacity-40" />
-                <Slider defaultValue={[24]} min={16} max={42} step={1} className="cursor-pointer" />
-                <ZoomIn className="size-4 opacity-40" />
+              <div className="text-right">
+                <p className="text-sm font-bold">بروتوكول حماية المفضلات</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">الأصول المحمية لن تمسح أبداً تلقائياً.</p>
               </div>
+              <ShieldCheck className="size-6 text-emerald-500" />
             </div>
             <div className="flex items-center justify-between pt-6 border-t border-white/5 flex-row-reverse">
               <div className="text-right">
