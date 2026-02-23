@@ -17,7 +17,8 @@
         "proResponsesRemaining": { "type": "number", "default": 0 },
         "proTTSRemaining": { "type": "number", "default": 0 },
         "avatar_url": { "type": "string" },
-        "canManageCredits": { "type": "boolean", "description": "Independent authority to distribute credits." }
+        "canManageCredits": { "type": "boolean", "description": "Independent authority to distribute credits." },
+        "dataConsent": { "type": "string", "enum": ["none", "agreed", "declined"], "default": "none" }
       }
     },
     "MarketOffer": {

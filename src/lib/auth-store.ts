@@ -6,19 +6,19 @@ import { initializeFirebase } from '@/firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 // [STABILITY_ANCHOR: OCTAL_HIERARCHY_V1.0]
-// تعريف الرتب السيادية الثمانية للنظام
 export type UserRole = 
-  | 'founder'        // المؤسس - تحكم مطلق ورؤية شاملة
-  | 'cofounder'      // شريك مؤسس
-  | 'admin'          // مدير نظام
-  | 'management'     // إدارة
-  | 'investor'       // مستثمر
-  | 'task_executor'  // منفذ مهام
-  | 'free'           // مجاني
-  | 'external_user'; // مستخدم خارجي
+  | 'founder'
+  | 'cofounder'
+  | 'admin'
+  | 'management'
+  | 'investor'
+  | 'task_executor'
+  | 'free'
+  | 'external_user';
 
 export type UserClassification = 'none' | 'freelancer' | 'investor' | 'manager';
 export type OnlineStatus = 'online' | 'offline' | 'away';
+export type ConsentStatus = 'none' | 'agreed' | 'declined';
 
 export interface User {
   id: string;
@@ -33,6 +33,7 @@ export interface User {
   canManageCredits?: boolean;
   status?: OnlineStatus;
   lastSeen?: string;
+  dataConsent: ConsentStatus;
 }
 
 const SESSION_KEY = 'nexus_session';
@@ -60,10 +61,10 @@ export const getStoredUsers = async (): Promise<User[]> => {
   } as User));
 };
 
-export const addUser = async (userData: Omit<User, 'id'>) => {
+export const addUser = async (userData: Omit<User, 'id' | 'dataConsent'>) => {
   const { firestore } = initializeFirebase();
   const newUserRef = doc(collection(firestore, 'users'));
-  const user = { 
+  const user: User = { 
     ...userData, 
     id: newUserRef.id,
     classification: userData.classification || 'none',
@@ -72,7 +73,8 @@ export const addUser = async (userData: Omit<User, 'id'>) => {
     avatar_url: userData.avatar_url || `https://picsum.photos/seed/${userData.username}/100/100`,
     status: 'online',
     lastSeen: new Date().toISOString(),
-    canManageCredits: userData.canManageCredits || false
+    canManageCredits: userData.canManageCredits || false,
+    dataConsent: 'none'
   };
   await setDoc(newUserRef, user);
   
@@ -102,10 +104,6 @@ export const updateUserProfile = async (userId: string, updates: Partial<User>) 
   }
 };
 
-/**
- * [STABILITY_ANCHOR: AVATAR_UPLOAD_PROTOCOL]
- * وظيفة رفع الصورة الشخصية للعقدة.
- */
 export const uploadAvatar = async (file: File, onProgress?: (pct: number) => void): Promise<string> => {
   const { storage } = initializeFirebase();
   const filePath = `avatars/${Date.now()}-${file.name}`;

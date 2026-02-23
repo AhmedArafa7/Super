@@ -6,6 +6,7 @@ import { AuthProvider } from "@/components/auth/auth-provider";
 import { FirebaseClientProvider } from "@/firebase/client-provider";
 import { Footer } from "@/components/layout/footer";
 import { OnboardingModal } from "@/components/features/onboarding-modal";
+import { PrivacyConsentModal } from "@/components/features/privacy-consent-modal";
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -33,6 +34,7 @@ export default function RootLayout({
               <Footer />
             </div>
             <OnboardingModal />
+            <PrivacyConsentModal />
             <Toaster />
           </AuthProvider>
         </FirebaseClientProvider>

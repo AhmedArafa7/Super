@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Sparkles, Zap, Copy } from "lucide-react";
+import { Sparkles, Zap, Copy, ShieldAlert, Lock } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useChatStore, Attachment } from "@/lib/chat-store";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -13,14 +13,15 @@ import { generateNeuralImage } from "@/ai/flows/ai-media-generation";
 import { updateUserProfile } from "@/lib/auth-store";
 import { ToastAction } from "@/components/ui/toast";
 import { useChatAudio } from "@/hooks/use-chat-audio";
+import { Button } from "@/components/ui/button";
 
 import { ChatMessage } from "./chat/chat-message";
 import { ChatInput } from "./chat/chat-input";
 import { ChatSettings } from "./chat/chat-settings";
 
 /**
- * [STABILITY_ANCHOR: CHAT_ORCHESTRATOR_V6.8]
- * المنسق الرئيسي للدردشة الذكية - تم تفريغ المنطق إلى hooks لضمان الرشاقة البرمجية.
+ * [STABILITY_ANCHOR: CHAT_ORCHESTRATOR_V7.0]
+ * المنسق الرئيسي للدردشة الذكية - تم دمج بروتوكول حماية البيانات (Privacy Guard).
  */
 export function AIChat() {
   const { user } = useAuth();
@@ -68,6 +69,16 @@ export function AIChat() {
 
   const handleSend = async () => {
     if ((!input.trim() && attachments.length === 0) || isAITyping || !user) return;
+
+    // بروتوكول حماية الخصوصية: إذا رفض المستخدم، يتم حظر المعالجة
+    if (user.dataConsent === 'declined') {
+      toast({ 
+        variant: "destructive", 
+        title: "وضع الخصوصية المطلقة نشط", 
+        description: "لقد اخترت عدم مشاركة بياناتك، لذا تم تعطيل محرك الذكاء الاصطناعي والمزامنة مع الأدمن." 
+      });
+      return;
+    }
 
     if (selectedManualModel.includes('pro') && (user.proResponsesRemaining || 0) <= 0) {
       toast({ variant: "destructive", title: "رصيد غير كافٍ", description: "لقد استهلكت كافة ردود Pro المتاحة." });
@@ -149,6 +160,31 @@ export function AIChat() {
     }]);
     reader.readAsDataURL(file);
   };
+
+  if (user?.dataConsent === 'declined') {
+    return (
+      <div className="flex flex-col h-full max-w-5xl mx-auto pt-8 pb-6 px-4 font-sans items-center justify-center">
+        <div className="glass rounded-[3.5rem] p-16 text-center space-y-8 border-red-500/20 shadow-2xl relative overflow-hidden max-w-lg">
+          <div className="absolute top-0 right-0 size-32 bg-red-500/10 blur-3xl -mr-16 -mt-16" />
+          <div className="size-24 bg-red-500/10 rounded-full flex items-center justify-center mx-auto border border-red-500/20 shadow-xl">
+            <Lock className="size-12 text-red-400" />
+          </div>
+          <div className="space-y-3">
+            <h2 className="text-3xl font-bold text-white">الخصوصية المطلقة نشطة</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              لقد اخترت عدم مشاركة بياناتك مع النظام. حفاظاً على هذا القرار، تم تعطيل كافة وظائف الدردشة الذكية والمزامنة لضمان عدم خروج أي معلومة من جهازك.
+            </p>
+          </div>
+          <Button 
+            onClick={() => updateUserProfile(user.id, { dataConsent: 'none' })}
+            className="bg-primary hover:bg-primary/90 h-12 rounded-xl font-bold px-10"
+          >
+            تعديل خيار الخصوصية
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full max-w-5xl mx-auto pt-8 pb-6 px-4 font-sans">
