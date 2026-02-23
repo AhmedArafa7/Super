@@ -1,10 +1,9 @@
-
 name = "nexus-ai-ecosystem"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-# سيتم ملء هذه المتغيرات في لوحة تحكم Cloudflare لضمان الأمان
+# يتم تعيين المتغيرات الحساسة في لوحة تحكم Cloudflare مباشرة للأمان
 NODE_VERSION = "20"
 
 [[routes]]
