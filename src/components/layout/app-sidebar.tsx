@@ -8,7 +8,7 @@ import {
 import { 
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat, 
   BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, 
-  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud
+  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { cn } from "@/lib/utils";
 
 export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, togglePin, uploadTasks, unreadCount, pendingOffersCount }: any) {
-  const isAdmin = user?.role === 'admin';
+  // المؤسس والمؤسس الشريك والمديرين والمنتخبين لديهم حق الوصول للوحة الإدارة
+  const managementRoles = ['founder', 'cofounder', 'admin', 'management'];
+  const hasAdminAccess = user && managementRoles.includes(user.role);
 
   const ALL_NAV_ITEMS = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, restricted: false },
@@ -42,8 +44,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
     { id: "admin", label: "Admin Panel", icon: ShieldCheck, restricted: true },
   ];
 
-  // تصفية العناصر بناءً على الصلاحيات
-  const visibleItems = ALL_NAV_ITEMS.filter(item => !item.restricted || isAdmin);
+  const visibleItems = ALL_NAV_ITEMS.filter(item => !item.restricted || hasAdminAccess);
   const pinnedSidebarItems = visibleItems.filter(item => isPinned(item.id));
 
   return (
@@ -69,7 +70,12 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
                   activeTab === item.id ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
                 )}
               >
-                <item.icon className={cn("size-5", item.id === 'admin' && "text-indigo-400", item.id === 'vault' && "text-amber-400", item.id === 'downloads' && "text-primary")} />
+                <item.icon className={cn(
+                  "size-5", 
+                  item.id === 'admin' && (user?.role === 'founder' ? "text-amber-400" : "text-indigo-400"), 
+                  item.id === 'vault' && "text-amber-400", 
+                  item.id === 'downloads' && "text-primary"
+                )} />
                 <span className="font-medium">{item.label}</span>
                 {item.badge !== undefined && item.badge > 0 && (
                    <Badge className="mr-auto bg-indigo-500 h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full">{item.badge}</Badge>
@@ -130,12 +136,13 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
 
       <SidebarFooter className="p-4 mt-auto border-t border-white/5">
         <div className="flex items-center gap-3 px-2 flex-row-reverse">
-          <div className="size-10 rounded-2xl bg-indigo-900/50 border border-white/10 overflow-hidden cursor-pointer" onClick={() => onTabChange("dashboard")}>
+          <div className="size-10 rounded-2xl bg-indigo-900/50 border border-white/10 overflow-hidden cursor-pointer relative" onClick={() => onTabChange("dashboard")}>
             <img src={user?.avatar_url || `https://picsum.photos/seed/${user?.username}/40/40`} className="size-full object-cover" />
+            {user?.role === 'founder' && <Crown className="absolute bottom-0 right-0 size-3 text-amber-400 bg-black/80 rounded-full p-0.5" />}
           </div>
           <div className="flex-1 min-w-0 text-right">
             <p className="text-sm font-bold truncate text-white">{user?.name}</p>
-            <p className="text-[10px] text-muted-foreground truncate capitalize">Nexus Node</p>
+            <p className="text-[10px] text-muted-foreground truncate capitalize">{user?.role === 'founder' ? 'Founder Node' : 'Nexus Node'}</p>
           </div>
           <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-white" onClick={logout}><LogOut className="size-4" /></Button>
         </div>

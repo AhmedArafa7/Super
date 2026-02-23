@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import { ShieldCheck, MessageCircle, MoreVertical, Zap, Copy, Activity, AlertTriangle } from "lucide-react";
+import { ShieldCheck, MessageCircle, MoreVertical, Zap, Copy, Activity, AlertTriangle, Crown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,27 +15,31 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/components/auth/auth-provider";
 
-/**
- * [STABILITY_ANCHOR: NODE_CARD_V2.1]
- * بطاقة العقدة المحدثة - تدعم Direct Link المباشر والصور الموثقة.
- */
 export function NodeCard({ user, onChat }: { user: any, onChat?: (userId: string) => void }) {
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
 
   const handleCopyId = () => {
     navigator.clipboard.writeText(user.id);
     toast({ title: "تم نسخ المعرف", description: "معرف العقدة جاهز للمزامنة الخارجية." });
   };
 
+  // بروتوكول التصنيف الصامت: المؤسس يرى كل شيء، الآخرون يرون رتبة عامة
+  const isFounder = currentUser?.role === 'founder';
+  const displayRole = isFounder ? user.role : 'Verified Node';
+  const displayClassification = isFounder ? (user.classification || 'Unclassified') : 'Neural Sync Active';
+
   return (
     <Card className="group glass border-white/5 rounded-[2.5rem] overflow-hidden hover:border-emerald-500/40 transition-all duration-500 hover:translate-y-[-4px] shadow-2xl relative">
       <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
         <Badge className={cn(
           "bg-black/60 backdrop-blur-md border-white/10 px-3 py-1 rounded-full text-[8px] font-bold uppercase",
+          user.role === 'founder' ? "text-amber-400 border-amber-400/20" : 
           user.role === 'admin' ? "text-indigo-400" : "text-emerald-400"
         )}>
-          {user.role}
+          {displayRole}
         </Badge>
       </div>
       
@@ -49,7 +53,7 @@ export function NodeCard({ user, onChat }: { user: any, onChat?: (userId: string
             />
           </div>
           <div className="absolute -bottom-2 -right-2 size-8 bg-black border-2 border-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
-            <ShieldCheck className="size-4 text-emerald-400" />
+            {user.role === 'founder' ? <Crown className="size-4 text-amber-400" /> : <ShieldCheck className="size-4 text-emerald-400" />}
           </div>
         </div>
 
@@ -60,21 +64,20 @@ export function NodeCard({ user, onChat }: { user: any, onChat?: (userId: string
 
         <div className="flex gap-2 w-full pt-4 border-t border-white/5">
           <Badge variant="outline" className="flex-1 justify-center rounded-lg border-white/10 text-[9px] uppercase font-bold py-1.5 bg-white/5">
-            {user.classification || 'Unclassified'}
+            {displayClassification}
           </Badge>
-          {user.canManageCredits && (
+          {user.canManageCredits && isFounder && (
             <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/20 h-7 text-[8px] font-black">BANKER</Badge>
           )}
         </div>
 
         <div className="flex items-center gap-3 w-full">
-          <Button 
+          <button 
             onClick={() => onChat?.(user.id)}
-            variant="outline" 
-            className="flex-1 rounded-xl h-11 border-white/10 hover:bg-emerald-500/10 hover:text-emerald-400 transition-all text-xs font-bold gap-2"
+            className="flex-1 rounded-xl h-11 border border-white/10 hover:bg-emerald-500/10 hover:text-emerald-400 transition-all text-xs font-bold flex items-center justify-center gap-2"
           >
             <MessageCircle className="size-4" /> تواصل
-          </Button>
+          </button>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -90,7 +93,7 @@ export function NodeCard({ user, onChat }: { user: any, onChat?: (userId: string
                 <Activity className="size-3.5 text-emerald-400" /> عرض الحالة العصبية
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/5" />
-              <DropdownMenuItem onClick={() => toast({ variant: "destructive", title: "تم تسجيل التقرير", description: "سيتم فحص نشاط هذه العقدة من قبل الأدمن." })} className="flex-row-reverse gap-3 text-right text-xs text-red-400 focus:text-red-400 rounded-xl focus:bg-red-500/5 cursor-pointer">
+              <DropdownMenuItem onClick={() => toast({ variant: "destructive", title: "تم تسجيل التقرير", description: "سيتم فحص نشاط هذه العقدة من قبل المؤسس." })} className="flex-row-reverse gap-3 text-right text-xs text-red-400 focus:text-red-400 rounded-xl focus:bg-red-500/5 cursor-pointer">
                 <AlertTriangle className="size-3.5" /> تبليغ عن اضطراب
               </DropdownMenuItem>
             </DropdownMenuContent>

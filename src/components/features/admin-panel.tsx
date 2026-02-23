@@ -1,9 +1,10 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { 
   ShieldAlert, RefreshCcw, Users, MessageSquare, 
-  Video, ShoppingBag, Wallet, Megaphone, Activity, GraduationCap, CheckCircle2, XCircle, Rocket
+  Video, ShoppingBag, Wallet, Megaphone, Activity, GraduationCap, CheckCircle2, XCircle, Rocket, Crown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -123,8 +124,10 @@ export function AdminPanel() {
     }
   };
 
-  if (currentUser?.role !== 'admin') {
-    return <div className="p-20 text-center text-red-400 font-bold">Unauthorized Access</div>;
+  // السماح للمؤسس والمؤسس الشريك والمديرين بالدخول
+  const allowedRoles = ['founder', 'cofounder', 'admin', 'management'];
+  if (!currentUser || !allowedRoles.includes(currentUser.role)) {
+    return <div className="p-20 text-center text-red-400 font-bold">Unauthorized Access - Restricted to Leadership Nodes</div>;
   }
 
   return (
@@ -133,7 +136,7 @@ export function AdminPanel() {
         <div className="text-right">
           <h2 className="text-4xl font-headline font-bold text-white flex items-center gap-4 justify-end">
             لوحة القيادة السيادية
-            <ShieldAlert className="text-indigo-400 size-10" />
+            {currentUser.role === 'founder' ? <Crown className="text-amber-400 size-10" /> : <ShieldAlert className="text-indigo-400 size-10" />}
           </h2>
           <p className="text-muted-foreground mt-1 text-base">إدارة العقد، الرقابة على المحتوى، ومزامنة الموارد.</p>
         </div>

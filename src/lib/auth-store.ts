@@ -4,7 +4,18 @@
 import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
 
-export type UserRole = 'admin' | 'employee' | 'user';
+// [STABILITY_ANCHOR: OCTAL_HIERARCHY_V1.0]
+// تعريف الرتب السيادية الثمانية للنظام
+export type UserRole = 
+  | 'founder'        // المؤسس - تحكم مطلق ورؤية شاملة
+  | 'cofounder'      // شريك مؤسس
+  | 'admin'          // مدير نظام
+  | 'management'     // إدارة
+  | 'investor'       // مستثمر
+  | 'task_executor'  // منفذ مهام
+  | 'free'           // مجاني
+  | 'external_user'; // مستخدم خارجي
+
 export type UserClassification = 'none' | 'freelancer' | 'investor' | 'manager';
 export type OnlineStatus = 'online' | 'offline' | 'away';
 
@@ -60,13 +71,10 @@ export const addUser = async (userData: Omit<User, 'id'>) => {
     avatar_url: userData.avatar_url || `https://picsum.photos/seed/${userData.username}/100/100`,
     status: 'online',
     lastSeen: new Date().toISOString(),
-    // السيادة المالية: تبدأ العقدة بدون سلطة مالية افتراضياً
     canManageCredits: userData.canManageCredits || false
   };
   await setDoc(newUserRef, user);
   
-  // [STABILITY_ANCHOR: ZERO_BALANCE_INIT]
-  // تم تصفير الرصيد الابتدائي لضمان السيادة المالية للمدير الجذر فقط
   await setDoc(doc(firestore, `users/${user.id}/wallet/main`), {
     balance: 0,
     frozenBalance: 0,

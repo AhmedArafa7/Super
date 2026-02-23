@@ -3,48 +3,30 @@
   "entities": {
     "User": {
       "title": "User",
-      "description": "Represents a user profile in the NexusAI ecosystem.",
+      "description": "Represents a user profile in the NexusAI ecosystem with Octal Hierarchy.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "username": { "type": "string" },
         "full_name": { "type": "string" },
-        "role": { "type": "string", "enum": ["admin", "employee", "user"] },
-        "classification": { "type": "string", "enum": ["none", "freelancer", "investor", "manager"], "description": "User classification assigned by admin for AI access tiers." },
-        "proResponsesRemaining": { "type": "number", "default": 0, "description": "Remaining responses for restricted Pro models." },
-        "proTTSRemaining": { "type": "number", "default": 0, "description": "Remaining high-quality neural voice generations." },
+        "role": { 
+          "type": "string", 
+          "enum": ["founder", "cofounder", "admin", "management", "investor", "task_executor", "free", "external_user"] 
+        },
+        "classification": { "type": "string", "enum": ["none", "freelancer", "investor", "manager"] },
+        "proResponsesRemaining": { "type": "number", "default": 0 },
+        "proTTSRemaining": { "type": "number", "default": 0 },
         "avatar_url": { "type": "string" },
-        "custom_tag": { "type": "string" },
-        "canManageCredits": { "type": "boolean", "description": "Independent authority to distribute credits, granted by the root admin." }
+        "canManageCredits": { "type": "boolean", "description": "Independent authority to distribute credits." }
       }
     },
     "MarketOffer": {
       "title": "Market Offer",
-      "description": "Acquisition proposal for a market item.",
-      "type": "object",
       "properties": {
         "productId": { "type": "string" },
         "sellerId": { "type": "string" },
         "buyerId": { "type": "string" },
-        "buyerName": { "type": "string" },
-        "itemTitle": { "type": "string" },
-        "type": { "type": "string", "enum": ["price", "trade"] },
-        "value": { "type": "number" },
-        "details": { "type": "string" },
-        "status": { "type": "string", "enum": ["pending", "accepted", "rejected"] },
-        "timestamp": { "type": "string" }
-      }
-    },
-    "PeerMessage": {
-      "title": "Peer Message",
-      "description": "Direct message between two users.",
-      "type": "object",
-      "properties": {
-        "senderId": { "type": "string" },
-        "receiverId": { "type": "string" },
-        "text": { "type": "string" },
-        "timestamp": { "type": "string" },
-        "isRead": { "type": "boolean" }
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected"] }
       }
     }
   },
@@ -54,6 +36,6 @@
     "/users/{userId}/wallet/main": { "description": "Credit balance" },
     "/chats/{chatId}/messages/{msgId}": { "description": "Peer-to-peer messaging stream" },
     "/videos/{videoId}": { "description": "StreamHub videos" },
-    "/offers/{offerId}": { "schema": { "$ref": "#/backend/entities/MarketOffer" }, "description": "Global acquisition proposals" }
+    "/offers/{offerId}": { "description": "Market negotiations" }
   }
 }
