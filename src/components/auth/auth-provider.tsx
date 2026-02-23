@@ -21,10 +21,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const handleUpdate = () => {
+      const session = getSession();
+      setUser(session);
+    };
+    
+    // الاستماع لتحديثات الهوية لمزامنة الصورة الشخصية والبيانات فوراً
+    window.addEventListener('auth-update', handleUpdate);
+    
     // Initial sync with local storage
     const session = getSession();
     if (session) setUser(session);
     setLoading(false);
+
+    return () => window.removeEventListener('auth-update', handleUpdate);
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
@@ -54,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         username,
         name,
         role: 'user',
-        avatarUrl: `https://picsum.photos/seed/${username}/100/100`
+        avatar_url: `https://picsum.photos/seed/${username}/100/100`
       });
 
       setSession(newUser);

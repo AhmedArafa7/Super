@@ -3,6 +3,7 @@
 
 import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 // [STABILITY_ANCHOR: OCTAL_HIERARCHY_V1.0]
 // تعريف الرتب السيادية الثمانية للنظام
@@ -99,4 +100,23 @@ export const updateUserProfile = async (userId: string, updates: Partial<User>) 
   if (currentSession && currentSession.id === userId) {
     setSession({ ...currentSession, ...updates });
   }
+};
+
+/**
+ * [STABILITY_ANCHOR: AVATAR_UPLOAD_PROTOCOL]
+ * وظيفة رفع الصورة الشخصية للعقدة.
+ */
+export const uploadAvatar = async (file: File, onProgress?: (pct: number) => void): Promise<string> => {
+  const { storage } = initializeFirebase();
+  const filePath = `avatars/${Date.now()}-${file.name}`;
+  const storageRef = ref(storage, filePath);
+  
+  return new Promise((resolve, reject) => {
+    const uploadTask = uploadBytesResumable(storageRef, file);
+    uploadTask.on('state_changed', 
+      (snapshot) => onProgress?.((snapshot.bytesTransferred / snapshot.totalBytes) * 100), 
+      (error) => reject(error), 
+      async () => resolve(await getDownloadURL(uploadTask.snapshot.ref))
+    );
+  });
 };

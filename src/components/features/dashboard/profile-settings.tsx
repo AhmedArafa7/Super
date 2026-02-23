@@ -1,19 +1,28 @@
 
 "use client";
 
-import React, { useState } from "react";
-import { User, Loader2, CheckCircle2 } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { User, Loader2, CheckCircle2, Camera, ImageIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { updateUserProfile } from "@/lib/auth-store";
+import { Progress } from "@/components/ui/progress";
+import { updateUserProfile, uploadAvatar } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
+/**
+ * [STABILITY_ANCHOR: PROFILE_SETTINGS_V3.0]
+ * واجهة إعدادات الهوية المحدثة - تدعم رفع الصور الشخصية والمزامنة العصبية.
+ */
 export function ProfileSettings({ user }: any) {
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState(user?.name || "");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpdateProfile = async () => {
     if (!user?.id || !displayName.trim()) return;
@@ -28,47 +37,127 @@ export function ProfileSettings({ user }: any) {
     }
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+
+    // التحقق من الحجم (مثلاً بحد أقصى 2 ميجابايت)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "حجم كبير جداً", description: "يرجى اختيار صورة أقل من 2 ميجابايت." });
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const url = await uploadAvatar(file, (pct) => setUploadProgress(pct));
+      await updateUserProfile(user.id, { avatar_url: url });
+      toast({ title: "تم تحديث الصورة", description: "تمت مزامنة أيقونة الهوية مع السجل العالمي." });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "فشل الرفع", description: "حدث اضطراب في الاتصال بحاوية التخزين." });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
-      <Card className="glass border-white/5 rounded-[2.5rem] p-8 flex flex-col items-center text-center">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500 font-sans">
+      <Card className="glass border-white/5 rounded-[2.5rem] p-8 flex flex-col items-center text-center relative overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 size-32 bg-primary/5 blur-3xl -mr-16 -mt-16" />
+        
         <div className="relative group mb-6">
-          <div className="size-32 rounded-[2.5rem] bg-indigo-500/10 border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden transition-all group-hover:border-primary/50">
-            <User className="size-12 text-muted-foreground" />
+          <div 
+            onClick={() => !isUploading && fileInputRef.current?.click()}
+            className={cn(
+              "size-32 rounded-[2.5rem] bg-indigo-500/10 border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden transition-all group-hover:border-primary/50 cursor-pointer relative shadow-inner",
+              isUploading && "cursor-wait"
+            )}
+          >
+            {user?.avatar_url ? (
+              <img src={user.avatar_url} className="size-full object-cover group-hover:opacity-40 transition-opacity" alt="avatar" />
+            ) : (
+              <User className="size-12 text-muted-foreground group-hover:opacity-40 transition-opacity" />
+            )}
+            
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+              <Camera className="size-8 text-white" />
+            </div>
+
+            {isUploading && (
+              <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-4 gap-2">
+                <Loader2 className="size-8 text-primary animate-spin" />
+                <span className="text-[8px] font-black text-white">{Math.round(uploadProgress)}%</span>
+              </div>
+            )}
           </div>
+          
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            className="hidden" 
+            accept="image/*" 
+          />
         </div>
-        <h3 dir="auto" className="text-xl font-bold text-white">{user?.name}</h3>
-        <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">@{user?.username}</p>
+
+        {isUploading && (
+          <div className="w-full space-y-2 mb-4 animate-in fade-in">
+            <Progress value={uploadProgress} className="h-1 bg-white/5" />
+            <p className="text-[8px] font-bold text-indigo-400 uppercase tracking-widest">Synchronizing Neural Icon...</p>
+          </div>
+        )}
+
+        <h3 dir="auto" className="text-xl font-bold text-white mb-1">{user?.name}</h3>
+        <p className="text-xs text-muted-foreground uppercase tracking-[0.2em] font-mono">@{user?.username}</p>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          className="mt-6 text-[10px] uppercase font-bold text-indigo-400 hover:bg-indigo-500/10 rounded-xl h-9 px-6 border-white/5 bg-white/5"
+        >
+          {user?.avatar_url ? "Change Identity Icon" : "Upload Icon"}
+        </Button>
       </Card>
 
-      <Card className="lg:col-span-2 glass border-white/5 rounded-[2.5rem] p-8">
+      <Card className="lg:col-span-2 glass border-white/5 rounded-[2.5rem] p-8 shadow-xl">
         <CardHeader className="px-0 pt-0 text-right">
-          <CardTitle>إعدادات الهوية</CardTitle>
-          <CardDescription>تحديث معلومات العقدة العامة الخاصة بك.</CardDescription>
+          <CardTitle className="text-2xl font-bold text-white">إعدادات الهوية</CardTitle>
+          <CardDescription className="text-muted-foreground">تحديث معلومات العقدة العامة الخاصة بك في السجل العالمي.</CardDescription>
         </CardHeader>
-        <div className="space-y-6 mt-4">
-          <div className="grid gap-2">
-            <Label htmlFor="displayName" className="text-right">الاسم المعروض</Label>
+        
+        <div className="space-y-8 mt-6">
+          <div className="grid gap-3">
+            <Label htmlFor="displayName" className="text-right text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">الاسم المعروض</Label>
             <Input 
               id="displayName" 
               dir="auto"
               value={displayName} 
               onChange={(e) => setDisplayName(e.target.value)}
-              className="bg-white/5 border-white/10 h-12 rounded-xl text-right"
+              className="bg-white/5 border-white/10 h-14 rounded-2xl text-right text-lg focus-visible:ring-primary shadow-inner"
+              placeholder="اسمك في الشبكة..."
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="username" className="text-right">معرف Nexus (Username)</Label>
-            <Input id="username" value={user?.username} disabled className="bg-white/5 border-white/10 h-12 rounded-xl opacity-50 cursor-not-allowed" />
-            <p className="text-[10px] text-muted-foreground italic text-right">لا يمكن تعديل معرفات Nexus بمجرد تثبيتها.</p>
+
+          <div className="grid gap-3 opacity-60">
+            <Label htmlFor="username" className="text-right text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">معرف نكسوس (Username)</Label>
+            <Input id="username" value={user?.username} disabled className="bg-white/5 border-white/10 h-14 rounded-2xl text-right font-mono" />
+            <p className="text-[10px] text-amber-500/70 italic text-right font-bold">لا يمكن تعديل معرفات Nexus بمجرد تثبيتها لضمان سلامة الروابط.</p>
           </div>
-          <Button 
-            onClick={handleUpdateProfile} 
-            disabled={isUpdating || displayName === user?.name}
-            className="bg-primary rounded-xl h-12 px-8 shadow-lg shadow-primary/20 w-full sm:w-auto"
-          >
-            {isUpdating ? <Loader2 className="size-4 animate-spin mr-2" /> : <CheckCircle2 className="size-4 mr-2" />}
-            مزامنة البيانات
-          </Button>
+
+          <div className="pt-6 border-t border-white/5">
+            <Button 
+              onClick={handleUpdateProfile} 
+              disabled={isUpdating || displayName === user?.name}
+              className="bg-primary hover:bg-primary/90 rounded-2xl h-14 px-10 shadow-xl shadow-primary/20 w-full sm:w-auto font-black text-base transition-all active:scale-95"
+            >
+              {isUpdating ? <Loader2 className="size-5 animate-spin mr-2" /> : <CheckCircle2 className="size-5 mr-2" />}
+              مزامنة بيانات العقدة
+            </Button>
+          </div>
         </div>
       </Card>
     </div>
