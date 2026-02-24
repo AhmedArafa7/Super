@@ -2,31 +2,76 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // [STABILITY_ANCHOR: FORCE_DEPLOY_V8.8_FINAL]
-    // نبضة نشر سيادية نهائية: تم تعميم الفهارس لتشمل النطاق الثلاثي للمتجر والفرز الزمني العالمي للعروض.
     
-    match /{document=**} {
-      allow read, write: if true;
+    // [SECURITY_ANCHOR: SOVEREIGN_IDENTITY_V1.0]
+    
+    // التحقق من تسجيل الدخول
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // جلب بيانات المستخدم الحالي من السجل
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // التحقق من رتبة الإدارة (الأدمن، المؤسس، والشركاء)
+    function isManagement() {
+      return isSignedIn() && (
+        getUserData().role in ['founder', 'cofounder', 'admin', 'management']
+      );
+    }
+
+    // التحقق من رتبة المؤسس فقط (السلطة العليا)
+    function isFounder() {
+      return isSignedIn() && getUserData().role == 'founder';
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      
+      // السماح بإنشاء الملف فقط إذا كان المعرف يطابق المستخدم المسجل والرتبة هي free
+      allow create: if isSignedIn() && request.auth.uid == userId && 
+                    request.resource.data.role == 'free';
+      
+      // حماية الحقول الحساسة من التعديل الذاتي
+      allow update: if isSignedIn() && (
+        // 1. المستخدم العادي لا يمكنه تغيير رتبته أو تصنيفه أو سلطة الائتمان
+        (request.auth.uid == userId && 
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'classification', 'canManageCredits'])) ||
+        
+        // 2. الإدارة يمكنها تعديل الرتب والتصنيفات ولكن لا يمكنها منح سلطة الائتمان
+        (isManagement() && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['canManageCredits'])) ||
+        
+        // 3. المؤسس له السلطة المطلقة
+        isFounder()
+      );
+      
+      allow delete: if isFounder();
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /category_requests/{requestId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
 
     match /offers/{offerId} {
-      allow read, write: if true;
+      allow read, write: if isSignedIn();
     }
 
-    match /{path=**}/messages/{messageId} {
-      allow read, write: if true;
+    match /videos/{videoId} {
+      allow read: if true;
+      allow write: if isSignedIn();
     }
-    
-    match /{path=**}/transactions/{txId} {
-      allow read, write: if true;
-    }
-    
-    match /{path=**}/collections/{colId} {
-      allow read, write: if true;
-    }
-    
-    match /{path=**}/offers/{offerId} {
-      allow read, write: if true;
+
+    // السماح بالوصول العام لبقية السجلات مؤقتاً مع وجوب تسجيل الدخول
+    match /{document=**} {
+      allow read, write: if isSignedIn();
     }
   }
 }

@@ -98,6 +98,8 @@ export const getStoredUsers = async (): Promise<User[]> => {
 
 /**
  * ضمان وجود ملف تعريف للمستخدم في Firestore بعد تسجيل الدخول السحابي.
+ * [STABILITY_ANCHOR: ATOMIC_PROFILE_ENSURE_V2.0]
+ * ملاحظة: تم فرض رتبة 'free' في الطلب لضمان توافقه مع قواعد الأمان.
  */
 export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<User> => {
   const { firestore } = initializeFirebase();
@@ -108,7 +110,8 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
     return { id: snap.id, ...snap.data() } as User;
   }
 
-  // إنشاء مستخدم جديد برتبة Free
+  // إنشاء مستخدم جديد برتبة Free حصراً. 
+  // قواعد الأمان (Firestore Rules) ستمنع أي محاولة لرفع رتبة المستخدم من هنا.
   const newUser: User = {
     id: firebaseUser.uid,
     username: firebaseUser.email?.split('@')[0] || firebaseUser.uid.substring(0, 8),
@@ -125,9 +128,10 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
     dataConsent: 'none'
   };
 
+  // المزامنة الذرية مع السجل العالمي
   await setDoc(userRef, newUser);
   
-  // تهيئة المحفظة
+  // تهيئة المحفظة العصبية
   await setDoc(doc(firestore, `users/${newUser.id}/wallet/main`), {
     balance: 0,
     frozenBalance: 0,
@@ -166,6 +170,8 @@ export const addUser = async (userData: Omit<User, 'id' | 'dataConsent'>) => {
 export const updateUserProfile = async (userId: string, updates: Partial<User>) => {
   const { firestore } = initializeFirebase();
   const userRef = doc(firestore, 'users', userId);
+  
+  // قواعد الأمان ستمنع هذا التحديث إذا حاول مستخدم غير مخول تغيير رتبته.
   await updateDoc(userRef, updates);
   
   const currentSession = getSession();
