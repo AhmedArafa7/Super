@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Upload, ImageIcon, CheckCircle2, Zap, Loader2 } from "lucide-react";
+import { Upload, ImageIcon, CheckCircle2, Zap, Loader2, Video, FileText, Globe } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -29,13 +29,15 @@ export function MarketFormDialog({ isOpen, onClose, onSave, editingItem, isSubmi
     description: "",
     price: 0,
     mainCategory: defaultCat,
-    subCategory: "ai_models",
+    subCategory: "decor",
     imageUrl: "",
     imageFile: null as File | null,
     stockQuantity: 1,
     isLaunchable: false,
     launchUrl: "",
     downloadUrl: "",
+    promoVideoUrl: "",
+    promoFileUrl: "",
     buildFile: null as File | null,
     versionStatus: "final" as AppVersionStatus
   });
@@ -54,6 +56,8 @@ export function MarketFormDialog({ isOpen, onClose, onSave, editingItem, isSubmi
         isLaunchable: editingItem.isLaunchable || false,
         launchUrl: editingItem.launchUrl || "",
         downloadUrl: editingItem.downloadUrl || "",
+        promoVideoUrl: editingItem.promoVideoUrl || "",
+        promoFileUrl: editingItem.promoFileUrl || "",
         buildFile: null,
         versionStatus: editingItem.versionStatus || "final"
       });
@@ -64,7 +68,7 @@ export function MarketFormDialog({ isOpen, onClose, onSave, editingItem, isSubmi
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 sm:max-w-[650px] overflow-y-auto max-h-[90vh]">
+      <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 sm:max-w-[700px] overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-right text-white">
             {editingItem ? "تحديث بيانات الأصل" : "إطلاق عقدة منتج جديد"}
@@ -74,33 +78,22 @@ export function MarketFormDialog({ isOpen, onClose, onSave, editingItem, isSubmi
           <div className="space-y-4 md:col-span-2">
             <div className="grid gap-2">
               <Label className="text-right">عنوان المنتج</Label>
-              <Input dir="auto" placeholder="الاسم التقني..." value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="bg-white/5 border-white/10 text-right" />
+              <Input dir="auto" placeholder="الاسم التجاري..." value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="bg-white/5 border-white/10 text-right h-12" />
             </div>
             <div className="grid gap-2">
-              <Label className="text-right">الوصف العصبي</Label>
-              <Textarea dir="auto" placeholder="اشرح قدرات هذا المنتج..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="bg-white/5 border-white/10 text-right min-h-[100px]" />
+              <Label className="text-right">الوصف التفصيلي</Label>
+              <Textarea dir="auto" placeholder="اشرح مواصفات هذا المنتج..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="bg-white/5 border-white/10 text-right min-h-[100px]" />
             </div>
           </div>
 
           <div className="md:col-span-2 space-y-3">
-            <Label className="text-right block">صورة المنتج المخصصة</Label>
+            <Label className="text-right block">صورة المنتج</Label>
             <div className="relative h-32 bg-white/5 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-all group">
-              <input 
-                type="file" 
-                className="absolute inset-0 opacity-0 cursor-pointer" 
-                onChange={e => setFormData({...formData, imageFile: e.target.files?.[0] || null})}
-                accept="image/*"
-              />
+              <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setFormData({...formData, imageFile: e.target.files?.[0] || null})} accept="image/*" />
               {formData.imageFile ? (
-                <div className="flex items-center gap-3 text-green-400 font-bold">
-                  <CheckCircle2 className="size-6" />
-                  <span className="text-sm truncate max-w-[250px]">{formData.imageFile.name}</span>
-                </div>
+                <div className="flex items-center gap-3 text-green-400 font-bold"><CheckCircle2 className="size-6" /><span className="text-sm truncate max-w-[250px]">{formData.imageFile.name}</span></div>
               ) : (
-                <>
-                  <ImageIcon className="size-8 text-muted-foreground group-hover:scale-110 transition-transform mb-2" />
-                  <p className="text-xs text-muted-foreground">اضغط لرفع صورة العقدة</p>
-                </>
+                <><ImageIcon className="size-8 text-muted-foreground group-hover:scale-110 transition-transform mb-2" /><p className="text-xs text-muted-foreground">اضغط لرفع صورة المنتج</p></>
               )}
             </div>
           </div>
@@ -108,7 +101,7 @@ export function MarketFormDialog({ isOpen, onClose, onSave, editingItem, isSubmi
           <div className="grid gap-2">
             <Label className="text-right">القطاع</Label>
             <Select value={formData.mainCategory} onValueChange={(v: any) => setFormData({...formData, mainCategory: v})}>
-              <SelectTrigger className="bg-white/5 border-white/10 text-right flex-row-reverse"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="bg-white/5 border-white/10 text-right flex-row-reverse h-11"><SelectValue /></SelectTrigger>
               <SelectContent className="bg-slate-900 border-white/10 text-white">
                 {MAIN_CATEGORIES.filter(c => c.id !== 'all').map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>)}
               </SelectContent>
@@ -116,96 +109,57 @@ export function MarketFormDialog({ isOpen, onClose, onSave, editingItem, isSubmi
           </div>
 
           <div className="grid gap-2">
-            <Label className="text-right">البروتوكول الفرعي</Label>
+            <Label className="text-right">الفئة الفرعية</Label>
             <Select value={formData.subCategory} onValueChange={(v: any) => setFormData({...formData, subCategory: v})}>
-              <SelectTrigger className="bg-white/5 border-white/10 text-right flex-row-reverse"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="bg-white/5 border-white/10 text-right flex-row-reverse h-11"><SelectValue /></SelectTrigger>
               <SelectContent className="bg-slate-900 border-white/10 text-white">
                 {SUB_CATEGORIES.filter(s => s.parent === formData.mainCategory).map(s => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
 
-          {formData.mainCategory === 'software' && (
-            <div className="md:col-span-2 space-y-6 border-t border-white/5 pt-6">
-              <div className="flex items-center justify-between flex-row-reverse">
-                <Label className="text-primary font-bold block text-right">إرسال حزمة البرمجيات</Label>
-                <div className="flex items-center gap-2 flex-row-reverse">
-                  <Label className="text-[10px] text-muted-foreground uppercase font-bold">الحالة:</Label>
-                  <Select value={formData.versionStatus} onValueChange={(v: any) => setFormData({...formData, versionStatus: v})}>
-                    <SelectTrigger className="h-8 w-28 bg-white/5 border-white/10 text-[10px] font-bold"><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-white/10 text-white">
-                      <SelectItem value="final">نسخة نهائية</SelectItem>
-                      <SelectItem value="beta">إصدار Beta</SelectItem>
-                    </SelectContent>
-                  </Select>
+          <div className="md:col-span-2 space-y-6 border-t border-white/5 pt-6">
+            <h4 className="text-indigo-400 font-bold text-right flex items-center justify-end gap-2"><Globe className="size-4" /> روابط ترويجية ومصادر</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label className="text-xs text-right">رابط فيديو ترويجي (YouTube/Drive)</Label>
+                <div className="relative">
+                  <Input placeholder="https://..." value={formData.promoVideoUrl} onChange={e => setFormData({...formData, promoVideoUrl: e.target.value})} className="bg-white/5 border-white/10 text-right pr-9" />
+                  <Video className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 </div>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label className="text-xs text-right">رابط المعاينة الحية (Internal)</Label>
-                  <Input placeholder="https://..." value={formData.launchUrl} onChange={e => setFormData({...formData, launchUrl: e.target.value, isLaunchable: !!e.target.value})} className="bg-white/5 border-white/10 text-right" />
-                </div>
-                <div className="grid gap-2">
-                  <Label className="text-xs text-right">رابط تحميل خارجي (اختياري)</Label>
-                  <Input placeholder="https://storage.link/..." value={formData.downloadUrl} onChange={e => setFormData({...formData, downloadUrl: e.target.value})} className="bg-white/5 border-white/10 text-right" />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <Label className="text-xs text-right block">أو ارفع ملف بناء جديد (ZIP, APK, EXE)</Label>
-                <div className="relative h-24 bg-indigo-500/5 border-2 border-dashed border-indigo-500/20 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-500/10 transition-all group">
-                  <input 
-                    type="file" 
-                    className="absolute inset-0 opacity-0 cursor-pointer" 
-                    onChange={e => setFormData({...formData, buildFile: e.target.files?.[0] || null})}
-                    accept=".apk,.exe,.zip,.rar,.ipa"
-                  />
-                  {formData.buildFile ? (
-                    <div className="flex items-center gap-2 text-green-400">
-                      <CheckCircle2 className="size-5" />
-                      <span className="text-sm font-bold truncate max-w-[200px]">{formData.buildFile.name}</span>
-                    </div>
-                  ) : (
-                    <>
-                      <Upload className="size-6 text-indigo-400 group-hover:scale-110 transition-transform mb-1" />
-                      <p className="text-[10px] text-muted-foreground">اضغط لرفع ملف البناء المباشر</p>
-                    </>
-                  )}
+              <div className="grid gap-2">
+                <Label className="text-xs text-right">رابط ملف/مستند إضافي</Label>
+                <div className="relative">
+                  <Input placeholder="https://..." value={formData.promoFileUrl} onChange={e => setFormData({...formData, promoFileUrl: e.target.value})} className="bg-white/5 border-white/10 text-right pr-9" />
+                  <FileText className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 </div>
               </div>
             </div>
-          )}
-
-          <div className="grid gap-2">
-            <Label className="text-right">التقييم (Credits)</Label>
-            <Input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="bg-white/5 border-white/10 text-right" />
           </div>
 
           <div className="grid gap-2">
-            <Label className="text-right">الكمية المتوفرة</Label>
-            <Input type="number" value={formData.stockQuantity} onChange={e => setFormData({...formData, stockQuantity: Number(e.target.value)})} className="bg-white/5 border-white/10 text-right" />
+            <Label className="text-right">السعر (Credits)</Label>
+            <Input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="bg-white/5 border-white/10 text-right h-11 font-black text-primary" />
+          </div>
+
+          <div className="grid gap-2">
+            <Label className="text-right">المخزون</Label>
+            <Input type="number" value={formData.stockQuantity} onChange={e => setFormData({...formData, stockQuantity: Number(e.target.value)})} className="bg-white/5 border-white/10 text-right h-11" />
           </div>
         </div>
 
         {isSubmitting && (
           <div className="space-y-2 mb-6">
-            <div className="flex justify-between text-[10px] uppercase font-bold text-indigo-400">
-              <span>جاري مزامنة البيانات</span>
-              <span>{Math.round(progress)}%</span>
-            </div>
+            <div className="flex justify-between text-[10px] uppercase font-bold text-indigo-400 flex-row-reverse"><span>جاري المزامنة</span><span>{Math.round(progress)}%</span></div>
             <Progress value={progress} className="h-1 bg-white/5" />
           </div>
         )}
 
         <DialogFooter>
-          <Button 
-            onClick={() => onSave(formData)} 
-            disabled={isSubmitting || !formData.title}
-            className="w-full bg-primary h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20"
-          >
+          <Button onClick={() => onSave(formData)} disabled={isSubmitting || !formData.title} className="w-full bg-primary h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20">
             {isSubmitting ? <Loader2 className="size-5 animate-spin mr-2" /> : <Zap className="size-5 mr-2" />}
-            {editingItem ? "حفظ التغييرات العصبية" : "تأكيد الإطلاق"}
+            {editingItem ? "تحديث بيانات المنتج" : "إرسال للمراجعة الإدارية"}
           </Button>
         </DialogFooter>
       </DialogContent>

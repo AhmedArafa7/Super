@@ -4,7 +4,8 @@
 import React, { useState, useEffect } from "react";
 import { 
   ShieldAlert, RefreshCcw, Users, MessageSquare, 
-  Video, ShoppingBag, Wallet, Megaphone, Activity, GraduationCap, CheckCircle2, XCircle, Rocket, Crown
+  Video, ShoppingBag, Wallet, Megaphone, Activity, 
+  GraduationCap, CheckCircle2, XCircle, Rocket, Crown, Tag, MessageCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -12,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 import { UsersManagement } from "./admin/users-management";
@@ -26,11 +28,11 @@ import { AppReview } from "./admin/app-review";
 import { getStoredMessages } from "@/lib/chat-store";
 import { getStoredUsers } from "@/lib/auth-store";
 import { getStoredVideos } from "@/lib/video-store";
-import { getAllOffersAdmin } from "@/lib/market-store";
+import { getAllOffersAdmin, getMarketItems, updateMarketItem, getCategoryRequests } from "@/lib/market-store";
 import { getAllTransactionsAdmin } from "@/lib/wallet-store";
 import { getAds } from "@/lib/ads-store";
-import { getSubjects, getCollections, getLearningItems, approveSubject, approveCollection, approveLearningItem, deleteSubject, deleteCollection, deleteLearningItem } from "@/lib/learning-store";
-import { getPendingAppsAdmin } from "@/lib/launcher-store";
+import { doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { initializeFirebase } from "@/firebase";
 
 export function AdminPanel() {
   const { user: currentUser } = useAuth();
@@ -43,39 +45,27 @@ export function AdminPanel() {
     offers: [] as any[],
     transactions: [] as any[],
     ads: [] as any[],
-    pendingKnowledge: [] as any[],
-    pendingApps: [] as any[]
+    pendingProducts: [] as any[],
+    categoryRequests: [] as any[]
   });
   
   const [isLoading, setIsLoading] = useState(false);
+  const [rejectFeedback, setRejectFeedback] = useState<Record<string, string>>({});
 
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [msgs, allUsers, allVideos, allOffers, txResult, adsResult, allSubjects, pendingApps] = await Promise.all([
+      const [msgs, allUsers, allVideos, allOffers, txResult, adsResult, marketRes, catReqs] = await Promise.all([
         getStoredMessages(undefined, true),
         getStoredUsers(),
         getStoredVideos(),
         getAllOffersAdmin(),
         getAllTransactionsAdmin(),
         getAds(),
-        getSubjects(undefined, true),
-        getPendingAppsAdmin()
+        getMarketItems(100, undefined, undefined, undefined, undefined, true),
+        getCategoryRequests()
       ]);
       
-      const pendingItems: any[] = [];
-      for (const s of allSubjects) {
-        if (s.status === 'pending') pendingItems.push({ ...s, type: 'subject' });
-        const cols = await getCollections(s.id, undefined, true);
-        for (const c of cols) {
-          if (c.status === 'pending') pendingItems.push({ ...c, type: 'collection', subjectId: s.id });
-          const items = await getLearningItems(s.id, c.id, undefined, true);
-          for (const i of items) {
-            if (i.status === 'pending') pendingItems.push({ ...i, type: 'item' });
-          }
-        }
-      }
-
       setData({
         messages: msgs || [],
         users: allUsers || [],
@@ -83,8 +73,8 @@ export function AdminPanel() {
         offers: allOffers || [],
         transactions: (txResult as any)?.transactions || [],
         ads: (adsResult as any)?.ads || [],
-        pendingKnowledge: pendingItems,
-        pendingApps: pendingApps || []
+        pendingProducts: marketRes.items.filter(i => i.status === 'pending_review'),
+        categoryRequests: catReqs || []
       });
     } catch (err) {
       console.error("Admin Sync Error:", err);
@@ -98,36 +88,27 @@ export function AdminPanel() {
     loadAllData();
   }, []);
 
-  const handleApproveKnowledge = async (item: any) => {
+  const handleProductAction = async (id: string, status: 'active' | 'rejected') => {
+    const feedback = rejectFeedback[id] || "";
     try {
-      if (item.type === 'subject') await approveSubject(item.id);
-      else if (item.type === 'collection') await approveCollection(item.subjectId, item.id);
-      else if (item.type === 'item') await approveLearningItem(item.subjectId, item.collectionId, item.id);
-      
-      toast({ title: "تم اعتماد المحتوى" });
+      await updateMarketItem(id, { status, adminFeedback: feedback });
+      toast({ title: status === 'active' ? "تم نشر المنتج" : "تم رفض المنتج" });
       loadAllData();
-    } catch (e) {
-      toast({ variant: "destructive", title: "فشل الاعتماد" });
-    }
+    } catch (e) { toast({ variant: "destructive", title: "فشل العملية" }); }
   };
 
-  const handleRejectKnowledge = async (item: any) => {
+  const handleCategoryAction = async (id: string, status: 'approved' | 'rejected') => {
+    const { firestore } = initializeFirebase();
     try {
-      if (item.type === 'subject') await deleteSubject(item.id);
-      else if (item.type === 'collection') await deleteCollection(item.subjectId, item.id);
-      else if (item.type === 'item') await deleteLearningItem(item.subjectId, item.collectionId, item.id);
-      
-      toast({ title: "تم رفض وحذف المحتوى" });
+      await updateDoc(doc(firestore, 'category_requests', id), { status, adminFeedback: rejectFeedback[id] || "" });
+      toast({ title: "تم معالجة الطلب" });
       loadAllData();
-    } catch (e) {
-      toast({ variant: "destructive", title: "فشل الرفض" });
-    }
+    } catch (e) { toast({ variant: "destructive", title: "فشل العملية" }); }
   };
 
-  // السماح للمؤسس والمؤسس الشريك والمديرين بالدخول
   const allowedRoles = ['founder', 'cofounder', 'admin', 'management'];
   if (!currentUser || !allowedRoles.includes(currentUser.role)) {
-    return <div className="p-20 text-center text-red-400 font-bold">Unauthorized Access - Restricted to Leadership Nodes</div>;
+    return <div className="p-20 text-center text-red-400 font-bold">Unauthorized Access</div>;
   }
 
   return (
@@ -136,93 +117,94 @@ export function AdminPanel() {
         <div className="text-right">
           <h2 className="text-4xl font-headline font-bold text-white flex items-center gap-4 justify-end">
             لوحة القيادة السيادية
-            {currentUser.role === 'founder' ? <Crown className="text-amber-400 size-10" /> : <ShieldAlert className="text-indigo-400 size-10" />}
+            <Crown className="text-amber-400 size-10" />
           </h2>
-          <p className="text-muted-foreground mt-1 text-base">إدارة العقد، الرقابة على المحتوى، ومزامنة الموارد.</p>
+          <p className="text-muted-foreground mt-1">إدارة العقد، المتجر الشامل، واقتراحات التصنيفات.</p>
         </div>
         <Button variant="outline" size="icon" onClick={loadAllData} disabled={isLoading} className="size-12 rounded-xl border-white/5 bg-white/5">
           <RefreshCcw className={cn("size-5 text-indigo-400", isLoading && "animate-spin")} />
         </Button>
       </div>
 
-      <Tabs defaultValue="knowledge" className="flex-1 flex flex-col">
+      <Tabs defaultValue="products" className="flex-1">
         <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 w-fit flex-wrap flex-row-reverse self-end h-auto gap-1">
-          <TabsTrigger value="knowledge" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600">
-            <GraduationCap className="size-4" /> 
-            المعرفة 
-            {data.pendingKnowledge.length > 0 && <Badge className="bg-red-500 h-4 w-4 p-0 flex items-center justify-center text-[10px]">{data.pendingKnowledge.length}</Badge>}
+          <TabsTrigger value="products" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse">
+            <ShoppingBag className="size-4" /> 
+            المنتجات 
+            {data.pendingProducts.length > 0 && <Badge className="bg-red-500 h-4 w-4 p-0 flex items-center justify-center text-[10px]">{data.pendingProducts.length}</Badge>}
           </TabsTrigger>
-          <TabsTrigger value="apps" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600">
-            <Rocket className="size-4" /> 
-            التطبيقات 
-            {data.pendingApps.length > 0 && <Badge className="bg-red-500 h-4 w-4 p-0 flex items-center justify-center text-[10px]">{data.pendingApps.length}</Badge>}
+          <TabsTrigger value="categories" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse">
+            <Tag className="size-4" /> 
+            اقتراحات التصنيف
+            {data.categoryRequests.filter(r => r.status === 'pending').length > 0 && <Badge className="bg-red-500 h-4 w-4 p-0 flex items-center justify-center text-[10px]">{data.categoryRequests.filter(r => r.status === 'pending').length}</Badge>}
           </TabsTrigger>
-          <TabsTrigger value="users" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600"><Users className="size-4" /> العقد</TabsTrigger>
-          <TabsTrigger value="vitals" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-red-600"><Activity className="size-4" /> المرصد</TabsTrigger>
-          <TabsTrigger value="chat" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600"><MessageSquare className="size-4" /> الدردشة</TabsTrigger>
-          <TabsTrigger value="media" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600"><Video className="size-4" /> الرقابة</TabsTrigger>
-          <TabsTrigger value="market" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600"><ShoppingBag className="size-4" /> المتجر</TabsTrigger>
-          <TabsTrigger value="ads" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600"><Megaphone className="size-4" /> الإعلانات</TabsTrigger>
-          <TabsTrigger value="finances" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-600"><Wallet className="size-4" /> المالية</TabsTrigger>
+          <TabsTrigger value="users" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse"><Users className="size-4" /> العقد</TabsTrigger>
+          <TabsTrigger value="chat" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse"><MessageSquare className="size-4" /> الدردشة</TabsTrigger>
+          <TabsTrigger value="media" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse"><Video className="size-4" /> الرقابة</TabsTrigger>
+          <TabsTrigger value="ads" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse"><Megaphone className="size-4" /> الإعلانات</TabsTrigger>
         </TabsList>
 
-        <div className="flex-1">
-          <TabsContent value="knowledge">
-            <div className="space-y-4">
-              {data.pendingKnowledge.length === 0 ? (
-                <div className="py-20 text-center opacity-30 border-2 border-dashed border-white/5 rounded-[2rem]">لا توجد طلبات معرفة جديدة.</div>
-              ) : (
-                data.pendingKnowledge.map((item, idx) => (
-                  <Card key={idx} className="p-6 glass border-amber-500/20 rounded-3xl flex items-center justify-between flex-row-reverse">
+        <TabsContent value="products">
+          <div className="space-y-4">
+            {data.pendingProducts.length === 0 ? (
+              <div className="py-20 text-center opacity-30 border-2 border-dashed border-white/5 rounded-[2rem]">لا توجد منتجات معلقة.</div>
+            ) : (
+              data.pendingProducts.map((p) => (
+                <Card key={p.id} className="p-8 glass border-amber-500/20 rounded-3xl space-y-6">
+                  <div className="flex justify-between items-start flex-row-reverse">
                     <div className="text-right">
-                      <div className="flex items-center gap-2 justify-end">
-                        <h4 className="font-bold text-white text-lg">{item.title}</h4>
-                        <Badge variant="outline" className="text-[10px]">{item.type?.toUpperCase()}</Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">بواسطة: @{item.authorId?.substring(0,8)}</p>
+                      <h4 className="text-2xl font-bold text-white">{p.title}</h4>
+                      <p className="text-sm text-muted-foreground">بواسطة: @{p.sellerId.substring(0,8)} | السعر: {p.price} Credits</p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button className="bg-green-600 hover:bg-green-500 rounded-xl" onClick={() => handleApproveKnowledge(item)}><CheckCircle2 className="size-4 mr-2" /> اعتماد</Button>
-                      <Button variant="ghost" className="text-red-400 hover:bg-red-500/10 rounded-xl" onClick={() => handleRejectKnowledge(item)}><XCircle className="size-4 mr-2" /> رفض</Button>
+                    <Badge variant="outline" className="border-amber-500/20 text-amber-400">PRODUCT REVIEW</Badge>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-right">
+                    <div className="space-y-2">
+                      <p className="text-xs font-black text-indigo-400 uppercase">الوصف</p>
+                      <p className="text-sm text-slate-300 italic">"{p.description}"</p>
                     </div>
-                  </Card>
-                ))
-              )}
-            </div>
-          </TabsContent>
+                    <div className="space-y-4">
+                      <p className="text-xs font-black text-red-400 uppercase">سبب الرفض (إرسال للمستخدم)</p>
+                      <Input dir="auto" className="bg-white/5 border-white/10 text-right" placeholder="اذكر سبب الرفض هنا..." value={rejectFeedback[p.id] || ""} onChange={e => setRejectFeedback({...rejectFeedback, [p.id]: e.target.value})} />
+                    </div>
+                  </div>
+                  <div className="flex gap-3 flex-row-reverse pt-4 border-t border-white/5">
+                    <Button className="flex-1 bg-green-600 hover:bg-green-500 rounded-xl h-12 font-bold" onClick={() => handleProductAction(p.id, 'active')}><CheckCircle2 className="size-4 mr-2" /> نشر المنتج</Button>
+                    <Button variant="ghost" className="text-red-400 hover:bg-red-500/10 rounded-xl px-8" onClick={() => handleProductAction(p.id, 'rejected')}><XCircle className="size-4 mr-2" /> رفض</Button>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
 
-          <TabsContent value="apps">
-            <AppReview apps={data.pendingApps} onRefresh={loadAllData} />
-          </TabsContent>
+        <TabsContent value="categories">
+          <div className="space-y-4">
+            {data.categoryRequests.filter(r => r.status === 'pending').length === 0 ? (
+              <div className="py-20 text-center opacity-30 border-2 border-dashed border-white/5 rounded-[2rem]">لا توجد طلبات تصنيفات.</div>
+            ) : (
+              data.categoryRequests.filter(r => r.status === 'pending').map((r) => (
+                <Card key={r.id} className="p-6 glass border-indigo-500/20 rounded-3xl flex flex-col gap-4 text-right">
+                  <div className="flex justify-between items-center flex-row-reverse">
+                    <h4 className="text-lg font-bold text-white">تصنيف مقترح: <span className="text-indigo-400">{r.suggestedName}</span></h4>
+                    <Badge variant="outline">تحت: {r.parentCategory}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">بواسطة: @{r.userName} ({r.userId.substring(0,8)})</p>
+                  <Input dir="auto" className="bg-white/5 border-white/10 text-right mt-2" placeholder="ملاحظات أو سبب الرفض..." value={rejectFeedback[r.id] || ""} onChange={e => setRejectFeedback({...rejectFeedback, [r.id]: e.target.value})} />
+                  <div className="flex gap-2 justify-end">
+                    <Button className="bg-indigo-600 rounded-xl" onClick={() => handleCategoryAction(r.id, 'approved')}>اعتماد وإضافة</Button>
+                    <Button variant="ghost" className="text-red-400" onClick={() => handleCategoryAction(r.id, 'rejected')}>رفض الطلب</Button>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
 
-          <TabsContent value="users">
-            <UsersManagement users={data.users} currentUser={currentUser} onRefresh={loadAllData} />
-          </TabsContent>
-
-          <TabsContent value="vitals">
-            <QuotaMonitor data={data} />
-          </TabsContent>
-
-          <TabsContent value="chat">
-            <ChatReview messages={data.messages} onRefresh={loadAllData} />
-          </TabsContent>
-
-          <TabsContent value="media">
-            <MediaCensorship videos={data.videos} onRefresh={loadAllData} />
-          </TabsContent>
-
-          <TabsContent value="market">
-            <MarketManagement offers={data.offers} />
-          </TabsContent>
-
-          <TabsContent value="ads">
-            <AdsManagement ads={data.ads} onRefresh={loadAllData} />
-          </TabsContent>
-
-          <TabsContent value="finances">
-            <FinancialLedger transactions={data.transactions} />
-          </TabsContent>
-        </div>
+        <TabsContent value="users"><UsersManagement users={data.users} currentUser={currentUser} onRefresh={loadAllData} /></TabsContent>
+        <TabsContent value="chat"><ChatReview messages={data.messages} onRefresh={loadAllData} /></TabsContent>
+        <TabsContent value="media"><MediaCensorship videos={data.videos} onRefresh={loadAllData} /></TabsContent>
+        <TabsContent value="ads"><AdsManagement ads={data.ads} onRefresh={loadAllData} /></TabsContent>
       </Tabs>
     </div>
   );

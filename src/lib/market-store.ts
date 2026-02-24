@@ -5,13 +5,13 @@ import { initializeFirebase } from '@/firebase';
 import { 
   collection, doc, getDocs, updateDoc, query, 
   addDoc, where, limit, increment,
-  QueryConstraint, DocumentSnapshot, getDoc
+  QueryConstraint, DocumentSnapshot, getDoc, orderBy
 } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
-export type MarketItemStatus = 'active' | 'sold' | 'reserved' | 'archived';
+export type MarketItemStatus = 'active' | 'sold' | 'reserved' | 'archived' | 'pending_review' | 'rejected';
 export type AppVersionStatus = 'final' | 'beta';
-export type MainCategory = 'all' | 'electronics' | 'digital_assets' | 'services' | 'tools' | 'education' | 'software';
+export type MainCategory = 'all' | 'electronics' | 'digital_assets' | 'services' | 'tools' | 'education' | 'software' | 'home_lifestyle' | 'industrial' | 'health_beauty' | 'other';
 
 export interface MarketItem {
   id: string;
@@ -30,29 +30,64 @@ export interface MarketItem {
   isLaunchable?: boolean;
   launchUrl?: string;
   downloadUrl?: string;
-  framework?: string;
+  promoVideoUrl?: string; // رابط فيديو ترويجي
+  promoFileUrl?: string;  // رابط ملف توضيحي
+  adminFeedback?: string; // سبب الرفض
   versionStatus?: AppVersionStatus;
 }
 
+export interface CategoryRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  suggestedName: string;
+  parentCategory: MainCategory;
+  status: 'pending' | 'approved' | 'rejected';
+  adminFeedback?: string;
+  createdAt: string;
+}
+
+export interface MarketOffer {
+  id: string;
+  productId: string;
+  sellerId: string;
+  buyerId: string;
+  buyerName: string;
+  itemTitle: string;
+  type: 'price' | 'trade';
+  value: number;
+  details: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  timestamp: string;
+}
+
+export type OfferStatus = MarketOffer['status'];
+
 export const SUB_CATEGORIES = [
+  // Electronics
   { id: 'smartphones', label: 'هواتف ذكية', parent: 'electronics' },
   { id: 'laptops', label: 'حواسيب محمولة', parent: 'electronics' },
   { id: 'accessories', label: 'إكسسوارات', parent: 'electronics' },
+  // Digital Assets
   { id: 'scripts', label: 'سكربتات برمجية', parent: 'digital_assets' },
   { id: 'templates', label: 'قوالب تصميم', parent: 'digital_assets' },
   { id: 'graphics', label: 'أصول جرافيك', parent: 'digital_assets' },
+  // Home & Lifestyle
+  { id: 'decor', label: 'ديكور وشموع', parent: 'home_lifestyle' },
+  { id: 'furniture', label: 'أثاث منزلي', parent: 'home_lifestyle' },
+  { id: 'kitchen', label: 'أدوات مطبخ', parent: 'home_lifestyle' },
+  // Services
   { id: 'dev_service', label: 'تطوير برمجيات', parent: 'services' },
   { id: 'design_service', label: 'تصميم جرافيك', parent: 'services' },
-  { id: 'consulting', label: 'استشارات تقنية', parent: 'services' },
+  // Tools
   { id: 'ai_models', label: 'نماذج ذكاء اصطناعي', parent: 'tools' },
   { id: 'automation', label: 'أدوات أتمتة', parent: 'tools' },
-  { id: 'data_analysis', label: 'تحليل بيانات', parent: 'tools' },
-  { id: 'courses', label: 'دورات تعليمية', parent: 'education' },
-  { id: 'ebooks', label: 'كتب تقنية', parent: 'education' },
-  { id: 'tutorials', label: 'دروس تطبيقية', parent: 'education' },
-  { id: 'web_apps', label: 'تطبيقات ويب', parent: 'software' },
-  { id: 'mobile_apps', label: 'تطبيقات جوال', parent: 'software' },
-  { id: 'desktop_apps', label: 'تطبيقات ديسكتوب', parent: 'software' },
+  // Industrial
+  { id: 'hardware_tools', label: 'أدوات ومعدات', parent: 'industrial' },
+  { id: 'materials', label: 'مواد خام', parent: 'industrial' },
+  // Health & Beauty
+  { id: 'skincare', label: 'عناية بالبشرة', parent: 'health_beauty' },
+  { id: 'supplements', label: 'مكملات غذائية', parent: 'health_beauty' },
 ];
 
 export const getMarketItems = async (
@@ -60,18 +95,23 @@ export const getMarketItems = async (
   lastDoc?: DocumentSnapshot,
   mainCat?: MainCategory,
   subCat?: string,
-  search?: string
+  search?: string,
+  includePending = false
 ): Promise<{ items: MarketItem[], lastVisible: DocumentSnapshot | null }> => {
   const { firestore } = initializeFirebase();
   
-  const q = query(collection(firestore, 'products'), limit(100));
+  const q = query(collection(firestore, 'products'), limit(200));
   const snap = await getDocs(q);
   
   let items = snap.docs.map(d => ({ 
     id: d.id, 
     ...d.data(),
-    ownerId: d.data().sellerId // لضمان التوافق مع النسخ القديمة
+    ownerId: d.data().sellerId
   } as MarketItem));
+
+  if (!includePending) {
+    items = items.filter(i => i.status === 'active' || i.status === 'sold');
+  }
 
   if (mainCat && mainCat !== 'all') {
     items = items.filter(i => i.mainCategory === mainCat);
@@ -92,26 +132,41 @@ export const getMarketItems = async (
   return { items: items.slice(0, limitSize), lastVisible: null };
 };
 
-export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'status' | 'currency' | 'createdAt'>) => {
+export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'status' | 'currency' | 'createdAt'>, isAdmin = false) => {
   const { firestore } = initializeFirebase();
   const docRef = await addDoc(collection(firestore, 'products'), { 
     ...item, 
-    status: 'active', 
+    status: isAdmin ? 'active' : 'pending_review', 
     currency: 'Credits',
     createdAt: new Date().toISOString() 
   });
   return docRef.id;
 };
 
+export const requestNewCategory = async (userId: string, userName: string, suggestedName: string, parent: MainCategory) => {
+  const { firestore } = initializeFirebase();
+  await addDoc(collection(firestore, 'category_requests'), {
+    userId,
+    userName,
+    suggestedName,
+    parentCategory: parent,
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  });
+};
+
+export const getCategoryRequests = async (): Promise<CategoryRequest[]> => {
+  const { firestore } = initializeFirebase();
+  const snap = await getDocs(query(collection(firestore, 'category_requests'), orderBy('createdAt', 'desc')));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as CategoryRequest));
+};
+
 export const updateMarketItem = async (itemId: string, updates: Partial<MarketItem>) => {
   const { firestore } = initializeFirebase();
   const itemRef = doc(firestore, 'products', itemId);
-  
-  // تصفية القيم undefined لتجنب أخطاء Firestore
   const cleanUpdates = Object.fromEntries(
     Object.entries(updates).filter(([_, v]) => v !== undefined)
   );
-  
   await updateDoc(itemRef, cleanUpdates);
   return true;
 };
@@ -120,7 +175,6 @@ export const decrementStock = async (itemId: string) => {
   const { firestore } = initializeFirebase();
   const itemRef = doc(firestore, 'products', itemId);
   const snap = await getDoc(itemRef);
-  
   if (snap.exists()) {
     const currentStock = snap.data().stockQuantity || 0;
     if (currentStock > 0) {
@@ -132,21 +186,6 @@ export const decrementStock = async (itemId: string) => {
     }
   }
   return false;
-};
-
-export const uploadMarketImage = async (file: File, onProgress?: (pct: number) => void): Promise<string> => {
-  const { storage } = initializeFirebase();
-  const filePath = `market/images/${Date.now()}-${file.name}`;
-  const storageRef = ref(storage, filePath);
-  
-  return new Promise((resolve, reject) => {
-    const uploadTask = uploadBytesResumable(storageRef, file);
-    uploadTask.on('state_changed', 
-      (snapshot) => onProgress?.((snapshot.bytesTransferred / snapshot.totalBytes) * 100), 
-      (error) => reject(error), 
-      async () => resolve(await getDownloadURL(uploadTask.snapshot.ref))
-    );
-  });
 };
 
 export const addMarketOffer = async (productId: string, sellerId: string, itemTitle: string, offer: any) => {
@@ -162,26 +201,43 @@ export const addMarketOffer = async (productId: string, sellerId: string, itemTi
   return true;
 };
 
-export const getReceivedOffers = async (userId: string): Promise<any[]> => {
+export const getReceivedOffers = async (userId: string): Promise<MarketOffer[]> => {
   const { firestore } = initializeFirebase();
-  const q = query(
-    collection(firestore, 'offers'), 
-    where('sellerId', '==', userId)
-  );
+  const q = query(collection(firestore, 'offers'), where('sellerId', '==', userId));
   const snap = await getDocs(q);
-  const offers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  return offers.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const offers = snap.docs.map(d => ({ id: d.id, ...d.data() } as MarketOffer));
+  return offers.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
-export const respondToOffer = async (offerId: string, status: 'accepted' | 'rejected', buyerId?: string, itemTitle?: string) => {
+export const getAllOffersAdmin = async (): Promise<MarketOffer[]> => {
+  const { firestore } = initializeFirebase();
+  try {
+    const q = query(collection(firestore, 'offers'), orderBy('timestamp', 'desc'), limit(100));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as MarketOffer));
+  } catch (e) {
+    console.error("Admin Offers Fetch Error:", e);
+    return [];
+  }
+};
+
+export const respondToOffer = async (offerId: string, status: OfferStatus, buyerId?: string, itemTitle?: string) => {
   const { firestore } = initializeFirebase();
   await updateDoc(doc(firestore, 'offers', offerId), { status });
   return true;
 };
 
-export const getAllOffersAdmin = async (): Promise<any[]> => {
-  const { firestore } = initializeFirebase();
-  const snap = await getDocs(collection(firestore, 'offers'));
-  const offers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  return offers.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+export const uploadMarketImage = async (file: File, onProgress?: (pct: number) => void): Promise<string> => {
+  const { storage } = initializeFirebase();
+  const filePath = `market/${Date.now()}-${file.name}`;
+  const storageRef = ref(storage, filePath);
+  
+  return new Promise((resolve, reject) => {
+    const uploadTask = uploadBytesResumable(storageRef, file);
+    uploadTask.on('state_changed', 
+      (snapshot) => onProgress?.((snapshot.bytesTransferred / snapshot.totalBytes) * 100), 
+      (error) => reject(error), 
+      async () => resolve(await getDownloadURL(uploadTask.snapshot.ref))
+    );
+  });
 };
