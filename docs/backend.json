@@ -37,7 +37,8 @@
         "status": { "type": "string", "enum": ["active", "sold", "pending_review", "rejected"] },
         "isLaunchable": { "type": "boolean" },
         "promoVideoUrl": { "type": "string" },
-        "promoFileUrl": { "type": "string" }
+        "promoFileUrl": { "type": "string" },
+        "adminFeedback": { "type": "string" }
       }
     },
     "CategoryRequest": {
@@ -46,9 +47,12 @@
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
+        "userName": { "type": "string" },
         "suggestedName": { "type": "string" },
         "parentCategory": { "type": "string" },
-        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] }
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "adminFeedback": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       }
     }
   },

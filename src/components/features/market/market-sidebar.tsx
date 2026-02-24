@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 export const MAIN_CATEGORIES = [
   { id: 'all', label: 'كل القطاعات', icon: LayoutGrid },
   { id: 'electronics', label: 'الإلكترونيات', icon: Laptop },
-  { id: 'home_lifestyle', label: 'المنزل والشموع', icon: Sofa },
+  { id: 'home_lifestyle', label: 'المنزل وأسلوب الحياة', icon: Sofa },
   { id: 'digital_assets', label: 'الأصول الرقمية', icon: Boxes },
   { id: 'services', label: 'الخدمات التقنية', icon: Briefcase },
   { id: 'tools', label: 'أدوات AI', icon: Terminal },

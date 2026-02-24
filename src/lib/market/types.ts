@@ -57,7 +57,7 @@ export const SUB_CATEGORIES = [
   { id: 'laptops', label: 'حواسيب محمولة', parent: 'electronics' },
   { id: 'scripts', label: 'سكربتات برمجية', parent: 'digital_assets' },
   { id: 'templates', label: 'قوالب تصميم', parent: 'digital_assets' },
-  { id: 'decor', label: 'ديكور وشموع', parent: 'home_lifestyle' },
+  { id: 'decor', label: 'ديكور عصري', parent: 'home_lifestyle' },
   { id: 'furniture', label: 'أثاث منزلي', parent: 'home_lifestyle' },
   { id: 'dev_service', label: 'تطوير برمجيات', parent: 'services' },
   { id: 'ai_models', label: 'نماذج ذكاء اصطناعي', parent: 'tools' },
