@@ -1,4 +1,3 @@
-
 'use client';
 
 import { create } from 'zustand';
@@ -64,8 +63,6 @@ export const useWalletStore = create<WalletState>()(
         if (snap.exists()) {
           set({ wallet: snap.data() as Wallet });
         } else {
-          // [STABILITY_ANCHOR: SECURE_WALLET_INIT]
-          // العقد الجديدة تبدأ برصيد صفر
           const initial = { balance: 0, frozenBalance: 0, currency: 'Credits' };
           await setDoc(walletRef, initial);
           set({ wallet: initial });
@@ -109,7 +106,10 @@ export const useWalletStore = create<WalletState>()(
 
         await updateDoc(walletRef, { balance: newBalance, frozenBalance: newFrozen });
         
+        // [STABILITY_ANCHOR: SYNCED_TRANSACTION_LOG]
+        // نضع userId داخل المستند لضمان عمل قواعد الـ Collection Group
         await addDoc(collection(firestore, 'users', userId, 'transactions'), {
+          userId: userId,
           amount: (type === 'deposit' || type === 'purchase_release') ? amount : -amount,
           type: type,
           status: 'completed',
@@ -121,6 +121,7 @@ export const useWalletStore = create<WalletState>()(
         await get().fetchTransactions(userId);
         return true;
       } catch (err) {
+        console.error("Adjustment Error:", err);
         return false;
       }
     },
@@ -145,6 +146,7 @@ export const getAllTransactionsAdmin = async (
     const q = query(collectionGroup(firestore, 'transactions'), limit(limitSize));
     const snap = await getDocs(q);
     let transactions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
+    // الفرز برمجياً لضمان الدقة وتجنب الحاجة لفهارس مركبة معقدة
     transactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     return { transactions, lastVisible: null };
   } catch (e) {

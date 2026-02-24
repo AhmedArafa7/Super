@@ -1,57 +1,59 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // [SECURITY_ANCHOR: SOVEREIGN_IDENTITY_V1.1]
+    // [SECURITY_ANCHOR: SOVEREIGN_IDENTITY_V1.2]
     
-    // التحقق من تسجيل الدخول
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // جلب بيانات المستخدم الحالي من السجل
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // التحقق من رتبة الإدارة (الأدمن، المؤسس، والشركاء)
     function isManagement() {
       return isSignedIn() && (
         getUserData().role in ['founder', 'cofounder', 'admin', 'management']
       );
     }
 
-    // التحقق من رتبة المؤسس فقط (السلطة العليا)
     function isFounder() {
       return isSignedIn() && getUserData().role == 'founder';
     }
 
+    // قواعد المستخدمين (الحماية الأساسية)
     match /users/{userId} {
       allow read: if isSignedIn();
-      
-      // السماح بإنشاء الملف للمستخدم نفسه برتبة free، أو للإدارة مطلقاً
-      allow create: if isSignedIn() && (
-        (request.auth.uid == userId && request.resource.data.role == 'free') ||
-        isManagement()
-      );
-      
-      // حماية الحقول الحساسة من التعديل الذاتي
+      allow create: if isSignedIn() && request.auth.uid == userId && request.resource.data.role == 'free';
       allow update: if isSignedIn() && (
-        // 1. المؤسس له السلطة المطلقة
         isFounder() ||
-        
-        // 2. الإدارة يمكنها تعديل الرتب والتصنيفات ولكن لا يمكنها منح سلطة الائتمان
         (isManagement() && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['canManageCredits'])) ||
-        
-        // 3. المستخدم العادي يمكنه تعديل بياناته الأساسية فقط (الاسم، الأفاتار، الموافقة)
         (request.auth.uid == userId && 
          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'classification', 'canManageCredits']))
       );
-      
       allow delete: if isFounder();
     }
 
+    // قواعد المعاملات والمحافظ (دعم Collection Group)
+    match /{path=**}/transactions/{txId} {
+      allow read: if isSignedIn() && (request.auth.uid == resource.data.userId || isManagement());
+      allow write: if isManagement() || isFounder();
+    }
+
+    match /users/{userId}/wallet/{doc=**} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isManagement());
+      allow write: if isManagement() || isFounder();
+    }
+
+    // قواعد الرسائل والدردشة (دعم Collection Group)
+    match /{path=**}/messages/{msgId} {
+      allow read: if isSignedIn() && (request.auth.uid == resource.data.userId || isManagement());
+      allow write: if isSignedIn() && (request.auth.uid == request.resource.data.userId || isManagement());
+      allow delete: if isSignedIn() && (request.auth.uid == resource.data.userId || isManagement());
+    }
+
+    // المنتجات والتصنيفات
     match /products/{productId} {
       allow read: if true;
       allow write: if isSignedIn();
@@ -71,24 +73,31 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
 
-    // محفظة المستخدم وسجل المعاملات
-    match /users/{userId}/wallet/{doc=**} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isManagement());
-      allow write: if isManagement() || isFounder();
+    match /ads/{adId} {
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
-    match /users/{userId}/transactions/{doc=**} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isManagement());
-      allow write: if isManagement() || isFounder();
+    match /app_launcher/{appId} {
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
-    // سجلات الدردشة
-    match /users/{userId}/messages/{doc=**} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isManagement());
-      allow write: if isSignedIn() && request.auth.uid == userId;
+    // المجلدات التعليمية
+    match /subjects/{subId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+      
+      match /collections/{colId} {
+        allow read, write: if isSignedIn();
+        
+        match /learning_items/{itemId} {
+          allow read, write: if isSignedIn();
+        }
+      }
     }
 
-    // السماح بالوصول العام لبقية السجلات مؤقتاً مع وجوب تسجيل الدخول
+    // السماح بالوصول العام لبقية السجلات المؤقتاً مع وجوب تسجيل الدخول
     match /{document=**} {
       allow read, write: if isSignedIn();
     }
