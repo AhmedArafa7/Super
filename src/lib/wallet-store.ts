@@ -107,7 +107,6 @@ export const useWalletStore = create<WalletState>()(
         await updateDoc(walletRef, { balance: newBalance, frozenBalance: newFrozen });
         
         // [STABILITY_ANCHOR: SYNCED_TRANSACTION_LOG]
-        // نضع userId داخل المستند لضمان عمل قواعد الـ Collection Group
         await addDoc(collection(firestore, 'users', userId, 'transactions'), {
           userId: userId,
           amount: (type === 'deposit' || type === 'purchase_release') ? amount : -amount,
@@ -146,7 +145,6 @@ export const getAllTransactionsAdmin = async (
     const q = query(collectionGroup(firestore, 'transactions'), limit(limitSize));
     const snap = await getDocs(q);
     let transactions = snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
-    // الفرز برمجياً لضمان الدقة وتجنب الحاجة لفهارس مركبة معقدة
     transactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     return { transactions, lastVisible: null };
   } catch (e) {

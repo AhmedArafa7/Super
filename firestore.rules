@@ -2,24 +2,26 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // [SECURITY_ANCHOR: SOVEREIGN_IDENTITY_V1.2]
+    // [SECURITY_ANCHOR: SOVEREIGN_IDENTITY_V1.3]
     
     function isSignedIn() {
       return request.auth != null;
     }
 
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(path) ? get(path).data : {};
     }
 
     function isManagement() {
+      let data = getUserData();
       return isSignedIn() && (
-        getUserData().role in ['founder', 'cofounder', 'admin', 'management']
+        data.get('role', 'free') in ['founder', 'cofounder', 'admin', 'management']
       );
     }
 
     function isFounder() {
-      return isSignedIn() && getUserData().role == 'founder';
+      return isSignedIn() && getUserData().get('role', 'free') == 'founder';
     }
 
     // قواعد المستخدمين (الحماية الأساسية)
@@ -35,9 +37,9 @@ service cloud.firestore {
       allow delete: if isFounder();
     }
 
-    // قواعد المعاملات والمحافظ (دعم Collection Group)
-    match /{path=**}/transactions/{txId} {
-      allow read: if isSignedIn() && (request.auth.uid == resource.data.userId || isManagement());
+    // قواعد المعاملات والمحافظ (دعم الوصول المساري و Collection Group)
+    match /users/{userId}/transactions/{txId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isManagement());
       allow write: if isManagement() || isFounder();
     }
 
@@ -46,11 +48,20 @@ service cloud.firestore {
       allow write: if isManagement() || isFounder();
     }
 
-    // قواعد الرسائل والدردشة (دعم Collection Group)
+    // دعم استعلامات الإدارة الشاملة (Collection Group)
+    match /{path=**}/transactions/{txId} {
+      allow read: if isManagement();
+    }
+
+    // قواعد الرسائل والدردشة
+    match /users/{userId}/messages/{msgId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isManagement());
+      allow write: if isSignedIn() && (request.auth.uid == userId || isManagement());
+      allow delete: if isSignedIn() && (request.auth.uid == userId || isManagement());
+    }
+
     match /{path=**}/messages/{msgId} {
-      allow read: if isSignedIn() && (request.auth.uid == resource.data.userId || isManagement());
-      allow write: if isSignedIn() && (request.auth.uid == request.resource.data.userId || isManagement());
-      allow delete: if isSignedIn() && (request.auth.uid == resource.data.userId || isManagement());
+      allow read: if isManagement();
     }
 
     // المنتجات والتصنيفات
