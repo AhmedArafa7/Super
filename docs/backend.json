@@ -17,26 +17,46 @@
         "proResponsesRemaining": { "type": "number", "default": 0 },
         "proTTSRemaining": { "type": "number", "default": 0 },
         "avatar_url": { "type": "string" },
-        "canManageCredits": { "type": "boolean", "description": "Independent authority to distribute credits." },
+        "canManageCredits": { "type": "boolean" },
         "dataConsent": { "type": "string", "enum": ["none", "agreed", "declined"], "default": "none" }
       }
     },
-    "MarketOffer": {
-      "title": "Market Offer",
+    "MarketItem": {
+      "title": "Market Item",
+      "description": "Any asset or product listed in TechMarket.",
+      "type": "object",
       "properties": {
-        "productId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
         "sellerId": { "type": "string" },
-        "buyerId": { "type": "string" },
-        "status": { "type": "string", "enum": ["pending", "accepted", "rejected"] }
+        "imageUrl": { "type": "string" },
+        "mainCategory": { "type": "string" },
+        "subCategory": { "type": "string" },
+        "stockQuantity": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "sold", "pending_review", "rejected"] },
+        "isLaunchable": { "type": "boolean" },
+        "promoVideoUrl": { "type": "string" },
+        "promoFileUrl": { "type": "string" }
+      }
+    },
+    "CategoryRequest": {
+      "title": "Category Request",
+      "description": "A user suggestion for a new marketplace category.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "suggestedName": { "type": "string" },
+        "parentCategory": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] }
       }
     }
   },
   "firestore": {
     "/users/{userId}": { "description": "User profiles" },
-    "/users/{userId}/messages/{msgId}": { "description": "AI Chat history" },
-    "/users/{userId}/wallet/main": { "description": "Credit balance" },
-    "/chats/{chatId}/messages/{msgId}": { "description": "Peer-to-peer messaging stream" },
-    "/videos/{videoId}": { "description": "StreamHub videos" },
-    "/offers/{offerId}": { "description": "Market negotiations" }
+    "/products/{productId}": { "description": "TechMarket listings" },
+    "/category_requests/{requestId}": { "description": "Global category suggestions" },
+    "/offers/{offerId}": { "description": "Market negotiations" },
+    "/videos/{videoId}": { "description": "StreamHub visual nodes" }
   }
 }
