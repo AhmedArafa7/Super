@@ -1,6 +1,14 @@
+
 'use client';
 
 import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  GithubAuthProvider, 
+  signOut,
+  User as FirebaseUser 
+} from 'firebase/auth';
 import { initializeFirebase } from '@/firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
@@ -23,6 +31,7 @@ export interface User {
   id: string;
   username: string;
   name: string;
+  email?: string;
   role: UserRole;
   classification?: UserClassification;
   proResponsesRemaining?: number;
@@ -50,6 +59,33 @@ export const setSession = (user: User | null) => {
   window.dispatchEvent(new Event('auth-update'));
 };
 
+/**
+ * تسجيل الدخول عبر جوجل.
+ */
+export const signInWithGoogle = async () => {
+  const { auth } = initializeFirebase();
+  const provider = new GoogleAuthProvider();
+  return signInWithPopup(auth, provider);
+};
+
+/**
+ * تسجيل الدخول عبر جيتهاب.
+ */
+export const signInWithGithub = async () => {
+  const { auth } = initializeFirebase();
+  const provider = new GithubAuthProvider();
+  return signInWithPopup(auth, provider);
+};
+
+/**
+ * تسجيل الخروج من Firebase Auth.
+ */
+export const logoutFromFirebase = async () => {
+  const { auth } = initializeFirebase();
+  await signOut(auth);
+  setSession(null);
+};
+
 export const getStoredUsers = async (): Promise<User[]> => {
   const { firestore } = initializeFirebase();
   const snapshot = await getDocs(collection(firestore, 'users'));
@@ -58,6 +94,47 @@ export const getStoredUsers = async (): Promise<User[]> => {
     ...d.data(),
     status: d.data().status || 'offline'
   } as User));
+};
+
+/**
+ * ضمان وجود ملف تعريف للمستخدم في Firestore بعد تسجيل الدخول السحابي.
+ */
+export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<User> => {
+  const { firestore } = initializeFirebase();
+  const userRef = doc(firestore, 'users', firebaseUser.uid);
+  const snap = await getDoc(userRef);
+
+  if (snap.exists()) {
+    return { id: snap.id, ...snap.data() } as User;
+  }
+
+  // إنشاء مستخدم جديد برتبة Free
+  const newUser: User = {
+    id: firebaseUser.uid,
+    username: firebaseUser.email?.split('@')[0] || firebaseUser.uid.substring(0, 8),
+    name: firebaseUser.displayName || "Nexus Node",
+    email: firebaseUser.email || "",
+    role: 'free',
+    classification: 'none',
+    proResponsesRemaining: 0,
+    proTTSRemaining: 0,
+    avatar_url: firebaseUser.photoURL || `https://picsum.photos/seed/${firebaseUser.uid}/100/100`,
+    status: 'online',
+    lastSeen: new Date().toISOString(),
+    canManageCredits: false,
+    dataConsent: 'none'
+  };
+
+  await setDoc(userRef, newUser);
+  
+  // تهيئة المحفظة
+  await setDoc(doc(firestore, `users/${newUser.id}/wallet/main`), {
+    balance: 0,
+    frozenBalance: 0,
+    currency: 'Credits'
+  });
+
+  return newUser;
 };
 
 export const addUser = async (userData: Omit<User, 'id' | 'dataConsent'>) => {
@@ -86,12 +163,6 @@ export const addUser = async (userData: Omit<User, 'id' | 'dataConsent'>) => {
   return user;
 };
 
-export const deleteUser = async (id: string) => {
-  const { firestore } = initializeFirebase();
-  await deleteDoc(doc(firestore, 'users', id));
-  window.dispatchEvent(new Event('auth-update'));
-};
-
 export const updateUserProfile = async (userId: string, updates: Partial<User>) => {
   const { firestore } = initializeFirebase();
   const userRef = doc(firestore, 'users', userId);
@@ -103,9 +174,6 @@ export const updateUserProfile = async (userId: string, updates: Partial<User>) 
   }
 };
 
-/**
- * محرك ضغط الصور في جهة العميل لتقليل الباندويث وحجم التخزين.
- */
 const compressImage = async (file: File): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -151,16 +219,12 @@ const compressImage = async (file: File): Promise<Blob> => {
   });
 };
 
-/**
- * وظيفة رفع الصورة الشخصية مع الضغط التلقائي.
- */
 export const uploadAvatar = async (file: File, onProgress?: (pct: number) => void): Promise<string> => {
   const { storage } = initializeFirebase();
   const session = getSession();
   if (!session) throw new Error("No active session");
 
-  // المرحلة 1: الضغط العصبى
-  onProgress?.(5); // الإشارة لبدء المعالجة
+  onProgress?.(5);
   const compressedBlob = await compressImage(file);
   
   const filePath = `avatars/${session.id}/${Date.now()}-${file.name.split('.')[0]}.jpg`;
@@ -174,7 +238,6 @@ export const uploadAvatar = async (file: File, onProgress?: (pct: number) => voi
     uploadTask.on('state_changed', 
       (snapshot) => {
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        // موازنة التقدم لتبدأ من 10% بعد الضغط
         onProgress?.(10 + (progress * 0.9));
       }, 
       (error) => reject(error), 

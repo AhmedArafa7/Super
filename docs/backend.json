@@ -9,6 +9,7 @@
         "id": { "type": "string" },
         "username": { "type": "string" },
         "full_name": { "type": "string" },
+        "email": { "type": "string" },
         "role": { 
           "type": "string", 
           "enum": ["founder", "cofounder", "admin", "management", "investor", "task_executor", "free", "external_user"] 
@@ -55,6 +56,9 @@
         "createdAt": { "type": "string", "format": "date-time" }
       }
     }
+  },
+  "auth": {
+    "providers": ["google", "github", "password"]
   },
   "firestore": {
     "/users/{userId}": { "description": "User profiles" },
