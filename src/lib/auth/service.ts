@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -9,7 +10,8 @@ import { User, UserRole } from './types';
 import { getSession, setSession } from './session';
 
 /**
- * [STABILITY_ANCHOR: AUTH_SERVICE_V2.0]
+ * [STABILITY_ANCHOR: AUTH_SERVICE_V2.1]
+ * محرك الهوية الموحد - يضمن توافق الرتب مع قواعد Firestore.
  */
 
 export const getStoredUsers = async (): Promise<User[]> => {
@@ -31,7 +33,7 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
     return { id: snap.id, ...snap.data() } as User;
   }
 
-  // FORCE 'free' role for security compliance with Firestore Rules
+  // فرض رتبة 'free' لضمان التوافق مع قواعد Firestore
   const newUser: User = {
     id: firebaseUser.uid,
     username: firebaseUser.email?.split('@')[0] || firebaseUser.uid.substring(0, 8),
@@ -50,6 +52,7 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
 
   await setDoc(userRef, newUser);
   
+  // تهيئة المحفظة
   await setDoc(doc(firestore, `users/${newUser.id}/wallet/main`), {
     balance: 0,
     frozenBalance: 0,
@@ -59,12 +62,13 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
   return newUser;
 };
 
-export const addUser = async (userData: Omit<User, 'id' | 'dataConsent'>) => {
+export const addUser = async (userData: Omit<User, 'id'>) => {
   const { firestore } = initializeFirebase();
   const newUserRef = doc(collection(firestore, 'users'));
   const user: User = { 
     ...userData, 
     id: newUserRef.id,
+    role: userData.role || 'free',
     classification: userData.classification || 'none',
     proResponsesRemaining: userData.proResponsesRemaining || 0,
     proTTSRemaining: userData.proTTSRemaining || 0,
@@ -72,7 +76,7 @@ export const addUser = async (userData: Omit<User, 'id' | 'dataConsent'>) => {
     status: 'online',
     lastSeen: new Date().toISOString(),
     canManageCredits: userData.canManageCredits || false,
-    dataConsent: 'none'
+    dataConsent: userData.dataConsent || 'none'
   };
   await setDoc(newUserRef, user);
   

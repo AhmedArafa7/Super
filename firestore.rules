@@ -3,7 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // [SECURITY_ANCHOR: SOVEREIGN_IDENTITY_V1.0]
+    // [SECURITY_ANCHOR: SOVEREIGN_IDENTITY_V1.1]
     
     // التحقق من تسجيل الدخول
     function isSignedIn() {
@@ -30,21 +30,23 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn();
       
-      // السماح بإنشاء الملف فقط إذا كان المعرف يطابق المستخدم المسجل والرتبة هي free
-      allow create: if isSignedIn() && request.auth.uid == userId && 
-                    request.resource.data.role == 'free';
+      // السماح بإنشاء الملف للمستخدم نفسه برتبة free، أو للإدارة مطلقاً
+      allow create: if isSignedIn() && (
+        (request.auth.uid == userId && request.resource.data.role == 'free') ||
+        isManagement()
+      );
       
       // حماية الحقول الحساسة من التعديل الذاتي
       allow update: if isSignedIn() && (
-        // 1. المستخدم العادي لا يمكنه تغيير رتبته أو تصنيفه أو سلطة الائتمان
-        (request.auth.uid == userId && 
-         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'classification', 'canManageCredits'])) ||
+        // 1. المؤسس له السلطة المطلقة
+        isFounder() ||
         
         // 2. الإدارة يمكنها تعديل الرتب والتصنيفات ولكن لا يمكنها منح سلطة الائتمان
         (isManagement() && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['canManageCredits'])) ||
         
-        // 3. المؤسس له السلطة المطلقة
-        isFounder()
+        // 3. المستخدم العادي يمكنه تعديل بياناته الأساسية فقط (الاسم، الأفاتار، الموافقة)
+        (request.auth.uid == userId && 
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'classification', 'canManageCredits']))
       );
       
       allow delete: if isFounder();
@@ -67,6 +69,23 @@ service cloud.firestore {
     match /videos/{videoId} {
       allow read: if true;
       allow write: if isSignedIn();
+    }
+
+    // محفظة المستخدم وسجل المعاملات
+    match /users/{userId}/wallet/{doc=**} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isManagement());
+      allow write: if isManagement() || isFounder();
+    }
+
+    match /users/{userId}/transactions/{doc=**} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isManagement());
+      allow write: if isManagement() || isFounder();
+    }
+
+    // سجلات الدردشة
+    match /users/{userId}/messages/{doc=**} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isManagement());
+      allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
     // السماح بالوصول العام لبقية السجلات مؤقتاً مع وجوب تسجيل الدخول

@@ -33,9 +33,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         // العودة للنخاع لجلب بيانات الملف الشخصي
-        const profile = await ensureUserProfile(firebaseUser);
-        setSession(profile);
-        setUser(profile);
+        try {
+          const profile = await ensureUserProfile(firebaseUser);
+          setSession(profile);
+          setUser(profile);
+        } catch (err) {
+          console.error("Profile Sync Error:", err);
+        }
       } else {
         // التحقق من الجلسة القديمة (المستخدمون التقليديون بالاسم)
         const session = getSession();
@@ -98,8 +102,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const newUser = await addUser({
         username,
         name,
-        role: 'user',
-        avatar_url: `https://picsum.photos/seed/${username}/100/100`
+        role: 'free', // تم التعديل من 'user' إلى 'free' للتوافق مع القواعد
+        avatar_url: `https://picsum.photos/seed/${username}/100/100`,
+        classification: 'none',
+        proResponsesRemaining: 0,
+        proTTSRemaining: 0,
+        canManageCredits: false,
+        dataConsent: 'none'
       });
 
       setSession(newUser);
