@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -10,8 +9,8 @@ import { User, UserRole } from './types';
 import { getSession, setSession } from './session';
 
 /**
- * [STABILITY_ANCHOR: AUTH_SERVICE_V2.1]
- * محرك الهوية الموحد - يضمن توافق الرتب مع قواعد Firestore.
+ * [STABILITY_ANCHOR: AUTH_SERVICE_V3.0]
+ * محرك الهوية الموحد - تم تحديث addUser ليدعم الهوية السحابية المباشرة.
  */
 
 export const getStoredUsers = async (): Promise<User[]> => {
@@ -36,7 +35,9 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
   // فرض رتبة 'free' لضمان التوافق مع قواعد Firestore
   const newUser: User = {
     id: firebaseUser.uid,
-    username: firebaseUser.email?.split('@')[0] || firebaseUser.uid.substring(0, 8),
+    username: firebaseUser.email?.includes('@nexusai.local') 
+      ? firebaseUser.email.split('@')[0] 
+      : (firebaseUser.email?.split('@')[0] || firebaseUser.uid.substring(0, 8)),
     name: firebaseUser.displayName || "Nexus Node",
     email: firebaseUser.email || "",
     role: 'free',
@@ -62,23 +63,16 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
   return newUser;
 };
 
-export const addUser = async (userData: Omit<User, 'id'>) => {
+export const addUser = async (user: User) => {
   const { firestore } = initializeFirebase();
-  const newUserRef = doc(collection(firestore, 'users'));
-  const user: User = { 
-    ...userData, 
-    id: newUserRef.id,
-    role: userData.role || 'free',
-    classification: userData.classification || 'none',
-    proResponsesRemaining: userData.proResponsesRemaining || 0,
-    proTTSRemaining: userData.proTTSRemaining || 0,
-    avatar_url: userData.avatar_url || `https://picsum.photos/seed/${userData.username}/100/100`,
-    status: 'online',
+  const userRef = doc(firestore, 'users', user.id);
+  
+  await setDoc(userRef, {
+    ...user,
+    status: user.status || 'online',
     lastSeen: new Date().toISOString(),
-    canManageCredits: userData.canManageCredits || false,
-    dataConsent: userData.dataConsent || 'none'
-  };
-  await setDoc(newUserRef, user);
+    dataConsent: user.dataConsent || 'none'
+  });
   
   await setDoc(doc(firestore, `users/${user.id}/wallet/main`), {
     balance: 0,

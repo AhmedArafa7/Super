@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -37,8 +36,13 @@ export function LoginView() {
           setIsLoading(false);
           return;
         }
-        const success = await register(username, name);
-        if (!success) setError('Node ID already exists in the registry. Choose another.');
+        if (password.length < 6) {
+          setError('Security Code must be at least 6 characters.');
+          setIsLoading(false);
+          return;
+        }
+        const success = await register(username, name, password);
+        if (!success) setError('Node ID already exists or registration failed. Choose another.');
       }
     } catch (err) {
       setError('System authentication error. Node unreachable.');

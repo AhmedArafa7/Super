@@ -1,10 +1,10 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   User, setSession, getSession, addUser, getStoredUsers, 
-  ensureUserProfile, logoutFromFirebase, signInWithGoogle, signInWithGithub 
+  ensureUserProfile, logoutFromFirebase, signInWithGoogle, signInWithGithub,
+  signInWithCredentials, signUpWithCredentials
 } from '@/lib/auth-store';
 import { initializeFirebase } from '@/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -15,7 +15,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<boolean>;
   loginWithGoogle: () => Promise<void>;
   loginWithGithub: () => Promise<void>;
-  register: (username: string, name: string) => Promise<boolean>;
+  register: (username: string, name: string, password?: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -29,21 +29,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const { auth } = initializeFirebase();
     
-    // مراقبة حالة Firebase Auth
+    // مراقبة حالة Firebase Auth - المصدر الوحيد للحقيقة
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // العودة للنخاع لجلب بيانات الملف الشخصي
         try {
           const profile = await ensureUserProfile(firebaseUser);
           setSession(profile);
           setUser(profile);
         } catch (err) {
           console.error("Profile Sync Error:", err);
+          setUser(null);
         }
       } else {
-        // التحقق من الجلسة القديمة (المستخدمون التقليديون بالاسم)
-        const session = getSession();
-        setUser(session);
+        // إذا لم يكن هناك مستخدم سحابي، يتم مسح الجلسة فوراً لمنع أخطاء التصاريح
+        setSession(null);
+        setUser(null);
       }
       setLoading(false);
     });
@@ -63,14 +63,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const allUsers = await getStoredUsers();
-      const found = allUsers.find(u => u.username === username);
-      if (found) {
-        setSession(found);
-        setUser(found);
-        return true;
-      }
-      return false;
+      await signInWithCredentials(username, password);
+      // التحديث سيتم تلقائياً عبر onAuthStateChanged
+      return true;
     } catch (err) {
       console.error("Login Error:", err);
       return false;
@@ -93,26 +88,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (username: string, name: string): Promise<boolean> => {
+  const register = async (username: string, name: string, password?: string): Promise<boolean> => {
     try {
-      const allUsers = await getStoredUsers();
-      const exists = allUsers.find(u => u.username === username);
-      if (exists) return false;
+      // 1. إنشاء الحساب في Firebase Auth أولاً
+      const userCredential = await signUpWithCredentials(username, password || "nexus123456");
+      const firebaseUser = userCredential.user;
 
-      const newUser = await addUser({
+      // 2. إنشاء الملف الشخصي المرتبط بالـ UID الصحيح
+      const newUser: User = {
+        id: firebaseUser.uid,
         username,
         name,
-        role: 'free', // تم التعديل من 'user' إلى 'free' للتوافق مع القواعد
+        role: 'free',
         avatar_url: `https://picsum.photos/seed/${username}/100/100`,
         classification: 'none',
         proResponsesRemaining: 0,
         proTTSRemaining: 0,
         canManageCredits: false,
         dataConsent: 'none'
-      });
+      };
 
-      setSession(newUser);
-      setUser(newUser);
+      await addUser(newUser);
       return true;
     } catch (err) {
       console.error("Registration Error:", err);
@@ -122,8 +118,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     await logoutFromFirebase();
-    setSession(null);
-    setUser(null);
   };
 
   return (

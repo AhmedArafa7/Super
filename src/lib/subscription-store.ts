@@ -14,8 +14,8 @@ export interface YouTubeSubscription {
 }
 
 /**
- * [STABILITY_ANCHOR: SUBSCRIPTION_STORE_V1.1]
- * محرك إدارة الاشتراكات الخاصة لـ WeTube مع معالجة الأخطاء السياقية.
+ * [STABILITY_ANCHOR: SUBSCRIPTION_STORE_V1.2]
+ * محرك إدارة الاشتراكات - تم تحصين الاستماع ليعمل فقط عند وجود مصادقة نشطة.
  */
 
 export const addSubscription = async (userId: string, channelUrl: string, channelName: string) => {
@@ -40,7 +40,9 @@ export const addSubscription = async (userId: string, channelUrl: string, channe
 };
 
 export const getSubscriptions = async (userId: string): Promise<YouTubeSubscription[]> => {
-  const { firestore } = initializeFirebase();
+  const { firestore, auth } = initializeFirebase();
+  if (!auth.currentUser) return [];
+
   try {
     const q = query(collection(firestore, 'users', userId, 'subscriptions'), orderBy('createdAt', 'desc'));
     const snap = await getDocs(q);
@@ -66,7 +68,14 @@ export const deleteSubscription = async (userId: string, subId: string) => {
 };
 
 export const listenToSubscriptions = (userId: string, callback: (subs: YouTubeSubscription[]) => void) => {
-  const { firestore } = initializeFirebase();
+  const { firestore, auth } = initializeFirebase();
+  
+  // حماية إضافية: لا يبدأ الاستماع إلا إذا كان هناك مستخدم سحابي نشط
+  if (!auth.currentUser) {
+    callback([]);
+    return () => {};
+  }
+
   const subsRef = collection(firestore, 'users', userId, 'subscriptions');
   const q = query(subsRef, orderBy('createdAt', 'desc'));
   
