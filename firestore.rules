@@ -1,9 +1,8 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // [SECURITY_ANCHOR: SOVEREIGN_IDENTITY_V1.4]
+    // [SECURITY_ANCHOR: SOVEREIGN_IDENTITY_V1.5]
     
     function isSignedIn() {
       return request.auth != null;
@@ -43,6 +42,33 @@ service cloud.firestore {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
 
+    // قواعد المحادثات المباشرة (Peer Chat)
+    match /chats/{chatId} {
+      allow read, write: if isSignedIn() && chatId.contains(request.auth.uid);
+      
+      match /messages/{msgId} {
+        allow read, write: if isSignedIn() && (
+          chatId.contains(request.auth.uid) || isManagement()
+        );
+      }
+    }
+
+    // قواعد الرسائل والدردشة (AI Chat)
+    match /users/{userId}/messages/{msgId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isManagement());
+      allow write: if isSignedIn() && (request.auth.uid == userId || isManagement());
+      allow delete: if isSignedIn() && (request.auth.uid == userId || isManagement());
+    }
+
+    // دعم استعلامات المجموعات المشتركة (Collection Groups)
+    match /{path=**}/messages/{msgId} {
+      allow read: if isManagement();
+    }
+
+    match /{path=**}/transactions/{txId} {
+      allow read: if isManagement();
+    }
+
     // قواعد المعاملات والمحافظ
     match /users/{userId}/transactions/{txId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isManagement());
@@ -52,21 +78,6 @@ service cloud.firestore {
     match /users/{userId}/wallet/{doc=**} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isManagement());
       allow write: if isManagement() || isFounder();
-    }
-
-    match /{path=**}/transactions/{txId} {
-      allow read: if isManagement();
-    }
-
-    // قواعد الرسائل والدردشة
-    match /users/{userId}/messages/{msgId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isManagement());
-      allow write: if isSignedIn() && (request.auth.uid == userId || isManagement());
-      allow delete: if isSignedIn() && (request.auth.uid == userId || isManagement());
-    }
-
-    match /{path=**}/messages/{msgId} {
-      allow read: if isManagement();
     }
 
     // المنتجات والتصنيفات
