@@ -1,3 +1,4 @@
+
 'use client';
 
 import { create } from 'zustand';
@@ -12,7 +13,7 @@ interface SidebarState {
 }
 
 /**
- * @fileOverview محرك تخصيص القائمة الجانبية - تم إضافة مركز التحميل (Downloads).
+ * @fileOverview محرك تخصيص القائمة الجانبية - تم تحديث WeTube.
  */
 export const useSidebarStore = create<SidebarState>()(
   persist(

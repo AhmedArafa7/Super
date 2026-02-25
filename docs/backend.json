@@ -55,6 +55,17 @@
         "adminFeedback": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "YouTubeSubscription": {
+      "title": "YouTube Subscription",
+      "description": "A private YouTube channel link saved by a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "channelUrl": { "type": "string" },
+        "channelName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -62,9 +73,10 @@
   },
   "firestore": {
     "/users/{userId}": { "description": "User profiles" },
+    "/users/{userId}/subscriptions/{subId}": { "description": "Private WeTube channel links" },
     "/products/{productId}": { "description": "TechMarket listings" },
     "/category_requests/{requestId}": { "description": "Global category suggestions" },
     "/offers/{offerId}": { "description": "Market negotiations" },
-    "/videos/{videoId}": { "description": "StreamHub visual nodes" }
+    "/videos/{videoId}": { "description": "WeTube visual nodes" }
   }
 }

@@ -28,7 +28,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
     { id: "agent-ai", label: "Neural Architect", icon: Cpu, restricted: false },
     { id: "vault", label: "Nexus Vault", icon: HardDrive, restricted: false },
     { id: "peer-chat", label: "Direct Link", icon: MessageCircle, restricted: false },
-    { id: "stream", label: "StreamHub", icon: Video, restricted: false },
+    { id: "stream", label: "WeTube", icon: Video, restricted: false },
     { id: "market", label: "TechMarket", icon: ShoppingBag, restricted: false },
     { id: "ads", label: "Ads Center", icon: Megaphone, restricted: false },
     { id: "downloads", label: "Downloads", icon: DownloadCloud, restricted: false },

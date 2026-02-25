@@ -2,8 +2,14 @@
 {
   "project": "NexusAI Ecosystem",
   "last_sync": "2024-05-21T10:00:00Z",
-  "version": "5.0.0",
+  "version": "7.0.0",
   "feature_history": [
+    {
+      "id": "FEAT-016",
+      "name": "WeTube Privacy & Subs",
+      "status": "Active",
+      "description": "Renamed StreamHub to WeTube and implemented private YouTube channel subscriptions for users."
+    },
     {
       "id": "FEAT-015",
       "name": "Neural Singularity Protocol",
@@ -15,37 +21,13 @@
       "name": "Financial Sovereignty Protocol",
       "status": "Active",
       "description": "Separation of credit management authority from Admin role. Only root-authorized nodes can distribute credits."
-    },
-    {
-      "id": "FEAT-013",
-      "name": "Triple Role Hierarchy",
-      "status": "Active",
-      "description": "Defined User, Employee, and Admin tiers with isolated permission logic."
-    },
-    {
-      "id": "FEAT-012",
-      "name": "Silent Classification Protocol",
-      "status": "Active",
-      "description": "User roles are hidden from the public UI to maintain hierarchy confidentiality."
-    },
-    {
-      "id": "FEAT-011",
-      "name": "App Launcher Sandbox",
-      "status": "Active",
-      "description": "Safe environment for running external production nodes within NexusAI Shell."
-    },
-    {
-      "id": "FEAT-010",
-      "name": "Market & Negotiation Stream",
-      "status": "Active",
-      "description": "Escrow-protected peer-to-peer asset acquisition with Price/Trade options."
     }
   ],
   "technical_protocols": {
-    "rendering": "NextJS 15 App Router (Turbopack)",
-    "database": "Firebase Firestore + Client-side Sorting",
+    "rendering": "NextJS 15.5.2 (Compatibility Mode)",
+    "database": "Firebase Firestore + Path-based Security",
     "ai_engines": ["Google Gemini 1.5 Flash", "Groq Llama 3.3 70B", "Imagen 4.0", "Neural TTS"],
     "state": "Zustand + Local Persistence",
-    "security": "Custom Firestore Rules + E2EE Wallet Sync"
+    "security": "Sovereign P2P Encryption + Role Isolation"
   }
 }

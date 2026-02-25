@@ -1,8 +1,9 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // [SECURITY_ANCHOR: SOVEREIGN_IDENTITY_V1.3]
+    // [SECURITY_ANCHOR: SOVEREIGN_IDENTITY_V1.4]
     
     function isSignedIn() {
       return request.auth != null;
@@ -24,7 +25,7 @@ service cloud.firestore {
       return isSignedIn() && getUserData().get('role', 'free') == 'founder';
     }
 
-    // قواعد المستخدمين (الحماية الأساسية)
+    // قواعد المستخدمين
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId && request.resource.data.role == 'free';
@@ -37,7 +38,12 @@ service cloud.firestore {
       allow delete: if isFounder();
     }
 
-    // قواعد المعاملات والمحافظ (دعم الوصول المساري و Collection Group)
+    // قواعد الاشتراكات الخاصة (WeTube)
+    match /users/{userId}/subscriptions/{subId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // قواعد المعاملات والمحافظ
     match /users/{userId}/transactions/{txId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isManagement());
       allow write: if isManagement() || isFounder();
@@ -48,7 +54,6 @@ service cloud.firestore {
       allow write: if isManagement() || isFounder();
     }
 
-    // دعم استعلامات الإدارة الشاملة (Collection Group)
     match /{path=**}/transactions/{txId} {
       allow read: if isManagement();
     }
@@ -94,21 +99,6 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
 
-    // المجلدات التعليمية
-    match /subjects/{subId} {
-      allow read: if true;
-      allow write: if isSignedIn();
-      
-      match /collections/{colId} {
-        allow read, write: if isSignedIn();
-        
-        match /learning_items/{itemId} {
-          allow read, write: if isSignedIn();
-        }
-      }
-    }
-
-    // السماح بالوصول العام لبقية السجلات المؤقتاً مع وجوب تسجيل الدخول
     match /{document=**} {
       allow read, write: if isSignedIn();
     }

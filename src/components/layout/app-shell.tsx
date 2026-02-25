@@ -7,7 +7,7 @@ import { X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AIChat } from "@/components/features/ai-chat";
 import { PeerChat } from "@/components/features/peer-chat";
-import { StreamHub } from "@/components/features/stream-hub";
+import { WeTube } from "@/components/features/wetube";
 import { TechMarket } from "@/components/features/tech-market";
 import { Capabilities } from "@/components/features/capabilities";
 import { AdminPanel } from "@/components/features/admin-panel";
@@ -41,8 +41,8 @@ const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGaf
 const VAULT_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 /**
- * [STABILITY_ANCHOR: APPSHELL_ORCHESTRATOR_V7.5]
- * المكون المركزي المحدث - إضافة مركز التحميل لدعم تجربة الأوفلاين والتطبيقات المادية.
+ * [STABILITY_ANCHOR: APPSHELL_ORCHESTRATOR_V7.6]
+ * المكون المركزي المحدث - تم تحديث WeTube وإضافة منطق الاشتراكات.
  */
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -111,7 +111,7 @@ export function AppShell() {
       case "ads": return <AdsCenter />;
       case "downloads": return <DownloadCenter />;
       case "peer-chat": return <PeerChat initialTargetId={activeRecipientId} />;
-      case "stream": return <StreamHub onOpenVault={() => setLaunchedApp({url: VAULT_EMBED_URL, title: "Nexus Central Vault", isVault: true})} />;
+      case "stream": return <WeTube onOpenVault={() => setLaunchedApp({url: VAULT_EMBED_URL, title: "Nexus Central Vault", isVault: true})} />;
       case "market": return <TechMarket onLaunchApp={(url, title) => setLaunchedApp({url, title})} />;
       case "launcher": return <AppLauncher />;
       case "wallet": return <WalletView />;
