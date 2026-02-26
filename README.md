@@ -2,21 +2,21 @@
 
 هذا هو النظام العصبي المتكامل NexusAI، مجهز للعمل على منصة Cloudflare Pages كبيئة إنتاج ربحية فائقة السرعة.
 
-## 🚀 خطوات النشر على Cloudflare Pages (هام جداً)
+## 🚀 خطوات النشر على Cloudflare Pages (هام جداً لنجاح البناء)
 
-لضمان نجاح المزامنة، يجب ضبط الإعدادات التالية بدقة في لوحة تحكم Cloudflare:
+لضمان نجاح المزامنة، **يجب** ضبط الإعدادات التالية يدوياً في لوحة تحكم Cloudflare لأنها لا تتغير تلقائياً من الكود:
 
 1. **إعدادات البناء (Build Settings)**:
    - **Framework Preset**: اختر `Next.js`.
-   - **Build Command**: `npm run pages:build`  <-- (تأكد من وجود كلمة pages)
+   - **Build Command**: `npm run pages:build`
    - **Build Directory**: `.vercel/output/static`
 
 2. **إعدادات النشر (Deployment Settings)**:
-   - **تنبيه حرج**: تأكد من أن خانة **"Deploy command"** فارغة تماماً. لا تضع أي شيء فيها، لأن Cloudflare تتولى النشر تلقائياً.
+   - **تنبيه حرج**: تأكد من أن خانة **"Deploy command"** فارغة تماماً. لا تضع أي شيء فيها، لأن Cloudflare تتولى النشر تلقائياً بعد انتهاء البناء. وجود أي نص هنا سيفشل العملية.
 
 3. **متغيرات البيئة (Environment Variables)**:
-   - قم بنسخ جميع القيم من ملف `.env` إلى إعدادات Cloudflare.
    - أضف `NODE_VERSION = 20`.
+   - أضف كافة القيم الموجودة في ملف `.env` الخاص بك.
 
 4. **توافق Node.js**:
    - اذهب إلى **Settings > Functions > Compatibility flags**.
@@ -25,9 +25,9 @@
 ## 🛠 الأوامر البرمجية
 - `npm run dev`: لتشغيل البيئة التطويرية محلياً.
 - `npm run pages:build`: لبناء النسخة المتوافقة مع Cloudflare (استخدام محول @cloudflare/next-on-pages).
-- `npm run preview`: لمعاينة نسخة Cloudflare محلياً باستخدام Wrangler.
+- `npm run build`: بناء NextJS القياسي (للمعاينة المحلية فقط).
 
 ## 🛡 البروتوكولات النشطة
 - **Neural Storage**: نظام التخزين المقطوع (Segmented Storage) مع التنظيف الذكي.
 - **Sovereign Faith**: محرك القرآن الكريم المطور مع التفسير الميسر ومواقيت الصلاة.
-- **Market Engine**: سوق الأصول البرمجية بنظام الضمان (Escrow).
+- **WeTube**: منصة البث السيادية مع الاشتراكات الخاصة.
