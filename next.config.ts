@@ -1,8 +1,7 @@
-
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* Cloudflare Optimization */
+  /* Cloudflare Optimization Protocol */
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -10,7 +9,9 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    unoptimized: true, // Cloudflare Pages requires this or a custom loader
+    // [STRATEGY: IMAGE_OPTIMIZATION_BYPASS] 
+    // Ensuring high performance on Cloudflare Pages without Node.js image processing dependency
+    unoptimized: true, 
     remotePatterns: [
       {
         protocol: 'https',

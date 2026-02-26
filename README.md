@@ -2,32 +2,32 @@
 
 هذا هو النظام العصبي المتكامل NexusAI، مجهز للعمل على منصة Cloudflare Pages كبيئة إنتاج ربحية فائقة السرعة.
 
-## 🚀 خطوات النشر على Cloudflare Pages (هام جداً لنجاح البناء)
+## 🛡️ بروتوكول التطوير والسيادة (Professional Protocols)
 
-لضمان نجاح المزامنة، **يجب** ضبط الإعدادات التالية يدوياً في لوحة تحكم Cloudflare لأنها لا تتغير تلقائياً من الكود:
+لضمان استقرار النخاع وتجنب "اضطرابات البناء" (Build Conflicts)، يجب اتباع المعايير التالية:
 
-1. **إعدادات البناء (Build Settings)**:
-   - **Framework Preset**: اختر `Next.js`.
-   - **Build Command**: `npm run pages:build`
-   - **Build Directory**: `.vercel/output/static`
+### 1. محاكاة بيئة الحافة (Local Edge Simulation)
+بدلاً من اختبار التعديلات سحابياً، استخدم المحاكي المحلي الذي يطابق بيئة Cloudflare Pages تماماً:
+- الأمر: `npm run pages:preview`
+- الفائدة: يكشف أخطاء الـ Edge Runtime قبل رفع الكود.
 
-2. **إعدادات النشر (Deployment Settings)**:
-   - **تنبيه حرج**: تأكد من أن خانة **"Deploy command"** فارغة تماماً. لا تضع أي شيء فيها، لأن Cloudflare تتولى النشر تلقائياً بعد انتهاء البناء. وجود أي نص هنا سيفشل العملية.
+### 2. التحكم في الصور (Image Optimization Bypass)
+تم ضبط النظام ليعمل بوضع `unoptimized: true` في `next.config.ts`.
+- السبب: Cloudflare Pages لا تدعم معالجة الصور عبر Node.js افتراضياً.
+- النتيجة: أداء خارق واستقرار تام لجميع الوسائط البصرية.
 
-3. **متغيرات البيئة (Environment Variables)**:
-   - أضف `NODE_VERSION = 20`.
-   - أضف كافة القيم الموجودة في ملف `.env` الخاص بك.
-
-4. **توافق Node.js**:
-   - اذهب إلى **Settings > Functions > Compatibility flags**.
-   - أضف العلم `nodejs_compat` للإنتاج والمعاينة.
+### 3. إعدادات النشر السحابي (Cloudflare Settings)
+يجب ضبط الإعدادات التالية يدوياً في لوحة تحكم Cloudflare لضمان نجاح المزامنة:
+1. **Build Command**: `npm run pages:build`
+2. **Build Directory**: `.vercel/output/static`
+3. **Deploy Command**: (هام جداً) اترك هذه الخانة **فارغة تماماً**، النشر يتم تلقائياً.
 
 ## 🛠 الأوامر البرمجية
-- `npm run dev`: لتشغيل البيئة التطويرية محلياً.
-- `npm run pages:build`: لبناء النسخة المتوافقة مع Cloudflare (استخدام محول @cloudflare/next-on-pages).
-- `npm run build`: بناء NextJS القياسي (للمعاينة المحلية فقط).
+- `npm run dev`: تشغيل البيئة التطويرية التقليدية.
+- `npm run pages:build`: بناء النسخة المتوافقة مع Cloudflare.
+- `npm run pages:preview`: المحاكاة المحلية النهائية لبيئة الحافة.
 
 ## 🛡 البروتوكولات النشطة
 - **Neural Storage**: نظام التخزين المقطوع (Segmented Storage) مع التنظيف الذكي.
 - **Sovereign Faith**: محرك القرآن الكريم المطور مع التفسير الميسر ومواقيت الصلاة.
-- **WeTube**: منصة البث السيادية مع الاشتراكات الخاصة.
+- **WeTube**: منصة البث السيادية مع الاشتراكات الخاصة والخصوصية العميقة.
