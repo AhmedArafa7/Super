@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { use } from "react";
@@ -6,6 +5,8 @@ import { CoursePlayer } from "@/components/features/learning/course-player";
 import { useAuth } from "@/components/auth/auth-provider";
 import { LoginView } from "@/components/auth/login-view";
 import { useSearchParams } from "next/navigation";
+
+export const runtime = 'edge';
 
 interface LearnPageProps {
   params: Promise<{ collectionId: string }>;

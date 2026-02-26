@@ -1,5 +1,6 @@
-
 import { NextRequest, NextResponse } from 'next/server';
+
+export const runtime = 'edge';
 
 /**
  * [STABILITY_ANCHOR: PROXY_SERVICE_WORKER_V34.0_FINAL]

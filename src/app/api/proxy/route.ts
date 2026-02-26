@@ -1,5 +1,6 @@
-
 import { NextRequest, NextResponse } from 'next/server';
+
+export const runtime = 'edge';
 
 /**
  * [STABILITY_ANCHOR: NEURAL_PROXY_V34.0_FINAL]

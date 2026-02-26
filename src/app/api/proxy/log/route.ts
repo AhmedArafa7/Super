@@ -1,7 +1,8 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
 import { collection, addDoc } from 'firebase/firestore';
+
+export const runtime = 'edge';
 
 /**
  * [STABILITY_ANCHOR: PROXY_LOGGER_V1.0]
