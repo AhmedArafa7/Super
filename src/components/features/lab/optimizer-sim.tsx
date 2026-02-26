@@ -10,8 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { labOptimizePrompt } from "@/ai/flows/neural-lab-flows";
 
 /**
- * [STABILITY_ANCHOR: OPTIMIZER_SIM_ACTIVE_V1]
- * محاكي التحسين الصامت - متصل الآن بمحرك AI حقيقي لتحسين الأوامر.
+ * [STABILITY_ANCHOR: OPTIMIZER_SIM_ACTIVE_V1.1]
+ * محاكي التحسين الصامت - تم تحصين واجهة الاستجابة لضمان عرض مخرجات الـ AI بشكل مستقر.
  */
 export function OptimizerSim() {
   const { toast } = useToast();
@@ -20,15 +20,26 @@ export function OptimizerSim() {
   const [isOptimizing, setIsOptimizing] = useState(false);
 
   const simulate = async () => {
-    if (!testPrompt.trim()) return;
+    if (!testPrompt.trim() || isOptimizing) return;
     setIsOptimizing(true);
     
     try {
       const output = await labOptimizePrompt({ prompt: testPrompt });
-      setResult(output);
-      toast({ title: "تمت المعايرة بنجاح", description: "تم مواءمة الأمر مع بروتوكولات نكسوس." });
-    } catch (err) {
-      toast({ variant: "destructive", title: "فشل التحسين", description: "حدث اضطراب في الاتصال بالمحرك العصبي." });
+      if (output.success) {
+        setResult({
+          optimizedPrompt: output.optimizedPrompt || "",
+          analysis: output.analysis || ""
+        });
+        toast({ title: "تمت المعايرة بنجاح", description: "تم مواءمة الأمر مع بروتوكولات نكسوس." });
+      } else {
+        throw new Error(output.message);
+      }
+    } catch (err: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "فشل التحسين", 
+        description: err.message || "حدث اضطراب في الاتصال بالمحرك العصبي." 
+      });
     } finally {
       setIsOptimizing(false);
     }
@@ -41,9 +52,9 @@ export function OptimizerSim() {
 
   return (
     <Card className="glass border-white/5 rounded-[3rem] p-10 flex flex-col shadow-2xl relative">
-      <div className="absolute top-0 left-0 size-64 bg-primary/5 blur-[100px] -ml-32 -mt-32" />
+      <div className="absolute top-0 right-0 size-64 bg-primary/5 blur-[100px] -ml-32 -mt-32" />
       
-      <div className="flex items-center justify-between mb-8 flex-row-reverse">
+      <div className="flex items-center justify-between mb-8 flex-row-reverse relative z-10">
         <h3 className="text-2xl font-bold text-white flex items-center gap-3 flex-row-reverse">
           محاكي التحسين الصامت
           <Sparkles className="text-primary" />
@@ -55,7 +66,7 @@ export function OptimizerSim() {
         )}
       </div>
       
-      <div className="space-y-8 flex-1">
+      <div className="space-y-8 flex-1 relative z-10">
         <div className="grid gap-3">
           <p className="text-[10px] text-muted-foreground text-right uppercase font-black px-1 tracking-[0.2em]">أمر تجريبي (Neural Input)</p>
           <div className="relative">
@@ -70,7 +81,7 @@ export function OptimizerSim() {
             />
             <Button 
               onClick={simulate}
-              disabled={isOptimizing || !testPrompt}
+              disabled={isOptimizing || !testPrompt.trim()}
               size="icon" 
               className="absolute left-3 top-1/2 -translate-y-1/2 size-12 rounded-2xl bg-primary shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
             >
@@ -114,7 +125,7 @@ export function OptimizerSim() {
         )}
       </div>
 
-      <div className="mt-8 pt-8 border-t border-white/5 text-center">
+      <div className="mt-8 pt-8 border-t border-white/5 text-center relative z-10">
         <p className="text-[9px] text-muted-foreground uppercase tracking-[0.4em] font-medium">Nexus Lab Protocol v5.5 • AI Active</p>
       </div>
     </Card>
