@@ -42,20 +42,6 @@
         "adminFeedback": { "type": "string" }
       }
     },
-    "CategoryRequest": {
-      "title": "Category Request",
-      "description": "A user suggestion for a new marketplace category.",
-      "type": "object",
-      "properties": {
-        "userId": { "type": "string" },
-        "userName": { "type": "string" },
-        "suggestedName": { "type": "string" },
-        "parentCategory": { "type": "string" },
-        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
-        "adminFeedback": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      }
-    },
     "YouTubeSubscription": {
       "title": "YouTube Subscription",
       "description": "A private YouTube channel link saved by a user.",

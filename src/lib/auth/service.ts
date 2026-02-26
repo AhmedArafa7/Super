@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -9,18 +10,23 @@ import { User, UserRole } from './types';
 import { getSession, setSession } from './session';
 
 /**
- * [STABILITY_ANCHOR: AUTH_SERVICE_V3.0]
- * محرك الهوية الموحد - تم تحديث addUser ليدعم الهوية السحابية المباشرة.
+ * [STABILITY_ANCHOR: AUTH_SERVICE_V3.5]
+ * محرك الهوية الموحد - تم تحسين استخراج المعرفات لضمان احترافية الحسابات السحابية.
  */
 
 export const getStoredUsers = async (): Promise<User[]> => {
   const { firestore } = initializeFirebase();
-  const snapshot = await getDocs(collection(firestore, 'users'));
-  return snapshot.docs.map(d => ({ 
-    id: d.id, 
-    ...d.data(),
-    status: d.data().status || 'offline'
-  } as User));
+  try {
+    const snapshot = await getDocs(collection(firestore, 'users'));
+    return snapshot.docs.map(d => ({ 
+      id: d.id, 
+      ...d.data(),
+      status: d.data().status || 'offline'
+    } as User));
+  } catch (e) {
+    console.error("Fetch Users Error:", e);
+    return [];
+  }
 };
 
 export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<User> => {
@@ -32,12 +38,15 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
     return { id: snap.id, ...snap.data() } as User;
   }
 
-  // فرض رتبة 'free' لضمان التوافق مع قواعد Firestore
+  // استخراج اسم مستخدم احترافي من البريد الإلكتروني أو المعرف الفريد
+  let detectedUsername = "user_" + firebaseUser.uid.substring(0, 5);
+  if (firebaseUser.email) {
+    detectedUsername = firebaseUser.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
+  }
+
   const newUser: User = {
     id: firebaseUser.uid,
-    username: firebaseUser.email?.includes('@nexusai.local') 
-      ? firebaseUser.email.split('@')[0] 
-      : (firebaseUser.email?.split('@')[0] || firebaseUser.uid.substring(0, 8)),
+    username: detectedUsername,
     name: firebaseUser.displayName || "Nexus Node",
     email: firebaseUser.email || "",
     role: 'free',
@@ -53,7 +62,7 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
 
   await setDoc(userRef, newUser);
   
-  // تهيئة المحفظة
+  // تهيئة المحفظة المركزية للعقدة الجديدة
   await setDoc(doc(firestore, `users/${newUser.id}/wallet/main`), {
     balance: 0,
     frozenBalance: 0,
