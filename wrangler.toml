@@ -1,3 +1,4 @@
+#:schema node_modules/wrangler/config-schema.json
 name = "nexus-ai-ecosystem"
 pages_build_output_dir = ".vercel/output/static"
 compatibility_date = "2024-11-01"
