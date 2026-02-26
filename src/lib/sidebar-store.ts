@@ -13,12 +13,13 @@ interface SidebarState {
 }
 
 /**
- * @fileOverview محرك تخصيص القائمة الجانبية - تم تحديث WeTube.
+ * @fileOverview محرك تخصيص القائمة الجانبية - تم تثبيت المختبر العصبي افتراضياً.
  */
 export const useSidebarStore = create<SidebarState>()(
   persist(
     (set, get) => ({
-      pinnedItems: ["dashboard", "chat", "vault", "agent-ai", "peer-chat", "stream", "market", "launcher", "ads", "downloads", "wallet"],
+      // إضافة 'lab' للقائمة المثبتة افتراضياً ليراها المستخدم فوراً
+      pinnedItems: ["dashboard", "chat", "vault", "agent-ai", "peer-chat", "stream", "market", "launcher", "lab", "ads", "downloads", "wallet"],
 
       togglePin: (id) => {
         const { pinnedItems } = get();
