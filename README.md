@@ -2,17 +2,20 @@
 
 هذا هو النظام العصبي المتكامل NexusAI، مجهز للعمل على منصة Cloudflare Pages كبيئة إنتاج ربحية فائقة السرعة.
 
-## 🚀 خطوات النشر على Cloudflare Pages
+## 🚀 خطوات النشر على Cloudflare Pages (هام جداً)
 
 1. **الربط بـ GitHub**: ارفع الكود إلى مستودع خاص.
 2. **إنشاء مشروع Pages**: من لوحة تحكم Cloudflare، اختر المشروع واربطه بالمستودع.
-3. **إعدادات البناء**:
+3. **إعدادات البناء (Build Settings)**:
+   - **Framework Preset**: اختر `Next.js`.
    - **Build Command**: `npm run pages:build`
    - **Build Directory**: `.vercel/output/static`
-4. **متغيرات البيئة (Environment Variables)**:
+4. **إعدادات النشر (Deployment Settings)**:
+   - **تنبيه**: تأكد من أن خانة "Deploy command" فارغة تماماً. لا تضع `npx wrangler deploy`.
+5. **متغيرات البيئة (Environment Variables)**:
    - قم بنسخ جميع القيم من ملف `.env` إلى إعدادات Cloudflare.
    - أضف `NODE_VERSION = 20`.
-5. **توافق Node.js**:
+6. **توافق Node.js**:
    - اذهب إلى **Settings > Functions > Compatibility flags**.
    - أضف العلم `nodejs_compat` للإنتاج والمعاينة.
 
