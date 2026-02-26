@@ -1,11 +1,13 @@
+
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   DownloadCloud, Monitor, Smartphone, Globe, 
   ShieldCheck, Zap, Laptop, HardDrive, 
   Trash2, Heart, Database, Settings2, Info,
-  BookOpen, Video, GraduationCap, Cpu, ChevronRight
+  BookOpen, Video, GraduationCap, Cpu, ChevronRight,
+  AppWindow, TabletSmartphone
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,8 +21,8 @@ import { useGlobalStorage, AssetType } from "@/lib/global-storage-store";
 import { cn } from "@/lib/utils";
 
 /**
- * [STABILITY_ANCHOR: DOWNLOAD_CENTER_V2.0]
- * مركز التحميل والذاكرة الموحد - يجمع بين خيارات التثبيت وإدارة مساحات التخزين لكل قسم.
+ * [STABILITY_ANCHOR: DOWNLOAD_CENTER_V3.0]
+ * مركز التحميل المطور - يدعم تثبيت PWA الحقيقي وإدارة المنصات المتعددة.
  */
 export function DownloadCenter() {
   const { toast } = useToast();
@@ -30,41 +32,73 @@ export function DownloadCenter() {
   } = useGlobalStorage();
 
   const [activeView, setActiveView] = useState<'deployment' | 'storage'>('deployment');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  // [STABILITY_ANCHOR: PWA_INSTALL_LISTENER]
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (!deferredPrompt) {
+      toast({ 
+        title: "التطبيق مثبت بالفعل", 
+        description: "يمكنك فتح NexusAI مباشرة من قائمة تطبيقاتك أو سطح المكتب." 
+      });
+      return;
+    }
+    
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+      toast({ title: "بدأ التثبيت", description: "يتم الآن إضافة نكسوس إلى جهازك." });
+    }
+  };
 
   const SECTIONS: { id: AssetType, label: string, icon: any, color: string }[] = [
     { id: 'quran', label: 'القرآن الكريم', icon: BookOpen, color: 'text-emerald-400' },
-    { id: 'video', label: 'StreamHub (فيديو)', icon: Video, color: 'text-indigo-400' },
+    { id: 'video', label: 'WeTube (فيديو)', icon: Video, color: 'text-indigo-400' },
     { id: 'learning_asset', label: 'المكتبة التعليمية', icon: GraduationCap, color: 'text-blue-400' },
     { id: 'ai_model_data', label: 'النبضات العصبية (AI)', icon: Cpu, color: 'text-primary' },
   ];
 
-  const DOWNLOAD_OPTIONS = [
+  const DEPLOYMENT_OPTIONS = [
     {
-      id: 'app',
-      title: 'تطبيق نكسوس (المحلي)',
-      desc: 'تثبيت النسخة الفيزيائية للعمل بدون إنترنت وبأداء فائق.',
-      icon: Smartphone,
+      id: 'pwa',
+      title: 'تطبيق نكسوس (PWA)',
+      desc: 'ثبت نسخة الويب المتقدمة للوصول السريع من شاشتك الرئيسية مع دعم العمل أوفلاين.',
+      icon: AppWindow,
       status: 'active',
       badge: 'موصى به',
-      color: 'bg-primary'
+      color: 'bg-primary',
+      actionLabel: 'تثبيت على الجهاز',
+      onClick: handleInstallPWA
     },
     {
-      id: 'browser',
-      title: 'إضافة المتصفح (Extension)',
-      desc: 'دمج قدرات نكسوس في متصفحك المفضل للوصول السريع.',
-      icon: Globe,
+      id: 'android',
+      title: 'تطبيق أندرويد (Native)',
+      desc: 'نسخة APK مخصصة للهواتف الذكية مع دعم كامل للتنبيهات العميقة والوصول للمستشعرات.',
+      icon: TabletSmartphone,
       status: 'locked',
-      badge: 'قريباً',
-      color: 'bg-slate-800'
+      badge: 'قريباً جداً',
+      color: 'bg-slate-800',
+      actionLabel: 'قيد المعايرة'
     },
     {
-      id: 'os',
-      title: 'نظام نكسوس (Nexus OS)',
-      desc: 'نظام تشغيل متكامل مبني على النواة العصبية لنكسوس.',
-      icon: Laptop,
+      id: 'desktop',
+      title: 'نسخة الحاسوب (Desktop)',
+      desc: 'تطبيق EXE متكامل للحواسب الشخصية (ويندوز/ماك) يوفر أداء فائقاً ومعالجة محلية.',
+      icon: Monitor,
       status: 'locked',
-      badge: 'تحت المعايرة',
-      color: 'bg-slate-800'
+      badge: 'تحت التطوير',
+      color: 'bg-slate-800',
+      actionLabel: 'قيد المزامنة'
     }
   ];
 
@@ -80,10 +114,10 @@ export function DownloadCenter() {
             مركز التحميل والذاكرة
             <HardDrive className="text-primary size-10" />
           </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl">تحكم في مكان تحميل البيانات، حدد السعات القصوى، وراقب الأصول المخزنة في العقدة.</p>
+          <p className="text-muted-foreground text-lg max-w-2xl">اختر المنصة المناسبة لتشغيل نكسوس، وراقب المساحة المخصصة لكل قطاع في عقدتك.</p>
         </div>
 
-        <div className="bg-white/5 border border-white/10 p-1 rounded-2xl flex gap-1 flex-row-reverse">
+        <div className="bg-white/5 border border-white/10 p-1 rounded-2xl flex gap-1 flex-row-reverse shadow-xl">
           <Button 
             variant={activeView === 'deployment' ? 'default' : 'ghost'} 
             onClick={() => setActiveView('deployment')}
@@ -103,7 +137,7 @@ export function DownloadCenter() {
 
       {activeView === 'deployment' ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-10">
-          {DOWNLOAD_OPTIONS.map((opt) => (
+          {DEPLOYMENT_OPTIONS.map((opt) => (
             <Card 
               key={opt.id} 
               className={cn(
@@ -117,16 +151,17 @@ export function DownloadCenter() {
                 </div>
                 <Badge variant="outline" className="mb-4 border-white/10 text-[10px] uppercase font-black tracking-widest">{opt.badge}</Badge>
                 <h3 className="text-2xl font-bold text-white mb-3">{opt.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-10">{opt.desc}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-10 h-20">{opt.desc}</p>
                 <Button 
                   disabled={opt.status === 'locked'}
+                  onClick={opt.onClick}
                   className={cn(
                     "w-full h-14 rounded-2xl font-bold text-base gap-3 transition-all mt-auto",
-                    opt.status === 'active' ? "bg-primary shadow-xl shadow-primary/20 hover:scale-[1.02]" : "bg-white/5"
+                    opt.status === 'active' ? "bg-primary shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95" : "bg-white/5"
                   )}
                 >
                   {opt.status === 'active' ? <Zap className="size-5 fill-current" /> : <ShieldCheck className="size-4 opacity-40" />}
-                  {opt.id === 'app' ? "بدء المزامنة الشاملة" : "قيد المعايرة"}
+                  {opt.actionLabel}
                 </Button>
               </CardContent>
             </Card>
@@ -134,7 +169,6 @@ export function DownloadCenter() {
         </div>
       ) : (
         <div className="space-y-10 animate-in slide-in-from-bottom-4 duration-500">
-          {/* قسم الحدود القصوى والتنظيف الذكي */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <Card className="glass border-white/5 rounded-[3rem] p-8 text-right space-y-8">
               <h3 className="text-2xl font-bold text-white flex items-center gap-3 justify-end">
@@ -177,7 +211,7 @@ export function DownloadCenter() {
                   );
                 })}
               </div>
-              <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex items-start gap-4 flex-row-reverse">
+              <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex items-start gap-4 flex-row-reverse shadow-inner">
                 <Info className="size-5 text-amber-500 shrink-0 mt-0.5" />
                 <p className="text-[10px] text-slate-400 leading-relaxed">
                   بروتوكول التنظيف الذكي نشط: عند تجاوز الحد المخصص لأي قسم، سيقوم النظام تلقائياً بمسح أقدم الأصول المخزنة في ذلك القسم فقط لضمان توفير مساحة للأصول الجديدة.
@@ -248,15 +282,15 @@ export function DownloadCenter() {
         <div className="absolute top-0 right-0 size-32 bg-emerald-500/5 blur-3xl" />
         <div className="text-right space-y-2 flex-1">
           <h4 className="text-xl font-bold text-emerald-400 flex items-center gap-2 justify-end">
-            بروتوكول السلامة الرقمية (Storage Isolation)
+            بروتوكول التوافق المتعدد (Cross-Platform Integrity)
             <ShieldCheck className="size-6" />
           </h4>
           <p className="text-base text-slate-400 leading-relaxed max-w-3xl">
-            يتم تخزين بيانات كل قسم بشكل معزول في ذاكرة المتصفح الفيزيائية. نظام التنظيف الذكي يضمن عدم تعطل التطبيق عند امتلاء الذاكرة عبر تفريغ المساحة من الأصول الأقدم في القسم المطلوب فقط.
+            نظام نكسوس مصمم ليعمل كـ "عقدة واحدة في أجهزة متعددة". خيارات التثبيت أعلاه تضمن لك الوصول لأدواتك العصبية بأعلى سرعة ممكنة وبشكل مستقل عن المتصفح التقليدي.
           </p>
         </div>
-        <div className="flex items-center gap-4 px-6 py-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
-          <Badge className="bg-emerald-500/20 text-emerald-400 border-none text-[10px] font-black uppercase tracking-widest">Protocol Active</Badge>
+        <div className="flex items-center gap-4 px-6 py-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 shadow-inner">
+          <Badge className="bg-emerald-500/20 text-emerald-400 border-none text-[10px] font-black uppercase tracking-widest">Universal Node Ready</Badge>
         </div>
       </footer>
     </div>
