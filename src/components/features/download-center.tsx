@@ -7,7 +7,7 @@ import {
   ShieldCheck, Zap, Laptop, HardDrive, 
   Trash2, Heart, Database, Settings2, Info,
   BookOpen, Video, GraduationCap, Cpu, ChevronRight,
-  AppWindow, TabletSmartphone
+  AppWindow, TabletSmartphone, MonitorSmartphone
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,8 @@ import { useGlobalStorage, AssetType } from "@/lib/global-storage-store";
 import { cn } from "@/lib/utils";
 
 /**
- * [STABILITY_ANCHOR: DOWNLOAD_CENTER_V3.0]
- * مركز التحميل المطور - يدعم تثبيت PWA الحقيقي وإدارة المنصات المتعددة.
+ * [STABILITY_ANCHOR: DOWNLOAD_CENTER_V4.0]
+ * مركز التحميل المطور - تم استعادة خيارات المتصفح ونظام التشغيل مع دعم PWA.
  */
 export function DownloadCenter() {
   const { toast } = useToast();
@@ -99,6 +99,26 @@ export function DownloadCenter() {
       badge: 'تحت التطوير',
       color: 'bg-slate-800',
       actionLabel: 'قيد المزامنة'
+    },
+    {
+      id: 'browser',
+      title: 'متصفح نكسوس (Sovereign Browser)',
+      desc: 'متصفح مبني على نواة نكسوس يوفر تشفيراً عصبياً وتكاملاً مباشراً مع أدوات النظام.',
+      icon: Globe,
+      status: 'locked',
+      badge: 'قيد التطوير',
+      color: 'bg-slate-800',
+      actionLabel: 'قيد المزامنة'
+    },
+    {
+      id: 'os',
+      title: 'نظام تشغيل نكسوس (Nexus OS)',
+      desc: 'النظام البيئي الكامل؛ بيئة عمل متكاملة مبنية على Linux ومحسنة لمعالجة النبضات العصبية.',
+      icon: MonitorSmartphone,
+      status: 'locked',
+      badge: 'مشروع مستقبلي',
+      color: 'bg-slate-800',
+      actionLabel: 'بانتظار البروتوكول'
     }
   ];
 
@@ -136,7 +156,7 @@ export function DownloadCenter() {
       </header>
 
       {activeView === 'deployment' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10">
           {DEPLOYMENT_OPTIONS.map((opt) => (
             <Card 
               key={opt.id} 
