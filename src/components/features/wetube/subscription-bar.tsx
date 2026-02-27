@@ -68,6 +68,7 @@ export function SubscriptionBar({
                 size="icon" 
                 onClick={onOpenAddModal}
                 className="size-14 rounded-full border-dashed border-white/20 hover:bg-white/5 shadow-xl"
+                title="إضافة قناة"
               >
                 <Plus className="size-6 text-indigo-400" />
               </Button>
@@ -77,6 +78,7 @@ export function SubscriptionBar({
                 size="icon" 
                 onClick={onOpenManageModal}
                 className="size-14 rounded-full border-white/10 hover:bg-white/5 shadow-xl"
+                title="إدارة الاشتراكات"
               >
                 <Settings className="size-6 text-muted-foreground" />
               </Button>

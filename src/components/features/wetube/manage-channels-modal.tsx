@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import { Trash2, ShieldAlert } from "lucide-react";
+import { Trash2, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
@@ -21,24 +21,19 @@ interface ManageChannelsModalProps {
   userId: string;
 }
 
-/**
- * [STABILITY_ANCHOR: MANAGE_CHANNELS_V1.2]
- * وحدة إدارة القنوات المحدثة - تم تحصين زر الحذف لضمان الاستجابة اللحظية.
- */
 export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userId }: ManageChannelsModalProps) {
   const { toast } = useToast();
 
   const handleUnsubscribe = async (subId: string) => {
     if (!userId || !subId) return;
     
-    if (!confirm("هل أنت متأكد من رغبتك في إلغاء الاشتراك وفك الارتباط؟")) return;
+    if (!confirm("هل تريد بالتأكيد إلغاء متابعة هذه القناة؟")) return;
     
     try {
-      // تنفيذ الحذف في السجل العالمي
       await deleteSubscription(userId, subId);
-      toast({ title: "تم معالجة طلب الحذف", description: "ستختفي القناة من القائمة فوراً." });
+      toast({ title: "تم إلغاء المتابعة", description: "تمت إزالة القناة من قائمة اشتراكاتك." });
     } catch (e) {
-      toast({ variant: "destructive", title: "فشل في العملية" });
+      toast({ variant: "destructive", title: "فشل في تنفيذ العملية" });
     }
   };
 
@@ -48,7 +43,7 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
         <DialogHeader>
           <DialogTitle className="text-right text-2xl font-bold flex items-center justify-end gap-2 text-white">
             إدارة الاشتراكات
-            <ShieldAlert className="size-5 text-indigo-400" />
+            <Settings className="size-5 text-indigo-400" />
           </DialogTitle>
         </DialogHeader>
         
@@ -57,13 +52,13 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
             {subscriptions.length === 0 ? (
               <div className="py-20 text-center opacity-30 italic flex flex-col items-center gap-4">
                 <Trash2 className="size-10" />
-                <p>لا توجد اشتراكات نشطة حالياً.</p>
+                <p>قائمة الاشتراكات فارغة حالياً.</p>
               </div>
             ) : (
               subscriptions.map(sub => (
                 <div key={sub.id} className="flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-all flex-row-reverse group">
                   <div className="flex items-center gap-4 flex-row-reverse overflow-hidden">
-                    <div className="size-12 rounded-full overflow-hidden border border-white/10 shrink-0 bg-slate-900 shadow-inner group-hover:border-indigo-500/50 transition-colors">
+                    <div className="size-12 rounded-full overflow-hidden border border-white/10 shrink-0 bg-slate-900 group-hover:border-indigo-500/50 transition-colors">
                       <img 
                         src={sub.avatarUrl || `https://picsum.photos/seed/${sub.channelId}/40/40`} 
                         className="size-full object-cover" 
@@ -72,18 +67,15 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
                     </div>
                     <div className="text-right overflow-hidden">
                       <h4 dir="auto" className="font-bold text-white truncate max-w-[150px]">{sub.channelName}</h4>
-                      <p className="text-[8px] text-muted-foreground uppercase font-mono mt-0.5 tracking-tighter">ID: {sub.channelId?.substring(0, 15)}...</p>
+                      <p className="text-[8px] text-muted-foreground uppercase font-mono mt-0.5 tracking-tighter">ID: {sub.channelId?.substring(0, 12)}...</p>
                     </div>
                   </div>
                   
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="text-red-400/50 hover:text-red-400 hover:bg-red-500/10 rounded-xl size-10 transition-all"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUnsubscribe(sub.id);
-                    }}
+                    className="text-red-400 hover:text-white hover:bg-red-600/20 rounded-xl size-10 transition-all"
+                    onClick={() => handleUnsubscribe(sub.id)}
                   >
                     <Trash2 className="size-4" />
                   </Button>

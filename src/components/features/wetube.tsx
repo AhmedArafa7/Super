@@ -9,30 +9,24 @@ import { getStoredVideos, addVideo, deleteVideo, Video } from "@/lib/video-store
 import { listenToSubscriptions, YouTubeSubscription } from "@/lib/subscription-store";
 import { fetchAllSubscriptionsFeed, FeedVideo } from "@/lib/youtube-feed-store";
 import { useUploadStore } from "@/lib/upload-store";
-import { useStreamStore } from "@/lib/stream-store";
+import { useStreamStore } from "@/lib/stream-store"; 
 import { useGlobalStorage } from "@/lib/global-storage-store";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { StreamSettings } from "./stream/stream-settings";
 import { StreamUploadDialog } from "./stream/stream-upload-dialog";
 import { VideoCard } from "./stream/video-card";
-import { Youtube, Loader2, Zap } from "lucide-react";
+import { Youtube, Loader2, PlaySquare } from "lucide-react";
 
-// استيراد المكونات المقطوعة (Modular Components)
 import { SubscriptionBar } from "./wetube/subscription-bar";
 import { AddChannelModal } from "./wetube/add-channel-modal";
 import { ManageChannelsModal } from "./wetube/manage-channels-modal";
 
 export const runtime = 'edge';
 
-/**
- * [STABILITY_ANCHOR: WETUBE_MODULAR_V1.1]
- * محرك WeTube السيادي المطور: تم تعديل المسميات وإصلاح منطق المزامنة.
- */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const addTask = useUploadStore(state => state.addTask);
   const { addAsset, cachedAssets, removeAsset } = useGlobalStorage();
   const { 
     activeVideo, setActiveVideo, quality, setQuality, 
@@ -72,7 +66,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       setFeedVideos(feed);
       setFilteredFeed(feed);
     } catch (err) {
-      console.error("Feed Sync Failure", err);
+      console.error("خطأ في جلب الفيديوهات", err);
     } finally {
       setIsFeedLoading(false);
     }
@@ -83,7 +77,6 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     if (user?.id) {
       const unsubscribe = listenToSubscriptions(user.id, (subs) => {
         setSubscriptions(subs);
-        // تحديث الخلاصة إذا كنا في تبويب الاشتراكات
         if (activeView === 'subscriptions') loadFullFeed(subs);
       });
       return () => unsubscribe();
@@ -102,10 +95,10 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     const assetId = `video-${video.id}`;
     if (cachedAssets.some(a => a.id === assetId)) {
       removeAsset(assetId);
-      toast({ title: "فك الارتباط الفيزيائي" });
+      toast({ title: "تمت إزالة الفيديو من الجهاز" });
     } else {
       addAsset({ id: assetId, type: 'video', title: video.title, sizeMB: 45 });
-      toast({ title: "مزامنة ناجحة للعقدة" });
+      toast({ title: "تم حفظ الفيديو للمشاهدة أوفلاين" });
     }
   };
 
@@ -124,7 +117,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       title: uploadData.title,
       author: user.name,
       authorId: user.id,
-      thumbnail: finalThumbnail || "https://images.unsplash.com/photo-1544391496-1ca7c974b711",
+      thumbnail: finalThumbnail || "https://picsum.photos/seed/yt/800/450",
       time: source === 'youtube' ? "YouTube" : "Vault",
       status: user.role === 'admin' ? 'published' : 'pending_review',
       visibility: 'public',
@@ -133,7 +126,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       source: source,
       externalUrl: uploadData.externalUrl
     });
-    toast({ title: "تم بث العقدة بنجاح" });
+    toast({ title: "تم نشر الفيديو بنجاح" });
   };
 
   const publicVideos = videos.filter(v => v.status === 'published' && (v.visibility === 'public' || v.authorId === user?.id));
@@ -145,9 +138,9 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           <div className="text-right">
             <h2 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
               WeTube
-              <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase">v12.5</Badge>
+              <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary">v12.5</Badge>
             </h2>
-            <p className="text-muted-foreground mt-2 text-lg text-right">بوابة البث السيادي والاشتراكات العميقة بصور حقيقية.</p>
+            <p className="text-muted-foreground mt-2 text-lg text-right">مشاهدة مباشرة للقنوات المشترك بها مع دعم الفيديوهات المحلية.</p>
           </div>
 
           <div className="flex items-center gap-4 flex-row-reverse">
@@ -157,7 +150,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                 <TabsTrigger value="subscriptions" className="rounded-xl px-6 data-[state=active]:bg-indigo-600 font-bold gap-2">
                   <Youtube className="size-3" /> الاشتراكات
                 </TabsTrigger>
-                <TabsTrigger value="studio" className="rounded-xl px-6 data-[state=active]:bg-primary font-bold">استوديو العقدة</TabsTrigger>
+                <TabsTrigger value="studio" className="rounded-xl px-6 data-[state=active]:bg-primary font-bold">قنواتي</TabsTrigger>
               </TabsList>
             </div>
 
@@ -201,11 +194,11 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           ) : filteredFeed.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-40 opacity-30 text-center space-y-6">
               <div className="size-24 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
-                <Youtube className="size-12 text-muted-foreground" />
+                <PlaySquare className="size-12 text-muted-foreground" />
               </div>
               <div className="space-y-2">
-                <p className="text-xl font-bold">لا توجد نبضات بصرية</p>
-                <p className="text-sm">اشترك في بعض القنوات الحقيقية لتظهر فيديوهاتها هنا.</p>
+                <p className="text-xl font-bold">لا توجد فيديوهات للعرض</p>
+                <p className="text-sm">اشترك في بعض القنوات لتظهر أحدث فيديوهاتها هنا.</p>
               </div>
             </div>
           ) : (
