@@ -26,8 +26,8 @@ import { ManageChannelsModal } from "./wetube/manage-channels-modal";
 export const runtime = 'edge';
 
 /**
- * [STABILITY_ANCHOR: WETUBE_MODULAR_V1.0]
- * محرك WeTube السيادي المطور: الفصل الهيكلي الكامل لضمان استقرار العقد البرمجية.
+ * [STABILITY_ANCHOR: WETUBE_MODULAR_V1.1]
+ * محرك WeTube السيادي المطور: تم تعديل المسميات وإصلاح منطق المزامنة.
  */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
@@ -83,6 +83,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     if (user?.id) {
       const unsubscribe = listenToSubscriptions(user.id, (subs) => {
         setSubscriptions(subs);
+        // تحديث الخلاصة إذا كنا في تبويب الاشتراكات
         if (activeView === 'subscriptions') loadFullFeed(subs);
       });
       return () => unsubscribe();
@@ -154,7 +155,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
               <TabsList className="bg-transparent h-11 flex-row-reverse border-none">
                 <TabsTrigger value="explore" className="rounded-xl px-6 data-[state=active]:bg-primary font-bold">اكتشاف</TabsTrigger>
                 <TabsTrigger value="subscriptions" className="rounded-xl px-6 data-[state=active]:bg-indigo-600 font-bold gap-2">
-                  <Youtube className="size-3" /> خلاصتي
+                  <Youtube className="size-3" /> الاشتراكات
                 </TabsTrigger>
                 <TabsTrigger value="studio" className="rounded-xl px-6 data-[state=active]:bg-primary font-bold">استوديو العقدة</TabsTrigger>
               </TabsList>

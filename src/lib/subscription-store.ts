@@ -1,3 +1,4 @@
+
 'use client';
 
 import { initializeFirebase } from '@/firebase';
@@ -16,8 +17,8 @@ export interface YouTubeSubscription {
 }
 
 /**
- * [STABILITY_ANCHOR: SUBSCRIPTION_STORE_V3.0]
- * محرك إدارة الاشتراكات - تم إضافة دعم لرابط أيقونة القناة الحقيقي.
+ * [STABILITY_ANCHOR: SUBSCRIPTION_STORE_V3.1]
+ * محرك إدارة الاشتراكات - تم تحصين وظيفة الحذف لضمان دقة الاستهداف.
  */
 
 export const addSubscription = async (userId: string, channelUrl: string, channelName: string, channelId: string, avatarUrl?: string) => {
@@ -61,13 +62,15 @@ export const deleteSubscription = async (userId: string, subId: string) => {
   const { firestore } = initializeFirebase();
   const docRef = doc(firestore, 'users', userId, 'subscriptions', subId);
   
-  deleteDoc(docRef).catch(async (serverError) => {
+  // تنفيذ الحذف بنظام عدم الإعاقة (Non-blocking)
+  return deleteDoc(docRef).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({
       path: docRef.path,
       operation: 'delete',
     } satisfies SecurityRuleContext);
     
     errorEmitter.emit('permission-error', permissionError);
+    throw serverError;
   });
 };
 
