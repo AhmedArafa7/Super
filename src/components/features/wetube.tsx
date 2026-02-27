@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -15,12 +15,16 @@ import { cn } from "@/lib/utils";
 import { StreamSettings } from "./stream/stream-settings";
 import { StreamUploadDialog } from "./stream/stream-upload-dialog";
 import { VideoCard } from "./stream/video-card";
-import { PlaySquare, Loader2, Sparkles } from "lucide-react";
+import { PlaySquare, Loader2, Sparkles, Zap } from "lucide-react";
 
 import { SubscriptionBar } from "./wetube/subscription-bar";
 import { AddChannelModal } from "./wetube/add-channel-modal";
 import { ManageChannelsModal } from "./wetube/manage-channels-modal";
 
+/**
+ * [STABILITY_ANCHOR: WETUBE_PRO_V7.0]
+ * المنسق الرئيسي المطور لـ WeTube - يدعم القنوات المفضلة والتحميل التلقائي (Auto-Sync).
+ */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -40,6 +44,33 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
 
+  // [FEATURE] بروتوكول التحميل التلقائي للقنوات المفضلة
+  const runAutoSync = useCallback(async (subs: YouTubeSubscription[], feed: FeedVideo[]) => {
+    const favoriteChannelIds = subs.filter(s => s.isFavorite).map(s => s.channelId);
+    if (favoriteChannelIds.length === 0) return;
+
+    const newFavoriteVideos = feed.filter(v => 
+      favoriteChannelIds.includes(v.authorId) && 
+      !cachedAssets.some(a => a.id === `video-${v.id}`)
+    );
+
+    if (newFavoriteVideos.length > 0) {
+      toast({ 
+        title: "جاري المزامنة التلقائية", 
+        description: `تم اكتشاف ${newFavoriteVideos.length} فيديوهات جديدة في قنواتك المفضلة.` 
+      });
+
+      newFavoriteVideos.forEach(v => {
+        addAsset({ 
+          id: `video-${v.id}`, 
+          type: 'video', 
+          title: v.title, 
+          sizeMB: 45 // مساحة تقديرية
+        });
+      });
+    }
+  }, [cachedAssets, addAsset, toast]);
+
   useEffect(() => {
     const loadVideos = async () => {
       const data = await getStoredVideos();
@@ -50,11 +81,12 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     if (user?.id) {
       const unsubscribeSubs = listenToSubscriptions(user.id, (subs) => {
         setSubscriptions(subs);
-        if (activeTab === 'subs') syncFeed(subs);
+        // تحديث الخلاصة تلقائياً عند تغيير الاشتراكات
+        syncFeed(subs);
       });
       return () => unsubscribeSubs();
     }
-  }, [user?.id, activeTab]);
+  }, [user?.id]);
 
   const syncFeed = async (subs: YouTubeSubscription[]) => {
     if (subs.length === 0) {
@@ -65,6 +97,8 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     try {
       const feed = await fetchAllSubscriptionsFeed(subs.map(s => s.channelId));
       setFeedVideos(feed);
+      // تشغيل المزامنة التلقائية بعد جلب الخلاصة
+      runAutoSync(subs, feed);
     } catch (e) {
       console.error("Feed Sync Failure", e);
     } finally {
@@ -81,10 +115,10 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     const assetId = `video-${video.id}`;
     if (cachedAssets.some(a => a.id === assetId)) {
       removeAsset(assetId);
-      toast({ title: "تم فك الارتباط" });
+      toast({ title: "تم إزالة الفيديو من الجهاز" });
     } else {
       addAsset({ id: assetId, type: 'video', title: video.title, sizeMB: 45 });
-      toast({ title: "مزامنة ناجحة", description: "الفيديو متاح للمشاهدة أوفلاين." });
+      toast({ title: "تم الحفظ للمشاهدة أوفلاين" });
     }
   };
 
@@ -104,7 +138,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
             WeTube
             <PlaySquare className="text-red-500 size-10 shadow-lg" />
           </h2>
-          <p className="text-muted-foreground text-lg">تجربة بث متكاملة تدعم قنواتك المفضلة والمساحات السحابية.</p>
+          <p className="text-muted-foreground text-lg">بث ذكي يدعم التحميل التلقائي للمحتوى المفضل لديك.</p>
         </div>
 
         <div className="flex items-center gap-4 flex-row-reverse">
@@ -162,14 +196,19 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {filteredFeed.map(v => (
-                  <VideoCard 
-                    key={v.id} 
-                    video={{...v, externalUrl: v.url, time: "اليوم"}} 
-                    isActive={activeVideo?.externalUrl === v.url} 
-                    onClick={() => handleVideoSelect(v)} 
-                  />
-                ))}
+                {filteredFeed.map(v => {
+                  const isCached = cachedAssets.some(a => a.id === `video-${v.id}`);
+                  return (
+                    <VideoCard 
+                      key={v.id} 
+                      video={{...v, externalUrl: v.url, time: "اليوم"}} 
+                      isActive={activeVideo?.externalUrl === v.url} 
+                      isCached={isCached}
+                      onSync={handleToggleLocal}
+                      onClick={() => handleVideoSelect(v)} 
+                    />
+                  );
+                })}
               </div>
             )}
           </div>

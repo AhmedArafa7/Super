@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import { LayoutGrid, Plus, Settings } from "lucide-react";
+import { LayoutGrid, Plus, Settings, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,9 @@ export function SubscriptionBar({
   onOpenAddModal, 
   onOpenManageModal 
 }: SubscriptionBarProps) {
+  // ترتيب القنوات لتظهر المفضلة أولاً
+  const sortedSubs = [...subscriptions].sort((a, b) => (a.isFavorite === b.isFavorite ? 0 : a.isFavorite ? -1 : 1));
+
   return (
     <div className="sticky top-0 z-20 bg-slate-950/80 backdrop-blur-xl py-4 border-b border-white/5 -mx-8 px-8 mb-8">
       <div className="flex items-center justify-between flex-row-reverse gap-6">
@@ -41,7 +44,7 @@ export function SubscriptionBar({
               <LayoutGrid className="size-4" /> الكل
             </Button>
             
-            {subscriptions.map(sub => (
+            {sortedSubs.map(sub => (
               <button
                 key={sub.id}
                 onClick={() => onSelectChannel(selectedChannelId === sub.channelId ? null : sub.channelId)}
@@ -51,7 +54,7 @@ export function SubscriptionBar({
                 )}
               >
                 <div className={cn(
-                  "size-14 rounded-full flex items-center justify-center border-2 transition-all overflow-hidden bg-slate-900 shadow-2xl",
+                  "size-14 rounded-full flex items-center justify-center border-2 transition-all overflow-hidden bg-slate-900 shadow-2xl relative",
                   selectedChannelId === sub.channelId 
                     ? "border-indigo-500 ring-4 ring-indigo-500/20" 
                     : "border-white/10 group-hover:border-indigo-500/40"
@@ -61,6 +64,11 @@ export function SubscriptionBar({
                     className="size-full object-cover" 
                     alt={sub.channelName} 
                   />
+                  {sub.isFavorite && (
+                    <div className="absolute top-0 right-0 bg-amber-500 p-0.5 rounded-bl-lg shadow-lg">
+                      <Star className="size-2 text-white fill-current" />
+                    </div>
+                  )}
                 </div>
                 <span className="text-[10px] font-bold text-white truncate max-w-[70px]">{sub.channelName}</span>
               </button>

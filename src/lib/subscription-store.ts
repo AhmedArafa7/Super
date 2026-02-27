@@ -2,7 +2,7 @@
 'use client';
 
 import { initializeFirebase } from '@/firebase';
-import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, onSnapshot, updateDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
@@ -13,12 +13,13 @@ export interface YouTubeSubscription {
   channelName: string;
   channelId: string;
   avatarUrl?: string;
+  isFavorite: boolean;
   createdAt: string;
 }
 
 /**
- * [STABILITY_ANCHOR: SUBSCRIPTION_STORE_V3.1]
- * محرك إدارة الاشتراكات - تم تحصين وظيفة الحذف لضمان دقة الاستهداف.
+ * [STABILITY_ANCHOR: SUBSCRIPTION_STORE_V4.0]
+ * محرك إدارة الاشتراكات المطور - يدعم القنوات المفضلة وبروتوكول المزامنة التلقائية.
  */
 
 export const addSubscription = async (userId: string, channelUrl: string, channelName: string, channelId: string, avatarUrl?: string) => {
@@ -30,6 +31,7 @@ export const addSubscription = async (userId: string, channelUrl: string, channe
     channelName,
     channelId,
     avatarUrl: avatarUrl || "",
+    isFavorite: false,
     createdAt: new Date().toISOString()
   };
 
@@ -44,25 +46,25 @@ export const addSubscription = async (userId: string, channelUrl: string, channe
   });
 };
 
-export const getSubscriptions = async (userId: string): Promise<YouTubeSubscription[]> => {
-  const { firestore, auth } = initializeFirebase();
-  if (!auth.currentUser) return [];
-
-  try {
-    const q = query(collection(firestore, 'users', userId, 'subscriptions'), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as YouTubeSubscription));
-  } catch (e) {
-    console.error("Fetch Subscriptions Error:", e);
-    return [];
-  }
+export const toggleFavoriteSubscription = async (userId: string, subId: string, currentStatus: boolean) => {
+  const { firestore } = initializeFirebase();
+  const docRef = doc(firestore, 'users', userId, 'subscriptions', subId);
+  
+  return updateDoc(docRef, { isFavorite: !currentStatus }).catch(async (serverError) => {
+    const permissionError = new FirestorePermissionError({
+      path: docRef.path,
+      operation: 'update',
+      requestResourceData: { isFavorite: !currentStatus },
+    } satisfies SecurityRuleContext);
+    
+    errorEmitter.emit('permission-error', permissionError);
+  });
 };
 
 export const deleteSubscription = async (userId: string, subId: string) => {
   const { firestore } = initializeFirebase();
   const docRef = doc(firestore, 'users', userId, 'subscriptions', subId);
   
-  // تنفيذ الحذف بنظام عدم الإعاقة (Non-blocking)
   return deleteDoc(docRef).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({
       path: docRef.path,
