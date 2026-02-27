@@ -50,6 +50,7 @@
         "userId": { "type": "string" },
         "channelUrl": { "type": "string" },
         "channelName": { "type": "string" },
+        "channelId": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
     }

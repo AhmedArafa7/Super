@@ -1,3 +1,4 @@
+
 'use client';
 
 import { initializeFirebase } from '@/firebase';
@@ -10,21 +11,23 @@ export interface YouTubeSubscription {
   userId: string;
   channelUrl: string;
   channelName: string;
+  channelId: string;
   createdAt: string;
 }
 
 /**
- * [STABILITY_ANCHOR: SUBSCRIPTION_STORE_V1.2]
- * محرك إدارة الاشتراكات - تم تحصين الاستماع ليعمل فقط عند وجود مصادقة نشطة.
+ * [STABILITY_ANCHOR: SUBSCRIPTION_STORE_V2.0]
+ * محرك إدارة الاشتراكات - تم تحديثه لدعم معرف القناة البرمجي (channelId).
  */
 
-export const addSubscription = async (userId: string, channelUrl: string, channelName: string) => {
+export const addSubscription = async (userId: string, channelUrl: string, channelName: string, channelId: string) => {
   const { firestore } = initializeFirebase();
   const subsRef = collection(firestore, 'users', userId, 'subscriptions');
   const data = {
     userId,
     channelUrl,
     channelName,
+    channelId,
     createdAt: new Date().toISOString()
   };
 
@@ -70,7 +73,6 @@ export const deleteSubscription = async (userId: string, subId: string) => {
 export const listenToSubscriptions = (userId: string, callback: (subs: YouTubeSubscription[]) => void) => {
   const { firestore, auth } = initializeFirebase();
   
-  // حماية إضافية: لا يبدأ الاستماع إلا إذا كان هناك مستخدم سحابي نشط
   if (!auth.currentUser) {
     callback([]);
     return () => {};
