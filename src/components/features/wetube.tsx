@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/components/auth/auth-provider";
 import { getStoredVideos, addVideo, deleteVideo, Video } from "@/lib/video-store";
-import { addSubscription, deleteSubscription, listenToSubscriptions, YouTubeSubscription } from "@/lib/subscription-store";
+import { listenToSubscriptions, YouTubeSubscription } from "@/lib/subscription-store";
 import { fetchAllSubscriptionsFeed, FeedVideo } from "@/lib/youtube-feed-store";
 import { useUploadStore } from "@/lib/upload-store";
 import { useStreamStore } from "@/lib/stream-store";
@@ -16,17 +16,18 @@ import { cn } from "@/lib/utils";
 import { StreamSettings } from "./stream/stream-settings";
 import { StreamUploadDialog } from "./stream/stream-upload-dialog";
 import { VideoCard } from "./stream/video-card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Youtube, Plus, Trash2, ExternalLink, Globe, Lock, Loader2, Zap, LayoutGrid, UserCircle, Settings2, MoreVertical, X, Settings } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Youtube, Loader2, Zap } from "lucide-react";
+
+// استيراد المكونات المقطوعة (Modular Components)
+import { SubscriptionBar } from "./wetube/subscription-bar";
+import { AddChannelModal } from "./wetube/add-channel-modal";
+import { ManageChannelsModal } from "./wetube/manage-channels-modal";
+
+export const runtime = 'edge';
 
 /**
- * [STABILITY_ANCHOR: WETUBE_ORCHESTRATOR_V12.0_FINAL]
- * محرك WeTube السيادي: حل مشكلة تداخل القنوات، جلب الصور الحقيقية، وإدارة كاملة للاشتراكات.
+ * [STABILITY_ANCHOR: WETUBE_MODULAR_V1.0]
+ * محرك WeTube السيادي المطور: الفصل الهيكلي الكامل لضمان استقرار العقد البرمجية.
  */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
@@ -45,12 +46,6 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   
   const [activeView, setActiveView] = useState<'explore' | 'subscriptions' | 'studio'>('explore');
-  
-  const [newSubUrl, setNewSubUrl] = useState("");
-  const [newSubName, setNewSubName] = useState("");
-  const [newSubId, setNewSubId] = useState("");
-  const [newSubAvatar, setNewSubAvatar] = useState("");
-  const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   const [isFeedLoading, setIsFeedLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
@@ -88,7 +83,6 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     if (user?.id) {
       const unsubscribe = listenToSubscriptions(user.id, (subs) => {
         setSubscriptions(subs);
-        // تحديث الخلاصة فقط إذا كان المستخدم في تبويب الاشتراكات
         if (activeView === 'subscriptions') loadFullFeed(subs);
       });
       return () => unsubscribe();
@@ -102,70 +96,6 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       setFilteredFeed(feedVideos.filter(v => v.authorId === selectedChannelId));
     }
   }, [selectedChannelId, feedVideos]);
-
-  const fetchChannelMetadata = async (url: string) => {
-    if (!url.includes('youtube.com') && !url.includes('youtu.be')) return;
-    setIsFetchingMetadata(true);
-    try {
-      const response = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
-      const html = await response.text();
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      
-      // 1. جلب اسم القناة
-      const title = doc.querySelector('title')?.textContent;
-      if (title) {
-        setNewSubName(title.replace(' - YouTube', '').trim());
-      }
-
-      // 2. جلب ID القناة بدقة (بروتوكول الاستقصاء العميق)
-      const channelIdMatch = html.match(/"channelId":"(UC[a-zA-Z0-9_-]+)"/) || 
-                           html.match(/meta itemprop="channelId" content="(UC[a-zA-Z0-9_-]+)"/) ||
-                           html.match(/link rel="canonical" href=".*?\/channel\/(UC[a-zA-Z0-9_-]+)"/);
-      
-      if (channelIdMatch) {
-        setNewSubId(channelIdMatch[1]);
-      }
-
-      // 3. جلب أيقونة القناة الحقيقية
-      const avatarMatch = html.match(/"avatar":{"thumbnails":\[{"url":"(https:\/\/yt3\.ggpht\.com\/.*?)"/) ||
-                         html.match(/<meta property="og:image" content="(.*?)"/) ||
-                         html.match(/<link rel="image_src" href="(.*?)"/);
-      if (avatarMatch) {
-        setNewSubAvatar(avatarMatch[1]);
-      }
-    } catch (e) {
-      console.error("Metadata Sync Interrupt:", e);
-    } finally {
-      setIsFetchingMetadata(false);
-    }
-  };
-
-  const handleAddSubscription = async () => {
-    if (!user || !newSubUrl || !newSubName || !newSubId) return;
-    try {
-      await addSubscription(user.id, newSubUrl, newSubName, newSubId, newSubAvatar);
-      toast({ title: "تم التشفير والارتباط", description: "القناة أصبحت جزءاً من خلاصتك السيادية." });
-      setNewSubUrl("");
-      setNewSubName("");
-      setNewSubId("");
-      setNewSubAvatar("");
-      setIsAddModalOpen(false);
-    } catch (e) {
-      toast({ variant: "destructive", title: "فشل الارتباط" });
-    }
-  };
-
-  const handleUnsubscribe = async (subId: string) => {
-    if (!user) return;
-    if (!confirm("هل أنت متأكد من رغبتك في إلغاء الاشتراك وفك الارتباط؟")) return;
-    
-    try {
-      await deleteSubscription(user.id, subId);
-      toast({ title: "تم إلغاء الاشتراك", description: "تمت إزالة القناة من السجل المحلي." });
-    } catch (e) {
-      toast({ variant: "destructive", title: "فشل العملية" });
-    }
-  };
 
   const handleSyncToLocal = (video: Video) => {
     const assetId = `video-${video.id}`;
@@ -214,7 +144,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           <div className="text-right">
             <h2 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
               WeTube
-              <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase">v12.0</Badge>
+              <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase">v12.5</Badge>
             </h2>
             <p className="text-muted-foreground mt-2 text-lg text-right">بوابة البث السيادي والاشتراكات العميقة بصور حقيقية.</p>
           </div>
@@ -255,151 +185,13 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         </TabsContent>
 
         <TabsContent value="subscriptions" className="mt-0 space-y-10 animate-in fade-in">
-          <div className="sticky top-0 z-20 bg-slate-950/80 backdrop-blur-xl py-4 border-b border-white/5 -mx-8 px-8">
-            <div className="flex items-center justify-between flex-row-reverse gap-6">
-              <ScrollArea className="flex-1" dir="rtl">
-                <div className="flex items-center gap-4 pb-4">
-                  <Button 
-                    variant={selectedChannelId === null ? 'default' : 'outline'}
-                    onClick={() => setSelectedChannelId(null)}
-                    className={cn(
-                      "rounded-2xl h-14 px-6 font-bold gap-2 shrink-0 transition-all",
-                      selectedChannelId === null ? "bg-indigo-600 shadow-lg shadow-indigo-600/20" : "border-white/10"
-                    )}
-                  >
-                    <LayoutGrid className="size-4" /> الكل
-                  </Button>
-                  
-                  {subscriptions.map(sub => (
-                    <button
-                      key={sub.id}
-                      onClick={() => setSelectedChannelId(selectedChannelId === sub.channelId ? null : sub.channelId)}
-                      className={cn(
-                        "flex flex-col items-center gap-2 group shrink-0 px-2 transition-all",
-                        selectedChannelId === sub.channelId ? "scale-110" : "opacity-60 hover:opacity-100"
-                      )}
-                    >
-                      <div className={cn(
-                        "size-14 rounded-full flex items-center justify-center border-2 transition-all overflow-hidden bg-slate-900 shadow-xl",
-                        selectedChannelId === sub.channelId ? "border-indigo-500 ring-2 ring-indigo-500/20" : "border-white/10 group-hover:border-white/30"
-                      )}>
-                        <img src={sub.avatarUrl || `https://picsum.photos/seed/${sub.channelId}/100/100`} className="size-full object-cover" alt={sub.channelName} />
-                      </div>
-                      <span className="text-[10px] font-bold text-white truncate max-w-[70px]">{sub.channelName}</span>
-                    </button>
-                  ))}
-
-                  <div className="flex items-center gap-2 shrink-0 pr-4">
-                    <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="icon" className="size-14 rounded-full border-dashed border-white/20 hover:bg-white/5 shadow-xl">
-                          <Plus className="size-6 text-indigo-400" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right">
-                        <DialogHeader>
-                          <DialogTitle className="text-right">ربط قناة حقيقية</DialogTitle>
-                          <DialogDescription className="text-right">انسخ رابط القناة وسيتم استرداد كافة البيانات البصرية الأصلية.</DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 py-6">
-                          <Label className="text-xs uppercase font-bold text-muted-foreground pr-1">رابط القناة</Label>
-                          <Input 
-                            placeholder="https://youtube.com/@username" 
-                            className="bg-white/5 border-white/10 h-12 text-right"
-                            value={newSubUrl}
-                            onChange={e => {
-                              setNewSubUrl(e.target.value);
-                              if (e.target.value.length > 10) fetchChannelMetadata(e.target.value);
-                            }}
-                          />
-                          <Label className="text-xs uppercase font-bold text-muted-foreground pr-1">الاسم المكتشف</Label>
-                          <div className="relative">
-                            <Input 
-                              dir="auto"
-                              placeholder="سيتم جلبه تلقائياً..." 
-                              className="bg-white/5 border-white/10 h-12 text-right pr-4"
-                              value={newSubName}
-                              onChange={e => setNewSubName(e.target.value)}
-                            />
-                            {isFetchingMetadata && <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin" />}
-                          </div>
-                          {newSubAvatar && (
-                            <div className="flex items-center gap-3 justify-end p-3 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
-                              <span className="text-[10px] font-bold text-indigo-400">تم جلب الأيقونة الأصلية</span>
-                              <div className="size-12 rounded-full overflow-hidden border border-white/10 shadow-lg">
-                                <img src={newSubAvatar} className="size-full object-cover" alt="Preview" />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <DialogFooter>
-                          <Button 
-                            onClick={handleAddSubscription} 
-                            disabled={!newSubUrl || !newSubName || !newSubId || isFetchingMetadata} 
-                            className="w-full bg-indigo-600 h-14 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-600/20"
-                          >
-                            تأكيد الاشتراك السيادي
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-
-                    <Dialog open={isManageModalOpen} onOpenChange={setIsManageModalOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="icon" className="size-14 rounded-full border-white/10 hover:bg-white/5 shadow-xl">
-                          <Settings className="size-6 text-muted-foreground" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right sm:max-w-md">
-                        <DialogHeader><DialogTitle className="text-right">إدارة الاشتراكات</DialogTitle></DialogHeader>
-                        <ScrollArea className="max-h-[400px] py-4">
-                          <div className="space-y-2">
-                            {subscriptions.length === 0 ? (
-                              <p className="text-center text-muted-foreground py-10">لا توجد اشتراكات نشطة حالياً.</p>
-                            ) : (
-                              subscriptions.map(sub => (
-                                <div key={sub.id} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 flex-row-reverse">
-                                  <div className="flex items-center gap-3 flex-row-reverse overflow-hidden">
-                                    <div className="size-10 rounded-full overflow-hidden border border-white/10 shrink-0">
-                                      <img src={sub.avatarUrl || `https://picsum.photos/seed/${sub.id}/40/40`} className="size-full object-cover" />
-                                    </div>
-                                    <div className="text-right">
-                                      <h4 dir="auto" className="font-bold text-white truncate max-w-[150px]">{sub.channelName}</h4>
-                                      <p className="text-[9px] text-muted-foreground uppercase font-mono mt-0.5">ID: {sub.channelId?.substring(0, 8)}...</p>
-                                    </div>
-                                  </div>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="text-red-400 hover:bg-red-500/10 rounded-xl"
-                                    onClick={() => handleUnsubscribe(sub.id)}
-                                  >
-                                    <Trash2 className="size-4" />
-                                  </Button>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </ScrollArea>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </div>
-                <ScrollBar orientation="horizontal" className="hidden" />
-              </ScrollArea>
-
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => loadFullFeed(subscriptions)} 
-                  className="size-12 rounded-2xl border border-white/5 hover:bg-white/10"
-                >
-                  <Zap className={cn("size-5 text-amber-400", isFeedLoading && "animate-pulse")} />
-                </Button>
-              </div>
-            </div>
-          </div>
+          <SubscriptionBar 
+            subscriptions={subscriptions}
+            selectedChannelId={selectedChannelId}
+            onSelectChannel={setSelectedChannelId}
+            onOpenAddModal={() => setIsAddModalOpen(true)}
+            onOpenManageModal={() => setIsManageModalOpen(true)}
+          />
 
           {isFeedLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10 py-20">
@@ -470,6 +262,22 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           </div>
         </TabsContent>
       </Tabs>
+
+      {user && (
+        <>
+          <AddChannelModal 
+            isOpen={isAddModalOpen} 
+            onOpenChange={setIsAddModalOpen} 
+            userId={user.id} 
+          />
+          <ManageChannelsModal 
+            isOpen={isManageModalOpen} 
+            onOpenChange={setIsManageModalOpen} 
+            subscriptions={subscriptions}
+            userId={user.id} 
+          />
+        </>
+      )}
     </div>
   );
 }
