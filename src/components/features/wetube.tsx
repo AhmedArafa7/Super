@@ -24,6 +24,10 @@ import { ManageChannelsModal } from "./wetube/manage-channels-modal";
 
 export const runtime = 'edge';
 
+/**
+ * [STABILITY_ANCHOR: WETUBE_PRO_ORCHESTRATOR_V12.5]
+ * المحرك المركزي لـ WeTube - تجربة إنتاج كاملة تحاكي يوتيوب في فلترة واشتراكات القنوات.
+ */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -61,12 +65,13 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }
     setIsFeedLoading(true);
     try {
+      // جلب معرفات القنوات بدقة لضمان عدم تداخل الفيديوهات (مثل مشكلة حكاوي)
       const channelIds = subs.map(s => s.channelId).filter(Boolean);
       const feed = await fetchAllSubscriptionsFeed(channelIds);
       setFeedVideos(feed);
       setFilteredFeed(feed);
     } catch (err) {
-      console.error("خطأ في جلب الفيديوهات", err);
+      console.error("خطأ في مزامنة الفيديوهات من يوتيوب", err);
     } finally {
       setIsFeedLoading(false);
     }
@@ -77,12 +82,14 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     if (user?.id) {
       const unsubscribe = listenToSubscriptions(user.id, (subs) => {
         setSubscriptions(subs);
+        // تحديث الخلاصة فوراً عند تغيير الاشتراكات
         if (activeView === 'subscriptions') loadFullFeed(subs);
       });
       return () => unsubscribe();
     }
   }, [user?.id, activeView, loadFullFeed]);
 
+  // منطق الفلترة المزدوج: إذا ضغط المستخدم على نفس القناة يتم إلغاء الفلترة
   useEffect(() => {
     if (!selectedChannelId) {
       setFilteredFeed(feedVideos);
@@ -95,10 +102,10 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     const assetId = `video-${video.id}`;
     if (cachedAssets.some(a => a.id === assetId)) {
       removeAsset(assetId);
-      toast({ title: "تمت إزالة الفيديو من الجهاز" });
+      toast({ title: "تم إلغاء المزامنة المحلية" });
     } else {
       addAsset({ id: assetId, type: 'video', title: video.title, sizeMB: 45 });
-      toast({ title: "تم حفظ الفيديو للمشاهدة أوفلاين" });
+      toast({ title: "تم الحفظ للمشاهدة أوفلاين" });
     }
   };
 
@@ -106,6 +113,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     if (!user) return;
     
     let finalThumbnail = uploadData.thumbnail;
+    // استخراج الصورة المصغرة الأصلية من يوتيوب فوراً
     if (source === 'youtube' && uploadData.externalUrl) {
       const vid = uploadData.externalUrl.match(/(?:v=|\/embed\/|youtu.be\/)([^&?#]+)/)?.[1];
       if (vid) {
@@ -126,7 +134,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       source: source,
       externalUrl: uploadData.externalUrl
     });
-    toast({ title: "تم نشر الفيديو بنجاح" });
+    toast({ title: "تم إضافة الفيديو بنجاح" });
   };
 
   const publicVideos = videos.filter(v => v.status === 'published' && (v.visibility === 'public' || v.authorId === user?.id));
@@ -140,7 +148,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
               WeTube
               <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary">v12.5</Badge>
             </h2>
-            <p className="text-muted-foreground mt-2 text-lg text-right">مشاهدة مباشرة للقنوات المشترك بها مع دعم الفيديوهات المحلية.</p>
+            <p className="text-muted-foreground mt-2 text-lg text-right">تابع قنواتك المفضلة وشاهد فيديوهاتك الحقيقية في مكان واحد.</p>
           </div>
 
           <div className="flex items-center gap-4 flex-row-reverse">
@@ -179,6 +187,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         </TabsContent>
 
         <TabsContent value="subscriptions" className="mt-0 space-y-10 animate-in fade-in">
+          {/* شريط القنوات العلوي - يتيح الفلترة بضغطة واحدة */}
           <SubscriptionBar 
             subscriptions={subscriptions}
             selectedChannelId={selectedChannelId}
@@ -197,8 +206,8 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                 <PlaySquare className="size-12 text-muted-foreground" />
               </div>
               <div className="space-y-2">
-                <p className="text-xl font-bold">لا توجد فيديوهات للعرض</p>
-                <p className="text-sm">اشترك في بعض القنوات لتظهر أحدث فيديوهاتها هنا.</p>
+                <p className="text-xl font-bold">لا توجد فيديوهات متاحة</p>
+                <p className="text-sm">اشترك في بعض القنوات لتظهر لك أحدث فيديوهاتها الأصلية هنا.</p>
               </div>
             </div>
           ) : (
