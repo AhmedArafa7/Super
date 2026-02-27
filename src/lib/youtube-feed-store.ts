@@ -1,9 +1,10 @@
+
 'use client';
 
 /**
- * [STABILITY_ANCHOR: YOUTUBE_FEED_V1.1]
+ * [STABILITY_ANCHOR: YOUTUBE_FEED_V1.2]
  * محرك جلب فيديوهات القنوات المشترك بها عبر بروتوكول RSS ونكسوس بروكسي.
- * تم تحسين استخراج الصور المصغرة الحقيقية.
+ * تم تحسين دقة الصور المصغرة وجودتها.
  */
 
 export interface FeedVideo {
@@ -31,7 +32,7 @@ export const fetchChannelVideos = async (channelId: string): Promise<FeedVideo[]
     const entries = xmlDoc.getElementsByTagName("entry");
     const videos: FeedVideo[] = [];
 
-    for (let i = 0; i < Math.min(entries.length, 12); i++) {
+    for (let i = 0; i < Math.min(entries.length, 15); i++) {
       const entry = entries[i];
       const videoId = entry.getElementsByTagName("yt:videoId")[0]?.textContent || "";
       const title = entry.getElementsByTagName("title")[0]?.textContent || "";
@@ -43,8 +44,8 @@ export const fetchChannelVideos = async (channelId: string): Promise<FeedVideo[]
           id: videoId,
           title,
           url: `https://www.youtube.com/watch?v=${videoId}`,
-          // استخدام الرابط المباشر للصورة المصغرة عالية الجودة من يوتيوب
-          thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+          // استخدام الرابط المباشر للصورة المصغرة عالية الجودة
+          thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
           author,
           authorId: channelId,
           published,
@@ -63,6 +64,7 @@ export const fetchChannelVideos = async (channelId: string): Promise<FeedVideo[]
 export const fetchAllSubscriptionsFeed = async (channelIds: string[]): Promise<FeedVideo[]> => {
   if (!channelIds || channelIds.length === 0) return [];
   
+  // استخدام التوازي لجلب كافة الخلاصات بسرعة
   const feedPromises = channelIds.map(id => fetchChannelVideos(id));
   const results = await Promise.all(feedPromises);
   

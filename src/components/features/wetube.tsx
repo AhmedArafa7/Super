@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -24,9 +25,8 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 
 /**
- * [STABILITY_ANCHOR: WETUBE_ORCHESTRATOR_V11.1_FINAL]
- * محرك WeTube المطور: إدارة كاملة للاشتراكات، إلغاء الاشتراك، وصور حقيقية بنسبة 100%.
- * تم إصلاح خطأ Label undefined وتحصين الـ substrings.
+ * [STABILITY_ANCHOR: WETUBE_ORCHESTRATOR_V12.0_FINAL]
+ * محرك WeTube السيادي: حل مشكلة تداخل القنوات، جلب الصور الحقيقية، وإدارة كاملة للاشتراكات.
  */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
@@ -50,7 +50,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const [newSubName, setNewSubName] = useState("");
   const [newSubId, setNewSubId] = useState("");
   const [newSubAvatar, setNewSubAvatar] = useState("");
-  const [isFetchingName, setIsFetchingName] = useState(false);
+  const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   const [isFeedLoading, setIsFeedLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
@@ -88,6 +88,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     if (user?.id) {
       const unsubscribe = listenToSubscriptions(user.id, (subs) => {
         setSubscriptions(subs);
+        // تحديث الخلاصة فقط إذا كان المستخدم في تبويب الاشتراكات
         if (activeView === 'subscriptions') loadFullFeed(subs);
       });
       return () => unsubscribe();
@@ -104,26 +105,30 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
 
   const fetchChannelMetadata = async (url: string) => {
     if (!url.includes('youtube.com') && !url.includes('youtu.be')) return;
-    setIsFetchingName(true);
+    setIsFetchingMetadata(true);
     try {
       const response = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
       const html = await response.text();
       const doc = new DOMParser().parseFromString(html, 'text/html');
       
+      // 1. جلب اسم القناة
       const title = doc.querySelector('title')?.textContent;
       if (title) {
         setNewSubName(title.replace(' - YouTube', '').trim());
       }
 
+      // 2. جلب ID القناة بدقة (بروتوكول الاستقصاء العميق)
       const channelIdMatch = html.match(/"channelId":"(UC[a-zA-Z0-9_-]+)"/) || 
                            html.match(/meta itemprop="channelId" content="(UC[a-zA-Z0-9_-]+)"/) ||
-                           html.match(/\/channel\/(UC[a-zA-Z0-9_-]+)/);
+                           html.match(/link rel="canonical" href=".*?\/channel\/(UC[a-zA-Z0-9_-]+)"/);
       
       if (channelIdMatch) {
         setNewSubId(channelIdMatch[1]);
       }
 
-      const avatarMatch = html.match(/<meta property="og:image" content="(.*?)"/) ||
+      // 3. جلب أيقونة القناة الحقيقية
+      const avatarMatch = html.match(/"avatar":{"thumbnails":\[{"url":"(https:\/\/yt3\.ggpht\.com\/.*?)"/) ||
+                         html.match(/<meta property="og:image" content="(.*?)"/) ||
                          html.match(/<link rel="image_src" href="(.*?)"/);
       if (avatarMatch) {
         setNewSubAvatar(avatarMatch[1]);
@@ -131,7 +136,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     } catch (e) {
       console.error("Metadata Sync Interrupt:", e);
     } finally {
-      setIsFetchingName(false);
+      setIsFetchingMetadata(false);
     }
   };
 
@@ -152,6 +157,8 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
 
   const handleUnsubscribe = async (subId: string) => {
     if (!user) return;
+    if (!confirm("هل أنت متأكد من رغبتك في إلغاء الاشتراك وفك الارتباط؟")) return;
+    
     try {
       await deleteSubscription(user.id, subId);
       toast({ title: "تم إلغاء الاشتراك", description: "تمت إزالة القناة من السجل المحلي." });
@@ -207,7 +214,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           <div className="text-right">
             <h2 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
               WeTube
-              <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase">v11.1</Badge>
+              <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase">v12.0</Badge>
             </h2>
             <p className="text-muted-foreground mt-2 text-lg text-right">بوابة البث السيادي والاشتراكات العميقة بصور حقيقية.</p>
           </div>
@@ -314,7 +321,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                               value={newSubName}
                               onChange={e => setNewSubName(e.target.value)}
                             />
-                            {isFetchingName && <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin" />}
+                            {isFetchingMetadata && <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin" />}
                           </div>
                           {newSubAvatar && (
                             <div className="flex items-center gap-3 justify-end p-3 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
@@ -328,7 +335,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                         <DialogFooter>
                           <Button 
                             onClick={handleAddSubscription} 
-                            disabled={!newSubUrl || !newSubName || !newSubId || isFetchingName} 
+                            disabled={!newSubUrl || !newSubName || !newSubId || isFetchingMetadata} 
                             className="w-full bg-indigo-600 h-14 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-600/20"
                           >
                             تأكيد الاشتراك السيادي
