@@ -17,12 +17,12 @@ import { StreamUploadDialog } from "./stream/stream-upload-dialog";
 import { VideoCard } from "./stream/video-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Youtube, Plus, Trash2, ExternalLink, Globe, Lock } from "lucide-react";
+import { Youtube, Plus, Trash2, ExternalLink, Globe, Lock, Loader2, Zap } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 /**
- * [STABILITY_ANCHOR: WETUBE_ORCHESTRATOR_V1.2]
- * محرك WeTube المطور - تم إضافة ميزة استخراج اسم القناة تلقائياً من الرابط.
+ * [STABILITY_ANCHOR: WETUBE_ORCHESTRATOR_V7.5]
+ * محرك WeTube المطور - تم تفعيل جلب أسماء القنوات حقيقياً عبر البروكسي.
  */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
@@ -39,6 +39,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const [activeView, setActiveView] = useState<'explore' | 'studio' | 'subs'>('explore');
   const [newSubUrl, setNewSubUrl] = useState("");
   const [newSubName, setNewSubName] = useState("");
+  const [isFetchingName, setIsFetchingName] = useState(false);
 
   const loadData = async () => {
     try {
@@ -62,26 +63,30 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     return () => window.removeEventListener('videos-update', loadData);
   }, [user?.id]);
 
-  const extractChannelName = (url: string) => {
+  const fetchChannelName = async (url: string) => {
+    if (!url.includes('youtube.com') && !url.includes('youtu.be')) return;
+    setIsFetchingName(true);
     try {
-      if (url.includes('@')) {
-        return url.split('@')[1].split('/')[0].split('?')[0];
+      const response = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
+      const html = await response.text();
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const title = doc.querySelector('title')?.textContent;
+      if (title) {
+        const cleanName = title.replace(' - YouTube', '').trim();
+        setNewSubName(cleanName);
       }
-      if (url.includes('/channel/')) {
-        return "Channel Node";
-      }
-      if (url.includes('/c/')) {
-        return url.split('/c/')[1].split('/')[0].split('?')[0];
-      }
-      return "";
-    } catch (e) { return ""; }
+    } catch (e) {
+      console.error("Neural Fetch Fail:", e);
+    } finally {
+      setIsFetchingName(false);
+    }
   };
 
   const handleUrlInput = (val: string) => {
     setNewSubUrl(val);
-    if (!newSubName) {
-      const detected = extractChannelName(val);
-      if (detected) setNewSubName(detected);
+    // تفعيل الجلب التلقائي إذا كانت الخانة فارغة أو تحتوي على قيمة افتراضية
+    if (val.length > 10) {
+      fetchChannelName(val);
     }
   };
 
@@ -141,7 +146,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           <div className="text-right">
             <h2 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
               WeTube
-              <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase">v7.0</Badge>
+              <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase">v7.5</Badge>
             </h2>
             <p className="text-muted-foreground mt-2 text-lg text-right">بث مخصص واشتراكات خاصة في منطقتك العصبية.</p>
           </div>
@@ -189,13 +194,16 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                 <Youtube className="text-red-500" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input 
-                  dir="auto"
-                  placeholder="اسم القناة..." 
-                  className="bg-white/5 border-white/10 h-12 text-right"
-                  value={newSubName}
-                  onChange={e => setNewSubName(e.target.value)}
-                />
+                <div className="relative">
+                  <Input 
+                    dir="auto"
+                    placeholder="اسم القناة..." 
+                    className="bg-white/5 border-white/10 h-12 text-right pr-4"
+                    value={newSubName}
+                    onChange={e => setNewSubName(e.target.value)}
+                  />
+                  {isFetchingName && <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin" />}
+                </div>
                 <Input 
                   placeholder="رابط القناة على يوتيوب..." 
                   className="bg-white/5 border-white/10 h-12 text-right"
@@ -203,7 +211,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                   onChange={e => handleUrlInput(e.target.value)}
                 />
               </div>
-              <Button onClick={handleAddSubscription} disabled={!newSubUrl || !newSubName} className="w-full bg-indigo-600 h-12 rounded-xl font-bold gap-2">
+              <Button onClick={handleAddSubscription} disabled={!newSubUrl || !newSubName || isFetchingName} className="w-full bg-indigo-600 h-12 rounded-xl font-bold gap-2">
                 <Plus className="size-4" /> حفظ في المنطقة خاصة
               </Button>
               <p className="text-[10px] text-muted-foreground text-center italic">

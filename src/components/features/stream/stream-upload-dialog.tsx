@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Upload, Youtube, HardDrive, FileVideo, Zap, ExternalLink, CheckCircle2 } from "lucide-react";
+import { Plus, Upload, Youtube, HardDrive, FileVideo, Zap, ExternalLink, CheckCircle2, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,34 +10,49 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 
 /**
- * [STABILITY_ANCHOR: STREAM_UPLOAD_V1.1]
- * واجهة رفع البث - تم إضافة التخمين الذكي لعنوان البث بناءً على الرابط.
+ * [STABILITY_ANCHOR: STREAM_UPLOAD_V1.5]
+ * واجهة رفع البث - تفعيل جلب عناوين الفيديوهات حقيقياً من يوتيوب.
  */
 export function StreamUploadDialog({ onUpload, onOpenVault }: any) {
   const [isOpen, setIsOpen] = useState(false);
   const [source, setSource] = useState<any>('drive');
   const [data, setData] = useState({ title: "", externalUrl: "", file: null as File | null });
+  const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
 
-  const suggestTitle = (url: string, currentSource: string) => {
-    if (currentSource === 'youtube') {
-      if (url.includes('watch?v=') || url.includes('youtu.be/')) return "YouTube Neural Stream";
-      return "YouTube Node";
+  const fetchVideoTitle = async (url: string) => {
+    if (!url.includes('youtube.com') && !url.includes('youtu.be')) return;
+    setIsFetchingMetadata(true);
+    try {
+      // استخدام oembed العام لجلب عنوان الفيديو بدقة
+      const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+      const response = await fetch(oembedUrl);
+      if (response.ok) {
+        const json = await response.json();
+        if (json.title) {
+          setData(prev => ({ ...prev, title: json.title }));
+        }
+      } else {
+        // محاولة بديلة عبر البروكسي إذا فشل oembed
+        const proxiedResponse = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
+        const html = await proxiedResponse.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const title = doc.querySelector('title')?.textContent;
+        if (title) {
+          setData(prev => ({ ...prev, title: title.replace(' - YouTube', '').trim() }));
+        }
+      }
+    } catch (e) {
+      console.error("Video Metadata Fetch Error", e);
+    } finally {
+      setIsFetchingMetadata(false);
     }
-    if (currentSource === 'drive') {
-      return "Vault Asset";
-    }
-    return "";
   };
 
   const handleUrlChange = (url: string) => {
-    setData(prev => {
-      const newData = { ...prev, externalUrl: url };
-      if (!prev.title) {
-        const suggested = suggestTitle(url, source);
-        if (suggested) newData.title = suggested;
-      }
-      return newData;
-    });
+    setData(prev => ({ ...prev, externalUrl: url }));
+    if (url.length > 15 && source === 'youtube') {
+      fetchVideoTitle(url);
+    }
   };
 
   const handleFinalize = () => {
@@ -80,7 +95,10 @@ export function StreamUploadDialog({ onUpload, onOpenVault }: any) {
 
           <div className="grid gap-2">
             <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">عنوان البث</Label>
-            <Input dir="auto" placeholder="صف موضوع البث..." className="bg-white/5 border-white/10 rounded-xl h-12 text-right" value={data.title} onChange={(e) => setData({ ...data, title: e.target.value })} />
+            <div className="relative">
+              <Input dir="auto" placeholder="صف موضوع البث..." className="bg-white/5 border-white/10 rounded-xl h-12 text-right pr-4" value={data.title} onChange={(e) => setData({ ...data, title: e.target.value })} />
+              {isFetchingMetadata && <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin" />}
+            </div>
           </div>
 
           {source !== 'local' ? (
@@ -110,7 +128,7 @@ export function StreamUploadDialog({ onUpload, onOpenVault }: any) {
         </div>
 
         <DialogFooter>
-          <Button onClick={handleFinalize} className="w-full bg-primary h-14 rounded-2xl font-bold" disabled={!data.title || (source === 'local' && !data.file) || (source !== 'local' && !data.externalUrl)}><Zap className="mr-2 size-5" /> بدء المزامنة</Button>
+          <Button onClick={handleFinalize} className="w-full bg-primary h-14 rounded-2xl font-bold" disabled={!data.title || (source === 'local' && !data.file) || (source !== 'local' && !data.externalUrl) || isFetchingMetadata}><Zap className="mr-2 size-5" /> بدء المزامنة</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
