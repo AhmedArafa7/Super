@@ -35,6 +35,7 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
       await deleteSubscription(userId, subId);
       toast({ title: "تم إلغاء المتابعة", description: `تمت إزالة ${name} من قائمتك.` });
     } catch (e) {
+      console.error("Unsubscribe Error:", e);
       toast({ variant: "destructive", title: "حدث خطأ أثناء الإلغاء" });
     } finally {
       setDeletingId(null);
@@ -56,13 +57,13 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
             {subscriptions.length === 0 ? (
               <div className="py-20 text-center opacity-30 italic flex flex-col items-center gap-4">
                 <XCircle className="size-12" />
-                <p>قائمة الاشتراكات فارغة حالياً.</p>
+                <p>قائمة الاشتراكات فارغة.</p>
               </div>
             ) : (
               subscriptions.map(sub => (
                 <div key={sub.id} className="flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-all flex-row-reverse group">
                   <div className="flex items-center gap-4 flex-row-reverse overflow-hidden">
-                    <div className="size-12 rounded-full overflow-hidden border border-white/10 shrink-0 bg-slate-900 group-hover:border-indigo-500/50 transition-colors">
+                    <div className="size-12 rounded-full overflow-hidden border border-white/10 shrink-0 bg-slate-900">
                       <img 
                         src={sub.avatarUrl || `https://picsum.photos/seed/${sub.channelId}/40/40`} 
                         className="size-full object-cover" 
@@ -79,7 +80,7 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
                     variant="ghost" 
                     size="icon" 
                     disabled={deletingId === sub.id}
-                    className="text-red-400 hover:text-white hover:bg-red-600/20 rounded-xl size-10 transition-all"
+                    className="text-red-400 hover:text-white hover:bg-red-600/20 rounded-xl size-10"
                     onClick={() => handleUnsubscribe(sub.id, sub.channelName)}
                   >
                     {deletingId === sub.id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
