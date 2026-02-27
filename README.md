@@ -12,7 +12,7 @@
 - **Build Directory**: `.vercel/output/static`
 
 ### 2. إعدادات النشر (Deploy Command) - هام جداً ⚠️
-- **Deploy Command**: اترك هذه الخانة **فارغة تماماً**. 
+- **Deploy Command**: امسح أي نص موجود واتركه **فارغاً**.
 - **تنبيه (Required Field)**: إذا ظهر لك خطأ "Required" باللون الأحمر عند محاولة الحفظ، اكتب كلمة `true` في الخانة.
 - **لماذا؟**: النشر في Pages يتم تلقائياً. استخدام أوامر Wrangler هنا مخصص للـ Workers فقط ويسبب تعارضاً في بيئة Pages.
 

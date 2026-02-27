@@ -2,9 +2,8 @@
 'use client';
 
 /**
- * [STABILITY_ANCHOR: YOUTUBE_FEED_V1.2]
- * محرك جلب فيديوهات القنوات المشترك بها عبر بروتوكول RSS ونكسوس بروكسي.
- * تم تحسين دقة الصور المصغرة وجودتها.
+ * [STABILITY_ANCHOR: YOUTUBE_FEED_V2.0]
+ * محرك جلب فيديوهات القنوات المشترك بها مع استخدام الصور الحقيقية عالية الدقة.
  */
 
 export interface FeedVideo {
@@ -44,7 +43,7 @@ export const fetchChannelVideos = async (channelId: string): Promise<FeedVideo[]
           id: videoId,
           title,
           url: `https://www.youtube.com/watch?v=${videoId}`,
-          // استخدام الرابط المباشر للصورة المصغرة عالية الجودة
+          // استخدام الرابط المباشر للصورة المصغرة عالية الجودة لتجنب الوهمية
           thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
           author,
           authorId: channelId,
@@ -64,11 +63,9 @@ export const fetchChannelVideos = async (channelId: string): Promise<FeedVideo[]
 export const fetchAllSubscriptionsFeed = async (channelIds: string[]): Promise<FeedVideo[]> => {
   if (!channelIds || channelIds.length === 0) return [];
   
-  // استخدام التوازي لجلب كافة الخلاصات بسرعة
   const feedPromises = channelIds.map(id => fetchChannelVideos(id));
   const results = await Promise.all(feedPromises);
   
-  // دمج كافة الفيديوهات وترتيبها حسب تاريخ النشر (الأحدث أولاً)
   const allVideos = results.flat();
   return allVideos.sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime());
 };

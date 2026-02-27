@@ -38,18 +38,28 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
       const response = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
       const html = await response.text();
       
+      // استخراج اسم القناة
       const titleMatch = html.match(/<title>(.*?)<\/title>/);
       if (titleMatch) {
         setNewSubName(titleMatch[1].replace(' - YouTube', '').trim());
       }
 
+      // استخراج الـ Channel ID الحقيقي UC...
       const channelIdMatch = html.match(/"channelId":"(UC[a-zA-Z0-9_-]+)"/) || 
-                           html.match(/meta itemprop="channelId" content="(UC[a-zA-Z0-9_-]+)"/);
+                           html.match(/meta itemprop="channelId" content="(UC[a-zA-Z0-9_-]+)"/) ||
+                           html.match(/browseId":"(UC[a-zA-Z0-9_-]+)"/);
       
-      if (channelIdMatch) setNewSubId(channelIdMatch[1]);
+      if (channelIdMatch) {
+        setNewSubId(channelIdMatch[1]);
+      }
 
-      const avatarMatch = html.match(/"avatar":{"thumbnails":\[{"url":"(https:\/\/yt3\.ggpht\.com\/.*?)"/);
-      if (avatarMatch) setNewSubAvatar(avatarMatch[1]);
+      // استخراج الصورة الحقيقية للقناة
+      const avatarMatch = html.match(/"avatar":{"thumbnails":\[{"url":"(https:\/\/yt3\.ggpht\.com\/.*?)"/) ||
+                          html.match(/property="og:image" content="(https:\/\/yt3\.ggpht\.com\/.*?)"/);
+      
+      if (avatarMatch) {
+        setNewSubAvatar(avatarMatch[1]);
+      }
 
     } catch (e) {
       console.warn("Meta Fetch Error", e);
@@ -62,10 +72,11 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
     if (!userId || !newSubId) return;
     try {
       await addSubscription(userId, newSubUrl, newSubName || "قناة يوتيوب", newSubId, newSubAvatar);
-      toast({ title: "تم الاشتراك بنجاح" });
+      toast({ title: "تم الاشتراك بنجاح", description: `أضيفت قناة ${newSubName} إلى اشتراكاتك.` });
       setNewSubUrl("");
       setNewSubName("");
       setNewSubId("");
+      setNewSubAvatar("");
       onOpenChange(false);
     } catch (e) {
       toast({ variant: "destructive", title: "فشل الحفظ" });
@@ -80,7 +91,7 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
             إضافة قناة متابعة
             <Youtube className="text-red-500" />
           </DialogTitle>
-          <DialogDescription className="text-right">انسخ رابط القناة ليتم جلب الفيديوهات الأصلية.</DialogDescription>
+          <DialogDescription className="text-right">انسخ رابط القناة ليتم ربط فيديوهاتها الأصلية تلقائياً.</DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-6">
@@ -109,11 +120,24 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
               {isFetching && <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin" />}
             </div>
           </div>
+          
+          {newSubAvatar && (
+            <div className="flex justify-end pt-2">
+              <div className="size-16 rounded-full border-2 border-indigo-500 overflow-hidden shadow-xl">
+                <img src={newSubAvatar} className="size-full object-cover" alt="avatar" />
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
-          <Button onClick={handleSave} disabled={!newSubId || isFetching} className="w-full bg-indigo-600 hover:bg-indigo-500 h-12 rounded-xl font-bold">
-            تأكيد الحفظ
+          <Button 
+            onClick={handleSave} 
+            disabled={!newSubId || isFetching} 
+            className="w-full bg-indigo-600 hover:bg-indigo-500 h-12 rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20"
+          >
+            {isFetching ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2 size-4" />}
+            تأكيد الاشتراك
           </Button>
         </DialogFooter>
       </DialogContent>
