@@ -27,13 +27,13 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
   const handleUnsubscribe = async (subId: string) => {
     if (!userId || !subId) return;
     
-    if (!confirm("هل تريد بالتأكيد إلغاء متابعة هذه القناة؟")) return;
+    if (!confirm("هل تريد إلغاء متابعة هذه القناة؟ سيتم مسح فيديوهاتها من قائمتك.")) return;
     
     try {
       await deleteSubscription(userId, subId);
-      toast({ title: "تم إلغاء المتابعة", description: "تمت إزالة القناة من قائمة اشتراكاتك." });
+      toast({ title: "تم إلغاء المتابعة" });
     } catch (e) {
-      toast({ variant: "destructive", title: "فشل في تنفيذ العملية" });
+      toast({ variant: "destructive", title: "حدث خطأ أثناء الإلغاء" });
     }
   };
 
@@ -42,7 +42,7 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
       <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right sm:max-w-md outline-none shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-right text-2xl font-bold flex items-center justify-end gap-2 text-white">
-            إدارة الاشتراكات
+            إدارة قنواتي
             <Settings className="size-5 text-indigo-400" />
           </DialogTitle>
         </DialogHeader>
@@ -52,7 +52,7 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
             {subscriptions.length === 0 ? (
               <div className="py-20 text-center opacity-30 italic flex flex-col items-center gap-4">
                 <Trash2 className="size-10" />
-                <p>قائمة الاشتراكات فارغة حالياً.</p>
+                <p>لا توجد قنوات مشتركة حالياً.</p>
               </div>
             ) : (
               subscriptions.map(sub => (
@@ -67,7 +67,7 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
                     </div>
                     <div className="text-right overflow-hidden">
                       <h4 dir="auto" className="font-bold text-white truncate max-w-[150px]">{sub.channelName}</h4>
-                      <p className="text-[8px] text-muted-foreground uppercase font-mono mt-0.5 tracking-tighter">ID: {sub.channelId?.substring(0, 12)}...</p>
+                      <p className="text-[8px] text-muted-foreground uppercase font-mono mt-0.5 tracking-tighter">قناة مفعلة</p>
                     </div>
                   </div>
                   

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Loader2, Youtube } from "lucide-react";
+import { Loader2, Youtube, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,7 +44,6 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
         setNewSubName(title);
       }
 
-      // محاولة استخراج معرف القناة من عدة أماكن في HTML
       const channelIdMatch = html.match(/"channelId":"(UC[a-zA-Z0-9_-]+)"/) || 
                            html.match(/meta itemprop="channelId" content="(UC[a-zA-Z0-9_-]+)"/) ||
                            html.match(/browse_id":"(UC[a-zA-Z0-9_-]+)"/);
@@ -52,7 +51,6 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
       if (channelIdMatch) {
         setNewSubId(channelIdMatch[1]);
       } else {
-        // إذا لم نجد ID صريح، نستخدم جزءاً من الرابط كمعرف مؤقت لضمان عمل الزر
         const handleMatch = url.match(/@([a-zA-Z0-9_-]+)/);
         if (handleMatch) setNewSubId(handleMatch[1]);
       }
@@ -69,20 +67,20 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
 
   const handleSave = async () => {
     if (!newSubUrl || !newSubName || !newSubId) {
-      toast({ variant: "destructive", title: "بيانات ناقصة", description: "يرجى الانتظار حتى يتم جلب بيانات القناة أو إدخالها يدوياً." });
+      toast({ variant: "destructive", title: "بيانات ناقصة", description: "يرجى إدخال رابط القناة والانتظار حتى جلب بياناتها." });
       return;
     }
     
     try {
       await addSubscription(userId, newSubUrl, newSubName, newSubId, newSubAvatar);
-      toast({ title: "تمت إضافة القناة", description: "ستظهر فيديوهات القناة في تبويب الاشتراكات فوراً." });
+      toast({ title: "تم الاشتراك بنجاح", description: "ستظهر فيديوهات القناة في قائمة اشتراكاتك الآن." });
       setNewSubUrl("");
       setNewSubName("");
       setNewSubId("");
       setNewSubAvatar("");
       onOpenChange(false);
     } catch (e) {
-      toast({ variant: "destructive", title: "فشل الإضافة" });
+      toast({ variant: "destructive", title: "فشل الحفظ" });
     }
   };
 
@@ -90,11 +88,11 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right outline-none">
         <DialogHeader>
-          <DialogTitle className="text-right flex items-center justify-end gap-2">
-            إضافة قناة جديدة
+          <DialogTitle className="text-right flex items-center justify-end gap-2 text-white">
+            متابعة قناة جديدة
             <Youtube className="text-red-500 size-5" />
           </DialogTitle>
-          <DialogDescription className="text-right">ضع رابط قناة اليوتيوب وسيتم جلب اسمها وصورتها تلقائياً.</DialogDescription>
+          <DialogDescription className="text-right">أدخل رابط القناة ليتم جلب بياناتها تلقائياً.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-6">
           <div className="space-y-2">
@@ -114,7 +112,7 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
             <div className="relative">
               <Input 
                 dir="auto"
-                placeholder="سيظهر الاسم هنا تلقائياً..."
+                placeholder="جاري جلب الاسم..."
                 className="bg-white/5 border-white/10 h-12 text-right pr-4"
                 value={newSubName}
                 onChange={e => setNewSubName(e.target.value)}
@@ -134,10 +132,11 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
         <DialogFooter>
           <Button 
             onClick={handleSave} 
-            disabled={!newSubName || isFetching} 
-            className="w-full bg-indigo-600 hover:bg-indigo-500 h-14 rounded-2xl font-bold text-lg"
+            disabled={!newSubName || !newSubId || isFetching} 
+            className="w-full bg-indigo-600 hover:bg-indigo-500 h-14 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-600/20"
           >
-            حفظ القناة ومتابعتها
+            {isFetching ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2" />}
+            تأكيد ومتابعة القناة
           </Button>
         </DialogFooter>
       </DialogContent>

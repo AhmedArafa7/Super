@@ -18,30 +18,29 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { cn } from "@/lib/utils";
 
 export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, togglePin, uploadTasks, unreadCount, pendingOffersCount }: any) {
-  // المؤسس والمؤسس الشريك والمديرين والمنتخبين لديهم حق الوصول للوحة الإدارة
   const managementRoles = ['founder', 'cofounder', 'admin', 'management'];
   const hasAdminAccess = user && managementRoles.includes(user.role);
 
   const ALL_NAV_ITEMS = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, restricted: false },
-    { id: "chat", label: "AI Chat", icon: MessageSquare, restricted: false },
-    { id: "agent-ai", label: "Neural Architect", icon: Cpu, restricted: false },
-    { id: "vault", label: "Nexus Vault", icon: HardDrive, restricted: false },
-    { id: "peer-chat", label: "Direct Link", icon: MessageCircle, restricted: false },
-    { id: "stream", label: "WeTube", icon: Video, restricted: false },
-    { id: "market", label: "TechMarket", icon: ShoppingBag, restricted: false },
-    { id: "ads", label: "Ads Center", icon: Megaphone, restricted: false },
-    { id: "downloads", label: "Downloads", icon: DownloadCloud, restricted: false },
-    { id: "launcher", label: "App Launcher", icon: Rocket, restricted: false },
-    { id: "wallet", label: "Neural Wallet", icon: Wallet, restricted: false },
-    { id: "offers", label: "Offers Inbox", icon: Repeat, badge: pendingOffersCount, restricted: false },
-    { id: "learning", label: "Knowledge Hub", icon: GraduationCap, restricted: false },
-    { id: "lab", label: "Neural Lab", icon: Microscope, restricted: false },
-    { id: "directory", label: "Node Directory", icon: Users, restricted: false },
+    { id: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard, restricted: false },
+    { id: "chat", label: "الدردشة الذكية", icon: MessageSquare, restricted: false },
+    { id: "agent-ai", label: "المهندس المساعد", icon: Cpu, restricted: false },
+    { id: "vault", label: "خزنة الملفات", icon: HardDrive, restricted: false },
+    { id: "peer-chat", label: "التواصل المباشر", icon: MessageCircle, restricted: false },
+    { id: "stream", label: "منصة البث", icon: Video, restricted: false },
+    { id: "market", label: "المتجر التقني", icon: ShoppingBag, restricted: false },
+    { id: "ads", label: "مركز الإعلانات", icon: Megaphone, restricted: false },
+    { id: "downloads", label: "التحميلات", icon: DownloadCloud, restricted: false },
+    { id: "launcher", label: "مشغل المواقع", icon: Rocket, restricted: false },
+    { id: "wallet", label: "المحفظة الرقمية", icon: Wallet, restricted: false },
+    { id: "offers", label: "صندوق العروض", icon: Repeat, badge: pendingOffersCount, restricted: false },
+    { id: "learning", label: "المكتبة المعرفية", icon: GraduationCap, restricted: false },
+    { id: "lab", label: "المختبر التجريبي", icon: Microscope, restricted: false },
+    { id: "directory", label: "دليل المستخدمين", icon: Users, restricted: false },
     { id: "hisn", label: "عقدة الإيمان", icon: BookOpen, restricted: false },
-    { id: "features", label: "Capabilities", icon: Zap, restricted: false },
-    { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount, restricted: false },
-    { id: "admin", label: "Admin Panel", icon: ShieldCheck, restricted: true },
+    { id: "features", label: "المميزات", icon: Zap, restricted: false },
+    { id: "notifications", label: "التنبيهات", icon: Bell, badge: unreadCount, restricted: false },
+    { id: "admin", label: "لوحة الإدارة", icon: ShieldCheck, restricted: true },
   ];
 
   const visibleItems = ALL_NAV_ITEMS.filter(item => !item.restricted || hasAdminAccess);
@@ -89,13 +88,13 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="ghost" className="w-full border border-dashed border-white/10 h-12 rounded-xl text-[10px] uppercase font-bold text-muted-foreground hover:bg-white/5 gap-3 flex-row-reverse">
-                <MonitorSmartphone className="size-4 text-primary" /> تخصيص القائمة الجانبية
+                <MonitorSmartphone className="size-4 text-primary" /> تخصيص القائمة
               </Button>
             </DialogTrigger>
             <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] sm:max-w-md">
               <DialogHeader>
-                <DialogTitle className="text-right">تهيئة القائمة العصبية</DialogTitle>
-                <DialogDescription className="text-right">اختر الأقسام التي تريد تثبيتها في شريط التنقل الرئيسي.</DialogDescription>
+                <DialogTitle className="text-right">إعدادات القائمة الجانبية</DialogTitle>
+                <DialogDescription className="text-right">اختر الأقسام المفضلة لتثبيتها في شريط التنقل.</DialogDescription>
               </DialogHeader>
               <ScrollArea className="max-h-[400px] mt-4">
                 <div className="grid grid-cols-1 gap-2 pr-4">
@@ -119,7 +118,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
         {uploadTasks.length > 0 && (
           <div className="mt-8 px-4 space-y-4">
             <div className="flex items-center gap-2 mb-2 justify-end">
-              <p className="text-[10px] uppercase font-bold text-indigo-400 tracking-[0.2em]">مراقب المزامنة العصبية</p>
+              <p className="text-[10px] uppercase font-bold text-indigo-400 tracking-[0.2em]">مراقب الرفع</p>
               <Zap className="size-3 text-indigo-400 animate-pulse" />
             </div>
             {uploadTasks.map((task: any) => (
@@ -142,7 +141,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
           </div>
           <div className="flex-1 min-w-0 text-right">
             <p className="text-sm font-bold truncate text-white">{user?.name}</p>
-            <p className="text-[10px] text-muted-foreground truncate capitalize">{user?.role === 'founder' ? 'Founder Node' : 'Nexus Node'}</p>
+            <p className="text-[10px] text-muted-foreground truncate capitalize">{user?.role === 'founder' ? 'المؤسس' : 'عضو مفعل'}</p>
           </div>
           <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-white" onClick={logout}><LogOut className="size-4" /></Button>
         </div>
