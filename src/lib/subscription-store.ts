@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeFirebase } from '@/firebase';
@@ -12,15 +11,16 @@ export interface YouTubeSubscription {
   channelUrl: string;
   channelName: string;
   channelId: string;
+  avatarUrl?: string;
   createdAt: string;
 }
 
 /**
- * [STABILITY_ANCHOR: SUBSCRIPTION_STORE_V2.0]
- * محرك إدارة الاشتراكات - تم تحديثه لدعم معرف القناة البرمجي (channelId).
+ * [STABILITY_ANCHOR: SUBSCRIPTION_STORE_V3.0]
+ * محرك إدارة الاشتراكات - تم إضافة دعم لرابط أيقونة القناة الحقيقي.
  */
 
-export const addSubscription = async (userId: string, channelUrl: string, channelName: string, channelId: string) => {
+export const addSubscription = async (userId: string, channelUrl: string, channelName: string, channelId: string, avatarUrl?: string) => {
   const { firestore } = initializeFirebase();
   const subsRef = collection(firestore, 'users', userId, 'subscriptions');
   const data = {
@@ -28,6 +28,7 @@ export const addSubscription = async (userId: string, channelUrl: string, channe
     channelUrl,
     channelName,
     channelId,
+    avatarUrl: avatarUrl || "",
     createdAt: new Date().toISOString()
   };
 

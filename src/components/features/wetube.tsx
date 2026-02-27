@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -24,8 +23,8 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 
 /**
- * [STABILITY_ANCHOR: WETUBE_ORCHESTRATOR_V9.0_FINAL]
- * محرك WeTube السيادي - تجربة اشتراكات متكاملة مع نظام الفلترة الذكي.
+ * [STABILITY_ANCHOR: WETUBE_ORCHESTRATOR_V10.0_FINAL]
+ * محرك WeTube السيادي - جلب الصور الحقيقية والقضاء على التخمينات الوهمية.
  */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
@@ -48,6 +47,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const [newSubUrl, setNewSubUrl] = useState("");
   const [newSubName, setNewSubName] = useState("");
   const [newSubId, setNewSubId] = useState("");
+  const [newSubAvatar, setNewSubAvatar] = useState("");
   const [isFetchingName, setIsFetchingName] = useState(false);
   const [isFeedLoading, setIsFeedLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -91,7 +91,6 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }
   }, [user?.id, activeView, loadFullFeed]);
 
-  // منطق الفلترة عند الضغط على قناة
   useEffect(() => {
     if (!selectedChannelId) {
       setFilteredFeed(feedVideos);
@@ -108,17 +107,26 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       const html = await response.text();
       const doc = new DOMParser().parseFromString(html, 'text/html');
       
+      // جلب الاسم الحقيقي
       const title = doc.querySelector('title')?.textContent;
       if (title) {
         setNewSubName(title.replace(' - YouTube', '').trim());
       }
 
+      // جلب معرف القناة الحقيقي
       const channelIdMatch = html.match(/"channelId":"(.*?)"/) || 
                            html.match(/meta itemprop="channelId" content="(.*?)"/) ||
                            html.match(/\/channel\/(UC[a-zA-Z0-9_-]+)/);
       
       if (channelIdMatch) {
         setNewSubId(channelIdMatch[1]);
+      }
+
+      // جلب صورة البروفايل الحقيقية
+      const avatarMatch = html.match(/<meta property="og:image" content="(.*?)"/) ||
+                         html.match(/<link rel="image_src" href="(.*?)"/);
+      if (avatarMatch) {
+        setNewSubAvatar(avatarMatch[1]);
       }
     } catch (e) {
       console.error("Metadata Sync Interrupt:", e);
@@ -130,11 +138,12 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const handleAddSubscription = async () => {
     if (!user || !newSubUrl || !newSubName || !newSubId) return;
     try {
-      await addSubscription(user.id, newSubUrl, newSubName, newSubId);
+      await addSubscription(user.id, newSubUrl, newSubName, newSubId, newSubAvatar);
       toast({ title: "تم التشفير والارتباط", description: "القناة أصبحت جزءاً من خلاصتك السيادية." });
       setNewSubUrl("");
       setNewSubName("");
       setNewSubId("");
+      setNewSubAvatar("");
       setIsAddModalOpen(false);
     } catch (e) {
       toast({ variant: "destructive", title: "فشل الارتباط" });
@@ -154,11 +163,20 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
 
   const handleUpload = async (source: any, uploadData: any) => {
     if (!user) return;
+    
+    let finalThumbnail = uploadData.thumbnail;
+    if (source === 'youtube' && uploadData.externalUrl) {
+      const vid = uploadData.externalUrl.match(/(?:v=|\/embed\/|youtu.be\/)([^&?#]+)/)?.[1];
+      if (vid) {
+        finalThumbnail = `https://img.youtube.com/vi/${vid}/maxresdefault.jpg`;
+      }
+    }
+
     await addVideo({
       title: uploadData.title,
       author: user.name,
       authorId: user.id,
-      thumbnail: source === 'youtube' ? `https://img.youtube.com/vi/${uploadData.externalUrl.split('v=')[1]?.split('&')[0]}/maxresdefault.jpg` : "https://images.unsplash.com/photo-1544391496-1ca7c974b711",
+      thumbnail: finalThumbnail || "https://images.unsplash.com/photo-1544391496-1ca7c974b711",
       time: source === 'youtube' ? "YouTube" : "Vault",
       status: user.role === 'admin' ? 'published' : 'pending_review',
       visibility: 'public',
@@ -179,9 +197,9 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           <div className="text-right">
             <h2 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
               WeTube
-              <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase">v9.0</Badge>
+              <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase">v10.0</Badge>
             </h2>
-            <p className="text-muted-foreground mt-2 text-lg text-right">بوابة البث السيادي والاشتراكات العميقة.</p>
+            <p className="text-muted-foreground mt-2 text-lg text-right">بوابة البث السيادي والاشتراكات العميقة بصور حقيقية.</p>
           </div>
 
           <div className="flex items-center gap-4 flex-row-reverse">
@@ -220,7 +238,6 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         </TabsContent>
 
         <TabsContent value="subscriptions" className="mt-0 space-y-10 animate-in fade-in">
-          {/* شريط القنوات (YouTube Style) */}
           <div className="sticky top-0 z-20 bg-slate-950/80 backdrop-blur-xl py-4 border-b border-white/5 -mx-8 px-8">
             <div className="flex items-center justify-between flex-row-reverse gap-6">
               <ScrollArea className="flex-1" dir="rtl">
@@ -246,10 +263,10 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                       )}
                     >
                       <div className={cn(
-                        "size-14 rounded-full flex items-center justify-center border-2 transition-all overflow-hidden",
+                        "size-14 rounded-full flex items-center justify-center border-2 transition-all overflow-hidden bg-slate-900",
                         selectedChannelId === sub.channelId ? "border-indigo-500 shadow-lg shadow-indigo-500/20" : "border-white/10 group-hover:border-white/30"
                       )}>
-                        <img src={`https://picsum.photos/seed/${sub.channelId}/100/100`} className="size-full object-cover" alt={sub.channelName} />
+                        <img src={sub.avatarUrl || `https://picsum.photos/seed/${sub.channelId}/100/100`} className="size-full object-cover" alt={sub.channelName} />
                       </div>
                       <span className="text-[10px] font-bold text-white truncate max-w-[70px]">{sub.channelName}</span>
                     </button>
@@ -263,8 +280,8 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                     </DialogTrigger>
                     <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right">
                       <DialogHeader>
-                        <DialogTitle className="text-right">ربط قناة جديدة</DialogTitle>
-                        <DialogDescription className="text-right">انسخ رابط القناة من يوتيوب وسيتم جلب بياناتها عصبياً.</DialogDescription>
+                        <DialogTitle className="text-right">ربط قناة حقيقية</DialogTitle>
+                        <DialogDescription className="text-right">انسخ رابط القناة وسيتم استرداد كافة البيانات البصرية الأصلية.</DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4 py-6">
                         <Input 
@@ -279,13 +296,21 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                         <div className="relative">
                           <Input 
                             dir="auto"
-                            placeholder="اسم القناة..." 
+                            placeholder="اسم القناة المكتشف..." 
                             className="bg-white/5 border-white/10 h-12 text-right pr-4"
                             value={newSubName}
                             onChange={e => setNewSubName(e.target.value)}
                           />
                           {isFetchingName && <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin" />}
                         </div>
+                        {newSubAvatar && (
+                          <div className="flex items-center gap-3 justify-end p-2 bg-indigo-500/5 rounded-xl border border-indigo-500/10">
+                            <span className="text-[10px] font-bold text-indigo-400">تم اكتشاف أيقونة القناة</span>
+                            <div className="size-10 rounded-full overflow-hidden border border-white/10">
+                              <img src={newSubAvatar} className="size-full object-cover" alt="Preview" />
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <DialogFooter>
                         <Button 
@@ -293,7 +318,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                           disabled={!newSubUrl || !newSubName || !newSubId || isFetchingName} 
                           className="w-full bg-indigo-600 h-12 rounded-xl font-bold"
                         >
-                          تأكيد الاشتراك الخاص
+                          تأكيد الاشتراك السيادي
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -310,7 +335,6 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
             </div>
           </div>
 
-          {/* محتوى الخلاصة */}
           {isFeedLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10 py-20">
               {Array(6).fill(0).map((_, i) => <div key={i} className="aspect-video rounded-[2.5rem] bg-white/5 animate-pulse" />)}
