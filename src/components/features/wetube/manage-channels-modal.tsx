@@ -1,8 +1,8 @@
 
 "use client";
 
-import React from "react";
-import { Trash2, Settings } from "lucide-react";
+import React, { useState } from "react";
+import { Trash2, Settings, Loader2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
@@ -23,17 +23,21 @@ interface ManageChannelsModalProps {
 
 export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userId }: ManageChannelsModalProps) {
   const { toast } = useToast();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const handleUnsubscribe = async (subId: string) => {
+  const handleUnsubscribe = async (subId: string, name: string) => {
     if (!userId || !subId) return;
     
-    if (!confirm("هل تريد إلغاء متابعة هذه القناة؟ سيتم مسح فيديوهاتها من قائمتك.")) return;
+    if (!confirm(`هل تريد بالتأكيد إلغاء متابعة قناة "${name}"؟`)) return;
     
+    setDeletingId(subId);
     try {
       await deleteSubscription(userId, subId);
-      toast({ title: "تم إلغاء المتابعة" });
+      toast({ title: "تم إلغاء المتابعة", description: `تمت إزالة ${name} من قائمتك.` });
     } catch (e) {
       toast({ variant: "destructive", title: "حدث خطأ أثناء الإلغاء" });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -42,17 +46,17 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
       <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right sm:max-w-md outline-none shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-right text-2xl font-bold flex items-center justify-end gap-2 text-white">
-            إدارة قنواتي
+            إدارة اشتراكاتي
             <Settings className="size-5 text-indigo-400" />
           </DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="max-h-[400px] mt-6">
+        <ScrollArea className="max-h-[450px] mt-6">
           <div className="space-y-3 pr-2">
             {subscriptions.length === 0 ? (
               <div className="py-20 text-center opacity-30 italic flex flex-col items-center gap-4">
-                <Trash2 className="size-10" />
-                <p>لا توجد قنوات مشتركة حالياً.</p>
+                <XCircle className="size-12" />
+                <p>قائمة الاشتراكات فارغة حالياً.</p>
               </div>
             ) : (
               subscriptions.map(sub => (
@@ -74,10 +78,11 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
                   <Button 
                     variant="ghost" 
                     size="icon" 
+                    disabled={deletingId === sub.id}
                     className="text-red-400 hover:text-white hover:bg-red-600/20 rounded-xl size-10 transition-all"
-                    onClick={() => handleUnsubscribe(sub.id)}
+                    onClick={() => handleUnsubscribe(sub.id, sub.channelName)}
                   >
-                    <Trash2 className="size-4" />
+                    {deletingId === sub.id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
                   </Button>
                 </div>
               ))

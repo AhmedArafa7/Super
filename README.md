@@ -1,34 +1,27 @@
-# NexusAI - Neural Ecosystem
 
-هذا هو النظام العصبي المتكامل NexusAI، مجهز للعمل على منصة Cloudflare Pages كبيئة إنتاج ربحية فائقة السرعة.
+# NexusAI - النظام البيئي المتكامل
 
-## 🛡️ بروتوكول التطوير والسيادة (Professional Protocols)
+هذا النظام مجهز للعمل على منصة Cloudflare Pages كبيئة إنتاج احترافية.
 
-لضمان استقرار النخاع وتجنب "اضطرابات البناء" (Build Conflicts)، يجب اتباع المعايير التالية:
+## 🛡️ بروتوكول ضبط النشر (Crucial Deployment Settings)
 
-### 1. محاكاة بيئة الحافة (Local Edge Simulation)
-بدلاً من اختبار التعديلات سحابياً، استخدم المحاكي المحلي الذي يطابق بيئة Cloudflare Pages تماماً:
-- الأمر: `npm run pages:preview`
-- الفائدة: يكشف أخطاء الـ Edge Runtime قبل رفع الكود.
+لضمان نجاح رفع الكود وتجنب أخطاء البناء، يجب ضبط الإعدادات التالية في لوحة تحكم Cloudflare:
 
-### 2. التحكم في الصور (Image Optimization Bypass)
-تم ضبط النظام ليعمل بوضع `unoptimized: true` في `next.config.ts`.
-- السبب: Cloudflare Pages لا تدعم معالجة الصور عبر Node.js افتراضياً.
-- النتيجة: أداء خارق واستقرار تام لجميع الوسائط البصرية.
+### 1. إعدادات البناء (Build Settings)
+- **Build Command**: `npm run pages:build`
+- **Build Directory**: `.vercel/output/static`
 
-### 3. إعدادات النشر السحابي (Cloudflare Settings)
-يجب ضبط الإعدادات التالية يدوياً في لوحة تحكم Cloudflare لضمان نجاح المزامنة:
-1. **Build Command**: `npm run pages:build`
-2. **Build Directory**: `.vercel/output/static`
-3. **Deploy Command**: (هام جداً) اترك هذه الخانة **فارغة تماماً**، النشر يتم تلقائياً.
+### 2. إعدادات النشر (Deploy Command) - هام جداً
+- **Deploy Command**: اترك هذه الخانة **فارغة تماماً**. 
+- **لماذا؟**: إضافة أي أمر هنا (مثل wrangler deploy) سيؤدي لفشل العملية لأن النشر في Pages يتم تلقائياً بمجرد انتهاء البناء.
+
+### 3. المتغيرات البيئية (Environment Variables)
+تأكد من إضافة المفاتيح التالية لضمان عمل كافة الوظائف:
+- `GEMINI_API_KEY`: لمحرك الذكاء الاصطناعي.
+- `NEXT_PUBLIC_DRIVE_API_KEY`: لمزامنة ملفات الخزنة.
+- `GROQ_API_KEY`: لمحركات Groq السريعة.
 
 ## 🛠 الأوامر البرمجية
-- `npm run dev`: تشغيل البيئة التطويرية التقليدية.
+- `npm run dev`: تشغيل البيئة التطويرية.
 - `npm run pages:build`: بناء النسخة المتوافقة مع Cloudflare.
-- `npm run pages:preview`: المحاكاة المحلية النهائية لبيئة الحافة.
-
-## 🛡 البروتوكولات النشطة
-- **Neural Storage**: نظام التخزين المقطوع (Segmented Storage) مع التنظيف الذكي.
-- **Sovereign Faith**: محرك القرآن الكريم المطور مع التفسير الميسر ومواقيت الصلاة.
-- **WeTube**: منصة البث السيادية مع الاشتراكات الخاصة والخصوصية العميقة.
-- **Neural Optimizer**: محرك تحسين الأوامر الصامت في المختبر العصبي.
+- `npm run pages:preview`: المحاكاة المحلية لبيئة الحافة.
