@@ -8,7 +8,6 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { getStoredVideos, addVideo, deleteVideo, Video } from "@/lib/video-store";
 import { listenToSubscriptions, YouTubeSubscription } from "@/lib/subscription-store";
 import { fetchAllSubscriptionsFeed, FeedVideo } from "@/lib/youtube-feed-store";
-import { useUploadStore } from "@/lib/upload-store";
 import { useStreamStore } from "@/lib/stream-store"; 
 import { useGlobalStorage } from "@/lib/global-storage-store";
 import { useToast } from "@/hooks/use-toast";
@@ -25,8 +24,8 @@ import { ManageChannelsModal } from "./wetube/manage-channels-modal";
 export const runtime = 'edge';
 
 /**
- * [STABILITY_ANCHOR: WETUBE_PRO_ORCHESTRATOR_V12.5]
- * المحرك المركزي لـ WeTube - تجربة إنتاج كاملة تحاكي يوتيوب في فلترة واشتراكات القنوات.
+ * [STABILITY_ANCHOR: WETUBE_MODULAR_V1.0]
+ * المنسق الرئيسي لـ WeTube - تم تفكيك المكونات لضمان الاستقرار وسهولة الصيانة.
  */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
@@ -48,84 +47,52 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
 
-  const loadData = async () => {
-    try {
+  useEffect(() => {
+    const load = async () => {
       const data = await getStoredVideos();
-      setVideos(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setVideos([]);
+      setVideos(data || []);
+    };
+    load();
+    if (user?.id) {
+      return listenToSubscriptions(user.id, (subs) => {
+        setSubscriptions(subs);
+        if (activeView === 'subscriptions') loadFeed(subs);
+      });
     }
+  }, [user?.id, activeView]);
+
+  const loadFeed = async (subs: YouTubeSubscription[]) => {
+    if (subs.length === 0) return;
+    setIsFeedLoading(true);
+    const feed = await fetchAllSubscriptionsFeed(subs.map(s => s.channelId));
+    setFeedVideos(feed);
+    setFilteredFeed(feed);
+    setIsFeedLoading(false);
   };
 
-  const loadFullFeed = useCallback(async (subs: YouTubeSubscription[]) => {
-    if (subs.length === 0) {
-      setFeedVideos([]);
-      setFilteredFeed([]);
-      return;
-    }
-    setIsFeedLoading(true);
-    try {
-      // جلب معرفات القنوات بدقة لضمان عدم تداخل الفيديوهات (مثل مشكلة حكاوي)
-      const channelIds = subs.map(s => s.channelId).filter(Boolean);
-      const feed = await fetchAllSubscriptionsFeed(channelIds);
-      setFeedVideos(feed);
-      setFilteredFeed(feed);
-    } catch (err) {
-      console.error("خطأ في مزامنة الفيديوهات من يوتيوب", err);
-    } finally {
-      setIsFeedLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    loadData();
-    if (user?.id) {
-      const unsubscribe = listenToSubscriptions(user.id, (subs) => {
-        setSubscriptions(subs);
-        // تحديث الخلاصة فوراً عند تغيير الاشتراكات
-        if (activeView === 'subscriptions') loadFullFeed(subs);
-      });
-      return () => unsubscribe();
-    }
-  }, [user?.id, activeView, loadFullFeed]);
-
-  // منطق الفلترة المزدوج: إذا ضغط المستخدم على نفس القناة يتم إلغاء الفلترة
-  useEffect(() => {
-    if (!selectedChannelId) {
-      setFilteredFeed(feedVideos);
-    } else {
-      setFilteredFeed(feedVideos.filter(v => v.authorId === selectedChannelId));
-    }
+    if (!selectedChannelId) setFilteredFeed(feedVideos);
+    else setFilteredFeed(feedVideos.filter(v => v.authorId === selectedChannelId));
   }, [selectedChannelId, feedVideos]);
 
   const handleSyncToLocal = (video: Video) => {
     const assetId = `video-${video.id}`;
     if (cachedAssets.some(a => a.id === assetId)) {
       removeAsset(assetId);
-      toast({ title: "تم إلغاء المزامنة المحلية" });
+      toast({ title: "تم إلغاء المزامنة" });
     } else {
-      addAsset({ id: assetId, type: 'video', title: video.title, sizeMB: 45 });
+      addAsset({ id: assetId, type: 'video', title: video.title, sizeMB: 40 });
       toast({ title: "تم الحفظ للمشاهدة أوفلاين" });
     }
   };
 
   const handleUpload = async (source: any, uploadData: any) => {
     if (!user) return;
-    
-    let finalThumbnail = uploadData.thumbnail;
-    // استخراج الصورة المصغرة الأصلية من يوتيوب فوراً
-    if (source === 'youtube' && uploadData.externalUrl) {
-      const vid = uploadData.externalUrl.match(/(?:v=|\/embed\/|youtu.be\/)([^&?#]+)/)?.[1];
-      if (vid) {
-        finalThumbnail = `https://img.youtube.com/vi/${vid}/maxresdefault.jpg`;
-      }
-    }
-
     await addVideo({
       title: uploadData.title,
       author: user.name,
       authorId: user.id,
-      thumbnail: finalThumbnail || "https://picsum.photos/seed/yt/800/450",
+      thumbnail: uploadData.thumbnail || "https://picsum.photos/seed/yt/800/450",
       time: source === 'youtube' ? "YouTube" : "Vault",
       status: user.role === 'admin' ? 'published' : 'pending_review',
       visibility: 'public',
@@ -134,153 +101,58 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       source: source,
       externalUrl: uploadData.externalUrl
     });
-    toast({ title: "تم إضافة الفيديو بنجاح" });
+    toast({ title: "تمت الإضافة بنجاح" });
   };
 
-  const publicVideos = videos.filter(v => v.status === 'published' && (v.visibility === 'public' || v.authorId === user?.id));
+  const publicVideos = videos.filter(v => v.status === 'published');
 
   return (
-    <div className={cn("p-8 max-w-7xl mx-auto min-h-screen transition-all duration-500", activeVideo && "pt-[45vh] md:pt-[55vh]")}>
-      <Tabs value={activeView} onValueChange={(v: any) => setActiveView(v)} className="w-full">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 gap-6 flex-row-reverse text-right">
-          <div className="text-right">
-            <h2 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
-              WeTube
-              <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary">v12.5</Badge>
-            </h2>
-            <p className="text-muted-foreground mt-2 text-lg text-right">تابع قنواتك المفضلة وشاهد فيديوهاتك الحقيقية في مكان واحد.</p>
-          </div>
-
-          <div className="flex items-center gap-4 flex-row-reverse">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-1 flex flex-row-reverse flex-wrap justify-center">
-              <TabsList className="bg-transparent h-11 flex-row-reverse border-none">
-                <TabsTrigger value="explore" className="rounded-xl px-6 data-[state=active]:bg-primary font-bold">اكتشاف</TabsTrigger>
-                <TabsTrigger value="subscriptions" className="rounded-xl px-6 data-[state=active]:bg-indigo-600 font-bold gap-2">
-                  <Youtube className="size-3" /> الاشتراكات
-                </TabsTrigger>
-                <TabsTrigger value="studio" className="rounded-xl px-6 data-[state=active]:bg-primary font-bold">قنواتي</TabsTrigger>
-              </TabsList>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <StreamSettings quality={quality} setQuality={setQuality} backgroundPlayback={backgroundPlayback} setBackgroundPlayback={setBackgroundPlayback} autoFloat={autoFloat} setAutoFloat={setAutoFloat} />
-              <StreamUploadDialog onUpload={handleUpload} onOpenVault={onOpenVault} />
-            </div>
-          </div>
+    <div className={cn("p-8 max-w-7xl mx-auto min-h-screen", activeVideo && "pt-[45vh]")}>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 gap-6 flex-row-reverse text-right">
+        <div className="text-right">
+          <h2 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
+            WeTube
+            <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">V12</Badge>
+          </h2>
+          <p className="text-muted-foreground mt-2 text-lg">بث فيديوهاتك المفضلة وإدارة اشتراكاتك في مكان واحد.</p>
         </div>
 
-        <TabsContent value="explore" className="mt-0 animate-in fade-in">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-            {publicVideos.map((video) => (
-              <VideoCard 
-                key={video.id} 
-                video={video} 
-                isActive={activeVideo?.id === video.id} 
-                isCached={cachedAssets.some(a => a.id === `video-${video.id}`)} 
-                currentUser={user} 
-                onClick={() => setActiveVideo(video)} 
-                onSync={handleSyncToLocal} 
-                onDelete={deleteVideo} 
-              />
-            ))}
+        <div className="flex items-center gap-4 flex-row-reverse">
+          <Tabs value={activeView} onValueChange={(v: any) => setActiveView(v)} className="bg-white/5 border border-white/10 rounded-2xl p-1 flex-row-reverse">
+            <TabsList className="bg-transparent h-11 flex-row-reverse border-none">
+              <TabsTrigger value="explore" className="rounded-xl px-6 data-[state=active]:bg-primary font-bold">اكتشاف</TabsTrigger>
+              <TabsTrigger value="subscriptions" className="rounded-xl px-6 data-[state=active]:bg-indigo-600 font-bold gap-2">الاشتراكات</TabsTrigger>
+              <TabsTrigger value="studio" className="rounded-xl px-6 data-[state=active]:bg-primary font-bold">قنواتي</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <StreamSettings quality={quality} setQuality={setQuality} backgroundPlayback={backgroundPlayback} setBackgroundPlayback={setBackgroundPlayback} autoFloat={autoFloat} setAutoFloat={setAutoFloat} />
+          <StreamUploadDialog onUpload={handleUpload} onOpenVault={onOpenVault} />
+        </div>
+      </div>
+
+      <TabsContent value="explore" className="animate-in fade-in">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          {publicVideos.map(v => <VideoCard key={v.id} video={v} isActive={activeVideo?.id === v.id} isCached={cachedAssets.some(a => a.id === `video-${v.id}`)} currentUser={user} onClick={() => setActiveVideo(v)} onSync={handleSyncToLocal} onDelete={deleteVideo} />)}
+        </div>
+      </TabsContent>
+
+      <TabsContent value="subscriptions" className="animate-in fade-in space-y-10">
+        <SubscriptionBar subscriptions={subscriptions} selectedChannelId={selectedChannelId} onSelectChannel={setSelectedChannelId} onOpenAddModal={() => setIsAddModalOpen(true)} onOpenManageModal={() => setIsManageModalOpen(true)} />
+        {isFeedLoading ? <div className="grid grid-cols-1 md:grid-cols-3 gap-10">{Array(6).fill(0).map((_, i) => <div key={i} className="aspect-video rounded-[2.5rem] bg-white/5 animate-pulse" />)}</div> : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            {filteredFeed.map(v => <VideoCard key={v.id} video={{...v, externalUrl: v.url, time: "Live"}} isActive={activeVideo?.externalUrl === v.url} onClick={() => setActiveVideo({...v, source: 'youtube', externalUrl: v.url} as any)} />)}
           </div>
-        </TabsContent>
+        )}
+      </TabsContent>
 
-        <TabsContent value="subscriptions" className="mt-0 space-y-10 animate-in fade-in">
-          {/* شريط القنوات العلوي - يتيح الفلترة بضغطة واحدة */}
-          <SubscriptionBar 
-            subscriptions={subscriptions}
-            selectedChannelId={selectedChannelId}
-            onSelectChannel={setSelectedChannelId}
-            onOpenAddModal={() => setIsAddModalOpen(true)}
-            onOpenManageModal={() => setIsManageModalOpen(true)}
-          />
+      <TabsContent value="studio">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          {videos.filter(v => v.authorId === user?.id).map(v => <VideoCard key={v.id} video={v} isActive={activeVideo?.id === v.id} currentUser={user} onClick={() => setActiveVideo(v)} onDelete={deleteVideo} />)}
+        </div>
+      </TabsContent>
 
-          {isFeedLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 py-20">
-              {Array(6).fill(0).map((_, i) => <div key={i} className="aspect-video rounded-[2.5rem] bg-white/5 animate-pulse border border-white/5" />)}
-            </div>
-          ) : filteredFeed.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-40 opacity-30 text-center space-y-6">
-              <div className="size-24 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
-                <PlaySquare className="size-12 text-muted-foreground" />
-              </div>
-              <div className="space-y-2">
-                <p className="text-xl font-bold">لا توجد فيديوهات متاحة</p>
-                <p className="text-sm">اشترك في بعض القنوات لتظهر لك أحدث فيديوهاتها الأصلية هنا.</p>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-              {filteredFeed.map((video) => (
-                <VideoCard 
-                  key={video.id} 
-                  video={{
-                    ...video,
-                    externalUrl: video.url,
-                    views: "YouTube Feed",
-                    time: new Date(video.published).toLocaleDateString('ar-EG')
-                  }} 
-                  isActive={activeVideo?.externalUrl === video.url} 
-                  isCached={false} 
-                  currentUser={user} 
-                  onClick={() => setActiveVideo({
-                    id: video.id,
-                    title: video.title,
-                    thumbnail: video.thumbnail,
-                    views: "YouTube",
-                    author: video.author,
-                    authorId: video.authorId,
-                    time: "Live Feed",
-                    status: 'published',
-                    visibility: 'public',
-                    allowedUserIds: [],
-                    uploaderRole: 'user',
-                    createdAt: video.published,
-                    source: 'youtube',
-                    externalUrl: video.url
-                  })} 
-                  onSync={() => {}} 
-                  onDelete={() => {}} 
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="studio" className="mt-0">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-            {videos.filter(v => v.authorId === user?.id).map((video) => (
-              <VideoCard 
-                key={video.id} 
-                video={video} 
-                isActive={activeVideo?.id === video.id} 
-                isCached={cachedAssets.some(a => a.id === `video-${video.id}`)} 
-                currentUser={user} 
-                onClick={() => setActiveVideo(video)} 
-                onSync={handleSyncToLocal} 
-                onDelete={deleteVideo} 
-              />
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {user && (
-        <>
-          <AddChannelModal 
-            isOpen={isAddModalOpen} 
-            onOpenChange={setIsAddModalOpen} 
-            userId={user.id} 
-          />
-          <ManageChannelsModal 
-            isOpen={isManageModalOpen} 
-            onOpenChange={setIsManageModalOpen} 
-            subscriptions={subscriptions}
-            userId={user.id} 
-          />
-        </>
-      )}
+      <AddChannelModal isOpen={isAddModalOpen} onOpenChange={setIsAddModalOpen} userId={user?.id || ""} />
+      <ManageChannelsModal isOpen={isManageModalOpen} onOpenChange={setIsManageModalOpen} subscriptions={subscriptions} userId={user?.id || ""} />
     </div>
   );
 }
