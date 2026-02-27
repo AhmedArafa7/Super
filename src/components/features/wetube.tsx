@@ -21,8 +21,8 @@ import { Youtube, Plus, Trash2, ExternalLink, Globe, Lock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 /**
- * [STABILITY_ANCHOR: WETUBE_ORCHESTRATOR_V1.1]
- * محرك WeTube المطور - تم إصلاح خطأ TabsContent عبر دمج الهيكل بالكامل داخل سياق التبويبات.
+ * [STABILITY_ANCHOR: WETUBE_ORCHESTRATOR_V1.2]
+ * محرك WeTube المطور - تم إضافة ميزة استخراج اسم القناة تلقائياً من الرابط.
  */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
@@ -61,6 +61,29 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }
     return () => window.removeEventListener('videos-update', loadData);
   }, [user?.id]);
+
+  const extractChannelName = (url: string) => {
+    try {
+      if (url.includes('@')) {
+        return url.split('@')[1].split('/')[0].split('?')[0];
+      }
+      if (url.includes('/channel/')) {
+        return "Channel Node";
+      }
+      if (url.includes('/c/')) {
+        return url.split('/c/')[1].split('/')[0].split('?')[0];
+      }
+      return "";
+    } catch (e) { return ""; }
+  };
+
+  const handleUrlInput = (val: string) => {
+    setNewSubUrl(val);
+    if (!newSubName) {
+      const detected = extractChannelName(val);
+      if (detected) setNewSubName(detected);
+    }
+  };
 
   const handleSyncToLocal = (video: Video) => {
     const assetId = `video-${video.id}`;
@@ -177,7 +200,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                   placeholder="رابط القناة على يوتيوب..." 
                   className="bg-white/5 border-white/10 h-12 text-right"
                   value={newSubUrl}
-                  onChange={e => setNewSubUrl(e.target.value)}
+                  onChange={e => handleUrlInput(e.target.value)}
                 />
               </div>
               <Button onClick={handleAddSubscription} disabled={!newSubUrl || !newSubName} className="w-full bg-indigo-600 h-12 rounded-xl font-bold gap-2">
