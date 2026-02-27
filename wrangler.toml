@@ -7,7 +7,3 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 # يتم تعيين المتغيرات الحساسة في لوحة تحكم Cloudflare مباشرة للأمان
 NODE_VERSION = "20"
-
-[[routes]]
-pattern = "nexus-ai.pages.dev"
-custom_domain = true

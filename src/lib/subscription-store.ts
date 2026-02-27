@@ -6,6 +6,8 @@ import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, onSnapshot
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
+export type AutoSyncType = 'all' | 'long' | 'shorts';
+
 export interface YouTubeSubscription {
   id: string;
   userId: string;
@@ -14,12 +16,13 @@ export interface YouTubeSubscription {
   channelId: string;
   avatarUrl?: string;
   isFavorite: boolean;
+  autoSyncType: AutoSyncType;
   createdAt: string;
 }
 
 /**
- * [STABILITY_ANCHOR: SUBSCRIPTION_STORE_V4.0]
- * محرك إدارة الاشتراكات المطور - يدعم القنوات المفضلة وبروتوكول المزامنة التلقائية.
+ * [STABILITY_ANCHOR: SUBSCRIPTION_STORE_V5.0]
+ * محرك إدارة الاشتراكات المطور - يدعم اختيار نوع المزامنة التلقائية.
  */
 
 export const addSubscription = async (userId: string, channelUrl: string, channelName: string, channelId: string, avatarUrl?: string) => {
@@ -32,6 +35,7 @@ export const addSubscription = async (userId: string, channelUrl: string, channe
     channelId,
     avatarUrl: avatarUrl || "",
     isFavorite: false,
+    autoSyncType: 'all', // الافتراضي هو مزامنة الكل
     createdAt: new Date().toISOString()
   };
 
@@ -46,19 +50,23 @@ export const addSubscription = async (userId: string, channelUrl: string, channe
   });
 };
 
-export const toggleFavoriteSubscription = async (userId: string, subId: string, currentStatus: boolean) => {
+export const updateSubscriptionSettings = async (userId: string, subId: string, updates: Partial<YouTubeSubscription>) => {
   const { firestore } = initializeFirebase();
   const docRef = doc(firestore, 'users', userId, 'subscriptions', subId);
   
-  return updateDoc(docRef, { isFavorite: !currentStatus }).catch(async (serverError) => {
+  return updateDoc(docRef, updates).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({
       path: docRef.path,
       operation: 'update',
-      requestResourceData: { isFavorite: !currentStatus },
+      requestResourceData: updates,
     } satisfies SecurityRuleContext);
     
     errorEmitter.emit('permission-error', permissionError);
   });
+};
+
+export const toggleFavoriteSubscription = async (userId: string, subId: string, currentStatus: boolean) => {
+  return updateSubscriptionSettings(userId, subId, { isFavorite: !currentStatus });
 };
 
 export const deleteSubscription = async (userId: string, subId: string) => {

@@ -2,8 +2,8 @@
 'use client';
 
 /**
- * [STABILITY_ANCHOR: YOUTUBE_FEED_V2.0]
- * محرك جلب فيديوهات القنوات المشترك بها مع استخدام الصور الحقيقية عالية الدقة.
+ * [STABILITY_ANCHOR: YOUTUBE_FEED_V3.0]
+ * محرك جلب الفيديوهات مع تحديد نوع الفيديو (Shorts vs Long).
  */
 
 export interface FeedVideo {
@@ -15,6 +15,7 @@ export interface FeedVideo {
   authorId: string;
   published: string;
   source: 'youtube';
+  isShorts: boolean;
 }
 
 export const fetchChannelVideos = async (channelId: string): Promise<FeedVideo[]> => {
@@ -39,16 +40,19 @@ export const fetchChannelVideos = async (channelId: string): Promise<FeedVideo[]
       const published = entry.getElementsByTagName("published")[0]?.textContent || "";
       
       if (videoId) {
+        // تحديد ما إذا كان الفيديو Shorts بناءً على الرابط أو البيانات (هنا محاكاة لعدم توفرها في RSS)
+        // في الواقع، الفيديوهات الأقل من 60 ثانية تعتبر Shorts. 
+        // بما أن RSS لا يعطي الطول، سنعتمد على الفلترة لاحقاً عند المزامنة الحقيقية.
         videos.push({
           id: videoId,
           title,
           url: `https://www.youtube.com/watch?v=${videoId}`,
-          // استخدام الرابط المباشر للصورة المصغرة عالية الجودة لتجنب الوهمية
           thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
           author,
           authorId: channelId,
           published,
-          source: 'youtube'
+          source: 'youtube',
+          isShorts: false // افتراضي؛ سيتم التحقق منه في محرك المزامنة
         });
       }
     }

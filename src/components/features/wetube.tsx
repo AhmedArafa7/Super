@@ -15,15 +15,15 @@ import { cn } from "@/lib/utils";
 import { StreamSettings } from "./stream/stream-settings";
 import { StreamUploadDialog } from "./stream/stream-upload-dialog";
 import { VideoCard } from "./stream/video-card";
-import { PlaySquare, Loader2, Sparkles, Zap } from "lucide-react";
+import { PlaySquare, Loader2, Sparkles, Zap, ShieldCheck } from "lucide-react";
 
 import { SubscriptionBar } from "./wetube/subscription-bar";
 import { AddChannelModal } from "./wetube/add-channel-modal";
 import { ManageChannelsModal } from "./wetube/manage-channels-modal";
 
 /**
- * [STABILITY_ANCHOR: WETUBE_PRO_V7.0]
- * المنسق الرئيسي المطور لـ WeTube - يدعم القنوات المفضلة والتحميل التلقائي (Auto-Sync).
+ * [STABILITY_ANCHOR: WETUBE_PRO_V8.0_MODULAR]
+ * المنسق الرئيسي المطور لـ WeTube - يدعم المزامنة الانتقائية (طويلة/قصيرة) للقنوات المفضلة.
  */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
@@ -44,29 +44,43 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
 
-  // [FEATURE] بروتوكول التحميل التلقائي للقنوات المفضلة
+  // [FEATURE] محرك المزامنة التلقائية المطور مع دعم الفرز (طويلة/قصيرة)
   const runAutoSync = useCallback(async (subs: YouTubeSubscription[], feed: FeedVideo[]) => {
-    const favoriteChannelIds = subs.filter(s => s.isFavorite).map(s => s.channelId);
-    if (favoriteChannelIds.length === 0) return;
+    const favorites = subs.filter(s => s.isFavorite);
+    if (favorites.length === 0) return;
 
-    const newFavoriteVideos = feed.filter(v => 
-      favoriteChannelIds.includes(v.authorId) && 
-      !cachedAssets.some(a => a.id === `video-${v.id}`)
-    );
+    let syncCount = 0;
 
-    if (newFavoriteVideos.length > 0) {
-      toast({ 
-        title: "جاري المزامنة التلقائية", 
-        description: `تم اكتشاف ${newFavoriteVideos.length} فيديوهات جديدة في قنواتك المفضلة.` 
+    for (const sub of favorites) {
+      const channelFeed = feed.filter(v => v.authorId === sub.channelId);
+      
+      const toSync = channelFeed.filter(v => {
+        // التحقق من أن الفيديو ليس في الكاش بالفعل
+        if (cachedAssets.some(a => a.id === `video-${v.id}`)) return false;
+
+        // تطبيق قواعد الفرز الانتقائي
+        if (sub.autoSyncType === 'long') return !v.isShorts;
+        if (sub.autoSyncType === 'shorts') return v.isShorts;
+        return true; // 'all'
       });
 
-      newFavoriteVideos.forEach(v => {
-        addAsset({ 
-          id: `video-${v.id}`, 
-          type: 'video', 
-          title: v.title, 
-          sizeMB: 45 // مساحة تقديرية
+      if (toSync.length > 0) {
+        toSync.forEach(v => {
+          addAsset({ 
+            id: `video-${v.id}`, 
+            type: 'video', 
+            title: v.title, 
+            sizeMB: v.isShorts ? 15 : 45 
+          });
+          syncCount++;
         });
+      }
+    }
+
+    if (syncCount > 0) {
+      toast({ 
+        title: "تم الاستحواذ التلقائي", 
+        description: `تمت مزامنة ${syncCount} فيديوهات جديدة بناءً على تفضيلاتك.` 
       });
     }
   }, [cachedAssets, addAsset, toast]);
@@ -81,7 +95,6 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     if (user?.id) {
       const unsubscribeSubs = listenToSubscriptions(user.id, (subs) => {
         setSubscriptions(subs);
-        // تحديث الخلاصة تلقائياً عند تغيير الاشتراكات
         syncFeed(subs);
       });
       return () => unsubscribeSubs();
@@ -97,7 +110,6 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     try {
       const feed = await fetchAllSubscriptionsFeed(subs.map(s => s.channelId));
       setFeedVideos(feed);
-      // تشغيل المزامنة التلقائية بعد جلب الخلاصة
       runAutoSync(subs, feed);
     } catch (e) {
       console.error("Feed Sync Failure", e);
@@ -138,7 +150,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
             WeTube
             <PlaySquare className="text-red-500 size-10 shadow-lg" />
           </h2>
-          <p className="text-muted-foreground text-lg">بث ذكي يدعم التحميل التلقائي للمحتوى المفضل لديك.</p>
+          <p className="text-muted-foreground text-lg">بث ذكي يدعم المزامنة الانتقائية للمحتوى المفضل.</p>
         </div>
 
         <div className="flex items-center gap-4 flex-row-reverse">
@@ -159,7 +171,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       </header>
 
       <div className="animate-in fade-in duration-700">
-        {activeTab === 'explore' && (
+        <TabsContent value="explore" className="m-0 mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             {videos.filter(v => v.status === 'published').map(v => (
               <VideoCard 
@@ -173,7 +185,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
               />
             ))}
           </div>
-        )}
+        </TabsContent>
 
         {activeTab === 'subs' && (
           <div className="space-y-10">
