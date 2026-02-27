@@ -21,10 +21,6 @@ import { SubscriptionBar } from "./wetube/subscription-bar";
 import { AddChannelModal } from "./wetube/add-channel-modal";
 import { ManageChannelsModal } from "./wetube/manage-channels-modal";
 
-/**
- * [PRODUCTION_STABILITY_V8.0]
- * المنسق الرئيسي لمنصة WeTube. تم تحويله بالكامل لنظام الوحدات المعزولة.
- */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -44,7 +40,6 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
 
-  // مراقبة قاعدة البيانات لحظياً
   useEffect(() => {
     const loadVideos = async () => {
       const data = await getStoredVideos();

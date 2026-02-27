@@ -38,13 +38,11 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
       const response = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
       const html = await response.text();
       
-      // استخراج اسم القناة
       const titleMatch = html.match(/<title>(.*?)<\/title>/);
       if (titleMatch) {
         setNewSubName(titleMatch[1].replace(' - YouTube', '').trim());
       }
 
-      // استخراج الـ Channel ID الحقيقي UC...
       const channelIdMatch = html.match(/"channelId":"(UC[a-zA-Z0-9_-]+)"/) || 
                            html.match(/meta itemprop="channelId" content="(UC[a-zA-Z0-9_-]+)"/) ||
                            html.match(/browseId":"(UC[a-zA-Z0-9_-]+)"/);
@@ -53,7 +51,6 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
         setNewSubId(channelIdMatch[1]);
       }
 
-      // استخراج الصورة الحقيقية للقناة
       const avatarMatch = html.match(/"avatar":{"thumbnails":\[{"url":"(https:\/\/yt3\.ggpht\.com\/.*?)"/) ||
                           html.match(/property="og:image" content="(https:\/\/yt3\.ggpht\.com\/.*?)"/);
       

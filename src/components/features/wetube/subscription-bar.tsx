@@ -28,7 +28,6 @@ export function SubscriptionBar({
       <div className="flex items-center justify-between flex-row-reverse gap-6">
         <ScrollArea className="flex-1" dir="rtl">
           <div className="flex items-center gap-4 pb-4">
-            {/* زر عرض الكل */}
             <Button 
               variant={selectedChannelId === null ? 'default' : 'outline'}
               onClick={() => onSelectChannel(null)}
@@ -42,7 +41,6 @@ export function SubscriptionBar({
               <LayoutGrid className="size-4" /> الكل
             </Button>
             
-            {/* قائمة القنوات المشترك بها */}
             {subscriptions.map(sub => (
               <button
                 key={sub.id}
@@ -68,7 +66,6 @@ export function SubscriptionBar({
               </button>
             ))}
 
-            {/* أزرار الإدارة */}
             <div className="flex items-center gap-3 shrink-0 pr-4 border-r border-white/10 mr-4">
               <Button 
                 variant="outline" 
