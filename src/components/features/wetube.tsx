@@ -17,14 +17,16 @@ import { StreamUploadDialog } from "./stream/stream-upload-dialog";
 import { VideoCard } from "./stream/video-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Youtube, Plus, Trash2, ExternalLink, Globe, Lock, Loader2, Zap, LayoutGrid, UserCircle, Settings2, MoreVertical, X, Settings } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 
 /**
- * [STABILITY_ANCHOR: WETUBE_ORCHESTRATOR_V11.0_FINAL]
+ * [STABILITY_ANCHOR: WETUBE_ORCHESTRATOR_V11.1_FINAL]
  * محرك WeTube المطور: إدارة كاملة للاشتراكات، إلغاء الاشتراك، وصور حقيقية بنسبة 100%.
+ * تم إصلاح خطأ Label undefined وتحصين الـ substrings.
  */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
@@ -86,7 +88,6 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     if (user?.id) {
       const unsubscribe = listenToSubscriptions(user.id, (subs) => {
         setSubscriptions(subs);
-        // تحديث الخلاصة فقط إذا كنا في تبويب الاشتراكات
         if (activeView === 'subscriptions') loadFullFeed(subs);
       });
       return () => unsubscribe();
@@ -109,13 +110,11 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       const html = await response.text();
       const doc = new DOMParser().parseFromString(html, 'text/html');
       
-      // جلب الاسم الحقيقي للقناة
       const title = doc.querySelector('title')?.textContent;
       if (title) {
         setNewSubName(title.replace(' - YouTube', '').trim());
       }
 
-      // جلب معرف القناة الحقيقي UC...
       const channelIdMatch = html.match(/"channelId":"(UC[a-zA-Z0-9_-]+)"/) || 
                            html.match(/meta itemprop="channelId" content="(UC[a-zA-Z0-9_-]+)"/) ||
                            html.match(/\/channel\/(UC[a-zA-Z0-9_-]+)/);
@@ -124,7 +123,6 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         setNewSubId(channelIdMatch[1]);
       }
 
-      // جلب صورة البروفايل الحقيقية
       const avatarMatch = html.match(/<meta property="og:image" content="(.*?)"/) ||
                          html.match(/<link rel="image_src" href="(.*?)"/);
       if (avatarMatch) {
@@ -177,7 +175,6 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     if (!user) return;
     
     let finalThumbnail = uploadData.thumbnail;
-    // استخراج الصورة المصغرة الحقيقية من رابط يوتيوب
     if (source === 'youtube' && uploadData.externalUrl) {
       const vid = uploadData.externalUrl.match(/(?:v=|\/embed\/|youtu.be\/)([^&?#]+)/)?.[1];
       if (vid) {
@@ -210,7 +207,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           <div className="text-right">
             <h2 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
               WeTube
-              <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase">v11.0</Badge>
+              <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase">v11.1</Badge>
             </h2>
             <p className="text-muted-foreground mt-2 text-lg text-right">بوابة البث السيادي والاشتراكات العميقة بصور حقيقية.</p>
           </div>
@@ -359,7 +356,10 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                                     <div className="size-10 rounded-full overflow-hidden border border-white/10 shrink-0">
                                       <img src={sub.avatarUrl || `https://picsum.photos/seed/${sub.id}/40/40`} className="size-full object-cover" />
                                     </div>
-                                    <span className="text-sm font-bold text-white truncate">{sub.channelName}</span>
+                                    <div className="text-right">
+                                      <h4 dir="auto" className="font-bold text-white truncate max-w-[150px]">{sub.channelName}</h4>
+                                      <p className="text-[9px] text-muted-foreground uppercase font-mono mt-0.5">ID: {sub.channelId?.substring(0, 8)}...</p>
+                                    </div>
                                   </div>
                                   <Button 
                                     variant="ghost" 
