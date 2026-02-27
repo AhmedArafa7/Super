@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/components/auth/auth-provider";
 import { getStoredVideos, addVideo, deleteVideo, Video } from "@/lib/video-store";
 import { addSubscription, deleteSubscription, listenToSubscriptions, YouTubeSubscription } from "@/lib/subscription-store";
-import { fetchAllSubscriptionsFeed, FeedVideo, fetchChannelVideos } from "@/lib/youtube-feed-store";
+import { fetchAllSubscriptionsFeed, FeedVideo } from "@/lib/youtube-feed-store";
 import { useUploadStore } from "@/lib/upload-store";
 import { useStreamStore } from "@/lib/stream-store";
 import { useGlobalStorage } from "@/lib/global-storage-store";
@@ -17,14 +17,14 @@ import { StreamUploadDialog } from "./stream/stream-upload-dialog";
 import { VideoCard } from "./stream/video-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Youtube, Plus, Trash2, ExternalLink, Globe, Lock, Loader2, Zap, LayoutGrid, UserCircle, Settings2, MoreVertical, X } from "lucide-react";
+import { Youtube, Plus, Trash2, ExternalLink, Globe, Lock, Loader2, Zap, LayoutGrid, UserCircle, Settings2, MoreVertical, X, Settings } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 
 /**
- * [STABILITY_ANCHOR: WETUBE_ORCHESTRATOR_V10.0_FINAL]
- * محرك WeTube السيادي - جلب الصور الحقيقية والقضاء على التخمينات الوهمية.
+ * [STABILITY_ANCHOR: WETUBE_ORCHESTRATOR_V11.0_FINAL]
+ * محرك WeTube المطور: إدارة كاملة للاشتراكات، إلغاء الاشتراك، وصور حقيقية بنسبة 100%.
  */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
@@ -51,6 +51,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const [isFetchingName, setIsFetchingName] = useState(false);
   const [isFeedLoading, setIsFeedLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
 
   const loadData = async () => {
     try {
@@ -85,6 +86,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     if (user?.id) {
       const unsubscribe = listenToSubscriptions(user.id, (subs) => {
         setSubscriptions(subs);
+        // تحديث الخلاصة فقط إذا كنا في تبويب الاشتراكات
         if (activeView === 'subscriptions') loadFullFeed(subs);
       });
       return () => unsubscribe();
@@ -107,15 +109,15 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       const html = await response.text();
       const doc = new DOMParser().parseFromString(html, 'text/html');
       
-      // جلب الاسم الحقيقي
+      // جلب الاسم الحقيقي للقناة
       const title = doc.querySelector('title')?.textContent;
       if (title) {
         setNewSubName(title.replace(' - YouTube', '').trim());
       }
 
-      // جلب معرف القناة الحقيقي
-      const channelIdMatch = html.match(/"channelId":"(.*?)"/) || 
-                           html.match(/meta itemprop="channelId" content="(.*?)"/) ||
+      // جلب معرف القناة الحقيقي UC...
+      const channelIdMatch = html.match(/"channelId":"(UC[a-zA-Z0-9_-]+)"/) || 
+                           html.match(/meta itemprop="channelId" content="(UC[a-zA-Z0-9_-]+)"/) ||
                            html.match(/\/channel\/(UC[a-zA-Z0-9_-]+)/);
       
       if (channelIdMatch) {
@@ -150,6 +152,16 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }
   };
 
+  const handleUnsubscribe = async (subId: string) => {
+    if (!user) return;
+    try {
+      await deleteSubscription(user.id, subId);
+      toast({ title: "تم إلغاء الاشتراك", description: "تمت إزالة القناة من السجل المحلي." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "فشل العملية" });
+    }
+  };
+
   const handleSyncToLocal = (video: Video) => {
     const assetId = `video-${video.id}`;
     if (cachedAssets.some(a => a.id === assetId)) {
@@ -165,6 +177,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     if (!user) return;
     
     let finalThumbnail = uploadData.thumbnail;
+    // استخراج الصورة المصغرة الحقيقية من رابط يوتيوب
     if (source === 'youtube' && uploadData.externalUrl) {
       const vid = uploadData.externalUrl.match(/(?:v=|\/embed\/|youtu.be\/)([^&?#]+)/)?.[1];
       if (vid) {
@@ -197,7 +210,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           <div className="text-right">
             <h2 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
               WeTube
-              <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase">v10.0</Badge>
+              <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase">v11.0</Badge>
             </h2>
             <p className="text-muted-foreground mt-2 text-lg text-right">بوابة البث السيادي والاشتراكات العميقة بصور حقيقية.</p>
           </div>
@@ -207,7 +220,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
               <TabsList className="bg-transparent h-11 flex-row-reverse border-none">
                 <TabsTrigger value="explore" className="rounded-xl px-6 data-[state=active]:bg-primary font-bold">اكتشاف</TabsTrigger>
                 <TabsTrigger value="subscriptions" className="rounded-xl px-6 data-[state=active]:bg-indigo-600 font-bold gap-2">
-                  <Youtube className="size-3" /> اشتراكاتي
+                  <Youtube className="size-3" /> خلاصتي
                 </TabsTrigger>
                 <TabsTrigger value="studio" className="rounded-xl px-6 data-[state=active]:bg-primary font-bold">استوديو العقدة</TabsTrigger>
               </TabsList>
@@ -263,8 +276,8 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                       )}
                     >
                       <div className={cn(
-                        "size-14 rounded-full flex items-center justify-center border-2 transition-all overflow-hidden bg-slate-900",
-                        selectedChannelId === sub.channelId ? "border-indigo-500 shadow-lg shadow-indigo-500/20" : "border-white/10 group-hover:border-white/30"
+                        "size-14 rounded-full flex items-center justify-center border-2 transition-all overflow-hidden bg-slate-900 shadow-xl",
+                        selectedChannelId === sub.channelId ? "border-indigo-500 ring-2 ring-indigo-500/20" : "border-white/10 group-hover:border-white/30"
                       )}>
                         <img src={sub.avatarUrl || `https://picsum.photos/seed/${sub.channelId}/100/100`} className="size-full object-cover" alt={sub.channelName} />
                       </div>
@@ -272,64 +285,110 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                     </button>
                   ))}
 
-                  <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="icon" className="size-14 rounded-full border-dashed border-white/20 shrink-0 hover:bg-white/5">
-                        <Plus className="size-6 text-muted-foreground" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right">
-                      <DialogHeader>
-                        <DialogTitle className="text-right">ربط قناة حقيقية</DialogTitle>
-                        <DialogDescription className="text-right">انسخ رابط القناة وسيتم استرداد كافة البيانات البصرية الأصلية.</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 py-6">
-                        <Input 
-                          placeholder="رابط القناة (URL)..." 
-                          className="bg-white/5 border-white/10 h-12 text-right"
-                          value={newSubUrl}
-                          onChange={e => {
-                            setNewSubUrl(e.target.value);
-                            if (e.target.value.length > 10) fetchChannelMetadata(e.target.value);
-                          }}
-                        />
-                        <div className="relative">
-                          <Input 
-                            dir="auto"
-                            placeholder="اسم القناة المكتشف..." 
-                            className="bg-white/5 border-white/10 h-12 text-right pr-4"
-                            value={newSubName}
-                            onChange={e => setNewSubName(e.target.value)}
-                          />
-                          {isFetchingName && <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin" />}
-                        </div>
-                        {newSubAvatar && (
-                          <div className="flex items-center gap-3 justify-end p-2 bg-indigo-500/5 rounded-xl border border-indigo-500/10">
-                            <span className="text-[10px] font-bold text-indigo-400">تم اكتشاف أيقونة القناة</span>
-                            <div className="size-10 rounded-full overflow-hidden border border-white/10">
-                              <img src={newSubAvatar} className="size-full object-cover" alt="Preview" />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <DialogFooter>
-                        <Button 
-                          onClick={handleAddSubscription} 
-                          disabled={!newSubUrl || !newSubName || !newSubId || isFetchingName} 
-                          className="w-full bg-indigo-600 h-12 rounded-xl font-bold"
-                        >
-                          تأكيد الاشتراك السيادي
+                  <div className="flex items-center gap-2 shrink-0 pr-4">
+                    <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="size-14 rounded-full border-dashed border-white/20 hover:bg-white/5 shadow-xl">
+                          <Plus className="size-6 text-indigo-400" />
                         </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                      </DialogTrigger>
+                      <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right">
+                        <DialogHeader>
+                          <DialogTitle className="text-right">ربط قناة حقيقية</DialogTitle>
+                          <DialogDescription className="text-right">انسخ رابط القناة وسيتم استرداد كافة البيانات البصرية الأصلية.</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-6">
+                          <Label className="text-xs uppercase font-bold text-muted-foreground pr-1">رابط القناة</Label>
+                          <Input 
+                            placeholder="https://youtube.com/@username" 
+                            className="bg-white/5 border-white/10 h-12 text-right"
+                            value={newSubUrl}
+                            onChange={e => {
+                              setNewSubUrl(e.target.value);
+                              if (e.target.value.length > 10) fetchChannelMetadata(e.target.value);
+                            }}
+                          />
+                          <Label className="text-xs uppercase font-bold text-muted-foreground pr-1">الاسم المكتشف</Label>
+                          <div className="relative">
+                            <Input 
+                              dir="auto"
+                              placeholder="سيتم جلبه تلقائياً..." 
+                              className="bg-white/5 border-white/10 h-12 text-right pr-4"
+                              value={newSubName}
+                              onChange={e => setNewSubName(e.target.value)}
+                            />
+                            {isFetchingName && <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin" />}
+                          </div>
+                          {newSubAvatar && (
+                            <div className="flex items-center gap-3 justify-end p-3 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
+                              <span className="text-[10px] font-bold text-indigo-400">تم جلب الأيقونة الأصلية</span>
+                              <div className="size-12 rounded-full overflow-hidden border border-white/10 shadow-lg">
+                                <img src={newSubAvatar} className="size-full object-cover" alt="Preview" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <DialogFooter>
+                          <Button 
+                            onClick={handleAddSubscription} 
+                            disabled={!newSubUrl || !newSubName || !newSubId || isFetchingName} 
+                            className="w-full bg-indigo-600 h-14 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-600/20"
+                          >
+                            تأكيد الاشتراك السيادي
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+
+                    <Dialog open={isManageModalOpen} onOpenChange={setIsManageModalOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="size-14 rounded-full border-white/10 hover:bg-white/5 shadow-xl">
+                          <Settings className="size-6 text-muted-foreground" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right sm:max-w-md">
+                        <DialogHeader><DialogTitle className="text-right">إدارة الاشتراكات</DialogTitle></DialogHeader>
+                        <ScrollArea className="max-h-[400px] py-4">
+                          <div className="space-y-2">
+                            {subscriptions.length === 0 ? (
+                              <p className="text-center text-muted-foreground py-10">لا توجد اشتراكات نشطة حالياً.</p>
+                            ) : (
+                              subscriptions.map(sub => (
+                                <div key={sub.id} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 flex-row-reverse">
+                                  <div className="flex items-center gap-3 flex-row-reverse overflow-hidden">
+                                    <div className="size-10 rounded-full overflow-hidden border border-white/10 shrink-0">
+                                      <img src={sub.avatarUrl || `https://picsum.photos/seed/${sub.id}/40/40`} className="size-full object-cover" />
+                                    </div>
+                                    <span className="text-sm font-bold text-white truncate">{sub.channelName}</span>
+                                  </div>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="text-red-400 hover:bg-red-500/10 rounded-xl"
+                                    onClick={() => handleUnsubscribe(sub.id)}
+                                  >
+                                    <Trash2 className="size-4" />
+                                  </Button>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </ScrollArea>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
                 <ScrollBar orientation="horizontal" className="hidden" />
               </ScrollArea>
 
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={() => loadFullFeed(subscriptions)} className="rounded-xl border border-white/5">
-                  <Zap className={cn("size-4 text-amber-400", isFeedLoading && "animate-pulse")} />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => loadFullFeed(subscriptions)} 
+                  className="size-12 rounded-2xl border border-white/5 hover:bg-white/10"
+                >
+                  <Zap className={cn("size-5 text-amber-400", isFeedLoading && "animate-pulse")} />
                 </Button>
               </div>
             </div>
@@ -337,12 +396,17 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
 
           {isFeedLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10 py-20">
-              {Array(6).fill(0).map((_, i) => <div key={i} className="aspect-video rounded-[2.5rem] bg-white/5 animate-pulse" />)}
+              {Array(6).fill(0).map((_, i) => <div key={i} className="aspect-video rounded-[2.5rem] bg-white/5 animate-pulse border border-white/5" />)}
             </div>
           ) : filteredFeed.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-40 opacity-30 text-center">
-              <Youtube className="size-20 mb-6" />
-              <p className="text-xl font-bold">لا يوجد نبض بصري في هذا النطاق حالياً</p>
+            <div className="flex flex-col items-center justify-center py-40 opacity-30 text-center space-y-6">
+              <div className="size-24 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
+                <Youtube className="size-12 text-muted-foreground" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-xl font-bold">لا توجد نبضات بصرية</p>
+                <p className="text-sm">اشترك في بعض القنوات الحقيقية لتظهر فيديوهاتها هنا.</p>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
@@ -355,7 +419,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                     views: "YouTube Feed",
                     time: new Date(video.published).toLocaleDateString('ar-EG')
                   }} 
-                  isActive={activeVideo?.url === video.url} 
+                  isActive={activeVideo?.externalUrl === video.url} 
                   isCached={false} 
                   currentUser={user} 
                   onClick={() => setActiveVideo({

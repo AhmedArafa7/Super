@@ -1,9 +1,9 @@
-
 'use client';
 
 /**
- * [STABILITY_ANCHOR: YOUTUBE_FEED_V1.0]
+ * [STABILITY_ANCHOR: YOUTUBE_FEED_V1.1]
  * محرك جلب فيديوهات القنوات المشترك بها عبر بروتوكول RSS ونكسوس بروكسي.
+ * تم تحسين استخراج الصور المصغرة الحقيقية.
  */
 
 export interface FeedVideo {
@@ -18,6 +18,7 @@ export interface FeedVideo {
 }
 
 export const fetchChannelVideos = async (channelId: string): Promise<FeedVideo[]> => {
+  if (!channelId) return [];
   const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
   const proxyUrl = `/api/proxy?url=${encodeURIComponent(rssUrl)}`;
 
@@ -30,23 +31,26 @@ export const fetchChannelVideos = async (channelId: string): Promise<FeedVideo[]
     const entries = xmlDoc.getElementsByTagName("entry");
     const videos: FeedVideo[] = [];
 
-    for (let i = 0; i < Math.min(entries.length, 10); i++) {
+    for (let i = 0; i < Math.min(entries.length, 12); i++) {
       const entry = entries[i];
       const videoId = entry.getElementsByTagName("yt:videoId")[0]?.textContent || "";
       const title = entry.getElementsByTagName("title")[0]?.textContent || "";
       const author = entry.getElementsByTagName("author")[0]?.getElementsByTagName("name")[0]?.textContent || "";
       const published = entry.getElementsByTagName("published")[0]?.textContent || "";
       
-      videos.push({
-        id: videoId,
-        title,
-        url: `https://www.youtube.com/watch?v=${videoId}`,
-        thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-        author,
-        authorId: channelId,
-        published,
-        source: 'youtube'
-      });
+      if (videoId) {
+        videos.push({
+          id: videoId,
+          title,
+          url: `https://www.youtube.com/watch?v=${videoId}`,
+          // استخدام الرابط المباشر للصورة المصغرة عالية الجودة من يوتيوب
+          thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+          author,
+          authorId: channelId,
+          published,
+          source: 'youtube'
+        });
+      }
     }
 
     return videos;
@@ -57,10 +61,12 @@ export const fetchChannelVideos = async (channelId: string): Promise<FeedVideo[]
 };
 
 export const fetchAllSubscriptionsFeed = async (channelIds: string[]): Promise<FeedVideo[]> => {
+  if (!channelIds || channelIds.length === 0) return [];
+  
   const feedPromises = channelIds.map(id => fetchChannelVideos(id));
   const results = await Promise.all(feedPromises);
   
-  // دمج كافة الفيديوهات وترتيبها حسب تاريخ النشر
+  // دمج كافة الفيديوهات وترتيبها حسب تاريخ النشر (الأحدث أولاً)
   const allVideos = results.flat();
   return allVideos.sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime());
 };
