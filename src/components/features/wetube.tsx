@@ -22,8 +22,8 @@ import { Youtube, Plus, Trash2, ExternalLink, Globe, Lock, Loader2, Zap, LayoutG
 import { Card } from "@/components/ui/card";
 
 /**
- * [STABILITY_ANCHOR: WETUBE_ORCHESTRATOR_V8.0]
- * محرك WeTube المطور - تم تفعيل خلاصة الاشتراكات الحقيقية (Sub Feed).
+ * [STABILITY_ANCHOR: WETUBE_ORCHESTRATOR_V8.1]
+ * محرك WeTube المطور - تم تحصين الواجهة ضد أخطاء البيانات غير المعرفة (Safe ID Reading).
  */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
@@ -320,7 +320,9 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                     </div>
                     <div>
                       <h4 dir="auto" className="font-bold text-white truncate max-w-[150px]">{sub.channelName}</h4>
-                      <p className="text-[9px] text-muted-foreground uppercase font-mono mt-0.5">ID: {sub.channelId.substring(0, 8)}...</p>
+                      <p className="text-[9px] text-muted-foreground uppercase font-mono mt-0.5">
+                        ID: {sub.channelId ? sub.channelId.substring(0, 8) : "N/A"}...
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
