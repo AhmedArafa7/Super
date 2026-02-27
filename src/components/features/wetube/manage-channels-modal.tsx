@@ -35,7 +35,6 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
       await deleteSubscription(userId, subId);
       toast({ title: "تم إلغاء المتابعة", description: `تمت إزالة ${name} من قائمتك.` });
     } catch (e) {
-      console.error("Unsubscribe Error:", e);
       toast({ variant: "destructive", title: "حدث خطأ أثناء الإلغاء" });
     } finally {
       setDeletingId(null);

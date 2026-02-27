@@ -38,26 +38,20 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
       const response = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
       const html = await response.text();
       
-      // 1. استخراج الاسم من عنوان الصفحة
       const titleMatch = html.match(/<title>(.*?)<\/title>/);
       if (titleMatch) {
         const title = titleMatch[1].replace(' - YouTube', '').trim();
         setNewSubName(title);
       }
 
-      // 2. استخراج معرف القناة الحقيقي (UC...)
       const channelIdMatch = html.match(/"channelId":"(UC[a-zA-Z0-9_-]+)"/) || 
                            html.match(/meta itemprop="channelId" content="(UC[a-zA-Z0-9_-]+)"/) ||
                            html.match(/browse_id":"(UC[a-zA-Z0-9_-]+)"/);
       
       if (channelIdMatch) {
         setNewSubId(channelIdMatch[1]);
-      } else {
-        const idFromUrl = url.match(/\/channel\/(UC[a-zA-Z0-9_-]+)/);
-        if (idFromUrl) setNewSubId(idFromUrl[1]);
       }
 
-      // 3. استخراج الصورة الشخصية
       const avatarMatch = html.match(/"avatar":{"thumbnails":\[{"url":"(https:\/\/yt3\.ggpht\.com\/.*?)"/) ||
                          html.match(/<meta property="og:image" content="(.*?)"/);
       if (avatarMatch) setNewSubAvatar(avatarMatch[1]);
@@ -70,19 +64,11 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
   };
 
   const handleSave = async () => {
-    if (!userId) {
-      toast({ variant: "destructive", title: "خطأ في الهوية", description: "لم يتم التعرف على المستخدم." });
-      return;
-    }
-    
-    if (!newSubUrl || !newSubName || !newSubId) {
-      toast({ variant: "destructive", title: "بيانات ناقصة", description: "يرجى الانتظار حتى التعرف على هوية القناة." });
-      return;
-    }
+    if (!userId || !newSubId) return;
     
     try {
-      await addSubscription(userId, newSubUrl, newSubName, newSubId, newSubAvatar);
-      toast({ title: "تمت الإضافة", description: `تم الاشتراك في قناة ${newSubName}.` });
+      await addSubscription(userId, newSubUrl, newSubName || "قناة غير مسمى", newSubId, newSubAvatar);
+      toast({ title: "تم الحفظ", description: "تمت إضافة القناة بنجاح." });
       setNewSubUrl("");
       setNewSubName("");
       setNewSubId("");
@@ -148,11 +134,10 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
         <DialogFooter>
           <Button 
             onClick={handleSave} 
-            disabled={!newSubName || !newSubId || isFetching} 
-            className="w-full bg-indigo-600 hover:bg-indigo-500 h-14 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-600/20"
+            disabled={!newSubId || isFetching} 
+            className="w-full bg-indigo-600 hover:bg-indigo-500 h-14 rounded-2xl font-bold text-lg"
           >
-            {isFetching ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2" />}
-            تأكيد الاشتراك
+            تأكيد الحفظ
           </Button>
         </DialogFooter>
       </DialogContent>
