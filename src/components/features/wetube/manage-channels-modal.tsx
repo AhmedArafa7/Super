@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from "react";
@@ -22,6 +21,10 @@ import { useToast } from "@/hooks/use-toast";
 import { deleteSubscription, updateSubscriptionSettings, YouTubeSubscription, AutoSyncType } from "@/lib/subscription-store";
 import { cn } from "@/lib/utils";
 
+/**
+ * [STABILITY_ANCHOR: MANAGE_CHANNELS_V2.0]
+ * نافذة إدارة القنوات - تم إصلاح زر الحذف وتحديث المسميات لتكون منطقية.
+ */
 interface ManageChannelsModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,7 +44,7 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
     setProcessingId(subId);
     try {
       await deleteSubscription(userId, subId);
-      toast({ title: "تمت إزالة القناة" });
+      toast({ title: "تمت إزالة القناة بنجاح" });
     } catch (e) {
       toast({ variant: "destructive", title: "فشل الحذف" });
     } finally {
@@ -67,7 +70,7 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
       await updateSubscriptionSettings(userId, sub.id, { isFavorite: !sub.isFavorite });
       toast({ 
         title: sub.isFavorite ? "تمت الإزالة من المفضلة" : "تمت الإضافة للمفضلة",
-        description: !sub.isFavorite ? "سيتم تحميل الفيديوهات المختارة تلقائياً." : "تم إيقاف المزامنة التلقائية لهذه القناة."
+        description: !sub.isFavorite ? "سيتم تفعيل المزامنة التلقائية للفيديوهات الجديدة." : "تم إيقاف المزامنة التلقائية لهذه القناة."
       });
     } catch (e) {
       toast({ variant: "destructive", title: "فشل التحديث" });
@@ -81,7 +84,7 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
       <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right sm:max-w-xl outline-none">
         <DialogHeader>
           <DialogTitle className="text-right text-xl font-bold flex items-center justify-end gap-3 text-white">
-            إدارة قنواتي واشتراكاتي
+            إدارة اشتراكاتي
             <Settings className="size-5 text-indigo-400" />
           </DialogTitle>
         </DialogHeader>
@@ -104,7 +107,7 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
                       <div className="min-w-0">
                         <h4 dir="auto" className="font-bold text-white text-base truncate max-w-[180px]">{sub.channelName}</h4>
                         <div className="flex items-center gap-1 justify-end">
-                          <p className="text-[8px] text-muted-foreground uppercase font-mono tracking-widest">YouTube Verified</p>
+                          <p className="text-[8px] text-muted-foreground uppercase font-mono tracking-widest">YouTube Channel</p>
                         </div>
                       </div>
                     </div>
@@ -134,7 +137,7 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
                   {sub.isFavorite && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5 items-center">
                       <div className="text-right">
-                        <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block mb-2 px-1">المزامنة التلقائية لـ</label>
+                        <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block mb-2 px-1">نمط التحميل التلقائي</label>
                         <Select 
                           value={sub.autoSyncType || 'all'} 
                           onValueChange={(v: AutoSyncType) => handleSyncTypeChange(sub.id, v)}
@@ -145,20 +148,20 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
                           </SelectTrigger>
                           <SelectContent className="bg-slate-900 border-white/10 text-white rounded-xl">
                             <SelectItem value="all" className="flex-row-reverse gap-2">
-                              <Layers className="size-3 inline ml-2" /> كل الفيديوهات
+                              كل المحتوى
                             </SelectItem>
                             <SelectItem value="long" className="flex-row-reverse gap-2">
-                              <Video className="size-3 inline ml-2" /> الفيديوهات الطويلة فقط
+                              الفيديوهات الطويلة فقط
                             </SelectItem>
                             <SelectItem value="shorts" className="flex-row-reverse gap-2">
-                              <PlayCircle className="size-3 inline ml-2" /> فيديوهات القصيرة (Shorts)
+                              فيديوهات Shorts فقط
                             </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="hidden md:flex flex-col gap-1 text-right">
-                        <span className="text-[10px] font-bold text-white">وضع الاستحواذ نشط</span>
-                        <p className="text-[9px] text-muted-foreground leading-relaxed">سيتم حفظ الفيديوهات المختارة في الذاكرة المحلية فور توفرها.</p>
+                        <span className="text-[10px] font-bold text-white">تحميل تلقائي نشط</span>
+                        <p className="text-[9px] text-muted-foreground leading-relaxed">سيتم حفظ الفيديوهات الجديدة في الذاكرة المحلية تلقائياً.</p>
                       </div>
                     </div>
                   )}

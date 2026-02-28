@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from "react";
@@ -17,6 +16,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { addSubscription } from "@/lib/subscription-store";
 
+/**
+ * [STABILITY_ANCHOR: ADD_CHANNEL_V2.0]
+ * نافذة إضافة القنوات - تم إصلاح زر الحفظ وتحديث المسميات لتكون بسيطة.
+ */
 interface AddChannelModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -43,6 +46,7 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
         setNewSubName(titleMatch[1].replace(' - YouTube', '').trim());
       }
 
+      // محرك استخراج ID فائق الدقة
       const channelIdMatch = html.match(/"channelId":"(UC[a-zA-Z0-9_-]+)"/) || 
                            html.match(/meta itemprop="channelId" content="(UC[a-zA-Z0-9_-]+)"/) ||
                            html.match(/browseId":"(UC[a-zA-Z0-9_-]+)"/);
@@ -69,7 +73,7 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
     if (!userId || !newSubId) return;
     try {
       await addSubscription(userId, newSubUrl, newSubName || "قناة يوتيوب", newSubId, newSubAvatar);
-      toast({ title: "تم الاشتراك بنجاح", description: `أضيفت قناة ${newSubName} إلى اشتراكاتك.` });
+      toast({ title: "تم الحفظ بنجاح", description: `أضيفت قناة ${newSubName} إلى اشتراكاتك.` });
       setNewSubUrl("");
       setNewSubName("");
       setNewSubId("");
@@ -85,10 +89,10 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
       <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right outline-none">
         <DialogHeader>
           <DialogTitle className="text-right flex items-center justify-end gap-3 text-white">
-            إضافة قناة متابعة
+            إضافة قناة جديدة
             <Youtube className="text-red-500" />
           </DialogTitle>
-          <DialogDescription className="text-right">انسخ رابط القناة ليتم ربط فيديوهاتها الأصلية تلقائياً.</DialogDescription>
+          <DialogDescription className="text-right">انسخ رابط القناة ليتم جلب بياناتها وفيديوهاتها تلقائياً.</DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-6">
@@ -134,7 +138,7 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
             className="w-full bg-indigo-600 hover:bg-indigo-500 h-12 rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20"
           >
             {isFetching ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle2 className="mr-2 size-4" />}
-            تأكيد الاشتراك
+            تأكيد الحفظ
           </Button>
         </DialogFooter>
       </DialogContent>
