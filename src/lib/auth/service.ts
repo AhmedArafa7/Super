@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -9,8 +10,8 @@ import { User, UserRole } from './types';
 import { getSession, setSession } from './session';
 
 /**
- * [STABILITY_ANCHOR: AUTH_SERVICE_V4.0]
- * محرك الهوية الموحد - تفعيل "بروتوكول المؤسس التلقائي" لأول مستخدم.
+ * [STABILITY_ANCHOR: AUTH_SERVICE_V5.0]
+ * محرك الهوية الموحد - تفعيل "بروتوكول المؤسس التلقائي" لأول مستخدم يتم إنشاؤه.
  */
 
 export const getStoredUsers = async (): Promise<User[]> => {
@@ -37,7 +38,7 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
     return { id: snap.id, ...snap.data() } as User;
   }
 
-  // التحقق مما إذا كان هذا هو أول مستخدم في النظام
+  // التحقق مما إذا كان هذا هو أول مستخدم في النظام عبر فحص وجود أي مستخدمين
   const usersRef = collection(firestore, 'users');
   const q = query(usersRef, limit(1));
   const usersSnap = await getDocs(q);
@@ -48,13 +49,13 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
     detectedUsername = firebaseUser.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
   }
 
-  // إذا كان اسم المستخدم 'admin' أو كان أول مستخدم، يحصل على رتبة مؤسس
-  const finalRole: UserRole = (isFirstUser || detectedUsername === 'admin') ? 'founder' : 'free';
+  // أول مستخدم يحصل على رتبة المؤسس تلقائياً
+  const finalRole: UserRole = isFirstUser ? 'founder' : 'free';
 
   const newUser: User = {
     id: firebaseUser.uid,
     username: detectedUsername,
-    name: firebaseUser.displayName || "Nexus Node",
+    name: firebaseUser.displayName || "عضو جديد",
     email: firebaseUser.email || "",
     role: finalRole,
     classification: 'none',
@@ -69,9 +70,9 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
 
   await setDoc(userRef, newUser);
   
-  // تهيئة المحفظة المركزية للعقدة الجديدة برصيد ترحيبي
+  // تهيئة المحفظة
   await setDoc(doc(firestore, `users/${newUser.id}/wallet/main`), {
-    balance: finalRole === 'founder' ? 1000000 : 500,
+    balance: finalRole === 'founder' ? 1000000 : 100,
     frozenBalance: 0,
     currency: 'Credits'
   });

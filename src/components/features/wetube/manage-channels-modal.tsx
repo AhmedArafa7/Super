@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useState } from "react";
-import { Trash2, Settings, Loader2, XCircle, Star, Video, PlayCircle, Layers } from "lucide-react";
+import { Trash2, Settings, Loader2, XCircle, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
@@ -22,8 +23,8 @@ import { deleteSubscription, updateSubscriptionSettings, YouTubeSubscription, Au
 import { cn } from "@/lib/utils";
 
 /**
- * [STABILITY_ANCHOR: MANAGE_CHANNELS_V2.0]
- * نافذة إدارة القنوات - تم إصلاح زر الحذف وتحديث المسميات لتكون منطقية.
+ * [STABILITY_ANCHOR: MANAGE_CHANNELS_V3.0]
+ * نافذة إدارة القنوات - تم إصلاح زر الحذف لضمان استخدام معرف الوثيقة (sub.id) بدلاً من معرف القناة.
  */
 interface ManageChannelsModalProps {
   isOpen: boolean;
@@ -38,13 +39,13 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
 
   const handleUnsubscribe = async (subId: string) => {
     if (!userId || !subId) return;
-    const confirmed = window.confirm("هل أنت متأكد من إلغاء متابعة هذه القناة؟");
+    const confirmed = window.confirm("هل أنت متأكد من إلغاء المتابعة؟ سيتم مسح القناة فوراً.");
     if (!confirmed) return;
 
     setProcessingId(subId);
     try {
       await deleteSubscription(userId, subId);
-      toast({ title: "تمت إزالة القناة بنجاح" });
+      toast({ title: "تم إلغاء الاشتراك بنجاح" });
     } catch (e) {
       toast({ variant: "destructive", title: "فشل الحذف" });
     } finally {
@@ -56,9 +57,9 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
     setProcessingId(subId);
     try {
       await updateSubscriptionSettings(userId, subId, { autoSyncType: type });
-      toast({ title: "تم تحديث نمط المزامنة", description: "سيقوم النظام باتباع القواعد الجديدة فوراً." });
+      toast({ title: "تم تحديث نوع المزامنة" });
     } catch (e) {
-      toast({ variant: "destructive", title: "فشل تحديث الإعدادات" });
+      toast({ variant: "destructive", title: "فشل التحديث" });
     } finally {
       setProcessingId(null);
     }
@@ -69,8 +70,7 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
     try {
       await updateSubscriptionSettings(userId, sub.id, { isFavorite: !sub.isFavorite });
       toast({ 
-        title: sub.isFavorite ? "تمت الإزالة من المفضلة" : "تمت الإضافة للمفضلة",
-        description: !sub.isFavorite ? "سيتم تفعيل المزامنة التلقائية للفيديوهات الجديدة." : "تم إيقاف المزامنة التلقائية لهذه القناة."
+        title: sub.isFavorite ? "تمت الإزالة من المفضلة" : "تمت الإضافة للمفضلة"
       });
     } catch (e) {
       toast({ variant: "destructive", title: "فشل التحديث" });
@@ -89,7 +89,7 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
           </DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="max-h-[500px] mt-6">
+        <ScrollArea className="max-h-[500px] mt-6 pr-4">
           <div className="space-y-4">
             {subscriptions.length === 0 ? (
               <div className="py-20 text-center opacity-30 flex flex-col items-center gap-3">
@@ -106,9 +106,7 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
                       </div>
                       <div className="min-w-0">
                         <h4 dir="auto" className="font-bold text-white text-base truncate max-w-[180px]">{sub.channelName}</h4>
-                        <div className="flex items-center gap-1 justify-end">
-                          <p className="text-[8px] text-muted-foreground uppercase font-mono tracking-widest">YouTube Channel</p>
-                        </div>
+                        <p className="text-[8px] text-muted-foreground uppercase font-mono tracking-widest text-right">YouTube Channel</p>
                       </div>
                     </div>
                     
@@ -137,7 +135,7 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
                   {sub.isFavorite && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5 items-center">
                       <div className="text-right">
-                        <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block mb-2 px-1">نمط التحميل التلقائي</label>
+                        <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block mb-2 px-1">نوع التحميل التلقائي</label>
                         <Select 
                           value={sub.autoSyncType || 'all'} 
                           onValueChange={(v: AutoSyncType) => handleSyncTypeChange(sub.id, v)}
@@ -147,22 +145,15 @@ export function ManageChannelsModal({ isOpen, onOpenChange, subscriptions, userI
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-900 border-white/10 text-white rounded-xl">
-                            <SelectItem value="all" className="flex-row-reverse gap-2">
-                              كل المحتوى
-                            </SelectItem>
-                            <SelectItem value="long" className="flex-row-reverse gap-2">
-                              الفيديوهات الطويلة فقط
-                            </SelectItem>
-                            <SelectItem value="shorts" className="flex-row-reverse gap-2">
-                              فيديوهات Shorts فقط
-                            </SelectItem>
+                            <SelectItem value="all" className="flex-row-reverse gap-2 text-right">مزامنة الكل</SelectItem>
+                            <SelectItem value="long" className="flex-row-reverse gap-2 text-right">طويلة فقط</SelectItem>
+                            <SelectItem value="shorts" className="flex-row-reverse gap-2 text-right">Shorts فقط</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="hidden md:flex flex-col gap-1 text-right">
-                        <span className="text-[10px] font-bold text-white">تحميل تلقائي نشط</span>
-                        <p className="text-[9px] text-muted-foreground leading-relaxed">سيتم حفظ الفيديوهات الجديدة في الذاكرة المحلية تلقائياً.</p>
-                      </div>
+                      <p className="text-[9px] text-muted-foreground text-right leading-relaxed">
+                        سيتم حفظ الفيديوهات الجديدة من النوع المختار في الذاكرة المحلية تلقائياً.
+                      </p>
                     </div>
                   )}
                 </div>

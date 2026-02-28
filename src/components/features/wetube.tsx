@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
@@ -14,15 +15,15 @@ import { cn } from "@/lib/utils";
 import { StreamSettings } from "./stream/stream-settings";
 import { StreamUploadDialog } from "./stream/stream-upload-dialog";
 import { VideoCard } from "./stream/video-card";
-import { PlaySquare, Sparkles } from "lucide-react";
+import { PlaySquare, Sparkles, Loader2 } from "lucide-react";
 
 import { SubscriptionBar } from "./wetube/subscription-bar";
 import { AddChannelModal } from "./wetube/add-channel-modal";
 import { ManageChannelsModal } from "./wetube/manage-channels-modal";
 
 /**
- * [STABILITY_ANCHOR: WETUBE_MODULAR_V10.0]
- * المنسق الرئيسي المصحح لـ WeTube - تم إصلاح خطأ TabsContext عبر إزالة الأغلفة الوسيطة.
+ * [STABILITY_ANCHOR: WETUBE_FINAL_V11.0]
+ * المنسق الرئيسي المصحح لـ WeTube - تم إصلاح خطأ TabsContext عبر هيكلية مسطحة ونظيفة.
  */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
@@ -65,7 +66,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       }
     }
     if (syncCount > 0) {
-      toast({ title: "تم التحميل التلقائي", description: `تمت مزامنة ${syncCount} فيديوهات جديدة من قنواتك المفضلة.` });
+      toast({ title: "تم التحميل التلقائي", description: `تمت مزامنة ${syncCount} فيديوهات من القنوات المفضلة.` });
     }
   }, [cachedAssets, addAsset, toast]);
 
@@ -118,14 +119,6 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }
   };
 
-  const handleVideoSelect = (v: any) => {
-    setActiveVideo({
-      ...v,
-      source: v.source || 'youtube',
-      externalUrl: v.url || v.externalUrl
-    } as any);
-  };
-
   return (
     <div className={cn("p-8 max-w-7xl mx-auto min-h-screen", activeVideo && "pt-[45vh]")}>
       <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
@@ -153,61 +146,64 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           </div>
         </header>
 
-        <TabsContent value="explore" className="m-0 mt-0 animate-in fade-in duration-500">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-            {videos.filter(v => v.status === 'published').map(v => (
-              <VideoCard 
-                key={v.id} video={v} isActive={activeVideo?.id === v.id} 
-                isCached={cachedAssets.some(a => a.id === `video-${v.id}`)} 
-                currentUser={user} onClick={() => handleVideoSelect(v)} 
-                onSync={handleToggleLocal} onDelete={deleteVideo} 
-              />
-            ))}
-          </div>
-        </TabsContent>
+        <div className="mt-8">
+          <TabsContent value="explore" className="m-0 focus-visible:ring-0 outline-none">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+              {videos.filter(v => v.status === 'published').map(v => (
+                <VideoCard 
+                  key={v.id} video={v} isActive={activeVideo?.id === v.id} 
+                  isCached={cachedAssets.some(a => a.id === `video-${v.id}`)} 
+                  currentUser={user} onClick={() => setActiveVideo(v)} 
+                  onSync={handleToggleLocal} onDelete={deleteVideo} 
+                />
+              ))}
+            </div>
+          </TabsContent>
 
-        <TabsContent value="subs" className="m-0 mt-0 animate-in fade-in duration-500">
-          <div className="space-y-10">
-            <SubscriptionBar 
-              subscriptions={subscriptions} selectedChannelId={selectedChannelId} 
-              onSelectChannel={setSelectedChannelId} onOpenAddModal={() => setIsAddModalOpen(true)} 
-              onOpenManageModal={() => setIsManageModalOpen(true)} 
-            />
-            {isFeedLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                {Array(6).fill(0).map((_, i) => <div key={i} className="aspect-video rounded-[2.5rem] bg-white/5 animate-pulse border border-white/5" />)}
-              </div>
-            ) : filteredFeed.length === 0 ? (
-              <div className="py-20 text-center opacity-30 flex flex-col items-center gap-4">
-                <Sparkles className="size-16 text-indigo-400" />
-                <p className="text-xl font-bold">لا توجد فيديوهات جديدة في اشتراكاتك حالياً.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {filteredFeed.map(v => (
-                  <VideoCard 
-                    key={v.id} video={{...v, externalUrl: v.url, time: "اليوم"}} 
-                    isActive={activeVideo?.externalUrl === v.url} 
-                    isCached={cachedAssets.some(a => a.id === `video-${v.id}`)}
-                    onSync={handleToggleLocal} onClick={() => handleVideoSelect(v)} 
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="studio" className="m-0 mt-0 animate-in fade-in duration-500">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            {videos.filter(v => v.authorId === user?.id).map(v => (
-              <VideoCard 
-                key={v.id} video={v} isActive={activeVideo?.id === v.id} 
-                currentUser={user} onClick={() => handleVideoSelect(v)} 
-                onDelete={deleteVideo} 
+          <TabsContent value="subs" className="m-0 focus-visible:ring-0 outline-none">
+            <div className="space-y-10">
+              <SubscriptionBar 
+                subscriptions={subscriptions} selectedChannelId={selectedChannelId} 
+                onSelectChannel={setSelectedChannelId} onOpenAddModal={() => setIsAddModalOpen(true)} 
+                onOpenManageModal={() => setIsManageModalOpen(true)} 
               />
-            ))}
-          </div>
-        </TabsContent>
+              {isFeedLoading ? (
+                <div className="flex flex-col items-center py-20">
+                  <Loader2 className="size-10 animate-spin text-indigo-400 mb-4" />
+                  <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">جاري مزامنة آخر الفيديوهات...</p>
+                </div>
+              ) : filteredFeed.length === 0 ? (
+                <div className="py-20 text-center opacity-30 flex flex-col items-center gap-4">
+                  <Sparkles className="size-16 text-indigo-400" />
+                  <p className="text-xl font-bold">لا توجد فيديوهات جديدة حالياً.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                  {filteredFeed.map(v => (
+                    <VideoCard 
+                      key={v.id} video={{...v, externalUrl: v.url, time: "اليوم"}} 
+                      isActive={activeVideo?.externalUrl === v.url} 
+                      isCached={cachedAssets.some(a => a.id === `video-${v.id}`)}
+                      onSync={handleToggleLocal} onClick={() => setActiveVideo({...v, externalUrl: v.url, source: 'youtube'} as any)} 
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="studio" className="m-0 focus-visible:ring-0 outline-none">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+              {videos.filter(v => v.authorId === user?.id).map(v => (
+                <VideoCard 
+                  key={v.id} video={v} isActive={activeVideo?.id === v.id} 
+                  currentUser={user} onClick={() => setActiveVideo(v)} 
+                  onDelete={deleteVideo} 
+                />
+              ))}
+            </div>
+          </TabsContent>
+        </div>
       </Tabs>
 
       <AddChannelModal isOpen={isAddModalOpen} onOpenChange={setIsAddModalOpen} userId={user?.id || ""} />

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from "react";
@@ -17,8 +18,8 @@ import { useToast } from "@/hooks/use-toast";
 import { addSubscription } from "@/lib/subscription-store";
 
 /**
- * [STABILITY_ANCHOR: ADD_CHANNEL_V2.0]
- * نافذة إضافة القنوات - تم إصلاح زر الحفظ وتحديث المسميات لتكون بسيطة.
+ * [STABILITY_ANCHOR: ADD_CHANNEL_V3.0]
+ * نافذة إضافة القنوات - تم إصلاح زر الحفظ وضمان عمله فور استخراج البيانات.
  */
 interface AddChannelModalProps {
   isOpen: boolean;
@@ -46,10 +47,9 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
         setNewSubName(titleMatch[1].replace(' - YouTube', '').trim());
       }
 
-      // محرك استخراج ID فائق الدقة
+      // استخراج ID القناة
       const channelIdMatch = html.match(/"channelId":"(UC[a-zA-Z0-9_-]+)"/) || 
-                           html.match(/meta itemprop="channelId" content="(UC[a-zA-Z0-9_-]+)"/) ||
-                           html.match(/browseId":"(UC[a-zA-Z0-9_-]+)"/);
+                           html.match(/meta itemprop="channelId" content="(UC[a-zA-Z0-9_-]+)"/);
       
       if (channelIdMatch) {
         setNewSubId(channelIdMatch[1]);
@@ -72,7 +72,7 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
   const handleSave = async () => {
     if (!userId || !newSubId) return;
     try {
-      await addSubscription(userId, newSubUrl, newSubName || "قناة يوتيوب", newSubId, newSubAvatar);
+      await addSubscription(userId, newSubUrl, newSubName || "قناة جديدة", newSubId, newSubAvatar);
       toast({ title: "تم الحفظ بنجاح", description: `أضيفت قناة ${newSubName} إلى اشتراكاتك.` });
       setNewSubUrl("");
       setNewSubName("");
@@ -92,7 +92,7 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
             إضافة قناة جديدة
             <Youtube className="text-red-500" />
           </DialogTitle>
-          <DialogDescription className="text-right">انسخ رابط القناة ليتم جلب بياناتها وفيديوهاتها تلقائياً.</DialogDescription>
+          <DialogDescription className="text-right">انسخ رابط القناة ليتم جلب بياناتها تلقائياً.</DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-6">

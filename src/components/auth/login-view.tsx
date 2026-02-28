@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -29,23 +30,29 @@ export function LoginView() {
     try {
       if (mode === 'login') {
         const success = await login(username, password);
-        if (!success) setError('Neural credentials rejected. Unauthorized access attempt logged.');
+        if (!success) {
+          setError('بيانات الدخول غير صحيحة. هل قمت بإنشاء حساب؟');
+        }
       } else {
         if (!name.trim()) {
-          setError('Identity Name is required for node initialization.');
+          setError('يرجى إدخال اسمك الكامل.');
           setIsLoading(false);
           return;
         }
         if (password.length < 6) {
-          setError('Security Code must be at least 6 characters.');
+          setError('كلمة السر يجب أن تكون 6 أحرف على الأقل.');
           setIsLoading(false);
           return;
         }
         const success = await register(username, name, password);
-        if (!success) setError('Node ID already exists or registration failed. Choose another.');
+        if (!success) setError('اسم المستخدم موجود بالفعل، اختر اسماً آخر.');
       }
-    } catch (err) {
-      setError('System authentication error. Node unreachable.');
+    } catch (err: any) {
+      if (err.message?.includes('invalid-credential')) {
+        setError('خطأ في كلمة السر أو اسم المستخدم. يرجى التأكد من البيانات.');
+      } else {
+        setError('حدث خطأ في النظام. يرجى المحاولة لاحقاً.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +71,7 @@ export function LoginView() {
             </div>
             <CardTitle className="text-3xl font-headline font-bold text-white tracking-tight">NexusAI</CardTitle>
             <p className="text-muted-foreground text-sm mt-2 font-bold uppercase tracking-widest">
-              {mode === 'login' ? 'Neural Link Required' : 'Initialize New Node'}
+              {mode === 'login' ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}
             </p>
           </CardHeader>
 
@@ -94,19 +101,19 @@ export function LoginView() {
 
           <div className="relative mb-8">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
-            <div className="relative flex justify-center text-[10px] uppercase font-black text-muted-foreground"><span className="bg-slate-950 px-4 tracking-widest">Or Secure ID</span></div>
+            <div className="relative flex justify-center text-[10px] uppercase font-black text-muted-foreground"><span className="bg-slate-950 px-4 tracking-widest">أو عبر المعرف</span></div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {mode === 'register' && (
-              <div className="space-y-2 text-right animate-in fade-in slide-in-from-top-2">
-                <Label htmlFor="name" className="text-right block">Identity Name (Full Name)</Label>
+              <div className="space-y-2 text-right">
+                <Label htmlFor="name" className="text-right block">الاسم الكامل</Label>
                 <div className="relative">
                   <Input
                     id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Your Full Identity"
+                    placeholder="اسمك الحقيقي"
                     className="bg-white/5 border-white/10 h-12 rounded-xl focus-visible:ring-primary pl-10 text-right"
                     required
                   />
@@ -116,13 +123,13 @@ export function LoginView() {
             )}
 
             <div className="space-y-2 text-right">
-              <Label htmlFor="username" className="text-right block">Node ID (Username)</Label>
+              <Label htmlFor="username" className="text-right block">اسم المستخدم</Label>
               <div className="relative">
                 <Input
                   id="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="unique_id"
+                  placeholder="Unique ID"
                   className="bg-white/5 border-white/10 h-12 rounded-xl focus-visible:ring-primary pl-10 text-right"
                   required
                 />
@@ -131,7 +138,7 @@ export function LoginView() {
             </div>
 
             <div className="space-y-2 text-right">
-              <Label htmlFor="password" className="text-right block">Security Code</Label>
+              <Label htmlFor="password" className="text-right block">كلمة السر</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -161,30 +168,27 @@ export function LoginView() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
-                  Synchronizing...
+                  جاري المزامنة...
                 </>
               ) : mode === 'login' ? (
-                'Initiate Neural Link'
+                'تسجيل الدخول'
               ) : (
-                'Authorize Node'
+                'إنشاء الحساب'
               )}
             </Button>
           </form>
 
           <div className="mt-8 pt-8 border-t border-white/5 text-center">
             <button 
-              onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+              onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}
               className="text-xs text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 w-full"
             >
               {mode === 'login' ? (
-                <><UserPlus className="size-3" /> Don't have a node? Create one now</>
+                <><UserPlus className="size-3" /> ليس لديك حساب؟ أنشئ واحداً الآن</>
               ) : (
-                <><LogIn className="size-3" /> Already have a node? Link now</>
+                <><LogIn className="size-3" /> لديك حساب بالفعل؟ سجل دخولك</>
               )}
             </button>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold mt-6">
-              Neural Network Secured by Nexus Core
-            </p>
           </div>
         </div>
       </Card>
