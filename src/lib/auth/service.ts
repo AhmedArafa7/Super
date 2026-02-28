@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -10,8 +9,9 @@ import { User, UserRole } from './types';
 import { getSession, setSession } from './session';
 
 /**
- * [STABILITY_ANCHOR: AUTH_SERVICE_V5.0]
- * محرك الهوية الموحد - تفعيل "بروتوكول المؤسس التلقائي" لأول مستخدم يتم إنشاؤه.
+ * [SECURITY_FIX: AUTH_SERVICE_V6.0]
+ * تم إلغاء بروتوكول المؤسس التلقائي لمنع الثغرات الأمنية.
+ * يجب ترقية المدير يدوياً عبر Firestore لضمان السيادة الكاملة للمالك.
  */
 
 export const getStoredUsers = async (): Promise<User[]> => {
@@ -38,41 +38,33 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
     return { id: snap.id, ...snap.data() } as User;
   }
 
-  // التحقق مما إذا كان هذا هو أول مستخدم في النظام عبر فحص وجود أي مستخدمين
-  const usersRef = collection(firestore, 'users');
-  const q = query(usersRef, limit(1));
-  const usersSnap = await getDocs(q);
-  const isFirstUser = usersSnap.empty;
-
   let detectedUsername = "user_" + firebaseUser.uid.substring(0, 5);
   if (firebaseUser.email) {
     detectedUsername = firebaseUser.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
   }
 
-  // أول مستخدم يحصل على رتبة المؤسس تلقائياً
-  const finalRole: UserRole = isFirstUser ? 'founder' : 'free';
-
+  // كافة المستخدمين الجدد يبدأون برتبة free. المالك يرفع رتبته يدوياً من قاعدة البيانات.
   const newUser: User = {
     id: firebaseUser.uid,
     username: detectedUsername,
     name: firebaseUser.displayName || "عضو جديد",
     email: firebaseUser.email || "",
-    role: finalRole,
+    role: 'free',
     classification: 'none',
-    proResponsesRemaining: 100,
-    proTTSRemaining: 50,
+    proResponsesRemaining: 10,
+    proTTSRemaining: 5,
     avatar_url: firebaseUser.photoURL || `https://picsum.photos/seed/${firebaseUser.uid}/100/100`,
     status: 'online',
     lastSeen: new Date().toISOString(),
-    canManageCredits: finalRole === 'founder',
+    canManageCredits: false,
     dataConsent: 'none'
   };
 
   await setDoc(userRef, newUser);
   
-  // تهيئة المحفظة
+  // تهيئة المحفظة برصيد ترحيبي بسيط
   await setDoc(doc(firestore, `users/${newUser.id}/wallet/main`), {
-    balance: finalRole === 'founder' ? 1000000 : 100,
+    balance: 50,
     frozenBalance: 0,
     currency: 'Credits'
   });
@@ -92,7 +84,7 @@ export const addUser = async (user: User) => {
   });
   
   await setDoc(doc(firestore, `users/${user.id}/wallet/main`), {
-    balance: user.role === 'founder' ? 1000000 : 0,
+    balance: 0,
     frozenBalance: 0,
     currency: 'Credits'
   });

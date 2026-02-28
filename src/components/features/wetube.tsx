@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
@@ -22,8 +21,8 @@ import { AddChannelModal } from "./wetube/add-channel-modal";
 import { ManageChannelsModal } from "./wetube/manage-channels-modal";
 
 /**
- * [STABILITY_ANCHOR: WETUBE_FINAL_V11.0]
- * المنسق الرئيسي المصحح لـ WeTube - تم إصلاح خطأ TabsContext عبر هيكلية مسطحة ونظيفة.
+ * [STABILITY_ANCHOR: WETUBE_FINAL_V12.0]
+ * تم إصلاح خطأ TabsContext عبر التأكد من أن TabsContent داخل Tabs مباشرة.
  */
 export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const { user } = useAuth();
@@ -146,64 +145,62 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           </div>
         </header>
 
-        <div className="mt-8">
-          <TabsContent value="explore" className="m-0 focus-visible:ring-0 outline-none">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-              {videos.filter(v => v.status === 'published').map(v => (
-                <VideoCard 
-                  key={v.id} video={v} isActive={activeVideo?.id === v.id} 
-                  isCached={cachedAssets.some(a => a.id === `video-${v.id}`)} 
-                  currentUser={user} onClick={() => setActiveVideo(v)} 
-                  onSync={handleToggleLocal} onDelete={deleteVideo} 
-                />
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="subs" className="m-0 focus-visible:ring-0 outline-none">
-            <div className="space-y-10">
-              <SubscriptionBar 
-                subscriptions={subscriptions} selectedChannelId={selectedChannelId} 
-                onSelectChannel={setSelectedChannelId} onOpenAddModal={() => setIsAddModalOpen(true)} 
-                onOpenManageModal={() => setIsManageModalOpen(true)} 
+        <TabsContent value="explore" className="m-0 focus-visible:ring-0 outline-none">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            {videos.filter(v => v.status === 'published').map(v => (
+              <VideoCard 
+                key={v.id} video={v} isActive={activeVideo?.id === v.id} 
+                isCached={cachedAssets.some(a => a.id === `video-${v.id}`)} 
+                currentUser={user} onClick={() => setActiveVideo(v)} 
+                onSync={handleToggleLocal} onDelete={deleteVideo} 
               />
-              {isFeedLoading ? (
-                <div className="flex flex-col items-center py-20">
-                  <Loader2 className="size-10 animate-spin text-indigo-400 mb-4" />
-                  <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">جاري مزامنة آخر الفيديوهات...</p>
-                </div>
-              ) : filteredFeed.length === 0 ? (
-                <div className="py-20 text-center opacity-30 flex flex-col items-center gap-4">
-                  <Sparkles className="size-16 text-indigo-400" />
-                  <p className="text-xl font-bold">لا توجد فيديوهات جديدة حالياً.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                  {filteredFeed.map(v => (
-                    <VideoCard 
-                      key={v.id} video={{...v, externalUrl: v.url, time: "اليوم"}} 
-                      isActive={activeVideo?.externalUrl === v.url} 
-                      isCached={cachedAssets.some(a => a.id === `video-${v.id}`)}
-                      onSync={handleToggleLocal} onClick={() => setActiveVideo({...v, externalUrl: v.url, source: 'youtube'} as any)} 
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
+            ))}
+          </div>
+        </TabsContent>
 
-          <TabsContent value="studio" className="m-0 focus-visible:ring-0 outline-none">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-              {videos.filter(v => v.authorId === user?.id).map(v => (
-                <VideoCard 
-                  key={v.id} video={v} isActive={activeVideo?.id === v.id} 
-                  currentUser={user} onClick={() => setActiveVideo(v)} 
-                  onDelete={deleteVideo} 
-                />
-              ))}
-            </div>
-          </TabsContent>
-        </div>
+        <TabsContent value="subs" className="m-0 focus-visible:ring-0 outline-none">
+          <div className="space-y-10">
+            <SubscriptionBar 
+              subscriptions={subscriptions} selectedChannelId={selectedChannelId} 
+              onSelectChannel={setSelectedChannelId} onOpenAddModal={() => setIsAddModalOpen(true)} 
+              onOpenManageModal={() => setIsManageModalOpen(true)} 
+            />
+            {isFeedLoading ? (
+              <div className="flex flex-col items-center py-20">
+                <Loader2 className="size-10 animate-spin text-indigo-400 mb-4" />
+                <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">جاري مزامنة آخر الفيديوهات...</p>
+              </div>
+            ) : filteredFeed.length === 0 ? (
+              <div className="py-20 text-center opacity-30 flex flex-col items-center gap-4">
+                <Sparkles className="size-16 text-indigo-400" />
+                <p className="text-xl font-bold">لا توجد فيديوهات جديدة حالياً.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                {filteredFeed.map(v => (
+                  <VideoCard 
+                    key={v.id} video={{...v, externalUrl: v.url, time: "اليوم"}} 
+                    isActive={activeVideo?.externalUrl === v.url} 
+                    isCached={cachedAssets.some(a => a.id === `video-${v.id}`)}
+                    onSync={handleToggleLocal} onClick={() => setActiveVideo({...v, externalUrl: v.url, source: 'youtube'} as any)} 
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="studio" className="m-0 focus-visible:ring-0 outline-none">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            {videos.filter(v => v.authorId === user?.id).map(v => (
+              <VideoCard 
+                key={v.id} video={v} isActive={activeVideo?.id === v.id} 
+                currentUser={user} onClick={() => setActiveVideo(v)} 
+                onDelete={deleteVideo} 
+              />
+            ))}
+          </div>
+        </TabsContent>
       </Tabs>
 
       <AddChannelModal isOpen={isAddModalOpen} onOpenChange={setIsAddModalOpen} userId={user?.id || ""} />
