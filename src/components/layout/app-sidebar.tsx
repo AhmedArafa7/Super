@@ -27,7 +27,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
     { id: "agent-ai", label: "المهندس المساعد", icon: Cpu, restricted: false },
     { id: "vault", label: "خزنة الملفات", icon: HardDrive, restricted: false },
     { id: "peer-chat", label: "التواصل المباشر", icon: MessageCircle, restricted: false },
-    { id: "stream", label: "منصة البث", icon: Video, restricted: false },
+    { id: "stream", label: "WeTube", icon: Video, restricted: false },
     { id: "market", label: "المتجر التقني", icon: ShoppingBag, restricted: false },
     { id: "ads", label: "مركز الإعلانات", icon: Megaphone, restricted: false },
     { id: "downloads", label: "التحميلات", icon: DownloadCloud, restricted: false },
