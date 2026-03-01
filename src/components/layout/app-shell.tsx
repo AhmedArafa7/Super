@@ -1,5 +1,4 @@
-
-"use client";
+'use client';
 
 import React, { useState, useEffect } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -25,6 +24,7 @@ import { AgentAI } from "@/components/features/agent-ai";
 import { AdsCenter } from "@/components/features/ads-center";
 import { VaultExplorer } from "@/components/features/vault-explorer";
 import { DownloadCenter } from "@/components/features/download-center";
+import { TimeManagement } from "@/components/features/time-management";
 import { getNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
@@ -41,8 +41,8 @@ const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGaf
 const VAULT_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 /**
- * [STABILITY_ANCHOR: APPSHELL_ORCHESTRATOR_V7.6]
- * المكون المركزي المحدث - تم تحديث WeTube وإضافة منطق الاشتراكات.
+ * [STABILITY_ANCHOR: APPSHELL_ORCHESTRATOR_V8.0]
+ * المكون المركزي المحدث - تم إضافة قسم تنظيم الوقت.
  */
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -105,6 +105,7 @@ export function AppShell() {
 
     switch (activeTab) {
       case "dashboard": return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
+      case "time": return <TimeManagement />;
       case "chat": return <AIChat />;
       case "agent-ai": return <AgentAI />;
       case "vault": return <VaultExplorer />;
@@ -123,7 +124,7 @@ export function AppShell() {
       }} />;
       case "features": return <Capabilities />;
       case "admin": 
-        if (user?.role === 'admin') return <AdminPanel />;
+        if (user?.role === 'admin' || user?.role === 'founder') return <AdminPanel />;
         return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
       case "learning": return <KnowledgeHub />;
       case "hisn": return <HisnAlMuslim />;

@@ -1,10 +1,9 @@
-
 'use client';
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type NavItemId = "chat" | "peer-chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn" | "launcher" | "lab" | "directory" | "agent-ai" | "ads" | "vault" | "downloads";
+export type NavItemId = "chat" | "peer-chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn" | "launcher" | "lab" | "directory" | "agent-ai" | "ads" | "vault" | "downloads" | "time";
 
 interface SidebarState {
   pinnedItems: NavItemId[];
@@ -13,13 +12,12 @@ interface SidebarState {
 }
 
 /**
- * @fileOverview محرك تخصيص القائمة الجانبية - تم تثبيت المختبر العصبي افتراضياً.
+ * @fileOverview محرك تخصيص القائمة الجانبية - تم إضافة قسم الوقت للقائمة الافتراضية.
  */
 export const useSidebarStore = create<SidebarState>()(
   persist(
     (set, get) => ({
-      // إضافة 'lab' للقائمة المثبتة افتراضياً ليراها المستخدم فوراً
-      pinnedItems: ["dashboard", "chat", "vault", "agent-ai", "peer-chat", "stream", "market", "launcher", "lab", "ads", "downloads", "wallet"],
+      pinnedItems: ["dashboard", "time", "chat", "vault", "agent-ai", "peer-chat", "stream", "market", "launcher", "lab", "ads", "downloads", "wallet"],
 
       togglePin: (id) => {
         const { pinnedItems } = get();

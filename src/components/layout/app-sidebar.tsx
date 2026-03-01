@@ -1,5 +1,4 @@
-
-"use client";
+'use client';
 
 import React from "react";
 import { 
@@ -8,7 +7,7 @@ import {
 import { 
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat, 
   BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, 
-  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown
+  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown, Clock
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
 
   const ALL_NAV_ITEMS = [
     { id: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard, restricted: false },
+    { id: "time", label: "تنظيم الوقت", icon: Clock, restricted: false },
     { id: "chat", label: "الدردشة الذكية", icon: MessageSquare, restricted: false },
     { id: "agent-ai", label: "المهندس المساعد", icon: Cpu, restricted: false },
     { id: "vault", label: "خزنة الملفات", icon: HardDrive, restricted: false },
@@ -72,6 +72,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
                 <item.icon className={cn(
                   "size-5", 
                   item.id === 'admin' && (user?.role === 'founder' ? "text-amber-400" : "text-indigo-400"), 
+                  item.id === 'time' && "text-primary",
                   item.id === 'vault' && "text-amber-400", 
                   item.id === 'downloads' && "text-primary"
                 )} />
