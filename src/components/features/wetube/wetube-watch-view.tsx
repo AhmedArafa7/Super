@@ -49,7 +49,7 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
                 </div>
 
                 {/* === 2. TITLE SECTION === */}
-                <h1 dir="auto" className="text-xl sm:text-2xl font-bold text-[#f1f1f1] mt-4 mb-2 leading-tight">
+                <h1 dir="auto" className="text-xl sm:text-2xl font-bold text-foreground mt-4 mb-2 leading-tight">
                     {video.title}
                 </h1>
 
@@ -62,8 +62,8 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
                             <img src={`https://picsum.photos/seed/${video.author}/40/40`} className="size-full object-cover" alt="Avatar" />
                         </div>
                         <div className="flex flex-col min-w-0 pr-1">
-                            <span className="font-bold text-[#f1f1f1] text-[16px] truncate cursor-pointer hover:text-white">{video.author}</span>
-                            <span className="text-[#aaaaaa] text-xs truncate">456 ألف مشترك</span>
+                            <span className="font-bold text-foreground text-[16px] truncate cursor-pointer hover:text-white">{video.author}</span>
+                            <span className="text-muted-foreground text-xs truncate">456 ألف مشترك</span>
                         </div>
 
                         <button
@@ -140,20 +140,20 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
                 {/* === 4. EXPANDABLE DESCRIPTION BOX === */}
                 <div
                     className={cn(
-                        "bg-[#272727] hover:bg-[#3f3f3f] transition-colors p-3 rounded-xl cursor-pointer text-sm mb-6",
-                        !isDescriptionExpanded && "hover:bg-[#3f3f3f]"
+                        "bg-white/5 hover:bg-white/10 transition-colors p-3 rounded-xl cursor-pointer text-sm mb-6 border border-white/5 shadow-sm",
+                        !isDescriptionExpanded && "hover:bg-white/10"
                     )}
                     onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
                 >
-                    <div className="font-bold text-[#f1f1f1] flex items-center gap-2 mb-1">
+                    <div className="font-bold text-foreground flex items-center gap-2 mb-1">
                         <span>{viewCount} مشاهدة</span>
                         <span>{dateStr}</span>
-                        {video.category && <span className="text-[#aaaaaa] font-medium ml-1">#{video.category}</span>}
+                        {video.category && <span className="text-muted-foreground font-medium ml-1">#{video.category}</span>}
                     </div>
-                    <div className={cn("text-[#f1f1f1] whitespace-pre-wrap mt-2", !isDescriptionExpanded && "line-clamp-2")}>
+                    <div className={cn("text-foreground whitespace-pre-wrap mt-2", !isDescriptionExpanded && "line-clamp-2")}>
                         {video.description || `هذا هو الوصف التلقائي للفيديو المسمى "${video.title}". في هذه المساحة يمكن للناشر توفير روابط إضافية ومقاطع زمنية وتفاصيل حول المحتوى لكي يستفيد منها المشاهد.\n\nتابعنا على وسائل التواصل الاجتماعي لمزيد من الفيديوهات الحصرية والدروس المتقدمة.`}
                     </div>
-                    <button className="mt-2 text-[#f1f1f1] font-bold">
+                    <button className="mt-2 text-foreground font-bold">
                         {isDescriptionExpanded ? "عرض أقل" : "عرض المزيد"}
                     </button>
                 </div>
@@ -189,13 +189,13 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
                             </div>
                             <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-medium text-sm text-[#f1f1f1]">@user-{i}x9</span>
-                                    <span className="text-xs text-[#aaaaaa]">منذ {i} أيام</span>
+                                    <span className="font-medium text-sm text-foreground">@user-{i}x9</span>
+                                    <span className="text-xs text-muted-foreground">منذ {i} أيام</span>
                                 </div>
-                                <p className="text-sm text-[#f1f1f1] mb-2 leading-relaxed">
+                                <p className="text-sm text-foreground mb-2 leading-relaxed">
                                     هذا تعليق محاكاة يوضح كيف يبدو قسم التعليقات في تصميم يوتيوب. تم مراعاة الخطوط، المسافات، وأزرار التفاعل بالأسفل!
                                 </p>
-                                <div className="flex items-center gap-4 text-[#aaaaaa]">
+                                <div className="flex items-center gap-4 text-muted-foreground">
                                     <button className="hover:text-white flex items-center justify-center p-1.5 rounded-full hover:bg-white/10"><ThumbsUp className="size-4" /></button>
                                     <span className="text-xs -mr-2">{(i * 11).toLocaleString()}</span>
                                     <button className="hover:text-white flex items-center justify-center p-1.5 rounded-full hover:bg-white/10"><ThumbsDown className="size-4" /></button>
@@ -233,14 +233,14 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
                             <div className="absolute bottom-1 right-1 bg-black/80 text-white text-[12px] font-medium px-1 rounded">12:34</div>
                         </div>
                         <div className="flex flex-col flex-1 py-0.5 relative pr-1">
-                            <h4 dir="auto" className="text-sm font-medium text-[#f1f1f1] line-clamp-2 leading-snug group-hover:text-blue-400">{rv.title}</h4>
-                            <p className="text-xs text-[#aaaaaa] mt-1 hover:text-[#f1f1f1]">{rv.author}</p>
-                            <div className="text-xs text-[#aaaaaa] flex items-center gap-1">
+                            <h4 dir="auto" className="text-sm font-medium text-foreground line-clamp-2 leading-snug group-hover:text-blue-400">{rv.title}</h4>
+                            <p className="text-xs text-muted-foreground mt-1 hover:text-foreground">{rv.author}</p>
+                            <div className="text-xs text-muted-foreground flex items-center gap-1">
                                 <span>{(typeof rv.views === 'number' ? rv.views : 5000).toLocaleString()} مشاهدة</span>
                                 <span>•</span>
                                 <span>منذ يوم</span>
                             </div>
-                            <button className="absolute top-0 left-0 p-1 opacity-0 group-hover:opacity-100 hover:bg-[#3f3f3f] rounded-full"><MoreHorizontal className="size-4" /></button>
+                            <button className="absolute top-0 left-0 p-1 opacity-0 group-hover:opacity-100 hover:bg-white/10 rounded-full"><MoreHorizontal className="size-4" /></button>
                         </div>
                     </div>
                 ))}

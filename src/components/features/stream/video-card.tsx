@@ -41,10 +41,10 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
           </div>
         </div>
         <div>
-          <h3 dir="auto" className="font-medium text-[#f1f1f1] text-[15px] leading-tight line-clamp-2 text-right group-hover:text-blue-400 transition-colors">
+          <h3 dir="auto" className="font-medium text-foreground text-[15px] leading-tight line-clamp-2 text-right group-hover:text-blue-400 transition-colors">
             {video.title}
           </h3>
-          <p className="text-sm text-[#aaaaaa] text-right mt-1">{views} مشاهدة</p>
+          <p className="text-sm text-muted-foreground text-right mt-1">{views} مشاهدة</p>
         </div>
       </div>
     );
@@ -105,11 +105,11 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
 
         {/* Text Info */}
         <div className="flex flex-col flex-1 min-w-0 text-right">
-          <h3 dir="auto" className="font-medium text-[#f1f1f1] text-[16px] leading-snug line-clamp-2 group-hover:text-blue-400 transition-colors mb-1 pr-6 relative">
+          <h3 dir="auto" className="font-medium text-foreground text-[16px] leading-snug line-clamp-2 group-hover:text-blue-400 transition-colors mb-1 pr-6 relative">
             {video.title}
           </h3>
-          <div className="text-[14px] text-[#aaaaaa] flex flex-col">
-            <span className="truncate hover:text-[#f1f1f1] transition-colors">{video.author}</span>
+          <div className="text-[14px] text-muted-foreground flex flex-col">
+            <span className="truncate hover:text-foreground transition-colors">{video.author}</span>
             <div className="flex items-center justify-end gap-1 flex-row-reverse truncate">
               <span>{views} مشاهدة</span>
               <span className="text-[10px] mx-0.5">•</span>
@@ -120,7 +120,7 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
 
         {/* Context Menu Icon (Hover only on Desktop) */}
         <button
-          className="p-1.5 -mt-1 -mr-1 h-fit rounded-full text-[#f1f1f1] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:bg-[#3f3f3f]"
+          className="p-1.5 -mt-1 -mr-1 h-fit rounded-full text-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:bg-white/10"
           onClick={(e) => { e.stopPropagation(); /* Options Menu */ }}
         >
           <MoreVertical className="size-5" />

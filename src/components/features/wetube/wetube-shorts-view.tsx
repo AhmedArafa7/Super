@@ -41,14 +41,14 @@ export function WeTubeShortsView({ shorts }: { shorts: any[] }) {
     };
 
     return (
-        <div className="flex-1 overflow-y-auto h-[calc(100vh-56px)] snap-y snap-mandatory hide-scroll flex justify-center bg-[#0f0f0f]" onScroll={handleScroll}>
+        <div className="flex-1 overflow-y-auto h-full snap-y snap-mandatory hide-scroll flex justify-center bg-transparent" onScroll={handleScroll}>
             <div className="flex flex-col w-full max-w-[480px]">
                 {shorts.map((short, index) => {
                     const ytId = short.source === 'youtube' ? getYoutubeId(short.externalUrl) : null;
                     const isActive = index === activeIndex;
 
                     return (
-                        <div key={short.id} className="h-[calc(100vh-56px)] snap-start w-full relative flex items-center justify-center p-4 py-6 rtl">
+                        <div key={short.id} className="h-full snap-start w-full relative flex items-center justify-center p-4 py-6 rtl">
 
                             {/* Short Container */}
                             <div
