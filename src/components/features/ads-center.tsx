@@ -34,11 +34,11 @@ export function AdsCenter() {
     }
     try {
       const { ads: fetchedAds, lastVisible: nextCursor } = await getAds(
-        'active', 
-        15, 
-        isLoadMore ? lastVisible || undefined : undefined
+        'active',
+        15,
+        isLoadMore ? (lastVisible || undefined) : undefined
       );
-      
+
       setAds(prev => isLoadMore ? [...prev, ...fetchedAds] : fetchedAds);
       setLastVisible(nextCursor);
       setHasMore(fetchedAds.length === 15);
@@ -53,8 +53,8 @@ export function AdsCenter() {
     loadAds();
   }, []);
 
-  const filteredAds = ads.filter(ad => 
-    ad.title.toLowerCase().includes(search.toLowerCase()) || 
+  const filteredAds = ads.filter(ad =>
+    ad.title.toLowerCase().includes(search.toLowerCase()) ||
     ad.description.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -74,10 +74,10 @@ export function AdsCenter() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={() => loadAds()} 
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => loadAds()}
             disabled={isLoading}
             className="size-12 rounded-2xl border-white/5 bg-white/5 hover:bg-white/10"
           >
@@ -89,9 +89,9 @@ export function AdsCenter() {
 
       <div className="relative max-w-2xl ml-auto">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
-        <Input 
+        <Input
           dir="auto"
-          placeholder="ابحث عن عروض، خدمات، أو دروس..." 
+          placeholder="ابحث عن عروض، خدمات، أو دروس..."
           className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pr-12 text-right focus-visible:ring-amber-500 shadow-2xl text-white text-lg"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -105,18 +105,18 @@ export function AdsCenter() {
           ))
         ) : filteredAds.length === 0 ? (
           <div className="col-span-full py-32">
-            <EmptyState 
-              icon={Sparkles} 
-              title="اللوحة فارغة حالياً" 
-              description="لا توجد إعلانات نشطة مطابقة في منطقتك العصبية. شاركنا بإعلانك الأول الآن!" 
+            <EmptyState
+              icon={Sparkles}
+              title="اللوحة فارغة حالياً"
+              description="لا توجد إعلانات نشطة مطابقة في منطقتك العصبية. شاركنا بإعلانك الأول الآن!"
             />
           </div>
         ) : (
           filteredAds.map((ad) => (
-            <AdCard 
-              key={ad.id} 
-              ad={ad} 
-              userId={user?.id} 
+            <AdCard
+              key={ad.id}
+              ad={ad}
+              userId={user?.id}
               onRewardClaimed={() => toast({ title: "تم استحقاق المكافأة" })}
             />
           ))
@@ -125,9 +125,9 @@ export function AdsCenter() {
 
       {hasMore && ads.length > 0 && (
         <div className="flex justify-center pb-20">
-          <Button 
-            variant="ghost" 
-            onClick={() => loadAds(true)} 
+          <Button
+            variant="ghost"
+            onClick={() => loadAds(true)}
             disabled={isLoading}
             className="h-12 px-10 rounded-xl bg-white/5 hover:bg-white/10 text-amber-400 font-bold gap-2"
           >

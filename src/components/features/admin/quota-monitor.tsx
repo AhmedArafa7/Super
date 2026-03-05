@@ -2,8 +2,8 @@
 "use client";
 
 import React from "react";
-import { 
-  Activity, Database, Cloud, Zap, 
+import {
+  Activity, Database, Cloud, Zap,
   ExternalLink, Info, Clock, Calendar, Gauge
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -26,7 +26,20 @@ export function QuotaMonitor({ data }: { data: any }) {
   const totalVideos = data?.videos?.length || 0;
   const totalTxs = data?.transactions?.length || 0;
 
-  const RESOURCE_GROUPS = [
+  type ResourceItem = {
+    label: string;
+    used: number;
+    limit: number;
+    unit: string;
+    desc: string;
+    color: string;
+    isDaily?: boolean;
+    isMonthly?: boolean;
+    isTotal?: boolean;
+    extraLink?: string;
+  };
+
+  const RESOURCE_GROUPS: { title: string; period: string; icon: any; consoleUrl?: string; items: ResourceItem[]; }[] = [
     {
       title: "محركات الذكاء الاصطناعي (AI Engines)",
       period: "الدورة: في الدقيقة (RPM)",
@@ -94,12 +107,12 @@ export function QuotaMonitor({ data }: { data: any }) {
               </div>
               <group.icon className="size-5 text-primary opacity-50" />
             </div>
-            
+
             <div className="p-8 space-y-10 flex-1">
               {group.items.map((item, iIdx) => {
                 const percentage = Math.min(100, Math.round((item.used / item.limit) * 100));
                 const isWarning = percentage > 80;
-                
+
                 return (
                   <div key={iIdx} className="space-y-3 relative group/item">
                     <div className="flex justify-between items-end flex-row-reverse">
@@ -129,9 +142,9 @@ export function QuotaMonitor({ data }: { data: any }) {
                         <span className="text-[10px] text-muted-foreground ml-1">/ {item.limit.toLocaleString()} {item.unit}</span>
                       </div>
                     </div>
-                    
+
                     <div className="relative h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className={cn(
                           "h-full transition-all duration-1000 rounded-full",
                           isWarning ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" : "bg-primary shadow-[0_0_10px_rgba(99,102,241,0.5)]"
@@ -139,7 +152,7 @@ export function QuotaMonitor({ data }: { data: any }) {
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
-                    
+
                     <div className="flex justify-between text-[8px] font-black uppercase tracking-tighter">
                       <span className={isWarning ? "text-red-400 animate-pulse" : "text-muted-foreground"}>
                         {isWarning ? "CRITICAL LOAD" : "STABLE"}

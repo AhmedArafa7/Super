@@ -26,9 +26,9 @@ import { ChatSettings } from "./chat/chat-settings";
 export function AIChat() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { 
-    messages, sendMessage, provideAIResponse, loadMessages, 
-    updateMessageRequest, deleteMessage, selectedManualModel, setSelectedManualModel 
+  const {
+    messages, sendMessage, provideAIResponse, loadMessages,
+    updateMessageRequest, deleteMessage, selectedManualModel, setSelectedManualModel
   } = useChatStore();
 
   const [input, setInput] = useState("");
@@ -36,19 +36,19 @@ export function AIChat() {
   const [autoRead, setAutoRead] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [editingMsg, setEditingMsg] = useState<any>(null);
-  
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const { audioQueue, currentlyPlayingId, handleAudioFinished } = useChatAudio(messages, autoRead);
 
   const availableModels = useMemo(() => {
-    const models = [
+    const models: any[] = [
       { id: 'googleai/gemini-1.5-flash', label: 'NexusAI (Flash)', desc: 'المحرك العصبي الأساسي' },
       { id: 'groq/llama-3.3-70b-versatile', label: 'Groq Llama 3.3', desc: 'محرك فائق السرعة' }
     ];
     if (user?.classification === 'investor' || user?.classification === 'manager') {
-      models.push({ 
-        id: 'googleai/gemini-1.5-pro', 
-        label: 'Gemini Pro', 
+      models.push({
+        id: 'googleai/gemini-1.5-pro',
+        label: 'Gemini Pro',
         desc: 'تحليل فائق الدقة',
         count: user.proResponsesRemaining || 0
       });
@@ -72,10 +72,10 @@ export function AIChat() {
 
     // بروتوكول حماية الخصوصية: إذا رفض المستخدم، يتم حظر المعالجة
     if (user.dataConsent === 'declined') {
-      toast({ 
-        variant: "destructive", 
-        title: "وضع الخصوصية المطلقة نشط", 
-        description: "لقد اخترت عدم مشاركة بياناتك، لذا تم تعطيل محرك الذكاء الاصطناعي والمزامنة مع الأدمن." 
+      toast({
+        variant: "destructive",
+        title: "وضع الخصوصية المطلقة نشط",
+        description: "لقد اخترت عدم مشاركة بياناتك، لذا تم تعطيل محرك الذكاء الاصطناعي والمزامنة مع الأدمن."
       });
       return;
     }
@@ -89,7 +89,7 @@ export function AIChat() {
     const currentAttachments = [...attachments];
     setInput("");
     setAttachments([]);
-    
+
     let savedMsgId: string;
     if (editingMsg) {
       const success = await updateMessageRequest(editingMsg.id, user.id, userText);
@@ -114,7 +114,7 @@ export function AIChat() {
           manualModel: selectedManualModel,
           history: messages.slice(-6).map(m => ({ role: m.status === 'replied' ? 'model' : 'user', content: m.response || m.text }))
         });
-        
+
         if (res.error) throw new Error(res.message);
 
         await provideAIResponse(savedMsgId, user.id, {
@@ -130,9 +130,9 @@ export function AIChat() {
       }
     } catch (err: any) {
       const errorMsg = err.message || "تعذر الاتصال بالنخاع العصبي.";
-      toast({ 
-        variant: "destructive", 
-        title: "Neural Link Error", 
+      toast({
+        variant: "destructive",
+        title: "Neural Link Error",
         description: errorMsg,
         action: (
           <ToastAction altText="Copy" onClick={() => {
@@ -150,13 +150,13 @@ export function AIChat() {
 
   const handleFileSelect = (file: File) => {
     const reader = new FileReader();
-    reader.onload = (ev) => setAttachments([{ 
-      id: Math.random().toString(36).substring(7), 
-      name: file.name, 
-      type: 'image', 
-      url: ev.target?.result as string, 
-      size: `${(file.size/1024).toFixed(0)}KB`, 
-      mimeType: file.type 
+    reader.onload = (ev) => setAttachments([{
+      id: Math.random().toString(36).substring(7),
+      name: file.name,
+      type: 'image',
+      url: ev.target?.result as string,
+      size: `${(file.size / 1024).toFixed(0)}KB`,
+      mimeType: file.type
     }]);
     reader.readAsDataURL(file);
   };
@@ -175,7 +175,7 @@ export function AIChat() {
               لقد اخترت عدم مشاركة بياناتك مع النظام. حفاظاً على هذا القرار، تم تعطيل كافة وظائف الدردشة الذكية والمزامنة لضمان عدم خروج أي معلومة من جهازك.
             </p>
           </div>
-          <Button 
+          <Button
             onClick={() => updateUserProfile(user.id, { dataConsent: 'none' })}
             className="bg-primary hover:bg-primary/90 h-12 rounded-xl font-bold px-10"
           >
@@ -195,15 +195,15 @@ export function AIChat() {
               <EmptyState icon={Sparkles} title="نظام NexusAI v5.5" description="أنا محركك العصبي المتكامل. كيف يمكنني مساعدتك اليوم؟" />
             )}
             {messages.map(m => (
-              <ChatMessage 
-                key={m.id} 
-                msg={m} 
+              <ChatMessage
+                key={m.id}
+                msg={m}
                 user={user}
                 isInAudioQueue={audioQueue.includes(m.id)}
                 isMyTurnToPlay={currentlyPlayingId === m.id}
                 onAudioFinished={handleAudioFinished}
-                onEdit={(msg) => { setEditingMsg(msg); setInput(msg.originalText || msg.text); }} 
-                onDelete={(id) => deleteMessage(id, user?.id || "")} 
+                onEdit={(msg) => { setEditingMsg(msg); setInput(msg.originalText || msg.text); }}
+                onDelete={(id) => deleteMessage(id, user?.id || "")}
               />
             ))}
             {isAITyping && (
@@ -215,22 +215,22 @@ export function AIChat() {
         </ScrollArea>
 
         <div className="px-8 flex items-center justify-between flex-row-reverse mb-4">
-           <ChatSettings 
-             availableModels={availableModels} 
-             selectedModel={selectedManualModel} 
-             autoRead={autoRead}
-             onModelChange={setSelectedManualModel}
-             onAutoReadChange={setAutoRead}
-           />
+          <ChatSettings
+            availableModels={availableModels}
+            selectedModel={selectedManualModel}
+            autoRead={autoRead}
+            onModelChange={setSelectedManualModel}
+            onAutoReadChange={setAutoRead}
+          />
         </div>
 
-        <ChatInput 
-          input={input} 
-          setInput={setInput} 
-          isAITyping={isAITyping} 
-          isEditing={!!editingMsg} 
-          onSend={handleSend} 
-          onFileSelect={handleFileSelect} 
+        <ChatInput
+          input={input}
+          setInput={setInput}
+          isAITyping={isAITyping}
+          isEditing={!!editingMsg}
+          onSend={handleSend}
+          onFileSelect={handleFileSelect}
         />
       </div>
     </div>

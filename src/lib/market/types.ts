@@ -38,6 +38,8 @@ export interface CategoryRequest {
   createdAt: string;
 }
 
+export type OfferStatus = 'pending' | 'accepted' | 'rejected';
+
 export interface MarketOffer {
   id: string;
   productId: string;
@@ -48,7 +50,7 @@ export interface MarketOffer {
   type: 'price' | 'trade';
   value: number;
   details: string;
-  status: 'pending' | 'accepted' | 'rejected';
+  status: OfferStatus;
   timestamp: string;
 }
 

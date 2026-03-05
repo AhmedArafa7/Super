@@ -28,7 +28,7 @@ import { TimeManagement } from "@/components/features/time-management";
 import { getNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
-import { useStreamStore } from "@/lib/stream-store"; 
+import { useStreamStore } from "@/lib/stream-store";
 import { useSidebarStore, NavItemId } from "@/lib/sidebar-store";
 import { getReceivedOffers } from "@/lib/market-store";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -49,9 +49,9 @@ export function AppShell() {
   const [activeTab, setActiveTab] = useState<NavItemId>("dashboard");
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingOffersCount, setPendingOffersCount] = useState(0);
-  
+
   const [activeRecipientId, setActiveRecipientId] = useState<string | undefined>(undefined);
-  const [launchedApp, setLaunchedApp] = useState<{url: string, title: string, isVault?: boolean} | null>(null);
+  const [launchedApp, setLaunchedApp] = useState<{ url: string, title: string, isVault?: boolean } | null>(null);
 
   const setCurrentTab = useStreamStore(state => state.setCurrentTab);
   const { isPinned, togglePin } = useSidebarStore();
@@ -112,23 +112,23 @@ export function AppShell() {
       case "ads": return <AdsCenter />;
       case "downloads": return <DownloadCenter />;
       case "peer-chat": return <PeerChat initialTargetId={activeRecipientId} />;
-      case "stream": return <WeTube onOpenVault={() => setLaunchedApp({url: VAULT_EMBED_URL, title: "Nexus Central Vault", isVault: true})} />;
-      case "market": return <TechMarket onLaunchApp={(url, title) => setLaunchedApp({url, title})} />;
+      case "stream": return <WeTube onOpenVault={() => setLaunchedApp({ url: VAULT_EMBED_URL, title: "Nexus Central Vault", isVault: true })} />;
+      case "market": return <TechMarket onLaunchApp={(url, title) => setLaunchedApp({ url, title })} />;
       case "launcher": return <AppLauncher />;
       case "wallet": return <WalletView />;
       case "offers": return <OffersInbox />;
       case "lab": return <NeuralLab />;
-      case "directory": return <NodeDirectory onNavigate={(tab, payload) => { 
+      case "directory": return <NodeDirectory onNavigate={(tab, payload) => {
         if (tab === 'peer-chat' && payload) handleNavigateToPeerChat(payload);
-        else setActiveTab(tab); 
+        else setActiveTab(tab);
       }} />;
       case "features": return <Capabilities />;
-      case "admin": 
-        if (user?.role === 'admin' || user?.role === 'founder') return <AdminPanel />;
+      case "admin":
+        if (['founder', 'cofounder', 'admin', 'management'].includes(user?.role || '')) return <AdminPanel />;
         return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
       case "learning": return <KnowledgeHub />;
       case "hisn": return <HisnAlMuslim />;
-      case "notifications": return <NotificationsView onSmartRoute={() => {}} />;
+      case "notifications": return <NotificationsView onSmartRoute={() => { }} />;
       default: return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
     }
   };
@@ -136,10 +136,10 @@ export function AppShell() {
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen w-full bg-background hero-gradient overflow-hidden">
-        <AppSidebar 
-          activeTab={activeTab} onTabChange={(id: any) => { setActiveTab(id); setLaunchedApp(null); setActiveRecipientId(undefined); }} 
-          user={user} logout={logout} isPinned={isPinned} togglePin={togglePin} 
-          uploadTasks={uploadTasks} unreadCount={unreadCount} pendingOffersCount={pendingOffersCount} 
+        <AppSidebar
+          activeTab={activeTab} onTabChange={(id: any) => { setActiveTab(id); setLaunchedApp(null); setActiveRecipientId(undefined); }}
+          user={user} logout={logout} isPinned={isPinned} togglePin={togglePin}
+          uploadTasks={uploadTasks} unreadCount={unreadCount} pendingOffersCount={pendingOffersCount}
         />
         <div className="flex-1 flex flex-col h-screen overflow-hidden">
           <AppHeader unreadCount={unreadCount} onTabChange={setActiveTab} onNavigateToWallet={() => setActiveTab("wallet")} />

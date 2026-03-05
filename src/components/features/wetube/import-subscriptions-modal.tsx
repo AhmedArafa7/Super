@@ -81,21 +81,21 @@ export function ImportSubscriptionsModal({ isOpen, onOpenChange, userId }: Impor
                     }
 
                     if (channelId && channelId.startsWith('UC')) {
-                        const channelUrl = \`https://www.youtube.com/channel/\${channelId}\`;
-             try {
-                await addSubscription(userId, channelUrl, channelTitle || "قناة جديدة", channelId, "");
-                successCount++;
-             } catch (err) {
-                console.warn("Failed to add:", channelTitle, err);
-             }
-          }
-          setProgress(i + 1);
-        }
+                        const channelUrl = `https://www.youtube.com/channel/${channelId}`;
+                        try {
+                            await addSubscription(userId, channelUrl, channelTitle || "قناة جديدة", channelId, "");
+                            successCount++;
+                        } catch (err) {
+                            console.warn("Failed to add:", channelTitle, err);
+                        }
+                    }
+                    setProgress(i + 1);
+                }
 
-        toast({
-          title: "اكتمل الاستيراد",
-          description: \`تم إضافة \${successCount} قناة بنجاح من أصل \${dataRows.length} قناة.\`,
-        });
+                toast({
+                    title: "اكتمل الاستيراد",
+                    description: `تم إضافة ${successCount} قناة بنجاح من أصل ${dataRows.length} قناة.`,
+                });
         
         setTimeout(() => {
           onOpenChange(false);
@@ -169,7 +169,7 @@ export function ImportSubscriptionsModal({ isOpen, onOpenChange, userId }: Impor
                 <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden mt-4">
                    <div 
                      className="h-full bg-blue-500 transition-all duration-300" 
-                     style={{ width: \`\${total > 0 ? (progress / total) * 100 : 0}%\` }}
+                     style={{ width: `${total > 0 ? (progress / total) * 100 : 0}%` }}
                    ></div>
                 </div>
              </div>

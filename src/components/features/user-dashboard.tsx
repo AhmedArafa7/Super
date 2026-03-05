@@ -23,7 +23,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
   const { user } = useAuth();
   const wallet = useWalletStore(state => state.wallet);
   const { getTotalUsedSpace, storageLimitMB, cachedAssets } = useGlobalStorage();
-  
+
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [pendingOffersCount, setPendingOffersCount] = useState(0);
@@ -40,7 +40,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
     setIsLoadingOrders(true);
     try {
       const allTx = await getTransactions(user.id);
-      const purchaseTxs = (allTx || []).filter(tx => 
+      const purchaseTxs = (allTx || []).filter(tx =>
         tx.type === 'purchase_hold' || tx.type === 'purchase_release' || tx.type === 'purchase_refund'
       );
       setOrders(purchaseTxs);
@@ -56,7 +56,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
     try {
       const offers = await getReceivedOffers(user.id);
       setPendingOffersCount(offers.filter(o => o.status === 'pending').length);
-    } catch (err) {}
+    } catch (err) { }
   };
 
   const usedSpace = getTotalUsedSpace();
@@ -75,7 +75,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
           </div>
         </div>
         <div className="flex gap-3">
-          {user?.role === 'admin' && (
+          {['founder', 'cofounder', 'admin', 'management'].includes(user?.role || '') && (
             <button onClick={() => onNavigate?.("admin")} className="flex items-center gap-2 border border-indigo-500/30 text-indigo-400 rounded-xl font-bold px-4 py-2 hover:bg-indigo-500/10 transition-all">
               <ShieldAlert className="size-4" /> Neural Console
             </button>

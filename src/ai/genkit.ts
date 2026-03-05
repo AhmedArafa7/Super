@@ -1,6 +1,6 @@
 
-import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/google-genai';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 import Groq from 'groq-sdk';
 
 /**
@@ -28,7 +28,7 @@ const createGroqModelHandler = (modelName: string) => async (input: any) => {
   // تحويل الأدوار من Genkit (model) إلى Groq (assistant)
   const messages = input.messages.map((m: any) => ({
     role: (m.role === 'model' ? 'assistant' : m.role) as 'system' | 'user' | 'assistant',
-    content: Array.isArray(m.content) 
+    content: Array.isArray(m.content)
       ? m.content.map((c: any) => c.text || '').join('')
       : (m.content || ''),
   }));
@@ -58,9 +58,9 @@ const GROQ_MODELS = [
 GROQ_MODELS.forEach(m => {
   ai.defineModel(
     {
-      name: `groq/${m.id}`,
+      name: `groq/${m.id}` as any,
       label: m.label,
     },
-    createGroqModelHandler(m.id)
+    createGroqModelHandler(m.id) as any
   );
 });

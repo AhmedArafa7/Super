@@ -24,7 +24,8 @@ interface CategoryLimit {
 interface GlobalStorageState {
   cachedAssets: CachedAsset[];
   categoryLimits: Record<AssetType, number>;
-  
+  storageLimitMB: number;
+
   addAsset: (asset: Omit<CachedAsset, 'timestamp' | 'isFavorite'>) => void;
   removeAsset: (id: string) => void;
   toggleFavorite: (id: string) => void;
@@ -32,6 +33,7 @@ interface GlobalStorageState {
   clearCategorySpace: (type: AssetType, requiredSpace: number) => void;
   getUsedSpaceByCategory: (type: AssetType) => number;
   getTotalUsedSpace: () => number;
+  setStorageLimit: (limit: number) => void;
 }
 
 /**
@@ -42,6 +44,7 @@ export const useGlobalStorage = create<GlobalStorageState>()(
   persist(
     (set, get) => ({
       cachedAssets: [],
+      storageLimitMB: 500,
       categoryLimits: {
         'quran': 100,
         'video': 300,
@@ -52,10 +55,10 @@ export const useGlobalStorage = create<GlobalStorageState>()(
       addAsset: (assetData) => {
         const { cachedAssets, categoryLimits, clearCategorySpace, getUsedSpaceByCategory } = get();
         const existing = cachedAssets.find(a => a.id === assetData.id);
-        
+
         if (existing) {
           set({
-            cachedAssets: cachedAssets.map(a => 
+            cachedAssets: cachedAssets.map(a =>
               a.id === assetData.id ? { ...a, timestamp: Date.now() } : a
             )
           });
@@ -84,7 +87,7 @@ export const useGlobalStorage = create<GlobalStorageState>()(
 
       toggleFavorite: (id) => {
         set({
-          cachedAssets: get().cachedAssets.map(a => 
+          cachedAssets: get().cachedAssets.map(a =>
             a.id === id ? { ...a, isFavorite: !a.isFavorite } : a
           )
         });
@@ -99,7 +102,7 @@ export const useGlobalStorage = create<GlobalStorageState>()(
       clearCategorySpace: (type, requiredSpace) => {
         const { cachedAssets, categoryLimits } = get();
         const limit = categoryLimits[type] || 100;
-        
+
         let assetsOfCategory = cachedAssets.filter(a => a.type === type);
         let currentTotal = assetsOfCategory.reduce((acc, a) => acc + (a.sizeMB || 0), 0);
 
@@ -115,8 +118,8 @@ export const useGlobalStorage = create<GlobalStorageState>()(
           idsToRemove.add(candidate.id);
         }
 
-        set({ 
-          cachedAssets: cachedAssets.filter(a => !idsToRemove.has(a.id)) 
+        set({
+          cachedAssets: cachedAssets.filter(a => !idsToRemove.has(a.id))
         });
       },
 
@@ -128,11 +131,13 @@ export const useGlobalStorage = create<GlobalStorageState>()(
 
       getTotalUsedSpace: () => {
         return get().cachedAssets.reduce((acc, a) => acc + (a.sizeMB || 0), 0);
-      }
+      },
+
+      setStorageLimit: (limit) => set({ storageLimitMB: limit }),
     }),
-    { 
+    {
       name: 'nexus-segmented-storage-v2',
-      version: 2 
+      version: 2
     }
   )
 );

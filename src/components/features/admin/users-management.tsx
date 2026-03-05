@@ -49,6 +49,7 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
     setIsCreatingUser(true);
     try {
       await addUser({
+        id: crypto.randomUUID(),
         name: newUser.name,
         username: newUser.username,
         role: newUser.role,
@@ -56,7 +57,8 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
         proResponsesRemaining: 0,
         proTTSRemaining: 0,
         avatar_url: `https://picsum.photos/seed/${newUser.username}/100/100`,
-        canManageCredits: false
+        canManageCredits: false,
+        dataConsent: 'agreed'
       });
       toast({ title: "تم تسجيل العقدة", description: `المستخدم ${newUser.name} أصبح جزءاً من النظام.` });
       setNewUser({ name: '', username: '', role: 'free' });

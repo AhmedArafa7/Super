@@ -7,13 +7,13 @@ import { MarketOffer } from './types';
 
 export const addMarketOffer = async (productId: string, sellerId: string, itemTitle: string, offer: any) => {
   const { firestore } = initializeFirebase();
-  await addDoc(collection(firestore, 'offers'), { 
-    ...offer, 
-    productId, 
-    sellerId, 
+  await addDoc(collection(firestore, 'offers'), {
+    ...offer,
+    productId,
+    sellerId,
     itemTitle,
-    status: 'pending', 
-    timestamp: new Date().toISOString() 
+    status: 'pending',
+    timestamp: new Date().toISOString()
   });
   return true;
 };
@@ -37,8 +37,9 @@ export const getAllOffersAdmin = async (): Promise<MarketOffer[]> => {
   }
 };
 
-export const respondToOffer = async (offerId: string, status: string) => {
+export const respondToOffer = async (offerId: string, status: string, buyerId?: string, itemTitle?: string) => {
   const { firestore } = initializeFirebase();
   await updateDoc(doc(firestore, 'offers', offerId), { status });
+  // TODO: send notification to buyerId with itemTitle if provided
   return true;
 };

@@ -10,8 +10,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  getMarketItems, addMarketItem, updateMarketItem, MarketItem, 
+import {
+  getMarketItems, addMarketItem, updateMarketItem, MarketItem,
   MainCategory, SUB_CATEGORIES, uploadMarketImage, decrementStock
 } from "@/lib/market-store";
 import { uploadLearningFile } from "@/lib/learning-store";
@@ -30,19 +30,19 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
   const { user } = useAuth();
   const { toast } = useToast();
   const { wallet, adjustFunds, fetchWallet } = useWalletStore();
-  
+
   const [items, setItems] = useState<MarketItem[]>([]);
   const [activeView, setActiveView] = useState<'buy' | 'mine'>('buy');
   const [viewingItem, setViewingItem] = useState<MarketItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MarketItem | null>(null);
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [lastVisible, setLastVisible] = useState<DocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(true);
-  
+
   const [search, setSearch] = useState("");
   const [mainCat, setMainCat] = useState<MainCategory>("all");
   const [subCat, setSubCat] = useState<string>("all_subs");
@@ -52,12 +52,12 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
       setIsLoading(true);
       setItems([]);
     }
-    
+
     try {
       const { items: fetchedItems, lastVisible: nextCursor } = await getMarketItems(
-        ITEMS_PER_PAGE, 
+        ITEMS_PER_PAGE,
         isLoadMore ? lastVisible || undefined : undefined,
-        mainCat, 
+        mainCat,
         subCat,
         search
       );
@@ -119,17 +119,17 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
 
   const handleAcquire = async (item: MarketItem) => {
     if (!user) return;
-    
+
     try {
       const success = await adjustFunds(user.id, item.price, 'purchase_hold');
       if (success) {
         // تحديث المخزون في السيرفر
         const stockSuccess = await decrementStock(item.id);
-        
+
         if (stockSuccess) {
-          toast({ 
-            title: "تم الاستحواذ بنجاح", 
-            description: `لقد حجزت "${item.title}". تم تحديث سجلاتك والمخزون.` 
+          toast({
+            title: "تم الاستحواذ بنجاح",
+            description: `لقد حجزت "${item.title}". تم تحديث سجلاتك والمخزون.`
           });
           setViewingItem(null);
           loadData(false);
@@ -154,11 +154,11 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
 
   if (viewingItem) {
     return (
-      <MarketItemDetails 
-        item={viewingItem} 
-        userId={user?.id} 
+      <MarketItemDetails
+        item={viewingItem}
+        userId={user?.id}
         userBalance={wallet?.balance || 0}
-        onBack={() => setViewingItem(null)} 
+        onBack={() => setViewingItem(null)}
         onLaunch={onLaunchApp}
         onEdit={(item) => { setEditingItem(item); setIsModalOpen(true); }}
         onAcquire={handleAcquire}
@@ -182,7 +182,7 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
               </div>
               <p className="text-muted-foreground">سوق الأصول البرمجية والحلول الذكية اللامركزي.</p>
             </div>
-            
+
             <div className="flex items-center gap-3 w-full md:w-auto flex-row-reverse">
               <Tabs value={activeView} onValueChange={(v: any) => setActiveView(v)} className="bg-white/5 border border-white/10 rounded-xl p-1 flex-1 md:flex-none">
                 <TabsList className="bg-transparent h-10 w-full grid grid-cols-2">
@@ -190,7 +190,7 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
                   <TabsTrigger value="mine" className="rounded-lg data-[state=active]:bg-primary">أصولي</TabsTrigger>
                 </TabsList>
               </Tabs>
-              
+
               <Button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="bg-primary rounded-xl px-6 h-12 shadow-lg shadow-primary/20 flex-1 md:flex-none font-bold">
                 <Plus className="mr-2 size-5" /> إضافة منتج
               </Button>
@@ -200,18 +200,18 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
           <div className="flex flex-col md:flex-row gap-4 flex-row-reverse">
             <div className="relative flex-1">
               <Search className="absolute right-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
-              <Input 
-                dir="auto" 
-                placeholder="البحث في السجل العصبي العالمي..." 
-                className="w-full h-14 bg-white/5 border-white/10 rounded-2xl pr-12 text-right text-lg focus-visible:ring-primary shadow-inner text-white" 
-                value={search} 
-                onChange={(e) => setSearch(e.target.value)} 
+              <Input
+                dir="auto"
+                placeholder="البحث في السجل العصبي العالمي..."
+                className="w-full h-14 bg-white/5 border-white/10 rounded-2xl pr-12 text-right text-lg focus-visible:ring-primary shadow-inner text-white"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             {availableSubs.length > 0 && (
-              <ScrollArea className="w-full md:w-auto h-14" orientation="horizontal">
+              <ScrollArea className="w-full md:w-auto h-14 whitespace-nowrap">
                 <div className="flex gap-2 p-1 flex-row-reverse">
-                  <Badge 
+                  <Badge
                     variant={subCat === 'all_subs' ? 'default' : 'outline'}
                     className={cn("h-10 px-6 rounded-xl cursor-pointer transition-all", subCat === 'all_subs' ? "bg-indigo-600" : "border-white/10 hover:bg-white/5")}
                     onClick={() => setSubCat('all_subs')}
@@ -219,7 +219,7 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
                     كل الفئات
                   </Badge>
                   {availableSubs.map(s => (
-                    <Badge 
+                    <Badge
                       key={s.id}
                       variant={subCat === s.id ? 'default' : 'outline'}
                       className={cn("h-10 px-6 rounded-xl cursor-pointer whitespace-nowrap transition-all", subCat === s.id ? "bg-indigo-600" : "border-white/10 hover:bg-white/5")}
@@ -242,31 +242,31 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
                 <p className="text-muted-foreground animate-pulse font-bold tracking-widest text-xs uppercase">جاري مزامنة العقد...</p>
               </div>
             ) : filteredItems.length === 0 ? (
-              <EmptyState 
-                icon={Search} 
-                title="السجل فارغ" 
-                description={activeView === 'buy' ? "لم يتم العثور على أصول تناسب معايير البحث." : "لم تقم برفع أي أصول بعد."} 
+              <EmptyState
+                icon={Search}
+                title="السجل فارغ"
+                description={activeView === 'buy' ? "لم يتم العثور على أصول تناسب معايير البحث." : "لم تقم برفع أي أصول بعد."}
                 className="py-24"
               />
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8 pb-10">
                   {filteredItems.map((item) => (
-                    <MarketItemCard 
-                      key={item.id} 
-                      item={item} 
-                      userId={user?.id} 
-                      onClick={() => setViewingItem(item)} 
+                    <MarketItemCard
+                      key={item.id}
+                      item={item}
+                      userId={user?.id}
+                      onClick={() => setViewingItem(item)}
                       onEdit={(e) => { e.stopPropagation(); setEditingItem(item); setIsModalOpen(true); }}
                     />
                   ))}
                 </div>
-                
+
                 {hasMore && (
                   <div className="flex justify-center pb-20">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => loadData(true)} 
+                    <Button
+                      variant="outline"
+                      onClick={() => loadData(true)}
                       disabled={isLoading}
                       className="h-12 px-8 rounded-xl border-white/10 hover:bg-white/5 gap-2 font-bold"
                     >
@@ -281,8 +281,8 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
         </ScrollArea>
       </main>
 
-      <MarketFormDialog 
-        isOpen={isModalOpen} 
+      <MarketFormDialog
+        isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setEditingItem(null); }}
         onSave={handleSaveListing}
         editingItem={editingItem}

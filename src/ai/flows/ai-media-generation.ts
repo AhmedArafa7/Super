@@ -4,8 +4,8 @@
  * تم تحسين تشخيص الأخطاء لتوجيه المستخدم لصفحة الـ Credentials الصحيحة.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const PROJECT_ID = "studio-3522991053-84d29";
 
@@ -33,7 +33,7 @@ const generateImageFlow = ai.defineFlow(
       model: 'googleai/imagen-4.0-fast-generate-001',
       prompt: `Cinematic, futuristic, high detail, nexus cyberpunk style: ${prompt}`,
     });
-    
+
     if (!media) throw new Error("Image Generation Failed");
     return { url: media.url };
   }
@@ -56,16 +56,16 @@ const generateVideoFlow = ai.defineFlow(
   },
   async (prompt) => {
     const { operation } = await ai.generate({
-      model: googleAI.model('veo-3.0-generate-preview'),
+      model: 'googleai/veo-3.0-generate-preview' as any,
       prompt: `High-end cinematic cinematic 4k: ${prompt}`,
     });
 
     if (!operation) throw new Error("Video Node Unreachable");
-    
-    return { 
-      url: "", 
+
+    return {
+      url: "",
       status: "Operation Started",
-      opId: operation.name 
+      opId: (operation as any).name
     };
   }
 );

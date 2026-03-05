@@ -5,6 +5,7 @@ import { Zap, Activity, ShieldAlert, Cpu, Terminal, Loader2, CheckCircle2, XCirc
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase } from "@/firebase";
 import { useWalletStore } from "@/lib/wallet-store";
@@ -17,16 +18,16 @@ export function IntegrityCheck({ user }: { user: any }) {
   const { toast } = useToast();
   const { firestore, storage } = useFirebase();
   const wallet = useWalletStore(state => state.wallet);
-  
+
   const [isSimulating, setIsSimulating] = useState(false);
   const [testProgress, setTestProgress] = useState(0);
-  const [testResults, setTestResults] = useState<{label: string, status: 'success' | 'error'}[]>([]);
+  const [testResults, setTestResults] = useState<{ label: string, status: 'success' | 'error' }[]>([]);
 
   const runCheck = async () => {
     setIsSimulating(true);
     setTestProgress(0);
     setTestResults([]);
-    
+
     const steps = [
       { id: 1, label: "Firestore Handshake", check: () => !!firestore },
       { id: 2, label: "Storage Node Link", check: () => !!storage },
@@ -39,11 +40,11 @@ export function IntegrityCheck({ user }: { user: any }) {
       const step = steps[i];
       // محاكاة وقت المعالجة الحقيقي
       await new Promise(resolve => setTimeout(resolve, 800));
-      
+
       const isOk = step.check();
       setTestResults(prev => [...prev, { label: step.label, status: isOk ? 'success' : 'error' }]);
       setTestProgress(((i + 1) / steps.length) * 100);
-      
+
       if (!isOk) {
         toast({ variant: "destructive", title: "اضطراب في العقدة", description: `فشل فحص: ${step.label}` });
       }
@@ -61,7 +62,7 @@ export function IntegrityCheck({ user }: { user: any }) {
           فحص سلامة العقدة
           <Terminal className="text-indigo-400" />
         </h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {[
             { label: "حالة الربط", value: user ? "Active" : "Guest", icon: Activity },
@@ -87,8 +88,8 @@ export function IntegrityCheck({ user }: { user: any }) {
             <span className="text-xs font-mono text-indigo-400">{Math.round(testProgress)}%</span>
           </div>
           <Progress value={testProgress} className="h-1.5 bg-white/5" />
-          <Button 
-            onClick={runCheck} 
+          <Button
+            onClick={runCheck}
             disabled={isSimulating}
             className="w-full h-14 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-600/20 active:scale-[0.98] transition-all"
           >

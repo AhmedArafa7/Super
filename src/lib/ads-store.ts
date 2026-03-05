@@ -2,9 +2,9 @@
 'use client';
 
 import { initializeFirebase } from '@/firebase';
-import { 
-  collection, doc, getDocs, updateDoc, query, 
-  addDoc, deleteDoc, where, limit, 
+import {
+  collection, doc, getDocs, updateDoc, query,
+  addDoc, deleteDoc, where, limit,
   DocumentSnapshot, QueryConstraint
 } from 'firebase/firestore';
 
@@ -30,21 +30,22 @@ export interface Ad {
  * العودة لمنطق العميل لتجنب أخطاء الفهرسة.
  */
 export const getAds = async (
-  status?: AdStatus, 
-  limitSize = 15
+  status?: AdStatus,
+  limitSize = 15,
+  cursor?: DocumentSnapshot | null
 ): Promise<{ ads: Ad[], lastVisible: DocumentSnapshot | null }> => {
   const { firestore } = initializeFirebase();
   try {
     const q = query(collection(firestore, 'ads'), limit(100));
     const snap = await getDocs(q);
-    
+
     let ads = snap.docs.map(d => ({ id: d.id, ...d.data() } as Ad));
 
     // تصفية وترتيب في المتصفح
     if (status) {
       ads = ads.filter(a => a.status === status);
     }
-    
+
     ads.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return { ads: ads.slice(0, limitSize), lastVisible: null };
@@ -82,5 +83,5 @@ export const recordAdClick = async (id: string) => {
     const snap = await getDocs(query(collection(firestore, 'ads'), limit(1)));
     const currentClicks = snap.docs[0]?.data()?.clicks || 0;
     await updateDoc(adRef, { clicks: currentClicks + 1 });
-  } catch (e) {}
+  } catch (e) { }
 };
