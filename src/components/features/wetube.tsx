@@ -20,6 +20,7 @@ import { VideoCard } from "./stream/video-card";
 import { StreamUploadDialog } from "./stream/stream-upload-dialog";
 import { AddChannelModal } from "./wetube/add-channel-modal";
 import { ManageChannelsModal } from "./wetube/manage-channels-modal";
+import { ImportSubscriptionsModal } from "./wetube/import-subscriptions-modal";
 import { WeTubeWatchView } from "./wetube/wetube-watch-view";
 import { WeTubeShortsView } from "./wetube/wetube-shorts-view";
 
@@ -51,6 +52,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const [isFeedLoading, setIsFeedLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Auto-sync logic (kept from original)
   const runAutoSync = useCallback(async (subs: YouTubeSubscription[], feed: FeedVideo[]) => {
@@ -221,8 +223,9 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold">الأحدث من اشتراكاتك</h2>
                   <div className="flex gap-2">
-                    <button onClick={() => setIsManageModalOpen(true)} className="text-blue-400 text-sm font-bold px-3 py-2 hover:bg-blue-500/10 rounded-full transition-colors">إدارة الاشتراكات</button>
-                    <button onClick={() => setIsAddModalOpen(true)} className="text-blue-400 text-sm font-bold px-3 py-2 hover:bg-blue-500/10 rounded-full transition-colors">إضافة قناة</button>
+                    <button onClick={() => setIsImportModalOpen(true)} className="text-emerald-400 text-sm font-bold w-full sm:w-auto px-3 py-2 hover:bg-emerald-500/10 rounded-full transition-colors truncate">استيراد من يوتيوب</button>
+                    <button onClick={() => setIsManageModalOpen(true)} className="text-blue-400 text-sm font-bold w-full sm:w-auto px-3 py-2 hover:bg-blue-500/10 rounded-full transition-colors truncate">إدارة الاشتراكات</button>
+                    <button onClick={() => setIsAddModalOpen(true)} className="text-blue-400 text-sm font-bold w-full sm:w-auto px-3 py-2 hover:bg-blue-500/10 rounded-full transition-colors truncate">إضافة قناة</button>
                   </div>
                 </div>
                 {isFeedLoading ? (
@@ -276,6 +279,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
 
       <AddChannelModal isOpen={isAddModalOpen} onOpenChange={setIsAddModalOpen} userId={user?.id || ""} />
       <ManageChannelsModal isOpen={isManageModalOpen} onOpenChange={setIsManageModalOpen} subscriptions={subscriptions} userId={user?.id || ""} />
+      <ImportSubscriptionsModal isOpen={isImportModalOpen} onOpenChange={setIsImportModalOpen} userId={user?.id || ""} />
     </div>
   );
 }
