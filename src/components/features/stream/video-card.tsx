@@ -1,11 +1,8 @@
-
 "use client";
 
 import React from "react";
 import Image from "next/image";
-import { Play, Trash2, Youtube, HardDrive, Radio, Volume2, Download, CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { MoreVertical, CheckCircle2, Volume2, Gamepad2, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const getYoutubeId = (url?: string) => {
@@ -15,70 +12,119 @@ const getYoutubeId = (url?: string) => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
+/**
+ * [STABILITY_ANCHOR: YOUTUBE_VIDEO_CARD_V1.0]
+ * تصميم مطابق لكارت فيديو يوتيوب: صورة مصغرة نظيفة، مدة الفيديو بالأسفل، تفاصيل العنوان بجوار صورة القناة.
+ */
 export function VideoCard({ video, isActive, isCached, currentUser, onClick, onSync, onDelete }: any) {
   const ytId = video.source === 'youtube' ? getYoutubeId(video.externalUrl) : null;
-  const thumbSrc = video.source === 'youtube' && ytId 
-    ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` 
-    : video.thumbnail;
+  const thumbSrc = video.source === 'youtube' && ytId
+    ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`
+    : video.thumbnail || `https://picsum.photos/seed/${video.id}/400/225`;
 
+  // توليد مدة وهمية إذا لم تكن موجودة
+  const duration = video.duration || "10:24";
+  const views = typeof video.views === 'number' ? (video.views > 1000 ? `${(video.views / 1000).toFixed(1)} ألف` : video.views) : video.views || "12 ألف";
+
+  // Shorts layout
+  if (video.isShorts || video.type === 'short') {
+    return (
+      <div
+        className="group flex flex-col gap-2 cursor-pointer w-full max-w-[220px]"
+        onClick={onClick}
+      >
+        <div className="relative aspect-[9/16] rounded-xl overflow-hidden bg-[#272727]">
+          <Image src={thumbSrc} alt={video.title} fill className="object-cover" />
+          <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded flex items-center gap-1">
+            <Play className="size-3 fill-white" />
+            Shorts
+          </div>
+        </div>
+        <div>
+          <h3 dir="auto" className="font-medium text-[#f1f1f1] text-[15px] leading-tight line-clamp-2 text-right group-hover:text-blue-400 transition-colors">
+            {video.title}
+          </h3>
+          <p className="text-sm text-[#aaaaaa] text-right mt-1">{views} مشاهدة</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Standard Video Layout
   return (
-    <div 
+    <div
       className={cn(
-        "group flex flex-col glass border-white/5 hover:border-primary/40 rounded-[2.5rem] overflow-hidden transition-all duration-500 cursor-pointer shadow-2xl relative",
-        isActive && "ring-2 ring-primary border-primary/50"
+        "group flex flex-col gap-3 cursor-pointer w-full transition-all",
+        isActive && "opacity-60 grayscale"
       )}
       onClick={onClick}
     >
-      <div className="relative aspect-video overflow-hidden bg-slate-900">
-        <Image src={thumbSrc} alt={video.title} fill className="object-cover group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" />
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-black/40">
-          <div className="size-16 bg-primary/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20">
-            {isActive ? <Volume2 className="text-white size-8 animate-pulse" /> : <Play className="text-white size-8 fill-white ml-1" />}
+      {/* Thumbnail Container */}
+      <div className="relative aspect-video rounded-xl overflow-hidden bg-[#272727]">
+        <Image src={thumbSrc} alt={video.title} fill className="object-cover" />
+
+        {/* Playback Overlay (Hover) */}
+        {!isActive && (
+          <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-end p-2 gap-1 flex-col">
           </div>
+        )}
+
+        {/* Video Duration Badge */}
+        <div className="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-[12px] font-medium px-1.5 py-0.5 rounded">
+          {duration}
         </div>
-        <div className="absolute top-4 left-4 flex gap-2">
-          <Badge className="bg-black/60 backdrop-blur-md border-white/10 gap-1.5">
-            {video.source === 'youtube' ? <Youtube className="size-3 text-red-500" /> : video.source === 'drive' ? <HardDrive className="size-3 text-emerald-400" /> : <Radio className="size-3 text-indigo-400" />}
-            <span className="text-[9px] uppercase font-bold">{video.source.toUpperCase()}</span>
-          </Badge>
-          {isCached && <Badge className="bg-indigo-500/80 text-white text-[8px] uppercase">Cached</Badge>}
-        </div>
-      </div>
-      
-      <div className="p-8 flex flex-col flex-1">
-        <div className="flex justify-between items-start mb-4">
-          <Badge variant="outline" className="text-[8px] h-4 border-white/10 opacity-50 uppercase">{video.time}</Badge>
-          {isActive && <Badge className="bg-primary text-white text-[8px] animate-pulse">جاري العرض</Badge>}
-        </div>
-        <h3 dir="auto" className="font-bold text-xl text-white group-hover:text-primary transition-colors line-clamp-2 text-right mb-6">{video.title}</h3>
-        
-        <div className="mt-auto flex flex-col gap-4">
-          <div className="flex items-center justify-between pt-6 border-t border-white/5 flex-row-reverse">
-            <div className="flex items-center gap-3 flex-row-reverse text-right">
-              <div className="size-10 rounded-xl bg-white/5 border border-white/10 overflow-hidden">
-                <img src={`https://picsum.photos/seed/${video.author}/40/40`} className="size-full object-cover" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-white">@{video.author}</p>
-                <p className="text-[9px] text-muted-foreground uppercase font-bold">{video.views} مشاهدة</p>
-              </div>
+
+        {/* Cached Badge */}
+        {isCached && (
+          <div className="absolute top-1.5 left-1.5 bg-indigo-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm">
+            <CheckCircle2 className="size-3" />
+            مُنزّل
+          </div>
+        )}
+
+        {/* Playing Indicator */}
+        {isActive && (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+            <div className="flex gap-1 items-end h-4">
+              <div className="w-1 bg-white h-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-1 bg-white h-full animate-bounce" style={{ animationDelay: '100ms' }}></div>
+              <div className="w-1 bg-white h-full animate-bounce" style={{ animationDelay: '200ms' }}></div>
             </div>
-            {video.authorId === currentUser?.id && (
-              <Button variant="ghost" size="icon" className="text-red-400/50 hover:text-red-400" onClick={(e) => { e.stopPropagation(); onDelete(video.id); }}>
-                <Trash2 className="size-4" />
-              </Button>
-            )}
           </div>
-          
-          <Button 
-            variant="outline" size="sm" 
-            className={cn("w-full rounded-xl gap-2 font-bold h-10 border-white/5", isCached ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : "bg-white/5 text-muted-foreground")}
-            onClick={(e) => { e.stopPropagation(); onSync(video); }}
-          >
-            {isCached ? <CheckCircle2 className="size-4" /> : <Download className="size-4" />}
-            {isCached ? "إزالة من العقدة" : "مزامنة للعقدة"}
-          </Button>
+        )}
+      </div>
+
+      {/* Metadata Container */}
+      <div className="flex gap-3 pr-2 flex-row-reverse">
+        {/* Channel Avatar */}
+        <div className="mt-1 shrink-0">
+          <div className="size-9 rounded-full bg-[#272727] overflow-hidden">
+            <img src={video.channelAvatar || `https://picsum.photos/seed/${video.author}/40/40`} className="size-full object-cover" alt={video.author} />
+          </div>
         </div>
+
+        {/* Text Info */}
+        <div className="flex flex-col flex-1 min-w-0 text-right">
+          <h3 dir="auto" className="font-medium text-[#f1f1f1] text-[16px] leading-snug line-clamp-2 group-hover:text-blue-400 transition-colors mb-1 pr-6 relative">
+            {video.title}
+          </h3>
+          <div className="text-[14px] text-[#aaaaaa] flex flex-col">
+            <span className="truncate hover:text-[#f1f1f1] transition-colors">{video.author}</span>
+            <div className="flex items-center justify-end gap-1 flex-row-reverse truncate">
+              <span>{views} مشاهدة</span>
+              <span className="text-[10px] mx-0.5">•</span>
+              <span>{video.time || "منذ يومين"}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Context Menu Icon (Hover only on Desktop) */}
+        <button
+          className="p-1.5 -mt-1 -mr-1 h-fit rounded-full text-[#f1f1f1] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:bg-[#3f3f3f]"
+          onClick={(e) => { e.stopPropagation(); /* Options Menu */ }}
+        >
+          <MoreVertical className="size-5" />
+        </button>
       </div>
     </div>
   );

@@ -2,9 +2,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  ShieldAlert, RefreshCcw, Users, MessageSquare, 
-  Video, ShoppingBag, Wallet, Megaphone, Activity, 
+import {
+  ShieldAlert, RefreshCcw, Users, MessageSquare,
+  Video, ShoppingBag, Wallet, Megaphone, Activity, Coins,
   GraduationCap, CheckCircle2, XCircle, Rocket, Crown, Tag, MessageCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import { FinancialLedger } from "./admin/financial-ledger";
 import { AdsManagement } from "./admin/ads-management";
 import { QuotaMonitor } from "./admin/quota-monitor";
 import { AppReview } from "./admin/app-review";
+import { CurrencyManagement } from "./admin/currency-management";
 
 import { getStoredMessages } from "@/lib/chat-store";
 import { getStoredUsers } from "@/lib/auth-store";
@@ -37,7 +38,7 @@ import { initializeFirebase } from "@/firebase";
 export function AdminPanel() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
-  
+
   const [data, setData] = useState({
     messages: [] as any[],
     users: [] as any[],
@@ -48,7 +49,7 @@ export function AdminPanel() {
     pendingProducts: [] as any[],
     categoryRequests: [] as any[]
   });
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [rejectFeedback, setRejectFeedback] = useState<Record<string, string>>({});
 
@@ -65,7 +66,7 @@ export function AdminPanel() {
         getMarketItems(100, undefined, undefined, undefined, undefined, true),
         getCategoryRequests()
       ]);
-      
+
       setData({
         messages: msgs || [],
         users: allUsers || [],
@@ -129,12 +130,12 @@ export function AdminPanel() {
       <Tabs defaultValue="products" className="flex-1">
         <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 w-fit flex-wrap flex-row-reverse self-end h-auto gap-1">
           <TabsTrigger value="products" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse">
-            <ShoppingBag className="size-4" /> 
-            المنتجات 
+            <ShoppingBag className="size-4" />
+            المنتجات
             {data.pendingProducts.length > 0 && <Badge className="bg-red-500 h-4 w-4 p-0 flex items-center justify-center text-[10px]">{data.pendingProducts.length}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="categories" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse">
-            <Tag className="size-4" /> 
+            <Tag className="size-4" />
             اقتراحات التصنيف
             {data.categoryRequests.filter(r => r.status === 'pending').length > 0 && <Badge className="bg-red-500 h-4 w-4 p-0 flex items-center justify-center text-[10px]">{data.categoryRequests.filter(r => r.status === 'pending').length}</Badge>}
           </TabsTrigger>
@@ -142,6 +143,7 @@ export function AdminPanel() {
           <TabsTrigger value="chat" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse"><MessageSquare className="size-4" /> الدردشة</TabsTrigger>
           <TabsTrigger value="media" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse"><Video className="size-4" /> الرقابة</TabsTrigger>
           <TabsTrigger value="ads" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse"><Megaphone className="size-4" /> الإعلانات</TabsTrigger>
+          <TabsTrigger value="currency" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse"><Coins className="size-4" /> العملات</TabsTrigger>
         </TabsList>
 
         <TabsContent value="products">
@@ -154,7 +156,7 @@ export function AdminPanel() {
                   <div className="flex justify-between items-start flex-row-reverse">
                     <div className="text-right">
                       <h4 className="text-2xl font-bold text-white">{p.title}</h4>
-                      <p className="text-sm text-muted-foreground">بواسطة: @{p.sellerId.substring(0,8)} | السعر: {p.price} Credits</p>
+                      <p className="text-sm text-muted-foreground">بواسطة: @{p.sellerId.substring(0, 8)} | السعر: {p.price} Credits</p>
                     </div>
                     <Badge variant="outline" className="border-amber-500/20 text-amber-400">PRODUCT REVIEW</Badge>
                   </div>
@@ -165,7 +167,7 @@ export function AdminPanel() {
                     </div>
                     <div className="space-y-4">
                       <p className="text-xs font-black text-red-400 uppercase">سبب الرفض (إرسال للمستخدم)</p>
-                      <Input dir="auto" className="bg-white/5 border-white/10 text-right" placeholder="اذكر سبب الرفض هنا..." value={rejectFeedback[p.id] || ""} onChange={e => setRejectFeedback({...rejectFeedback, [p.id]: e.target.value})} />
+                      <Input dir="auto" className="bg-white/5 border-white/10 text-right" placeholder="اذكر سبب الرفض هنا..." value={rejectFeedback[p.id] || ""} onChange={e => setRejectFeedback({ ...rejectFeedback, [p.id]: e.target.value })} />
                     </div>
                   </div>
                   <div className="flex gap-3 flex-row-reverse pt-4 border-t border-white/5">
@@ -189,8 +191,8 @@ export function AdminPanel() {
                     <h4 className="text-lg font-bold text-white">تصنيف مقترح: <span className="text-indigo-400">{r.suggestedName}</span></h4>
                     <Badge variant="outline">تحت: {r.parentCategory}</Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground">بواسطة: @{r.userName} ({r.userId.substring(0,8)})</p>
-                  <Input dir="auto" className="bg-white/5 border-white/10 text-right mt-2" placeholder="ملاحظات أو سبب الرفض..." value={rejectFeedback[r.id] || ""} onChange={e => setRejectFeedback({...rejectFeedback, [r.id]: e.target.value})} />
+                  <p className="text-xs text-muted-foreground">بواسطة: @{r.userName} ({r.userId.substring(0, 8)})</p>
+                  <Input dir="auto" className="bg-white/5 border-white/10 text-right mt-2" placeholder="ملاحظات أو سبب الرفض..." value={rejectFeedback[r.id] || ""} onChange={e => setRejectFeedback({ ...rejectFeedback, [r.id]: e.target.value })} />
                   <div className="flex gap-2 justify-end">
                     <Button className="bg-indigo-600 rounded-xl" onClick={() => handleCategoryAction(r.id, 'approved')}>اعتماد وإضافة</Button>
                     <Button variant="ghost" className="text-red-400" onClick={() => handleCategoryAction(r.id, 'rejected')}>رفض الطلب</Button>
@@ -205,6 +207,7 @@ export function AdminPanel() {
         <TabsContent value="chat"><ChatReview messages={data.messages} onRefresh={loadAllData} /></TabsContent>
         <TabsContent value="media"><MediaCensorship videos={data.videos} onRefresh={loadAllData} /></TabsContent>
         <TabsContent value="ads"><AdsManagement ads={data.ads} onRefresh={loadAllData} /></TabsContent>
+        <TabsContent value="currency"><CurrencyManagement users={data.users} currentUser={currentUser} onRefresh={loadAllData} /></TabsContent>
       </Tabs>
     </div>
   );

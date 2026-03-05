@@ -35,7 +35,8 @@ export function FinancialLedger({ transactions }: FinancialLedgerProps) {
               <div className="text-right">
                 <p className="font-bold text-white text-sm group-hover:text-primary transition-colors">{tx.description}</p>
                 <div className="flex items-center gap-2 justify-end mt-1 opacity-60">
-                  <p className="text-[9px] text-muted-foreground uppercase font-bold">المستخدم: {tx.userId?.substring(0,8) || "System"}</p>
+                  {tx.currency && <Badge variant="outline" className="text-[8px] border-white/5 py-0 h-4">{tx.currency}</Badge>}
+                  <p className="text-[9px] text-muted-foreground uppercase font-bold">المستخدم: {tx.userId?.substring(0, 8) || "System"}</p>
                   <div className="size-1 rounded-full bg-white/20" />
                   <p className="text-[9px] text-muted-foreground flex items-center gap-1"><Clock className="size-2" /> {new Date(tx.timestamp).toLocaleString()}</p>
                 </div>

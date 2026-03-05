@@ -2,9 +2,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  Rocket, Globe, Lock, Play, ArrowLeft, 
-  Search, LayoutGrid, Cpu, Code2, ShieldCheck, 
+import {
+  Rocket, Globe, Lock, Play, ArrowLeft,
+  Search, LayoutGrid, Cpu, Code2, ShieldCheck,
   ExternalLink, Info, Zap, Terminal, Laptop, Plus, Loader2,
   Settings2, Activity, ShieldAlert, X, UserCheck, AlertCircle, RefreshCw, Bug
 } from "lucide-react";
@@ -32,12 +32,12 @@ export function AppLauncher() {
   const { toast } = useToast();
   const wallet = useWalletStore(state => state.wallet);
   const adjustFunds = useWalletStore(state => state.adjustFunds);
-  
+
   const [apps, setApps] = useState<WebProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeProject, setActiveProject] = useState<WebProject | null>(null);
   const [search, setSearch] = useState("");
-  const [isHeadlessStream, setIsHeadlessStream] = useState(true); 
+  const [isHeadlessStream, setIsHeadlessStream] = useState(true);
 
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,7 +75,7 @@ export function AppLauncher() {
   };
 
   if (activeProject) {
-    const finalFrameUrl = isHeadlessStream 
+    const finalFrameUrl = isHeadlessStream
       ? `/api/proxy?url=${encodeURIComponent(activeProject.url)}`
       : activeProject.url;
 
@@ -108,13 +108,13 @@ export function AppLauncher() {
             </Button>
           </div>
         </header>
-        
+
         <div className="flex-1 relative bg-white">
-          <iframe 
-            src={finalFrameUrl} 
-            className="absolute inset-0 size-full border-none" 
-            title={activeProject.title} 
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals" 
+          <iframe
+            src={finalFrameUrl}
+            className="absolute inset-0 size-full border-none"
+            title={activeProject.title}
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
           />
         </div>
       </div>
@@ -153,6 +153,76 @@ export function AppLauncher() {
           </Card>
         ))}
       </div>
+
+      <Dialog open={isSubmitModalOpen} onOpenChange={setIsSubmitModalOpen}>
+        <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-white text-right">اقتراح تطبيق جديد</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-right text-sm">
+              أرسل طلبك وسيتم مراجعته من قبل الإدارة قبل النشر في المنصة.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid gap-2">
+              <Label className="text-right text-xs font-bold">اسم التطبيق</Label>
+              <Input dir="auto" className="bg-white/5 border-white/10 text-right h-12 rounded-xl" placeholder="مثال: لوحة تحكم ذكية" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-right text-xs font-bold">رابط التطبيق (URL)</Label>
+              <Input className="bg-white/5 border-white/10 text-right h-12 rounded-xl" placeholder="https://..." value={formData.url} onChange={e => setFormData({ ...formData, url: e.target.value })} />
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-right text-xs font-bold">وصف مختصر</Label>
+              <Textarea dir="auto" className="bg-white/5 border-white/10 text-right rounded-xl min-h-[80px]" placeholder="ما الذي يفعله هذا التطبيق؟" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-right text-xs font-bold">إطار العمل</Label>
+              <Select value={formData.framework} onValueChange={(v: any) => setFormData({ ...formData, framework: v })}>
+                <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-12 rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10 text-white">
+                  <SelectItem value="react">React</SelectItem>
+                  <SelectItem value="nextjs">Next.js</SelectItem>
+                  <SelectItem value="angular">Angular</SelectItem>
+                  <SelectItem value="vue">Vue</SelectItem>
+                  <SelectItem value="html">HTML/CSS/JS</SelectItem>
+                  <SelectItem value="other">أخرى</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={async () => {
+                if (!formData.title || !formData.url || !user) return;
+                setIsSubmitting(true);
+                try {
+                  await submitAppRequest({
+                    title: formData.title,
+                    url: formData.url,
+                    description: formData.description,
+                    framework: formData.framework,
+                    thumbnail: `https://picsum.photos/seed/${formData.title}/800/450`,
+                    authorId: user.id,
+                    authorName: user.name
+                  });
+                  toast({ title: "تم إرسال الطلب", description: "سيتم مراجعة تطبيقك من قبل الإدارة قريباً." });
+                  setIsSubmitModalOpen(false);
+                  setFormData({ title: "", url: "", description: "", framework: "other" });
+                  loadApps();
+                } catch (err: any) {
+                  toast({ variant: "destructive", title: "فشل الإرسال", description: err.message });
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}
+              disabled={isSubmitting || !formData.title || !formData.url}
+              className="w-full h-14 bg-primary rounded-2xl font-bold text-lg shadow-xl shadow-primary/20"
+            >
+              {isSubmitting ? <><Loader2 className="size-5 animate-spin mr-2" /> جاري الإرسال...</> : <><Rocket className="size-5 mr-2" /> إرسال للمراجعة</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

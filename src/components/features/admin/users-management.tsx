@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { addUser, updateUserProfile, UserRole } from "@/lib/auth-store";
 import { adjustFunds } from "@/lib/wallet-store";
 import { cn } from "@/lib/utils";
+import { CURRENCIES, CurrencyCode } from "@/lib/currency-store";
 
 interface UsersManagementProps {
   users: any[];
@@ -28,6 +29,7 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [creditTarget, setCreditTarget] = useState<any | null>(null);
   const [creditAmount, setCreditAmount] = useState("");
+  const [creditCurrency, setCreditCurrency] = useState<CurrencyCode>('EGC');
   const [isAddingCredits, setIsAddingCredits] = useState(false);
 
   // تعريف الرتب للعرض في القائمة
@@ -80,7 +82,7 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
   const handleUpdateAuthority = async (userId: string, canManageCredits: boolean) => {
     try {
       await updateUserProfile(userId, { canManageCredits });
-      toast({ 
+      toast({
         title: canManageCredits ? "تم منح السلطة المالية" : "تم سحب السلطة المالية",
         variant: canManageCredits ? "default" : "destructive"
       });
@@ -94,11 +96,12 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
     if (!creditTarget || !creditAmount || isNaN(Number(creditAmount))) return;
     setIsAddingCredits(true);
     try {
-      const success = await adjustFunds(creditTarget.id, Number(creditAmount), 'deposit');
+      const success = await adjustFunds(creditTarget.id, Number(creditAmount), 'deposit', creditCurrency);
       if (success) {
-        toast({ title: "تم حقن الرصيد", description: `تمت إضافة ${creditAmount} Credits.` });
+        toast({ title: "تم حقن الرصيد", description: `تمت إضافة ${creditAmount} ${creditCurrency}.` });
         setCreditTarget(null);
         setCreditAmount("");
+        setCreditCurrency('EGC');
         onRefresh();
       }
     } catch (err) {
@@ -121,11 +124,11 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
           <DialogContent className="bg-slate-950 border-white/10 rounded-[2rem] text-right">
             <DialogHeader><DialogTitle className="text-right">تسجيل عقدة جديدة</DialogTitle></DialogHeader>
             <div className="space-y-4 py-4">
-              <Input dir="auto" className="bg-white/5 border-white/10 text-right" placeholder="الاسم الكامل" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} />
-              <Input dir="auto" className="bg-white/5 border-white/10 text-right" placeholder="معرف الدخول" value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})} />
+              <Input dir="auto" className="bg-white/5 border-white/10 text-right" placeholder="الاسم الكامل" value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })} />
+              <Input dir="auto" className="bg-white/5 border-white/10 text-right" placeholder="معرف الدخول" value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })} />
               <div className="space-y-2">
                 <Label className="text-right block">الرتبة الممنوحة</Label>
-                <Select value={newUser.role} onValueChange={(v: any) => setNewUser({...newUser, role: v})}>
+                <Select value={newUser.role} onValueChange={(v: any) => setNewUser({ ...newUser, role: v })}>
                   <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-slate-950 text-white">
                     {ROLE_OPTIONS.map(opt => <SelectItem key={opt.id} value={opt.id}>{opt.label}</SelectItem>)}
@@ -160,7 +163,7 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
                 </Button>
               )}
             </div>
-            
+
             <div className="pt-4 border-t border-white/5 space-y-4 text-right">
               {currentUser?.role === 'founder' && (
                 <div className="p-3 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between flex-row-reverse">
@@ -171,8 +174,8 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
                     </Label>
                     <p className="text-[8px] text-muted-foreground">تتيح إصدار الرصيد للآخرين</p>
                   </div>
-                  <Switch 
-                    checked={u.canManageCredits} 
+                  <Switch
+                    checked={u.canManageCredits}
                     onCheckedChange={(val) => handleUpdateAuthority(u.id, val)}
                     disabled={u.id === currentUser.id && u.role !== 'founder'}
                   />
@@ -197,7 +200,16 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
         <DialogContent className="bg-slate-950 border-white/10 rounded-[2rem] p-8 sm:max-w-sm text-right">
           <DialogHeader><DialogTitle className="text-xl font-bold flex items-center justify-end gap-2">حقن رصيد ائتماني <DollarSign className="text-emerald-400" /></DialogTitle></DialogHeader>
           <div className="py-6 space-y-4">
-            <Label className="px-1 text-[10px] font-bold text-muted-foreground uppercase">كمية الرصيد لـ @{creditTarget?.username}</Label>
+            <Label className="px-1 text-[10px] font-bold text-muted-foreground uppercase">العملة المستهدفة لـ @{creditTarget?.username}</Label>
+            <Select value={creditCurrency} onValueChange={(v: any) => setCreditCurrency(v)}>
+              <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-12 rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent className="bg-slate-900 border-white/10 text-white">
+                {CURRENCIES.map(c => (
+                  <SelectItem key={c.code} value={c.code}>{c.icon} {c.nameAr} ({c.code})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Label className="px-1 text-[10px] font-bold text-muted-foreground uppercase">كمية الرصيد</Label>
             <Input type="number" placeholder="0.00" className="h-12 bg-white/5 border-white/10 rounded-xl text-center text-xl font-black text-emerald-400" value={creditAmount} onChange={e => setCreditAmount(e.target.value)} />
           </div>
           <DialogFooter><Button onClick={handleAddCredits} disabled={isAddingCredits || !creditAmount} className="w-full h-12 bg-emerald-600 rounded-xl font-bold">تأكيد الحق المالي</Button></DialogFooter>
