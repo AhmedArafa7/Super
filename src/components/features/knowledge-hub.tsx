@@ -2,9 +2,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  Plus, Loader2, RefreshCcw, GraduationCap, 
-  LayoutGrid, List as ListIcon, ShieldCheck, Clock, Library
+import {
+  Plus, Loader2, RefreshCcw, GraduationCap,
+  LayoutGrid, List as ListIcon, ShieldCheck, Clock, Library, Cloud
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/components/auth/auth-provider";
 import { cn } from "@/lib/utils";
-import { 
-  getSubjects, getCollections, getLearningItems, Subject, Collection, LearningItem, 
+import {
+  getSubjects, getCollections, getLearningItems, Subject, Collection, LearningItem,
   addSubject, addCollection, addLearningItem, LearningItemType,
   deleteSubject, updateSubject, deleteCollection, deleteLearningItem
 } from "@/lib/learning-store";
@@ -32,7 +32,7 @@ const VAULT_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE
 export function KnowledgeHub() {
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -40,16 +40,19 @@ export function KnowledgeHub() {
   const [isLoading, setIsLoading] = useState(true);
   const [isListView, setIsListView] = useState(false);
 
+  const isAdmin = !!user && ['admin', 'founder', 'cofounder'].includes(user.role);
+
   const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
+  const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
   const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
 
   const [newSubject, setNewSubject] = useState({ title: "", description: "" });
   const [newCollection, setNewCollection] = useState({ title: "", description: "" });
-  const [newItem, setNewItem] = useState<{title: string, type: LearningItemType, externalUrl: string}>({ 
-    title: "", 
-    type: "video", 
+  const [newItem, setNewItem] = useState<{ title: string, type: LearningItemType, externalUrl: string }>({
+    title: "",
+    type: "video",
     externalUrl: ""
   });
 
@@ -60,7 +63,7 @@ export function KnowledgeHub() {
   const loadSubjects = async () => {
     setIsLoading(true);
     try {
-      const data = await getSubjects(user?.id, user?.role === 'admin');
+      const data = await getSubjects(user?.id, isAdmin);
       setSubjects(data);
     } catch (err) {
       console.error(err);
@@ -76,30 +79,30 @@ export function KnowledgeHub() {
       setItemsMap({});
       return;
     }
-    const cols = await getCollections(subject.id, user?.id, user?.role === 'admin');
+    const cols = await getCollections(subject.id, user?.id, isAdmin);
     setCollections(cols);
-    
+
     const items: Record<string, LearningItem[]> = {};
     for (const col of cols) {
-      items[col.id] = await getLearningItems(subject.id, col.id, user?.id, user?.role === 'admin');
+      items[col.id] = await getLearningItems(subject.id, col.id, user?.id, isAdmin);
     }
     setItemsMap(items);
   };
 
   const handleCreateSubject = async () => {
     if (!newSubject.title || !user) return;
-    await addSubject({ 
-      title: newSubject.title, 
-      description: newSubject.description, 
+    await addSubject({
+      title: newSubject.title,
+      description: newSubject.description,
       authorId: user.id,
-      allowedUserIds: null 
-    }, user.role === 'admin');
-    
-    toast({ 
-      title: user.role === 'admin' ? "تم إنشاء المجلد" : "تم إرسال المقترح", 
-      description: user.role === 'admin' ? "المحتوى متاح للجميع الآن." : "سيظهر طلبك في المكتبة العامة بعد مراجعة الأدمن." 
+      allowedUserIds: null
+    }, isAdmin);
+
+    toast({
+      title: isAdmin ? "تم إنشاء المجلد" : "تم إرسال المقترح",
+      description: isAdmin ? "المحتوى متاح للجميع الآن." : "سيظهر طلبك في المكتبة العامة بعد مراجعة الأدمن."
     });
-    
+
     setIsSubjectModalOpen(false);
     setNewSubject({ title: "", description: "" });
     loadSubjects();
@@ -107,15 +110,15 @@ export function KnowledgeHub() {
 
   const handleCreateCollection = async () => {
     if (!selectedSubject || !newCollection.title || !user) return;
-    await addCollection({ 
-      subjectId: selectedSubject.id, 
-      title: newCollection.title, 
+    await addCollection({
+      subjectId: selectedSubject.id,
+      title: newCollection.title,
       authorId: user.id,
       description: newCollection.description,
       orderIndex: collections.length
-    }, user.role === 'admin');
-    
-    toast({ title: user.role === 'admin' ? "تم الإنشاء بنجاح" : "قيد المراجعة الإدارية" });
+    }, isAdmin);
+
+    toast({ title: isAdmin ? "تم الإنشاء بنجاح" : "قيد المراجعة الإدارية" });
     setIsCollectionModalOpen(false);
     setNewCollection({ title: "", description: "" });
     handleSelectSubject(selectedSubject);
@@ -131,9 +134,9 @@ export function KnowledgeHub() {
       url: newItem.externalUrl,
       authorId: user.id,
       orderIndex: (itemsMap[activeCollectionId]?.length || 0)
-    }, user.role === 'admin');
-    
-    toast({ title: user.role === 'admin' ? "تم إضافة الدرس" : "طلب الإضافة قيد المراجعة" });
+    }, isAdmin);
+
+    toast({ title: isAdmin ? "تم إضافة الدرس" : "طلب الإضافة قيد المراجعة" });
     setIsItemModalOpen(false);
     handleSelectSubject(selectedSubject);
     setNewItem({ title: "", type: "video", externalUrl: "" });
@@ -172,7 +175,7 @@ export function KnowledgeHub() {
           </h1>
           <p className="text-muted-foreground text-sm">استكشف وساهم في بناء المعرفة السيادية لنكسوس.</p>
         </div>
-        
+
         <div className="flex gap-3 items-center">
           <div className="bg-white/5 border border-white/10 rounded-xl p-1 flex gap-1 flex-row-reverse">
             <Button variant="ghost" size="sm" className={cn("rounded-lg h-9", !isListView && "bg-white/10 text-white")} onClick={() => setIsListView(false)}><LayoutGrid className="size-4" /></Button>
@@ -181,7 +184,10 @@ export function KnowledgeHub() {
           <Button variant="ghost" size="icon" onClick={loadSubjects} className="h-11 w-11 rounded-xl border border-white/10 bg-white/5">
             <RefreshCcw className={cn("size-4", isLoading && "animate-spin")} />
           </Button>
-          <Button onClick={() => setIsSubjectModalOpen(true)} className="bg-primary rounded-xl h-11 px-6 shadow-lg font-bold">
+          <Button onClick={() => setIsDriveModalOpen(true)} className="bg-emerald-600 hover:bg-emerald-500 rounded-xl h-11 px-5 shadow-lg font-bold gap-2">
+            <Cloud className="size-4" /> مساحة الرفع السحابية
+          </Button>
+          <Button onClick={() => setIsSubjectModalOpen(true)} className="bg-primary hover:bg-primary/90 rounded-xl h-11 px-5 shadow-lg font-bold">
             <Plus className="mr-2 size-4" /> إضافة مجلد رئيسي
           </Button>
         </div>
@@ -193,7 +199,7 @@ export function KnowledgeHub() {
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">جاري فتح المجلدات...</p>
         </div>
       ) : (
-        <DriveLayoutView 
+        <DriveLayoutView
           subjects={subjects}
           collections={collections}
           itemsMap={itemsMap}
@@ -206,7 +212,7 @@ export function KnowledgeHub() {
           onRenameSubject={handleRenameSubject}
           onDeleteCollection={deleteCollection}
           onDeleteItem={deleteLearningItem}
-          isAdmin={user?.role === 'admin'}
+          isAdmin={isAdmin}
           currentUserId={user?.id}
           viewMode={isListView ? 'list' : 'grid'}
         />
@@ -220,8 +226,8 @@ export function KnowledgeHub() {
             <DialogDescription className="text-right text-xs">اقتراحك سيخضع للمراجعة الإدارية لضمان جودة المحتوى.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid gap-2"><Label>العنوان</Label><Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" value={newSubject.title} onChange={e => setNewSubject({...newSubject, title: e.target.value})} /></div>
-            <div className="grid gap-2"><Label>الوصف</Label><Textarea dir="auto" className="bg-white/5 border-white/10 text-right" value={newSubject.description} onChange={e => setNewSubject({...newSubject, description: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>العنوان</Label><Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" value={newSubject.title} onChange={e => setNewSubject({ ...newSubject, title: e.target.value })} /></div>
+            <div className="grid gap-2"><Label>الوصف</Label><Textarea dir="auto" className="bg-white/5 border-white/10 text-right" value={newSubject.description} onChange={e => setNewSubject({ ...newSubject, description: e.target.value })} /></div>
           </div>
           <DialogFooter><Button onClick={handleCreateSubject} className="w-full bg-primary h-12 rounded-xl font-bold">إرسال الاقتراح</Button></DialogFooter>
         </DialogContent>
@@ -231,7 +237,7 @@ export function KnowledgeHub() {
         <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right">
           <DialogHeader><DialogTitle className="text-right">إضافة مسار تعليمي (Collection)</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid gap-2"><Label>اسم المسار</Label><Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" value={newCollection.title} onChange={e => setNewCollection({...newCollection, title: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>اسم المسار</Label><Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" value={newCollection.title} onChange={e => setNewCollection({ ...newCollection, title: e.target.value })} /></div>
           </div>
           <DialogFooter><Button onClick={handleCreateCollection} className="w-full bg-primary h-12 rounded-xl font-bold">تأكيد الإضافة</Button></DialogFooter>
         </DialogContent>
@@ -241,10 +247,10 @@ export function KnowledgeHub() {
         <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right sm:max-w-md">
           <DialogHeader><DialogTitle className="text-right">ربط محتوى جديد</DialogTitle></DialogHeader>
           <div className="space-y-5 py-4">
-            <div className="grid gap-2"><Label>عنوان الدرس/الملف</Label><Input dir="auto" className="bg-white/5 border-white/10 text-right h-11" value={newItem.title} onChange={e => setNewItem({...newItem, title: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>عنوان الدرس/الملف</Label><Input dir="auto" className="bg-white/5 border-white/10 text-right h-11" value={newItem.title} onChange={e => setNewItem({ ...newItem, title: e.target.value })} /></div>
             <div className="grid gap-2">
               <Label>نوع المورد</Label>
-              <Select value={newItem.type} onValueChange={(v: any) => setNewItem({...newItem, type: v})}>
+              <Select value={newItem.type} onValueChange={(v: any) => setNewItem({ ...newItem, type: v })}>
                 <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-11"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-slate-900 border-white/10 text-white">
                   <SelectItem value="video">فيديو</SelectItem>
@@ -254,9 +260,45 @@ export function KnowledgeHub() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2"><Label>الرابط (Drive/YouTube/Direct)</Label><Input placeholder="https://..." className="bg-white/5 border-white/10 text-right h-11" value={newItem.externalUrl} onChange={e => setNewItem({...newItem, externalUrl: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>الرابط (Drive/YouTube/Direct)</Label><Input placeholder="https://..." className="bg-white/5 border-white/10 text-right h-11" value={newItem.externalUrl} onChange={e => setNewItem({ ...newItem, externalUrl: e.target.value })} /></div>
           </div>
           <DialogFooter><Button onClick={handleCreateItem} disabled={!newItem.externalUrl} className="w-full bg-primary h-12 rounded-xl font-bold">حفظ كمسودة للمراجعة</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDriveModalOpen} onOpenChange={setIsDriveModalOpen}>
+        <DialogContent className="bg-slate-950/95 backdrop-blur-xl border-white/10 rounded-[2.5rem] p-6 text-right max-w-5xl h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-right text-2xl font-black text-white flex items-center gap-3 flex-row-reverse justify-start">
+              مساحة الرفع السحابية - Nexus Vault
+              <Cloud className="size-6 text-emerald-400" />
+            </DialogTitle>
+            <DialogDescription className="text-right text-sm leading-relaxed mt-2 text-muted-foreground/90">
+              قم برفع أصولك وبرمجياتك هنا مباشرة. بمجرد انتهاء الرفع، انسخ الرابط الخاص بالملف واذهب إلى المجلد التعليمي لربطه عن طريق زر <b>(إضافة مسودّة / ربط محتوى جديد)</b>.
+              <br />
+              <span className="text-amber-400 font-bold">تنويه:</span> لم يظهر المحتوى المضاف إلا بعد مراجعته وقبوله من قِبَل الخبراء (المؤسس، المساعد، أو الإدارة) للحفاظ على جودة النخاع.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 w-full mt-6 bg-white/5 rounded-3xl border border-white/10 overflow-hidden relative">
+            <iframe
+              src="https://drive.google.com/embeddedfolderview?id=13PPxL5FD4f0aVhhI7JMuoQo8oEENRoEm#list"
+              width="100%"
+              height="100%"
+              className="border-0 bg-transparent"
+              title="Nexus Vault Drive"
+              allow="autoplay"
+            />
+          </div>
+
+          <DialogFooter className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between w-full">
+            <div className="flex items-center gap-2 text-xs text-emerald-400/80 font-bold bg-emerald-500/10 px-3 py-1.5 rounded-lg flex-row-reverse">
+              <ShieldCheck className="size-4" /> التشفير السيادي نشط
+            </div>
+            <Button onClick={() => setIsDriveModalOpen(false)} className="bg-white/10 hover:bg-white/20 text-white h-11 rounded-xl px-8 font-bold">
+              إغلاق وتوجه للربط
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
