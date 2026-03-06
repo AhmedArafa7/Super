@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Sparkles, ShieldAlert, Zap } from "lucide-react";
+import { Sparkles, ShieldAlert, Zap, Inbox } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -14,6 +14,7 @@ import { DashboardOverview } from "./dashboard/dashboard-overview";
 import { ProfileSettings } from "./dashboard/profile-settings";
 import { OrdersHistory } from "./dashboard/orders-history";
 import { OffersReceived } from "./offers-received";
+import { DropInbox } from "./dashboard/drop-inbox";
 
 /**
  * [STABILITY_ANCHOR: USER_DASHBOARD_ORCHESTRATOR_V2]
@@ -23,7 +24,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
   const { user } = useAuth();
   const wallet = useWalletStore(state => state.wallet);
   const { getTotalUsedSpace, storageLimitMB, cachedAssets } = useGlobalStorage();
-  
+
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [pendingOffersCount, setPendingOffersCount] = useState(0);
@@ -40,7 +41,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
     setIsLoadingOrders(true);
     try {
       const allTx = await getTransactions(user.id);
-      const purchaseTxs = (allTx || []).filter(tx => 
+      const purchaseTxs = (allTx || []).filter(tx =>
         tx.type === 'purchase_hold' || tx.type === 'purchase_release' || tx.type === 'purchase_refund'
       );
       setOrders(purchaseTxs);
@@ -56,7 +57,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
     try {
       const offers = await getReceivedOffers(user.id);
       setPendingOffersCount(offers.filter(o => o.status === 'pending').length);
-    } catch (err) {}
+    } catch (err) { }
   };
 
   const usedSpace = getTotalUsedSpace();
@@ -95,6 +96,9 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
             {pendingOffersCount > 0 && <Badge className="ml-2 bg-red-500 h-4 w-4 p-0 flex items-center justify-center text-[8px] rounded-full">{pendingOffersCount}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="orders" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary flex-1 sm:flex-none">سجل العمليات</TabsTrigger>
+          <TabsTrigger value="vault" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-indigo-600 flex-1 sm:flex-none gap-2">
+            <Inbox className="size-3.5" /> صندوق الوارد
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -111,6 +115,10 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
 
         <TabsContent value="orders">
           <OrdersHistory orders={orders} isLoading={isLoadingOrders} />
+        </TabsContent>
+
+        <TabsContent value="vault">
+          <DropInbox />
         </TabsContent>
       </Tabs>
     </div>
