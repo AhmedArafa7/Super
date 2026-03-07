@@ -26,6 +26,33 @@ interface UploadState {
   retryTask: (id: string) => void;
 }
 
+const uploadSingleFile = (file: File, onProgress: (prog: number) => void): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/upload/telegram', true);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        onProgress((e.loaded / e.total) * 100);
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        let response;
+        try { response = JSON.parse(xhr.responseText); } catch (e) { }
+        resolve(response?.fileId);
+      } else {
+        let err = "فشل الرفع لتيليجرام";
+        try { err = JSON.parse(xhr.responseText).error || err; } catch (e) { }
+        reject(new Error(err));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Network Error"));
+    xhr.send(formData);
+  });
+};
+
 export const useUploadStore = create<UploadState>((set, get) => ({
   tasks: [],
 
@@ -56,82 +83,83 @@ export const useUploadStore = create<UploadState>((set, get) => ({
     if (!task) return;
 
     set(state => ({
-      tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'uploading', progress: 5 } : t)
+      tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'uploading', progress: 0 } : t)
     }));
 
+    const CHUNK_SIZE = 40 * 1024 * 1024; // 40 MB chunks (Safe limit for 50MB Bot API)
+    const isChunked = task.file.size > CHUNK_SIZE;
+
     try {
-      const formData = new FormData();
-      formData.append('file', task.file);
+      if (!isChunked) {
+        const fileId = await uploadSingleFile(task.file, (prog) => {
+          set(state => ({ tasks: state.tasks.map(t => t.id === id ? { ...t, progress: prog } : t) }));
+        });
 
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/upload/telegram', true);
+        if (!fileId) throw new Error("Invalid response from server");
 
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          const progress = (e.loaded / e.total) * 100;
-          set(state => ({
-            tasks: state.tasks.map(t => t.id === id ? { ...t, progress } : t)
-          }));
-        }
-      };
+        set(state => ({
+          tasks: state.tasks.map(t => t.id === id ? { ...t, progress: 100, status: 'completed' } : t)
+        }));
 
-      xhr.onload = async () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          let response;
-          try {
-            response = JSON.parse(xhr.responseText);
-          } catch (e) {
-            console.error("Failed to parse Telegram response", xhr.responseText);
-          }
-
-          set(state => ({
-            tasks: state.tasks.map(t => t.id === id ? { ...t, progress: 100, status: 'completed' } : t)
-          }));
-
-          if (task.type === 'video' && response?.messageId) {
-            const { addVideo } = await import('./video-store');
-            await addVideo({
-              ...task.metadata,
-              thumbnail: "https://images.unsplash.com/photo-1611162617474-5b21e879e113", // Mock thumbnail since telegram doesn't provide one via API immediately without downloading
-              source: 'telegram',
-              externalUrl: response.messageId.toString()
-            });
-          }
-
-          toast({ title: "مزامنة ناجحة", description: `تم حفظ "${task.fileName}" في سحابة تليجرام.` });
-          setTimeout(() => get().removeTask(id), 3000);
-        } else {
-          console.error("[Telegram Upload Error]:", xhr.responseText);
-          set(state => ({
-            tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'failed', error: "فشل الرفع لتيليجرام" } : t)
-          }));
-          toast({
-            variant: "destructive",
-            title: "فشل الإرسال العصبي",
-            description: "حدث اضطراب في الاتصال بحاوية التخزين (تيليجرام)."
+        if (task.type === 'video') {
+          const { addVideo } = await import('./video-store');
+          await addVideo({
+            ...task.metadata,
+            thumbnail: "https://images.unsplash.com/photo-1611162617474-5b21e879e113",
+            source: 'telegram',
+            externalUrl: fileId
           });
         }
-      };
+        toast({ title: "مزامنة ناجحة", description: `تم حفظ "${task.fileName}" في سحابة تليجرام.` });
+        setTimeout(() => get().removeTask(id), 3000);
 
-      xhr.onerror = () => {
-        console.error("[Telegram Upload Request Error]");
+      } else {
+        // Chunked upload
+        const totalChunks = Math.ceil(task.file.size / CHUNK_SIZE);
+        let chunksMeta: { id: string, size: number }[] = [];
+
+        for (let i = 0; i < totalChunks; i++) {
+          const start = i * CHUNK_SIZE;
+          const end = Math.min(start + CHUNK_SIZE, task.file.size);
+          const blob = task.file.slice(start, end);
+          const chunkFile = new File([blob], `part_${i}.bin`);
+
+          const fileId = await uploadSingleFile(chunkFile, (chunkProg) => {
+            const overallProgress = ((i / totalChunks) * 100) + (chunkProg / totalChunks);
+            set(state => ({ tasks: state.tasks.map(t => t.id === id ? { ...t, progress: overallProgress } : t) }));
+          });
+
+          if (!fileId) throw new Error(`فشل رفع الجزء رقم ${i + 1}`);
+          chunksMeta.push({ id: fileId, size: blob.size });
+        }
+
         set(state => ({
-          tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'failed', error: "Network Error" } : t)
+          tasks: state.tasks.map(t => t.id === id ? { ...t, progress: 100, status: 'completed' } : t)
         }));
-        toast({
-          variant: "destructive",
-          title: "فشل الإرسال العصبي",
-          description: "خطأ في الشبكة أثناء الاتصال."
-        });
-      };
 
-      xhr.send(formData);
+        if (task.type === 'video') {
+          const { addVideo } = await import('./video-store');
+          await addVideo({
+            ...task.metadata,
+            thumbnail: "https://images.unsplash.com/photo-1611162617474-5b21e879e113",
+            source: 'telegram',
+            externalUrl: JSON.stringify(chunksMeta) // Store as JSON string for the backend stream reader
+          });
+        }
+        toast({ title: "مزامنة ناجحة", description: `تم حفظ وتقسيم الملف (${totalChunks} أجزاء) بنجاح.` });
+        setTimeout(() => get().removeTask(id), 3000);
+      }
 
     } catch (err: any) {
-      console.error("[Critical Storage Failure]:", err);
+      console.error("[Telegram Upload Error]:", err);
       set(state => ({
-        tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'failed', error: err.message } : t)
+        tasks: state.tasks.map(t => t.id === id ? { ...t, status: 'failed', error: err.message || "فشل الرفع" } : t)
       }));
+      toast({
+        variant: "destructive",
+        title: "فشل الإرسال العصبي",
+        description: err.message || "حدث اضطراب أثناء الاتصال بسحابة تيليجرام."
+      });
     }
   }
 }));

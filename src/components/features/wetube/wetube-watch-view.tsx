@@ -123,7 +123,7 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
                             />
                         ) : (video.source === 'telegram' || video.source === 'local' || video.source === 'tiktok' || !video.source) && video.externalUrl ? (
                             <NexusVideoPlayer
-                                src={`/api/stream/telegram?messageId=${video.externalUrl}`}
+                                src={`/api/stream/telegram?fileId=${video.externalUrl}`}
                                 poster={video.thumbnail || `https://picsum.photos/seed/${video.id}/640/360`}
                                 autoPlay={true}
                                 sourceType={video.source === 'local' ? 'local' : video.source === 'telegram' ? 'telegram' : 'tiktok'}

@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTelegramClient } from "@/lib/telegram-client";
-import { CustomFile } from "telegram/client/uploads";
 
 export const runtime = "edge";
-// Prevent maximum duration issues on Vercel for large file uploads
-export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
     try {
@@ -15,32 +11,43 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
         }
 
-        const chatId = process.env.TELEGRAM_STORAGE_CHAT_ID || "me"; // Defaults to Saved Messages
-        const client = await getTelegramClient();
+        if (file.size > 50 * 1024 * 1024) {
+            return NextResponse.json({ error: "حجم الملف يتجاوز الحد الأقصى لبوتات تيليجرام (50MB)." }, { status: 400 });
+        }
 
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        const chatId = process.env.TELEGRAM_STORAGE_CHAT_ID || "me";
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
-        // Using CustomFile to retain original filename and size information for GramJS
-        const customFile = new CustomFile(file.name, file.size, "", buffer);
+        if (!botToken) {
+            return NextResponse.json({ error: "TELEGRAM_BOT_TOKEN is not configured in .env" }, { status: 500 });
+        }
 
-        console.log(`Uploading ${file.name} (${file.size} bytes) to chat ${chatId}...`);
+        console.log(`Uploading ${file.name} (${file.size} bytes) via Bot API to chat ${chatId}...`);
 
-        // Upload the file to Telegram
-        const message = await client.sendFile(chatId, {
-            file: customFile,
-            workers: 4, // Concurrent upload workers
+        const telegramFormData = new FormData();
+        telegramFormData.append('chat_id', chatId);
+        telegramFormData.append('video', file);
+
+        const response = await fetch(`https://api.telegram.org/bot${botToken}/sendVideo`, {
+            method: 'POST',
+            body: telegramFormData
         });
+
+        const data = await response.json();
+
+        if (!data.ok) {
+            throw new Error(data.description || "Failed to upload to Telegram");
+        }
 
         return NextResponse.json({
             success: true,
-            messageId: message.id,
+            fileId: data.result.video.file_id,
             chatId: chatId,
             fileName: file.name
         });
 
     } catch (error: any) {
-        console.error("Telegram Upload Error:", error);
+        console.error("Telegram Bot Upload Error:", error);
         return NextResponse.json({ error: error.message || "Failed to upload to Telegram" }, { status: 500 });
     }
 }

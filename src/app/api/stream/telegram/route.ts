@@ -1,72 +1,123 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTelegramClient } from "@/lib/telegram-client";
-import { Api } from "telegram";
 
 export const runtime = "edge";
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
-    const messageIdStr = searchParams.get('messageId');
-    const chatId = searchParams.get('chatId') || process.env.TELEGRAM_STORAGE_CHAT_ID || 'me';
+    const fileIdParam = searchParams.get('fileId');
 
-    if (!messageIdStr) {
-        return new NextResponse("Missing messageId", { status: 400 });
+    if (!fileIdParam) {
+        return new NextResponse("Missing fileId.", { status: 400 });
     }
 
-    const messageId = parseInt(messageIdStr, 10);
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (!botToken) {
+        return new NextResponse("Bot token missing", { status: 500 });
+    }
 
     try {
-        const client = await getTelegramClient();
+        let chunks: { id: string, size: number }[] = [];
 
-        // Fetch the specific message containing the media
-        const messages = await client.getMessages(chatId, { ids: messageId });
-        if (!messages || messages.length === 0 || !messages[0].media) {
-            return new NextResponse("Media not found", { status: 404 });
+        try {
+            // Check if it's a JSON array of chunks
+            if (fileIdParam.startsWith('[') && fileIdParam.endsWith(']')) {
+                chunks = JSON.parse(decodeURIComponent(fileIdParam));
+            } else {
+                // It's a single file ID, we need to fetch size from Telegram
+                const getFileResponse = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileIdParam}`);
+                const getFileData = await getFileResponse.json();
+                if (!getFileData.ok) {
+                    return new NextResponse(getFileData.description || "Failed to get file info", { status: 404 });
+                }
+                chunks = [{ id: fileIdParam, size: getFileData.result.file_size }];
+            }
+        } catch (e) {
+            return new NextResponse("Invalid fileId parameter format.", { status: 400 });
         }
 
-        const message = messages[0];
-        const media = message.media;
+        const totalSize = chunks.reduce((acc, c) => acc + c.size, 0);
 
-        // Handle Range Headers (crucial for video seeking!)
-        const rangeHeader = req.headers.get("range");
+        // Parse Range Header
+        const range = req.headers.get('range');
+        let start = 0;
+        let end = totalSize - 1;
 
-        // For simplicity in this basic streaming iteration, we'll stream the whole file 
-        // if no range is requested, or just pipe it chunk by chunk. 
-        // GramJS's `iterDownload` handles offset and limit for proper range yielding.
-
-        // Assuming we have Document (MP4)
-        let fileSize = 0;
-        if (media instanceof Api.MessageMediaDocument && media.document instanceof Api.Document) {
-            // use BigInt conversion just in case gramjs returns BigInt for size
-            fileSize = Number(media.document.size);
+        if (range) {
+            const parts = range.replace(/bytes=/, "").split("-");
+            if (parts[0]) start = parseInt(parts[0], 10);
+            if (parts[1]) end = parseInt(parts[1], 10);
         }
+
+        // Handle edge cases
+        if (start >= totalSize || end >= totalSize) {
+            return new NextResponse(null, {
+                status: 416, // Range Not Satisfiable
+                headers: { "Content-Range": `bytes */${totalSize}` }
+            });
+        }
+
+        const contentLength = end - start + 1;
 
         const stream = new ReadableStream({
             async start(controller) {
                 try {
-                    for await (const chunk of client.iterDownload({
-                        file: media,
-                        requestSize: 1024 * 512, // 512 KB chunks for smooth browser buffering
-                    })) {
-                        controller.enqueue(chunk);
+                    let currentOffset = 0;
+
+                    for (let i = 0; i < chunks.length; i++) {
+                        const chunk = chunks[i];
+                        const chunkStart = currentOffset;
+                        const chunkEnd = currentOffset + chunk.size - 1;
+
+                        // Check if this chunk intersects with the requested range
+                        if (start <= chunkEnd && end >= chunkStart) {
+                            const localStart = Math.max(0, start - chunkStart);
+                            const localEnd = Math.min(chunk.size - 1, end - chunkStart);
+
+                            // Fetch chunk file path
+                            const getFileResponse = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${chunk.id}`);
+                            const getFileData = await getFileResponse.json();
+                            if (!getFileData.ok) throw new Error(getFileData.description);
+
+                            const fileUrl = `https://api.telegram.org/file/bot${botToken}/${getFileData.result.file_path}`;
+
+                            const headers = new Headers();
+                            headers.set("Range", `bytes=${localStart}-${localEnd}`);
+
+                            const chunkRes = await fetch(fileUrl, { headers });
+                            if (!chunkRes.ok || !chunkRes.body) throw new Error(`Failed to fetch chunk ${i}`);
+
+                            // Pipe the chunk data into the main stream
+                            const reader = chunkRes.body.getReader();
+                            while (true) {
+                                const { done, value } = await reader.read();
+                                if (done) break;
+                                controller.enqueue(value);
+                            }
+                        }
+
+                        currentOffset += chunk.size;
                     }
                     controller.close();
                 } catch (e: any) {
-                    console.error("Stream iterDownload error:", e);
+                    console.error("Multi-chunk Stream Error:", e);
                     controller.error(e);
                 }
             }
         });
 
-        const headers = new Headers();
-        headers.set("Content-Type", "video/mp4");
-        headers.set("Accept-Ranges", "bytes");
+        const responseHeaders = new Headers();
+        responseHeaders.set("Content-Type", "video/mp4");
+        responseHeaders.set("Accept-Ranges", "bytes");
+        responseHeaders.set("Content-Length", contentLength.toString());
 
-        if (fileSize > 0) {
-            headers.set("Content-Length", fileSize.toString());
+        if (range) {
+            responseHeaders.set("Content-Range", `bytes ${start}-${end}/${totalSize}`);
         }
 
-        return new NextResponse(stream, { headers });
+        return new NextResponse(stream, {
+            status: range ? 206 : 200,
+            headers: responseHeaders
+        });
 
     } catch (error: any) {
         console.error("Stream Error:", error);
