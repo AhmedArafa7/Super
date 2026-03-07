@@ -24,11 +24,11 @@ export function StreamHub({ onOpenVault }: { onOpenVault?: () => void }) {
   const { toast } = useToast();
   const addTask = useUploadStore(state => state.addTask);
   const { addAsset, cachedAssets, removeAsset } = useGlobalStorage();
-  const { 
-    activeVideo, setActiveVideo, quality, setQuality, 
-    backgroundPlayback, setBackgroundPlayback, autoFloat, setAutoFloat 
+  const {
+    activeVideo, setActiveVideo, quality, setQuality,
+    backgroundPlayback, setBackgroundPlayback, autoFloat, setAutoFloat
   } = useStreamStore();
-  
+
   const [videos, setVideos] = useState<Video[]>([]);
   const [activeView, setActiveView] = useState<'explore' | 'studio'>('explore');
 
@@ -59,7 +59,7 @@ export function StreamHub({ onOpenVault }: { onOpenVault?: () => void }) {
   };
 
   const handleUpload = async (source: any, uploadData: any) => {
-    if (!user) return;
+    if (!user) return null;
     if (source === 'youtube' || source === 'drive') {
       await addVideo({
         title: uploadData.title,
@@ -75,9 +75,11 @@ export function StreamHub({ onOpenVault }: { onOpenVault?: () => void }) {
         externalUrl: uploadData.externalUrl
       });
       toast({ title: "تم ربط العقدة" });
+      return null;
     } else {
-      addTask(uploadData.file, 'video', { title: uploadData.title, author: user.name, authorId: user.id, status: user.role === 'admin' ? 'published' : 'pending_review' });
+      const taskId = addTask(uploadData.file, 'video', { title: uploadData.title, author: user.name, authorId: user.id, status: user.role === 'admin' ? 'published' : 'pending_review' });
       toast({ title: "بدأ الإرسال العصبي" });
+      return taskId;
     }
   };
 
@@ -112,15 +114,15 @@ export function StreamHub({ onOpenVault }: { onOpenVault?: () => void }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
         {(activeView === 'explore' ? publicVideos : safeVideos.filter(v => v.authorId === user?.id)).map((video) => (
-          <VideoCard 
-            key={video.id} 
-            video={video} 
-            isActive={activeVideo?.id === video.id} 
-            isCached={cachedAssets.some(a => a.id === `video-${video.id}`)} 
-            currentUser={user} 
-            onClick={() => setActiveVideo(video)} 
-            onSync={handleSyncToLocal} 
-            onDelete={deleteVideo} 
+          <VideoCard
+            key={video.id}
+            video={video}
+            isActive={activeVideo?.id === video.id}
+            isCached={cachedAssets.some(a => a.id === `video-${video.id}`)}
+            currentUser={user}
+            onClick={() => setActiveVideo(video)}
+            onSync={handleSyncToLocal}
+            onDelete={deleteVideo}
           />
         ))}
       </div>

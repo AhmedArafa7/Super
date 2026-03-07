@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { useUploadStore } from "@/lib/upload-store";
+import { Progress } from "@/components/ui/progress";
 
 /**
  * [STABILITY_ANCHOR: STREAM_UPLOAD_V1.5]
@@ -18,6 +20,26 @@ export function StreamUploadDialog({ onUpload, onOpenVault }: any) {
   const [source, setSource] = useState<any>('drive');
   const [data, setData] = useState({ title: "", externalUrl: "", file: null as File | null });
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+
+  const tasks = useUploadStore(state => state.tasks);
+  const activeTask = tasks.find(t => t.id === activeTaskId);
+
+  // Auto-close when the task finishes
+  React.useEffect(() => {
+    if (activeTaskId && !activeTask) {
+      // Task disappeared, likely finished or failed.
+      setIsOpen(false);
+      setActiveTaskId(null);
+      setData({ title: "", externalUrl: "", file: null });
+    } else if (activeTask && activeTask.status === 'completed') {
+      setTimeout(() => {
+        setIsOpen(false);
+        setActiveTaskId(null);
+        setData({ title: "", externalUrl: "", file: null });
+      }, 1000);
+    }
+  }, [activeTask, activeTaskId]);
 
   const fetchVideoTitle = async (url: string) => {
     if (!url.includes('youtube.com') && !url.includes('youtu.be')) return;
@@ -56,9 +78,19 @@ export function StreamUploadDialog({ onUpload, onOpenVault }: any) {
   };
 
   const handleFinalize = () => {
-    onUpload(source, data);
-    setIsOpen(false);
-    setData({ title: "", externalUrl: "", file: null });
+    if (source === 'local' && data.file) {
+      const taskId = onUpload(source, data);
+      if (taskId) {
+        setActiveTaskId(taskId);
+      } else {
+        setIsOpen(false);
+        setData({ title: "", externalUrl: "", file: null });
+      }
+    } else {
+      onUpload(source, data);
+      setIsOpen(false);
+      setData({ title: "", externalUrl: "", file: null });
+    }
   };
 
   return (
@@ -73,63 +105,83 @@ export function StreamUploadDialog({ onUpload, onOpenVault }: any) {
           <DialogTitle className="text-3xl font-headline font-bold text-white text-right">إرسال عصبي جديد</DialogTitle>
           <DialogDescription className="text-muted-foreground text-sm text-right">استخدم Nexus Vault للمساحات الكبيرة، أو يوتيوب للبث العام.</DialogDescription>
         </DialogHeader>
-        
-        <div className="grid gap-6 py-6">
-          {source === 'drive' && (
-            <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-between flex-row-reverse">
-              <div className="text-right">
-                <p className="text-xs font-bold text-indigo-300">خزنة نكسوس المركزية</p>
-                <p className="text-[10px] text-muted-foreground">ارفع ملفك هنا أولاً ثم انسخ الرابط</p>
+
+        {activeTask ? (
+          <div className="py-12 flex flex-col items-center justify-center space-y-4">
+            <div className="size-16 rounded-full border-4 border-t-primary border-white/10 animate-spin mb-4" />
+            <h3 className="text-xl font-bold text-white text-center">جارِ التشفير والرفع...</h3>
+            <p className="text-muted-foreground text-sm text-center">يتم الآن رفع الفيديو إلى الخوادم السحابية المؤمّنة الخاصة بتيليجرام. يرجى عدم إغلاق هذه النافذة.</p>
+            <div className="w-full mt-6 space-y-2">
+              <div className="flex justify-between items-center text-xs font-bold text-indigo-300 px-1">
+                <span>{Math.round(activeTask.progress)}%</span>
+                <span>{activeTask.fileName}</span>
               </div>
-              <Button variant="ghost" size="sm" className="gap-2 text-indigo-400 font-bold" onClick={onOpenVault}><ExternalLink className="size-3" /> فتح الخزنة</Button>
+              <Progress value={activeTask.progress} className="h-2 w-full bg-white/10" />
             </div>
-          )}
-
-          <Tabs value={source} onValueChange={(v: any) => { setSource(v); setData({...data, title: ""}); }} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-white/5 p-1 rounded-xl flex-row-reverse">
-              <TabsTrigger value="drive" className="rounded-lg gap-2 text-[10px] sm:text-sm"><HardDrive className="size-3" /> Vault</TabsTrigger>
-              <TabsTrigger value="youtube" className="rounded-lg gap-2 text-[10px] sm:text-sm"><Youtube className="size-3" /> YouTube</TabsTrigger>
-              <TabsTrigger value="local" className="rounded-lg gap-2 text-[10px] sm:text-sm"><FileVideo className="size-3" /> محلي</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <div className="grid gap-2">
-            <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">عنوان البث</Label>
-            <div className="relative">
-              <Input dir="auto" placeholder="صف موضوع البث..." className="bg-white/5 border-white/10 rounded-xl h-12 text-right pr-4" value={data.title} onChange={(e) => setData({ ...data, title: e.target.value })} />
-              {isFetchingMetadata && <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin" />}
-            </div>
+            {activeTask.status === 'failed' && (
+              <p className="text-red-500 font-bold text-sm mt-4">فشل الرفع. الرجاء المحاولة مرة أخرى.</p>
+            )}
           </div>
-
-          {source !== 'local' ? (
-            <div className="grid gap-2">
-              <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">رابط المصدر</Label>
-              <Input placeholder="رابط فيديو من الخزنة أو اليوتيوب..." className="bg-white/5 border-white/10 rounded-xl h-12 text-right" value={data.externalUrl} onChange={(e) => handleUrlChange(e.target.value)} />
-            </div>
-          ) : (
-            <div className="grid gap-2">
-              <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">اختر الوسائط</Label>
-              <div className="relative h-32 bg-white/5 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-all">
-                <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
-                  const file = e.target.files?.[0] || null;
-                  setData({...data, file, title: file ? file.name.split('.')[0] : ""});
-                }} accept="video/*" />
-                {data.file ? (
-                  <div className="text-center">
-                    <CheckCircle2 className="size-8 text-green-400 mx-auto mb-2" />
-                    <p className="text-xs text-white font-bold">{data.file.name}</p>
+        ) : (
+          <>
+            <div className="grid gap-6 py-6">
+              {source === 'drive' && (
+                <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-between flex-row-reverse">
+                  <div className="text-right">
+                    <p className="text-xs font-bold text-indigo-300">خزنة نكسوس المركزية</p>
+                    <p className="text-[10px] text-muted-foreground">ارفع ملفك هنا أولاً ثم انسخ الرابط</p>
                   </div>
-                ) : (
-                  <><Upload className="size-8 text-muted-foreground mb-2" /><p className="text-xs text-muted-foreground font-bold">اضغط لمزامنة ملف محلي</p></>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+                  <Button variant="ghost" size="sm" className="gap-2 text-indigo-400 font-bold" onClick={onOpenVault}><ExternalLink className="size-3" /> فتح الخزنة</Button>
+                </div>
+              )}
 
-        <DialogFooter>
-          <Button onClick={handleFinalize} className="w-full bg-primary h-14 rounded-2xl font-bold" disabled={!data.title || (source === 'local' && !data.file) || (source !== 'local' && !data.externalUrl) || isFetchingMetadata}><Zap className="mr-2 size-5" /> بدء المزامنة</Button>
-        </DialogFooter>
+              <Tabs value={source} onValueChange={(v: any) => { setSource(v); setData({ ...data, title: "" }); }} className="w-full">
+                <TabsList className="grid w-full grid-cols-3 bg-white/5 p-1 rounded-xl flex-row-reverse">
+                  <TabsTrigger value="drive" className="rounded-lg gap-2 text-[10px] sm:text-sm"><HardDrive className="size-3" /> Vault</TabsTrigger>
+                  <TabsTrigger value="youtube" className="rounded-lg gap-2 text-[10px] sm:text-sm"><Youtube className="size-3" /> YouTube</TabsTrigger>
+                  <TabsTrigger value="local" className="rounded-lg gap-2 text-[10px] sm:text-sm"><FileVideo className="size-3" /> محلي</TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              <div className="grid gap-2">
+                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">عنوان البث</Label>
+                <div className="relative">
+                  <Input dir="auto" placeholder="صف موضوع البث..." className="bg-white/5 border-white/10 rounded-xl h-12 text-right pr-4" value={data.title} onChange={(e) => setData({ ...data, title: e.target.value })} />
+                  {isFetchingMetadata && <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin" />}
+                </div>
+              </div>
+
+              {source !== 'local' ? (
+                <div className="grid gap-2">
+                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">رابط المصدر</Label>
+                  <Input placeholder="رابط فيديو من الخزنة أو اليوتيوب..." className="bg-white/5 border-white/10 rounded-xl h-12 text-right" value={data.externalUrl} onChange={(e) => handleUrlChange(e.target.value)} />
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">اختر الوسائط</Label>
+                  <div className="relative h-32 bg-white/5 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-all">
+                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      setData({ ...data, file, title: file ? file.name.split('.')[0] : "" });
+                    }} accept="video/*" />
+                    {data.file ? (
+                      <div className="text-center">
+                        <CheckCircle2 className="size-8 text-green-400 mx-auto mb-2" />
+                        <p className="text-xs text-white font-bold">{data.file.name}</p>
+                      </div>
+                    ) : (
+                      <><Upload className="size-8 text-muted-foreground mb-2" /><p className="text-xs text-muted-foreground font-bold">اضغط لمزامنة ملف محلي</p></>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button onClick={handleFinalize} className="w-full bg-primary h-14 rounded-2xl font-bold" disabled={!data.title || (source === 'local' && !data.file) || (source !== 'local' && !data.externalUrl) || isFetchingMetadata}><Zap className="mr-2 size-5" /> بدء المزامنة</Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
