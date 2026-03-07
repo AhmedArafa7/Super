@@ -13,6 +13,7 @@ export interface CachedAsset {
   timestamp: number;
   isFavorite: boolean;
   metadata?: any;
+  downloadedQuality?: string;
 }
 
 interface CategoryLimit {

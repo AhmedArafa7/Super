@@ -115,8 +115,8 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       removeAsset(assetId);
       toast({ title: "تم الإزالة", description: "تم حذف الفيديو من التنزيلات" });
     } else {
-      addAsset({ id: assetId, type: 'video', title: video.title, sizeMB: 45 });
-      toast({ title: "جاري التنزيل", description: "سيتم حفظ الفيديو للمشاهدة بدون إنترنت" });
+      addAsset({ id: assetId, type: 'video', title: video.title, sizeMB: 45, downloadedQuality: '720' });
+      toast({ title: "جاري التنزيل", description: "سيتم حفظ الفيديو للمشاهدة بدون إنترنت بجودة 720p" });
     }
   };
 
