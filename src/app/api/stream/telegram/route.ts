@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTelegramClient } from "@/lib/telegram-client";
 import { Api } from "telegram";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);

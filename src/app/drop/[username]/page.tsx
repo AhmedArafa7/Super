@@ -5,6 +5,8 @@ import { useParams } from 'next/navigation';
 import { Send, CheckCircle2, Upload, Link as LinkIcon, User, Mail, FileText, Loader2, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { findUserByUsername, submitDrop } from '@/lib/drop-store';
 
+export const runtime = 'edge';
+
 /**
  * [STABILITY_ANCHOR: DROP_PUBLIC_PAGE_V1.0]
  * صفحة الإسقاط السري العامة - لا تتطلب تسجيل دخول.
@@ -194,8 +196,8 @@ export default function DropPage() {
                                     type="button"
                                     onClick={() => setFileType(opt.id)}
                                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${fileType === opt.id
-                                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                                            : 'bg-white/5 text-white/50 border border-white/10 hover:bg-white/10'
+                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                                        : 'bg-white/5 text-white/50 border border-white/10 hover:bg-white/10'
                                         }`}
                                 >
                                     {opt.label}

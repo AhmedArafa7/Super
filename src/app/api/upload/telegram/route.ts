@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTelegramClient } from "@/lib/telegram-client";
 import { CustomFile } from "telegram/client/uploads";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 // Prevent maximum duration issues on Vercel for large file uploads
 export const maxDuration = 300;
 
