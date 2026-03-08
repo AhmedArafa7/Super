@@ -37,6 +37,7 @@ import { toast } from "@/hooks/use-toast";
 import { AppSidebar } from "./app-sidebar";
 import { AppHeader } from "./app-header";
 import { DulmsLayout } from "./dulms-layout";
+import { getThemeBySlug } from "@/lib/theme-store";
 
 const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g#list";
 const VAULT_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
@@ -77,8 +78,14 @@ export function AppShell() {
 
   if (!isAuthenticated) return <LoginView />;
 
-  if (user?.activeTheme === 'dulms') {
-    return <DulmsLayout user={user as any} />;
+  // Theme Routing: slug-based check from the centralized registry
+  const activeThemeSlug = user?.activeTheme;
+  if (activeThemeSlug && activeThemeSlug !== 'nexus') {
+    const themeDef = getThemeBySlug(activeThemeSlug);
+    if (themeDef) {
+      // Map slug → layout component
+      if (activeThemeSlug === 'dulms') return <DulmsLayout user={user as any} />;
+    }
   }
 
   const handleNavigateToPeerChat = (userId: string) => {

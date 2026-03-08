@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { User } from "@/lib/auth/types";
-import { updateUserProfile } from "@/lib/auth-store";
+import { activateTheme } from "@/lib/theme-store";
 
 interface DulmsLayoutProps {
     user: User | null;
@@ -19,10 +19,10 @@ export function DulmsLayout({ user }: DulmsLayoutProps) {
     const [activeSubItem, setActiveSubItem] = useState('files');
     const [showDropdown, setShowDropdown] = useState(false);
 
-    // Return to normal theme
+    // Return to default theme via centralized theme store
     const handleExitDulms = async () => {
         if (user?.id) {
-            await updateUserProfile(user.id, { activeTheme: 'nexus' });
+            await activateTheme(user.id, 'nexus');
             window.location.reload();
         }
     };

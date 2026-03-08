@@ -25,6 +25,7 @@ export interface MarketItem {
   promoFileUrl?: string;
   adminFeedback?: string;
   versionStatus?: AppVersionStatus;
+  themeSlug?: string;
 }
 
 export interface CategoryRequest {

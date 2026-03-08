@@ -9,7 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { updateUserProfile, uploadAvatar } from "@/lib/auth-store";
-import { getMarketItems, MarketItem, addMarketItem } from "@/lib/market-store";
+import {
+  THEME_REGISTRY, getOwnedThemes, getAvailableThemes,
+  getActiveThemeSlug, activeThemeSupportsDarkMode,
+  activateTheme, purchaseTheme, toggleThemeMode,
+  ensureThemeProductsExist, ThemeDefinition
+} from "@/lib/theme-store";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -25,79 +30,39 @@ export function ProfileSettings({ user }: any) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [storeThemes, setStoreThemes] = useState<MarketItem[]>([]);
-  const [isFetchingThemes, setIsFetchingThemes] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(true);
 
-  const ownedThemeIds = user?.ownedThemes || ['nexus'];
-  const activeTheme = user?.activeTheme || 'nexus';
+  const ownedThemes = getOwnedThemes(user);
+  const availableThemes = getAvailableThemes(user);
+  const activeSlug = getActiveThemeSlug(user);
   const themeMode = user?.themeMode || 'dark';
 
+  // عند فتح الإعدادات، نتأكد من وجود جميع التصميمات في المتجر (seeds)
   React.useEffect(() => {
-    const fetchThemes = async () => {
-      setIsFetchingThemes(true);
-      try {
-        const { items } = await getMarketItems(10, undefined, 'themes', 'ui_themes', undefined, true);
-        if (items.length === 0 && user?.role && ['founder', 'cofounder', 'admin'].includes(user.role)) {
-          // Auto-seed the DULMS theme product if none exist
-          await addMarketItem({
-            title: "\u062c\u0627\u0645\u0639\u0629 \u0627\u0644\u062f\u0644\u062a\u0627 (DULMS)",
-            description: "\u062a\u0635\u0645\u064a\u0645 \u0645\u0637\u0627\u0628\u0642 \u0628\u0627\u0644\u0643\u0627\u0645\u0644 \u0644\u0646\u0638\u0627\u0645 \u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u062a\u0639\u0644\u0645 \u0627\u0644\u062e\u0627\u0635 \u0628\u062c\u0627\u0645\u0639\u0629 \u0627\u0644\u062f\u0644\u062a\u0627. \u064a\u062f\u0639\u0645 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0644\u064a\u0644\u064a \u0648\u0627\u0644\u0641\u0627\u062a\u062d.",
-            price: 0,
-            sellerId: "nexus_system",
-            mainCategory: "themes",
-            subCategory: "ui_themes",
-            stockQuantity: 999999,
-          }, true);
-          // Re-fetch after seeding
-          const { items: newItems } = await getMarketItems(10, undefined, 'themes', 'ui_themes', undefined, true);
-          setStoreThemes(newItems);
-        } else {
-          setStoreThemes(items);
-        }
-      } catch (err) {
-        console.error("Failed to fetch themes", err);
-      } finally {
-        setIsFetchingThemes(false);
-      }
-    };
-    fetchThemes();
+    ensureThemeProductsExist()
+      .catch(err => console.error("Theme seed error:", err))
+      .finally(() => setIsSeeding(false));
   }, []);
 
-  const handleSeedDulmsTheme = async () => {
-    try {
-      await addMarketItem({
-        title: "جامعة الدلتا (DULMS)",
-        description: "تصميم مطابق بالكامل لنظام إدارة التعلم الخاص بجامعة الدلتا (DULMS Layout).",
-        price: 0,
-        sellerId: "nexus_system",
-        mainCategory: "themes",
-        subCategory: "ui_themes",
-        stockQuantity: 999999,
-      }, true);
-      toast({ title: "تم إضافة التصميم للمتجر بنجاح!" });
-      setTimeout(() => window.location.reload(), 1000);
-    } catch (e) {
-      toast({ variant: "destructive", title: "فشل الإضافة" });
-    }
-  };
-
-  const handleActivateTheme = async (themeId: string) => {
+  const handleActivateTheme = async (slug: string) => {
     setIsUpdating(true);
     try {
-      await updateUserProfile(user.id, { activeTheme: themeId });
+      await activateTheme(user.id, slug);
       toast({ title: "تم تفعيل التصميم بنجاح، جاري إعادة التحميل..." });
       setTimeout(() => window.location.reload(), 800);
     } catch (err: any) {
-      toast({ variant: "destructive", title: "فشل التفعيل" });
+      toast({ variant: "destructive", title: "فشل التفعيل", description: err.message });
       setIsUpdating(false);
     }
   };
 
-  const handlePurchaseTheme = async (themeId: string) => {
+  const handlePurchaseTheme = async (slug: string) => {
     setIsUpdating(true);
     try {
-      await updateUserProfile(user.id, { ownedThemes: [...ownedThemeIds, themeId] });
+      const currentOwned = user?.ownedThemes || ['nexus'];
+      await purchaseTheme(user.id, slug, currentOwned);
       toast({ title: "تم الحصول على التصميم بنجاح!" });
+      setTimeout(() => window.location.reload(), 800);
     } catch (err: any) {
       toast({ variant: "destructive", title: "فشل الشراء" });
     } finally {
@@ -107,7 +72,7 @@ export function ProfileSettings({ user }: any) {
 
   const handleToggleThemeMode = async (checked: boolean) => {
     try {
-      await updateUserProfile(user.id, { themeMode: checked ? 'dark' : 'light' });
+      await toggleThemeMode(user.id, checked ? 'dark' : 'light');
     } catch (err: any) {
       toast({ variant: "destructive", title: "فشل تحديث الإعدادات" });
     }
@@ -271,7 +236,7 @@ export function ProfileSettings({ user }: any) {
 
         <div className="space-y-8 mt-6 relative z-10">
 
-          {/* Theme Mode Toggle (Light/Dark) */}
+          {/* Theme Mode Toggle */}
           <div className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-2xl flex-row-reverse">
             <div className="flex items-center gap-3 flex-row-reverse text-right">
               <div className="size-10 rounded-xl bg-black/40 flex items-center justify-center border border-white/5">
@@ -279,7 +244,7 @@ export function ProfileSettings({ user }: any) {
               </div>
               <div>
                 <h4 className="font-bold text-white leading-tight">الوضع الليلي (Dark Mode)</h4>
-                <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[200px]">يُطبق فقط على التصميمات التي تدعم الوضعين (مثل DULMS). تصميم Nexus الأساسي ليلي دائماً.</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[200px]">يُطبق فقط على التصميمات التي تدعم الوضعين. تصميم Nexus ليلي دائماً.</p>
               </div>
             </div>
             <Switch
@@ -291,37 +256,22 @@ export function ProfileSettings({ user }: any) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-            {/* Owned Themes */}
+            {/* Owned Themes — rendered from THEME_REGISTRY */}
             <div className="space-y-4">
               <h4 className="text-sm font-bold text-white text-right flex items-center justify-end gap-2">
                 تصميماتك <Monitor className="size-4" />
               </h4>
               <div className="space-y-3">
-                {ownedThemeIds.includes('nexus') && (
-                  <div className={cn("p-4 rounded-2xl border transition-all text-right flex flex-col gap-3", activeTheme === 'nexus' ? "bg-primary/10 border-primary" : "bg-white/5 border-white/10 hover:border-white/20")}>
+                {ownedThemes.map(theme => (
+                  <div key={theme.slug} className={cn("p-4 rounded-2xl border transition-all text-right flex flex-col gap-3", activeSlug === theme.slug ? "bg-primary/10 border-primary" : "bg-white/5 border-white/10 hover:border-white/20")}>
                     <div className="flex items-center justify-between flex-row-reverse">
-                      <span className="font-bold text-base text-white">Nexus (الافتراضي)</span>
-                      {activeTheme === 'nexus' && <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold">مُفعّل</span>}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">الواجهة الذكية الافتراضية الخاصة بالنظام الزجاجي.</p>
-                    {activeTheme !== 'nexus' && (
-                      <Button size="sm" variant="outline" className="w-full rounded-xl bg-transparent border-white/10 mt-1" onClick={() => handleActivateTheme('nexus')} disabled={isUpdating}>
-                        تفعيل التصميم
-                      </Button>
-                    )}
-                  </div>
-                )}
-
-                {storeThemes.filter(t => ownedThemeIds.includes(t.id)).map(theme => (
-                  <div key={theme.id} className={cn("p-4 rounded-2xl border transition-all text-right flex flex-col gap-3", activeTheme === theme.id ? "bg-primary/10 border-primary" : "bg-white/5 border-white/10 hover:border-white/20")}>
-                    <div className="flex items-center justify-between flex-row-reverse">
-                      <span className="font-bold text-base text-white">{theme.title}</span>
-                      {activeTheme === theme.id && <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold">مُفعّل</span>}
+                      <span className="font-bold text-base text-white">{theme.name}</span>
+                      {activeSlug === theme.slug && <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold">مُفعّل</span>}
                     </div>
                     <p className="text-[11px] text-muted-foreground leading-relaxed">{theme.description}</p>
-                    {activeTheme !== theme.id && (
-                      <Button size="sm" variant="outline" className="w-full rounded-xl bg-transparent border-white/10 mt-1" onClick={() => handleActivateTheme(theme.id)} disabled={isUpdating}>
-                        تفعيل التصميم
+                    {activeSlug !== theme.slug && (
+                      <Button size="sm" variant="outline" className="w-full rounded-xl bg-transparent border-white/10 mt-1" onClick={() => handleActivateTheme(theme.slug)} disabled={isUpdating}>
+                        {isUpdating ? <Loader2 className="size-4 animate-spin" /> : "تفعيل التصميم"}
                       </Button>
                     )}
                   </div>
@@ -329,37 +279,32 @@ export function ProfileSettings({ user }: any) {
               </div>
             </div>
 
-            {/* Store Themes */}
+            {/* Available Themes (not yet owned) — from THEME_REGISTRY */}
             <div className="space-y-4">
               <h4 className="text-sm font-bold text-white text-right flex items-center justify-end gap-2">
                 المتجر <Store className="size-4" />
               </h4>
               <div className="space-y-3">
-                {isFetchingThemes ? (
+                {isSeeding ? (
                   <div className="p-8 flex items-center justify-center bg-white/5 rounded-2xl border border-white/10">
                     <Loader2 className="size-6 text-muted-foreground animate-spin" />
                   </div>
-                ) : storeThemes.filter(t => !ownedThemeIds.includes(t.id)).length > 0 ? (
-                  storeThemes.filter(t => !ownedThemeIds.includes(t.id)).map(theme => (
-                    <div key={theme.id} className="p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-right flex flex-col gap-3">
+                ) : availableThemes.length > 0 ? (
+                  availableThemes.map(theme => (
+                    <div key={theme.slug} className="p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-right flex flex-col gap-3">
                       <div className="flex items-center justify-between flex-row-reverse">
-                        <span className="font-bold text-base text-white">{theme.title}</span>
-                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">مجاني</span>
+                        <span className="font-bold text-base text-white">{theme.name}</span>
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">{theme.storePrice === 0 ? 'مجاني' : `${theme.storePrice} Credits`}</span>
                       </div>
                       <p className="text-[11px] text-muted-foreground leading-relaxed">{theme.description}</p>
-                      <Button size="sm" className="w-full rounded-xl mt-1 font-bold shadow-xl shadow-primary/10" onClick={() => handlePurchaseTheme(theme.id)} disabled={isUpdating}>
-                        الحصول على التصميم لتغيير المظهر
+                      <Button size="sm" className="w-full rounded-xl mt-1 font-bold shadow-xl shadow-primary/10" onClick={() => handlePurchaseTheme(theme.slug)} disabled={isUpdating}>
+                        {isUpdating ? <Loader2 className="size-4 animate-spin" /> : "الحصول على التصميم"}
                       </Button>
                     </div>
                   ))
                 ) : (
-                  <div className="p-8 flex flex-col items-center justify-center bg-white/5 rounded-2xl border border-white/10 text-center gap-4">
-                    <p className="text-xs text-muted-foreground font-bold">لا توجد تصميمات جديدة في المتجر حالياً.</p>
-                    {user?.role === 'founder' && (
-                      <Button variant="outline" size="sm" onClick={handleSeedDulmsTheme} className="rounded-xl border-dashed border-white/20 text-[10px]">
-                        + Seed DULMS Theme (Developer)
-                      </Button>
-                    )}
+                  <div className="p-8 flex flex-col items-center justify-center bg-white/5 rounded-2xl border border-white/10 text-center">
+                    <p className="text-xs text-muted-foreground font-bold">تمتلك جميع التصميمات المتاحة حالياً. ترقبوا المزيد!</p>
                   </div>
                 )}
               </div>
