@@ -223,7 +223,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
         isMobileSearchOpen={isMobileSearchOpen} setIsMobileSearchOpen={setIsMobileSearchOpen}
-        onOpenVault={onOpenVault} user={user}
+        onOpenVault={onOpenVault} user={user} onUpload={handleUpload}
       />
 
       <div className="flex flex-1 overflow-hidden mt-4 gap-4 h-[calc(100vh-140px)]">
@@ -501,9 +501,9 @@ function Sidebar({ isSidebarOpen, activeTab, setActiveTab, subscriptions }: any)
           subscriptions.map((sub: any) => (
             <button key={sub.id} onClick={() => setActiveTab('subs')} className="flex items-center gap-3 w-full p-2 px-3 rounded-lg hover:bg-white/10 transition-colors group">
               <div className="size-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-[10px] font-bold shrink-0 shadow-sm border border-white/5 overflow-hidden">
-                {sub.channelAvatar ? <img src={sub.channelAvatar} className="size-full object-cover" /> : (sub.channelTitle?.charAt(0) || "?")}
+                {sub.avatarUrl ? <img src={sub.avatarUrl} className="size-full object-cover" /> : (sub.channelName?.charAt(0) || "?")}
               </div>
-              <span className="text-sm truncate text-muted-foreground group-hover:text-white">{sub.channelTitle || "قناة غير معروفة"}</span>
+              <span className="text-sm truncate text-muted-foreground group-hover:text-white">{sub.channelName || "قناة غير معروفة"}</span>
               {sub.isFavorite && <span className="size-1.5 rounded-full bg-blue-500 shrink-0 mr-auto"></span>}
             </button>
           ))
