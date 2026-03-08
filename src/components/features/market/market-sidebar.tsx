@@ -2,10 +2,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { 
-  LayoutGrid, Laptop, Boxes, Briefcase, Terminal, 
-  GraduationCap, MonitorSmartphone, Sofa, Wrench, 
-  Sparkles, Plus, Loader2, MessageSquare
+import {
+  LayoutGrid, Laptop, Boxes, Briefcase, Terminal,
+  GraduationCap, MonitorSmartphone, Sofa, Wrench,
+  Sparkles, Plus, Loader2, MessageSquare, Palette
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MainCategory, requestNewCategory } from "@/lib/market-store";
@@ -22,6 +22,7 @@ export const MAIN_CATEGORIES = [
   { id: 'electronics', label: 'الإلكترونيات', icon: Laptop },
   { id: 'home_lifestyle', label: 'المنزل وأسلوب الحياة', icon: Sofa },
   { id: 'digital_assets', label: 'الأصول الرقمية', icon: Boxes },
+  { id: 'themes', label: 'تصميمات الواجهة', icon: Palette },
   { id: 'services', label: 'الخدمات التقنية', icon: Briefcase },
   { id: 'tools', label: 'أدوات AI', icon: Terminal },
   { id: 'industrial', label: 'المعدات الصناعية', icon: Wrench },
@@ -68,8 +69,8 @@ export function MarketSidebar({ currentCat, onSelect }: MarketSidebarProps) {
               onClick={() => onSelect(cat.id as MainCategory)}
               className={cn(
                 "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all group flex-row-reverse",
-                currentCat === cat.id 
-                  ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                currentCat === cat.id
+                  ? "bg-primary text-white shadow-lg shadow-primary/20"
                   : "text-slate-400 hover:bg-white/5 hover:text-white"
               )}
             >
@@ -94,11 +95,11 @@ export function MarketSidebar({ currentCat, onSelect }: MarketSidebarProps) {
             <div className="space-y-4 py-4">
               <div className="grid gap-2">
                 <Label>اسم التصنيف المقترح</Label>
-                <Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" placeholder="مثال: بخور، أحذية رياضية..." value={suggestion.name} onChange={e => setSuggestion({...suggestion, name: e.target.value})} />
+                <Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" placeholder="مثال: بخور، أحذية رياضية..." value={suggestion.name} onChange={e => setSuggestion({ ...suggestion, name: e.target.value })} />
               </div>
               <div className="grid gap-2">
                 <Label>يندرج تحت قطاع</Label>
-                <Select value={suggestion.parent} onValueChange={(v: any) => setSuggestion({...suggestion, parent: v})}>
+                <Select value={suggestion.parent} onValueChange={(v: any) => setSuggestion({ ...suggestion, parent: v })}>
                   <SelectTrigger className="bg-white/5 border-white/10 h-12 flex-row-reverse"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-slate-900 border-white/10 text-white">
                     {MAIN_CATEGORIES.filter(c => c.id !== 'all').map(c => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}

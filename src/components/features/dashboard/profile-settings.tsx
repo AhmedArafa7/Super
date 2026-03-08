@@ -37,7 +37,23 @@ export function ProfileSettings({ user }: any) {
       setIsFetchingThemes(true);
       try {
         const { items } = await getMarketItems(10, undefined, 'themes', 'ui_themes', undefined, true);
-        setStoreThemes(items);
+        if (items.length === 0 && user?.role && ['founder', 'cofounder', 'admin'].includes(user.role)) {
+          // Auto-seed the DULMS theme product if none exist
+          await addMarketItem({
+            title: "\u062c\u0627\u0645\u0639\u0629 \u0627\u0644\u062f\u0644\u062a\u0627 (DULMS)",
+            description: "\u062a\u0635\u0645\u064a\u0645 \u0645\u0637\u0627\u0628\u0642 \u0628\u0627\u0644\u0643\u0627\u0645\u0644 \u0644\u0646\u0638\u0627\u0645 \u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u062a\u0639\u0644\u0645 \u0627\u0644\u062e\u0627\u0635 \u0628\u062c\u0627\u0645\u0639\u0629 \u0627\u0644\u062f\u0644\u062a\u0627. \u064a\u062f\u0639\u0645 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0644\u064a\u0644\u064a \u0648\u0627\u0644\u0641\u0627\u062a\u062d.",
+            price: 0,
+            sellerId: "nexus_system",
+            mainCategory: "themes",
+            subCategory: "ui_themes",
+            stockQuantity: 999999,
+          }, true);
+          // Re-fetch after seeding
+          const { items: newItems } = await getMarketItems(10, undefined, 'themes', 'ui_themes', undefined, true);
+          setStoreThemes(newItems);
+        } else {
+          setStoreThemes(items);
+        }
       } catch (err) {
         console.error("Failed to fetch themes", err);
       } finally {
