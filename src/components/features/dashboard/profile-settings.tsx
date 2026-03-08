@@ -85,10 +85,10 @@ export function ProfileSettings({ user }: any) {
     setIsUpdating(true);
     try {
       await updateUserProfile(user.id, { activeTheme: themeId });
-      toast({ title: "تم تفعيل التصميم بنجاح" });
+      toast({ title: "تم تفعيل التصميم بنجاح، جاري إعادة التحميل..." });
+      setTimeout(() => window.location.reload(), 800);
     } catch (err: any) {
       toast({ variant: "destructive", title: "فشل التفعيل" });
-    } finally {
       setIsUpdating(false);
     }
   };
