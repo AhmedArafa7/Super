@@ -43,7 +43,7 @@ export function FinancialLedger({ transactions }: FinancialLedgerProps) {
               </div>
               <div className="text-left flex flex-col items-start gap-1">
                 <p className={cn("font-black text-xl tracking-tighter", tx.amount > 0 ? "text-green-400" : "text-red-400")}>
-                  {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
+                  {tx.amount > 0 ? '+' : ''}{(tx.amount ?? 0).toLocaleString()}
                 </p>
                 <Badge variant="outline" className="text-[8px] border-white/10 font-bold tracking-widest uppercase py-0">{tx.type}</Badge>
               </div>

@@ -167,7 +167,7 @@ export function WalletView() {
           {pendingDebt > 0 && (
             <Badge variant="destructive" className="h-10 px-4 rounded-xl gap-2 animate-pulse">
               <AlertCircle className="size-4" />
-              -{pendingDebt.toLocaleString()} [Sync Pending]
+              -{(pendingDebt ?? 0).toLocaleString()} [Sync Pending]
             </Badge>
           )}
           <Button variant="outline" className="rounded-xl border-white/10 hover:bg-white/5 gap-2" onClick={() => setShowFake(!showFake)}>
@@ -187,14 +187,14 @@ export function WalletView() {
           <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-2 flex items-center gap-2 justify-end">
             إجمالي العملات الحقيقية <Zap className="size-3" />
           </p>
-          <span className="text-4xl font-bold text-white tracking-tighter">{totalReal.toLocaleString()}</span>
+          <span className="text-4xl font-bold text-white tracking-tighter">{(totalReal ?? 0).toLocaleString()}</span>
         </Card>
         <Card className="glass border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 size-40 bg-indigo-500/10 blur-[60px] -mr-20 -mt-20" />
           <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2 justify-end">
             إجمالي العملات الداخلية <Coins className="size-3" />
           </p>
-          <span className="text-4xl font-bold text-indigo-400 tracking-tighter">{totalFake.toLocaleString()}</span>
+          <span className="text-4xl font-bold text-indigo-400 tracking-tighter">{(totalFake ?? 0).toLocaleString()}</span>
         </Card>
         <Card className="glass border-white/5 rounded-[2.5rem] p-8 flex items-center justify-center">
           <Dialog open={isConvertOpen} onOpenChange={setIsConvertOpen}>
@@ -298,12 +298,12 @@ export function WalletView() {
                   {currency.nameAr}
                 </p>
                 <p className="text-3xl font-bold text-white tracking-tighter text-right mb-1">
-                  {balance.toLocaleString()}
+                  {(balance ?? 0).toLocaleString()}
                 </p>
                 {frozen > 0 && (
                   <div className="flex items-center gap-1 justify-end mt-2">
                     <Lock className="size-3 text-amber-400" />
-                    <span className="text-[10px] text-amber-400 font-bold">{frozen.toLocaleString()} مجمّد</span>
+                    <span className="text-[10px] text-amber-400 font-bold">{(frozen ?? 0).toLocaleString()} مجمّد</span>
                   </div>
                 )}
                 {pendingRules.length > 0 && (
@@ -383,7 +383,7 @@ export function WalletView() {
                           "font-bold text-lg tracking-tight",
                           tx.amount > 0 ? "text-green-400" : tx.amount < 0 ? "text-red-400" : "text-indigo-400"
                         )}>
-                          {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
+                          {tx.amount > 0 ? '+' : ''}{(tx.amount ?? 0).toLocaleString()}
                         </p>
                         <Badge variant="outline" className="text-[9px] h-4 border-white/10 text-muted-foreground">
                           {tx.status.toUpperCase()}
@@ -405,7 +405,7 @@ export function WalletView() {
             <div className="fixed bottom-8 left-8 z-50">
               <Badge variant="destructive" className="h-12 px-6 rounded-2xl gap-2 animate-bounce cursor-pointer text-sm font-bold shadow-xl">
                 <AlertCircle className="size-5" />
-                {pendingDebt.toLocaleString()} معاملة معلقة
+                {(pendingDebt ?? 0).toLocaleString()} معاملة معلقة
               </Badge>
             </div>
           </DialogTrigger>
@@ -425,7 +425,7 @@ export function WalletView() {
                         <p className="font-bold text-sm text-white">{tx.title}</p>
                         <p className="text-[10px] text-red-400 font-bold uppercase">{tx.errorReason || 'فشل المعاملة'}</p>
                       </div>
-                      <p className="font-bold text-red-400">-{tx.price.toLocaleString()}</p>
+                      <p className="font-bold text-red-400">-{(tx.price ?? 0).toLocaleString()}</p>
                     </div>
                     <div className="flex gap-2 flex-row-reverse">
                       <Button size="sm" variant="outline" className="flex-1 h-8 text-[10px] rounded-lg border-white/10" onClick={() => user && retryTransaction(user.id, tx.id)}>
@@ -446,7 +446,7 @@ export function WalletView() {
                       <p className="font-bold text-sm">{tx.title}</p>
                       <p className="text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(tx.timestamp), { addSuffix: true })}</p>
                     </div>
-                    <p className="font-bold text-white/60">-{tx.price.toLocaleString()}</p>
+                    <p className="font-bold text-white/60">-{(tx.price ?? 0).toLocaleString()}</p>
                   </div>
                 ))}
               </div>

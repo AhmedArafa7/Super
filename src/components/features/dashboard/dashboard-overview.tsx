@@ -2,8 +2,8 @@
 "use client";
 
 import React from "react";
-import { 
-  MessageSquare, Video, ShoppingBag, BookOpen, 
+import {
+  MessageSquare, Video, ShoppingBag, BookOpen,
   ArrowRight, Wallet as WalletIcon, Sparkles, HardDrive, Zap
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,7 +22,7 @@ interface QuickActionProps {
 }
 
 const QuickActionCard = ({ icon: Icon, title, desc, onClick, color }: QuickActionProps) => (
-  <Card 
+  <Card
     className="group glass border-white/5 hover:border-primary/40 rounded-[2rem] overflow-hidden transition-all duration-500 cursor-pointer shadow-xl hover:shadow-primary/10"
     onClick={onClick}
   >
@@ -60,7 +60,7 @@ export function DashboardOverview({ user, wallet, usedSpace, storageLimitMB, sto
             <div className="text-center sm:text-right">
               <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-[0.2em] mb-2">الرصيد المتاح</p>
               <div className="flex items-baseline gap-2 justify-center sm:justify-end">
-                <span className="text-5xl font-black text-white tracking-tighter">{wallet?.balance.toLocaleString() || '0'}</span>
+                <span className="text-5xl font-black text-white tracking-tighter">{wallet?.balance?.toLocaleString() ?? '0'}</span>
                 <span className="text-primary font-bold text-sm">Credits</span>
               </div>
             </div>

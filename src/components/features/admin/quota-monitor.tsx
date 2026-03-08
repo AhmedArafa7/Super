@@ -138,8 +138,8 @@ export function QuotaMonitor({ data }: { data: any }) {
                         </Badge>
                       </div>
                       <div className="text-left">
-                        <span className="text-xl font-black text-white">{item.used.toLocaleString()}</span>
-                        <span className="text-[10px] text-muted-foreground ml-1">/ {item.limit.toLocaleString()} {item.unit}</span>
+                        <span className="text-xl font-black text-white">{(item.used ?? 0).toLocaleString()}</span>
+                        <span className="text-[10px] text-muted-foreground ml-1">/ {(item.limit ?? 0).toLocaleString()} {item.unit}</span>
                       </div>
                     </div>
 

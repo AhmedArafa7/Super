@@ -32,7 +32,7 @@ export function OrdersHistory({ orders, isLoading }: any) {
                 <div key={order.id} className="p-6 flex items-center justify-between hover:bg-white/5 transition-colors group flex-row-reverse">
                   <div className="text-right">
                     <p className="font-bold text-lg text-white">
-                      {Math.abs(order.amount).toLocaleString()} <span className="text-[10px] text-muted-foreground uppercase">Credits</span>
+                      {Math.abs(order.amount ?? 0).toLocaleString()} <span className="text-[10px] text-muted-foreground uppercase">Credits</span>
                     </p>
                     <Badge variant="outline" className={cn(
                       "text-[9px] h-4 border-white/10",
