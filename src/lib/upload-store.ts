@@ -141,7 +141,7 @@ export const useUploadStore = create<UploadState>((set, get) => ({
           const { addVideo } = await import('./video-store');
           await addVideo({
             ...task.metadata,
-            thumbnail: "https://images.unsplash.com/photo-1611162617474-5b21e879e113",
+            thumbnail: "", // Empty string to ensure no fake thumbnail is assigned
             source: 'telegram',
             externalUrl: JSON.stringify(chunksMeta) // Store as JSON string for the backend stream reader
           });

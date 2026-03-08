@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import Image from "next/image";
-import { MoreVertical, CheckCircle2, Volume2, Gamepad2, Play } from "lucide-react";
+import { MoreVertical, CheckCircle2, Volume2, Gamepad2, Play, Video as VideoIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const getYoutubeId = (url?: string) => {
@@ -12,19 +12,43 @@ const getYoutubeId = (url?: string) => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
+const getRelativeTime = (dateStr?: string, fallback?: string) => {
+  if (!dateStr || dateStr === "حديثاً" || dateStr === "اليوم") return dateStr || fallback;
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr || fallback;
+
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return "منذ لحظات";
+  if (diffInSeconds < 3600) return `منذ ${Math.floor(diffInSeconds / 60)} دقيقة`;
+  if (diffInSeconds < 86400) return `منذ ${Math.floor(diffInSeconds / 3600)} ساعة`;
+  if (diffInSeconds < 2592000) return `منذ ${Math.floor(diffInSeconds / 86400)} يوم`;
+  if (diffInSeconds < 31536000) return `منذ ${Math.floor(diffInSeconds / 2592000)} شهر`;
+  return `منذ ${Math.floor(diffInSeconds / 31536000)} سنة`;
+};
+
 /**
- * [STABILITY_ANCHOR: YOUTUBE_VIDEO_CARD_V1.0]
- * تصميم مطابق لكارت فيديو يوتيوب: صورة مصغرة نظيفة، مدة الفيديو بالأسفل، تفاصيل العنوان بجوار صورة القناة.
+ * [STABILITY_ANCHOR: YOUTUBE_VIDEO_CARD_V1.1]
+ * تصنيف واقعي لبيانات الفيديو، إزالة مدة 10:24 الوهمية، وتجميل حالة الفيديوهات بدون صورة مصغرة.
  */
 export function VideoCard({ video, isActive, isCached, currentUser, onClick, onSync, onDelete }: any) {
   const ytId = video.source === 'youtube' ? getYoutubeId(video.externalUrl) : null;
+
+  // Clean off the fake data fallback (netflix/picsum) that used to be here
+  const isFakeThumb = (url?: string) => !url || url.includes('photo-1611162617474-5b21e879e113') || url.includes('picsum.photos');
+  const validThumb = video.thumbnail && !isFakeThumb(video.thumbnail) ? video.thumbnail : null;
+
   const thumbSrc = video.source === 'youtube' && ytId
     ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`
-    : video.thumbnail || `https://picsum.photos/seed/${video.id}/400/225`;
+    : validThumb;
 
-  // توليد مدة وهمية إذا لم تكن موجودة
-  const duration = video.duration || "10:24";
-  const views = typeof video.views === 'number' ? (video.views > 1000 ? `${(video.views / 1000).toFixed(1)} ألف` : video.views) : video.views || "12 ألف";
+  const duration = video.duration; // Real duration only. If null, we don't show the badge.
+
+  // For views, if it's not a number, leave it alone. Otherwise format it.
+  const views = typeof video.views === 'number' ? (video.views > 1000 ? `${(video.views / 1000).toFixed(1)} ألف` : video.views) : video.views || "0";
+
+  const displayTime = getRelativeTime(video.createdAt || video.time, video.time || "منذ يومين");
 
   // Shorts layout
   if (video.isShorts || video.type === 'short') {
@@ -33,8 +57,12 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
         className="group flex flex-col gap-2 cursor-pointer w-full max-w-[220px]"
         onClick={onClick}
       >
-        <div className="relative aspect-[9/16] rounded-xl overflow-hidden bg-[#272727]">
-          <Image src={thumbSrc} alt={video.title} fill className="object-cover" />
+        <div className="relative aspect-[9/16] rounded-xl overflow-hidden bg-[#272727] flex items-center justify-center">
+          {thumbSrc ? (
+            <img src={thumbSrc} alt={video.title} className="w-full h-full object-cover" />
+          ) : (
+            <VideoIcon className="size-10 text-white/20" />
+          )}
           <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded flex items-center gap-1">
             <Play className="size-3 fill-white" />
             Shorts
@@ -60,19 +88,19 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
       onClick={onClick}
     >
       {/* Thumbnail Container */}
-      <div className="relative aspect-video rounded-xl overflow-hidden bg-[#272727]">
-        <Image src={thumbSrc} alt={video.title} fill className="object-cover" />
-
-        {/* Playback Overlay (Hover) */}
-        {!isActive && (
-          <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-end p-2 gap-1 flex-col">
-          </div>
+      <div className="relative aspect-video rounded-xl overflow-hidden bg-[#272727] flex items-center justify-center border border-white/5">
+        {thumbSrc ? (
+          <img src={thumbSrc} alt={video.title} className="w-full h-full object-cover" loading="lazy" />
+        ) : (
+          <VideoIcon className="size-12 text-white/20" />
         )}
 
         {/* Video Duration Badge */}
-        <div className="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-[12px] font-medium px-1.5 py-0.5 rounded">
-          {duration}
-        </div>
+        {duration && (
+          <div className="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-[12px] font-medium px-1.5 py-0.5 rounded backdrop-blur-sm">
+            {duration}
+          </div>
+        )}
 
         {/* Cached Badge */}
         {isCached && (
@@ -98,8 +126,12 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
       <div className="flex gap-3 pr-2 flex-row-reverse">
         {/* Channel Avatar */}
         <div className="mt-1 shrink-0">
-          <div className="size-9 rounded-full bg-[#272727] overflow-hidden">
-            <img src={video.channelAvatar || `https://picsum.photos/seed/${video.author}/40/40`} className="size-full object-cover" alt={video.author} />
+          <div className="size-9 rounded-full bg-[#272727] overflow-hidden flex items-center justify-center text-white/50 text-[10px]">
+            {video.channelAvatar ? (
+              <img src={video.channelAvatar} className="size-full object-cover" alt={video.author} />
+            ) : (
+              video.author?.charAt(0) || "?"
+            )}
           </div>
         </div>
 
@@ -109,11 +141,11 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
             {video.title}
           </h3>
           <div className="text-[14px] text-muted-foreground flex flex-col">
-            <span className="truncate hover:text-foreground transition-colors">{video.author}</span>
+            <span className="truncate hover:text-foreground transition-colors">{video.author || "مستخدم مخفي"}</span>
             <div className="flex items-center justify-end gap-1 flex-row-reverse truncate">
               <span>{views} مشاهدة</span>
               <span className="text-[10px] mx-0.5">•</span>
-              <span>{video.time || "منذ يومين"}</span>
+              <span>{displayTime}</span>
             </div>
           </div>
         </div>

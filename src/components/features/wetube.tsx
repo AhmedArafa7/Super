@@ -13,6 +13,7 @@ import { listenToSubscriptions, YouTubeSubscription } from "@/lib/subscription-s
 import { fetchAllSubscriptionsFeed, FeedVideo } from "@/lib/youtube-feed-store";
 import { useStreamStore } from "@/lib/stream-store";
 import { useGlobalStorage } from "@/lib/global-storage-store";
+import { useUploadStore } from "@/lib/upload-store";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -109,6 +110,8 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }
   };
 
+  const addTask = useUploadStore(state => state.addTask);
+
   const handleToggleLocal = (video: any) => {
     const assetId = `video-${video.id}`;
     if (cachedAssets.some(a => a.id === assetId)) {
@@ -120,11 +123,54 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }
   };
 
+  const handleUpload = async (source: any, uploadData: any) => {
+    if (!user) return null;
+    if (source === 'youtube' || source === 'drive') {
+      await import("@/lib/video-store").then(m => m.addVideo({
+        title: uploadData.title,
+        author: user.name,
+        authorId: user.id,
+        thumbnail: "", // Real thumbnail is parsed automatically by the cards for youtube
+        time: source === 'youtube' ? "YouTube" : "Vault",
+        status: user.role === 'admin' ? 'published' : 'pending_review',
+        visibility: 'public',
+        allowedUserIds: [],
+        uploaderRole: user.role as any,
+        source: source,
+        externalUrl: uploadData.externalUrl
+      }));
+      toast({ title: "تم إرسال الرابط للشبكة بنجاح", description: user.role === 'admin' ? "تم النشر." : "في انتظار المراجعة." });
+      return null;
+    } else {
+      const taskId = addTask(uploadData.file, 'video', { title: uploadData.title, author: user.name, authorId: user.id, status: user.role === 'admin' ? 'published' : 'pending_review' });
+      toast({ title: "بدأ الرفع المباشر..." });
+      return taskId;
+    }
+  };
+
   // Merge Platform Videos & Feed Videos for "Home"
   const allHomeContent = useMemo(() => {
-    const platformVids = videos.filter(v => v.status === 'published').map(v => ({ ...v, source: 'platform' }));
+    const isFakeThumb = (url?: string) => !url || url.includes('photo-1611162617474-5b21e879e113') || url.includes('picsum.photos');
+
+    const platformVids = videos.filter(v => v.status === 'published').map(v => ({
+      ...v,
+      source: 'platform',
+      thumbnail: isFakeThumb(v.thumbnail) ? null : v.thumbnail
+    }));
+
     const feedVids = feedVideos.map(v => ({ ...v, externalUrl: v.url, time: "حديثاً", source: 'youtube' }));
-    return [...platformVids, ...feedVids].sort(() => Math.random() - 0.5); // Random shuffle for mix
+    const combined = [...platformVids, ...feedVids].sort(() => Math.random() - 0.5); // Random shuffle for mix
+
+    // Bubble videos with no actual thumbnail to the bottom
+    combined.sort((a, b) => {
+      const aHasThumb = a.source === 'youtube' || (a.thumbnail && !isFakeThumb(a.thumbnail));
+      const bHasThumb = b.source === 'youtube' || (b.thumbnail && !isFakeThumb(b.thumbnail));
+      if (aHasThumb && !bHasThumb) return -1;
+      if (!aHasThumb && bHasThumb) return 1;
+      return 0;
+    });
+
+    return combined;
   }, [videos, feedVideos]);
 
   // If a video is playing, replace the entire layout with Watch View
@@ -135,7 +181,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}
           searchQuery={searchQuery} setSearchQuery={setSearchQuery}
           isMobileSearchOpen={isMobileSearchOpen} setIsMobileSearchOpen={setIsMobileSearchOpen}
-          onOpenVault={onOpenVault} user={user}
+          onOpenVault={onOpenVault} user={user} onUpload={handleUpload}
         />
         <div className="flex-1 overflow-y-auto w-full glass rounded-3xl mt-4 border border-white/5 relative">
           <WeTubeWatchView
@@ -159,7 +205,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}
           searchQuery={searchQuery} setSearchQuery={setSearchQuery}
           isMobileSearchOpen={isMobileSearchOpen} setIsMobileSearchOpen={setIsMobileSearchOpen}
-          onOpenVault={onOpenVault} user={user}
+          onOpenVault={onOpenVault} user={user} onUpload={handleUpload}
         />
         <div className="flex flex-1 overflow-hidden mt-4 gap-4">
           <Sidebar isSidebarOpen={isSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} subscriptions={subscriptions} />
@@ -288,7 +334,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
 
 function Topbar({
   isSidebarOpen, setIsSidebarOpen, searchQuery, setSearchQuery,
-  isMobileSearchOpen, setIsMobileSearchOpen, onOpenVault, user
+  isMobileSearchOpen, setIsMobileSearchOpen, onOpenVault, user, onUpload
 }: any) {
   return (
     <header className="sticky top-0 inset-x-0 h-16 w-full glass rounded-[2rem] border border-white/10 z-40 flex items-center justify-between px-6 rtl flex-row-reverse mx-auto my-2 shrink-0">
@@ -334,7 +380,7 @@ function Topbar({
         <button onClick={() => setIsMobileSearchOpen(true)} className="sm:hidden p-2 hover:bg-white/10 rounded-full">
           <Search className="size-6 text-white" />
         </button>
-        <StreamUploadDialog onUpload={() => { }} onOpenVault={onOpenVault} trigger={
+        <StreamUploadDialog onUpload={onUpload} onOpenVault={onOpenVault} trigger={
           <button className="p-2 hover:bg-white/10 rounded-full transition-colors hidden sm:block">
             <VideoIcon className="size-6 text-white" />
           </button>

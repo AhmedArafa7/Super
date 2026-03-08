@@ -12,7 +12,7 @@ export type VideoSource = 'local' | 'youtube' | 'drive';
 export interface Video {
   id: string;
   title: string;
-  thumbnail: string; 
+  thumbnail: string;
   views: string;
   author: string;
   authorId: string;
@@ -42,11 +42,11 @@ export const addVideo = async (video: Omit<Video, 'id' | 'createdAt' | 'views'>)
   const { firestore } = initializeFirebase();
   const payload = {
     ...video,
-    views: Math.floor(Math.random() * 5000 + 100).toLocaleString(),
+    views: 0,
     createdAt: new Date().toISOString()
   };
   const docRef = await addDoc(collection(firestore, 'videos'), payload);
-  
+
   if (video.uploaderRole !== 'admin') {
     addNotification({
       type: 'content_new',
@@ -55,7 +55,7 @@ export const addVideo = async (video: Omit<Video, 'id' | 'createdAt' | 'views'>)
       priority: 'info'
     });
   }
-  
+
   window.dispatchEvent(new Event('videos-update'));
   return docRef.id;
 };
@@ -63,7 +63,7 @@ export const addVideo = async (video: Omit<Video, 'id' | 'createdAt' | 'views'>)
 export const updateVideoStatus = async (id: string, status: VideoStatus, feedback?: string) => {
   const { firestore } = initializeFirebase();
   const videoRef = doc(firestore, 'videos', id);
-  
+
   // بناء كائن التحديث مع تجنب القيم undefined التي تسبب الانهيار في Firestore
   const updates: any = { status };
   if (feedback !== undefined) {
@@ -71,9 +71,9 @@ export const updateVideoStatus = async (id: string, status: VideoStatus, feedbac
   } else {
     updates.adminFeedback = ""; // القيمة الافتراضية بدلاً من undefined
   }
-  
+
   await updateDoc(videoRef, updates);
-  
+
   window.dispatchEvent(new Event('videos-update'));
 };
 
