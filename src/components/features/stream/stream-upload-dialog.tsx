@@ -78,6 +78,13 @@ export function StreamUploadDialog({ onUpload, onOpenVault }: any) {
   };
 
   const handleFinalize = () => {
+    if (typeof onUpload !== 'function') {
+      console.warn('onUpload is not a function or not provided');
+      setIsOpen(false);
+      setData({ title: "", externalUrl: "", file: null });
+      return;
+    }
+
     if (source === 'local' && data.file) {
       const taskId = onUpload(source, data);
       if (taskId) {
