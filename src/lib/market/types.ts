@@ -3,7 +3,7 @@
 
 export type MarketItemStatus = 'active' | 'sold' | 'reserved' | 'archived' | 'pending_review' | 'rejected';
 export type AppVersionStatus = 'final' | 'beta';
-export type MainCategory = 'all' | 'electronics' | 'digital_assets' | 'services' | 'tools' | 'education' | 'software' | 'home_lifestyle' | 'industrial' | 'health_beauty' | 'other';
+export type MainCategory = 'all' | 'electronics' | 'digital_assets' | 'themes' | 'services' | 'tools' | 'education' | 'software' | 'home_lifestyle' | 'industrial' | 'health_beauty' | 'other';
 
 export interface MarketItem {
   id: string;
@@ -59,6 +59,7 @@ export const SUB_CATEGORIES = [
   { id: 'laptops', label: 'حواسيب محمولة', parent: 'electronics' },
   { id: 'scripts', label: 'سكربتات برمجية', parent: 'digital_assets' },
   { id: 'templates', label: 'قوالب تصميم', parent: 'digital_assets' },
+  { id: 'ui_themes', label: 'تصميمات الواجهة', parent: 'themes' },
   { id: 'decor', label: 'ديكور عصري', parent: 'home_lifestyle' },
   { id: 'furniture', label: 'أثاث منزلي', parent: 'home_lifestyle' },
   { id: 'dev_service', label: 'تطوير برمجيات', parent: 'services' },

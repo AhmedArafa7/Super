@@ -4,7 +4,7 @@
  * [STABILITY_ANCHOR: AUTH_TYPES_V1.0]
  */
 
-export type UserRole = 
+export type UserRole =
   | 'founder'
   | 'cofounder'
   | 'admin'
@@ -33,4 +33,7 @@ export interface User {
   status?: OnlineStatus;
   lastSeen?: string;
   dataConsent: ConsentStatus;
+  ownedThemes?: string[];
+  activeTheme?: string;
+  themeMode?: 'light' | 'dark';
 }
