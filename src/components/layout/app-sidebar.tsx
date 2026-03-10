@@ -7,7 +7,7 @@ import {
 import { 
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat, 
   BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, 
-  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown, Clock
+  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown, Clock, Tag
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
     { id: "chat", label: "الدردشة الذكية", icon: MessageSquare, restricted: false },
     { id: "agent-ai", label: "المهندس المساعد", icon: Cpu, restricted: false },
     { id: "vault", label: "خزنة الملفات", icon: HardDrive, restricted: false },
+    { id: "deals", label: "عروض المحلات", icon: Tag, restricted: false },
     { id: "peer-chat", label: "التواصل المباشر", icon: MessageCircle, restricted: false },
     { id: "stream", label: "WeTube", icon: Video, restricted: false },
     { id: "market", label: "المتجر التقني", icon: ShoppingBag, restricted: false },

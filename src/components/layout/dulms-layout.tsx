@@ -13,7 +13,7 @@ import {
     MessageCircle, Video, ShoppingBag, Megaphone, DownloadCloud,
     Rocket, Wallet, Repeat, GraduationCap, Microscope,
     Users, BookOpen, Zap, Bell, ShieldCheck,
-    ChevronDown, LogOut, Settings, ChevronRight
+    ChevronDown, LogOut, Settings, ChevronRight, Tag
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { User } from "@/lib/auth/types";
@@ -46,6 +46,7 @@ import { AdsCenter } from "@/components/features/ads-center";
 import { VaultExplorer } from "@/components/features/vault-explorer";
 import { DownloadCenter } from "@/components/features/download-center";
 import { TimeManagement } from "@/components/features/time-management";
+import { LocalDeals } from "@/components/features/local-deals";
 
 const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g#list";
 
@@ -83,6 +84,7 @@ const NAV_GROUPS = [
         label: "الأدوات والخدمات",
         items: [
             { id: "market" as NavItemId, label: "المتجر التقني", icon: ShoppingBag },
+            { id: "deals" as NavItemId, label: "عروض المحلات", icon: Tag },
             { id: "vault" as NavItemId, label: "خزنة الملفات", icon: HardDrive },
             { id: "wallet" as NavItemId, label: "المحفظة الرقمية", icon: Wallet },
             { id: "ads" as NavItemId, label: "مركز الإعلانات", icon: Megaphone },
@@ -196,6 +198,7 @@ export function DulmsLayout({ user }: DulmsLayoutProps) {
             case "launcher": return <AppLauncher />;
             case "wallet": return <WalletView />;
             case "offers": return <OffersInbox />;
+            case "deals": return <LocalDeals />;
             case "lab": return <NeuralLab />;
             case "directory": return <NodeDirectory onNavigate={(tab, payload) => {
                 if (tab === 'peer-chat' && payload) handleNavigateToPeerChat(payload);

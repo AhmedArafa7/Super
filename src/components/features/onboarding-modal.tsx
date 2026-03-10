@@ -74,7 +74,7 @@ export function OnboardingModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[540px] bg-slate-950 border-white/10 rounded-[3rem] p-0 overflow-hidden shadow-[0_0_50px_rgba(99,102,241,0.2)] outline-none">
+      <DialogContent className=" bg-slate-950 border-white/10 rounded-[3rem] p-0 overflow-hidden shadow-[0_0_50px_rgba(99,102,241,0.2)] outline-none">
         <DialogHeader className="sr-only">
           <DialogTitle>NexusAI Onboarding</DialogTitle>
           <DialogDescription>

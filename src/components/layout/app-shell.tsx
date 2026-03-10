@@ -25,6 +25,7 @@ import { AdsCenter } from "@/components/features/ads-center";
 import { VaultExplorer } from "@/components/features/vault-explorer";
 import { DownloadCenter } from "@/components/features/download-center";
 import { TimeManagement } from "@/components/features/time-management";
+import { LocalDeals } from "@/components/features/local-deals";
 import { getNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
@@ -129,6 +130,7 @@ export function AppShell() {
       case "launcher": return <AppLauncher />;
       case "wallet": return <WalletView />;
       case "offers": return <OffersInbox />;
+      case "deals": return <LocalDeals />;
       case "lab": return <NeuralLab />;
       case "directory": return <NodeDirectory onNavigate={(tab, payload) => {
         if (tab === 'peer-chat' && payload) handleNavigateToPeerChat(payload);
