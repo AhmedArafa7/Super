@@ -1,7 +1,7 @@
 'use client';
 
 import { 
-  signInWithPopup, 
+  signInWithRedirect, 
   GoogleAuthProvider, 
   GithubAuthProvider, 
   signOut,
@@ -21,13 +21,13 @@ const VIRTUAL_DOMAIN = "@nexusai.local";
 export const signInWithGoogle = async () => {
   const { auth } = initializeFirebase();
   const provider = new GoogleAuthProvider();
-  return signInWithPopup(auth, provider);
+  return signInWithRedirect(auth, provider);
 };
 
 export const signInWithGithub = async () => {
   const { auth } = initializeFirebase();
   const provider = new GithubAuthProvider();
-  return signInWithPopup(auth, provider);
+  return signInWithRedirect(auth, provider);
 };
 
 export const signInWithCredentials = async (username: string, securityCode: string) => {

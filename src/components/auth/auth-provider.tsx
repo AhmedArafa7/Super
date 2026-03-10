@@ -7,7 +7,7 @@ import {
   signInWithCredentials, signUpWithCredentials
 } from '@/lib/auth-store';
 import { initializeFirebase } from '@/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, getRedirectResult } from 'firebase/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -29,6 +29,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const { auth } = initializeFirebase();
     
+    // Process any pending redirect result (Google/GitHub auth redirect)
+    getRedirectResult(auth).catch((err) => {
+      console.warn("Redirect result error (can be safely ignored on non-redirect loads):", err.code);
+    });
+
     // مراقبة حالة Firebase Auth - المصدر الوحيد للحقيقة
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
