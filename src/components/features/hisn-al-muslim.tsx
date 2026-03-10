@@ -18,7 +18,7 @@ import { AnimatePresence } from "framer-motion";
 
 /**
  * [STABILITY_ANCHOR: FAITH_HUB_ORCHESTRATOR_V3]
- * المكون المركزي لعقدة الإيمان. تم إضافة نظام مواقيت الصلاة المباشر.
+ * المكون المركزي لحصن المسلم. تم إضافة نظام مواقيت الصلاة المباشر.
  */
 export function HisnAlMuslim() {
   const [activeTab, setActiveTab] = useState("quran");
@@ -54,12 +54,12 @@ export function HisnAlMuslim() {
         <div className="text-right">
           <Badge className="bg-primary/20 text-primary border-primary/30 mb-4 px-4 py-1 uppercase font-bold text-[10px] tracking-widest">Neural Faith Hub</Badge>
           <h2 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
-            عقدة الإيمان
+            حصن المسلم
             <Sparkles className="text-primary size-10" />
           </h2>
           <p className="text-muted-foreground mt-2 text-xl max-w-2xl text-right">تواصل روحي عميق عبر بروتوكولات المزامنة والـ API السيادية.</p>
         </div>
-        
+
         <div className="glass border-white/10 p-6 rounded-[2.5rem] flex flex-col gap-4 min-w-[280px]">
           <div className="flex items-center justify-between flex-row-reverse">
             <div className="flex items-center gap-2 flex-row-reverse">

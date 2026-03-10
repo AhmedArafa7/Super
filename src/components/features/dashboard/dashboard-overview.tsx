@@ -46,7 +46,7 @@ export function DashboardOverview({ user, wallet, usedSpace, storageLimitMB, sto
         <QuickActionCard icon={MessageSquare} title="الدردشة الذكية" desc="تواصل مع المحرك العصبي لحل مشاكلك التقنية." color="bg-blue-600" onClick={() => onNavigate?.("chat")} />
         <QuickActionCard icon={Video} title="WeTube" desc="اكتشف أحدث البثوث وأدر اشتراكاتك الخاصة." color="bg-indigo-600" onClick={() => onNavigate?.("stream")} />
         <QuickActionCard icon={ShoppingBag} title="TechMarket" desc="استحوذ على أحدث الأدوات والحلول البرمجية." color="bg-amber-600" onClick={() => onNavigate?.("market")} />
-        <QuickActionCard icon={BookOpen} title="عقدة الإيمان" desc="أذكار، تسبيح، ومعرفة روحية في مكان واحد." color="bg-emerald-600" onClick={() => onNavigate?.("hisn")} />
+        <QuickActionCard icon={BookOpen} title="حصن المسلم" desc="أذكار، تسبيح، ومعرفة روحية في مكان واحد." color="bg-emerald-600" onClick={() => onNavigate?.("hisn")} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -96,7 +96,7 @@ const NAV_GROUPS = [
         label: "المعرفة",
         items: [
             { id: "learning" as NavItemId, label: "المكتبة المعرفية", icon: GraduationCap },
-            { id: "hisn" as NavItemId, label: "عقدة الإيمان", icon: BookOpen },
+            { id: "hisn" as NavItemId, label: "حصن المسلم", icon: BookOpen },
             { id: "features" as NavItemId, label: "المميزات", icon: Zap },
         ]
     },

@@ -74,7 +74,7 @@ export function OnboardingModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className=" bg-slate-950 border-white/10 rounded-[3rem] p-0  shadow-[0_0_50px_rgba(99,102,241,0.2)] outline-none">
+      <DialogContent className="bg-slate-950 border-white/10 rounded-[3rem] p-0  shadow-[0_0_50px_rgba(99,102,241,0.2)] outline-none">
         <DialogHeader className="sr-only">
           <DialogTitle>NexusAI Onboarding</DialogTitle>
           <DialogDescription>
@@ -83,7 +83,7 @@ export function OnboardingModal() {
         </DialogHeader>
 
         {/* Cinematic Header Visual */}
-        <div className="relative h-56 flex items-center justify-center overflow-hidden">
+        <div className="relative h-56 flex items-center justify-center">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-500/20 via-slate-950 to-slate-950" />
           <div className="absolute inset-0 opacity-30 bg-[url('https://picsum.photos/seed/nexus-pattern/800/400')] bg-cover mix-blend-overlay" />
           

@@ -1,12 +1,12 @@
 'use client';
 
 import React from "react";
-import { 
-  Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter 
+import {
+  Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter
 } from "@/components/ui/sidebar";
-import { 
-  MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat, 
-  BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, 
+import {
+  MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat,
+  BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell,
   ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown, Clock, Tag
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +38,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
     { id: "learning", label: "المكتبة المعرفية", icon: GraduationCap, restricted: false },
     { id: "lab", label: "المختبر التجريبي", icon: Microscope, restricted: false },
     { id: "directory", label: "دليل المستخدمين", icon: Users, restricted: false },
-    { id: "hisn", label: "عقدة الإيمان", icon: BookOpen, restricted: false },
+    { id: "hisn", label: "حصن المسلم", icon: BookOpen, restricted: false },
     { id: "features", label: "المميزات", icon: Zap, restricted: false },
     { id: "notifications", label: "التنبيهات", icon: Bell, badge: unreadCount, restricted: false },
     { id: "admin", label: "لوحة الإدارة", icon: ShieldCheck, restricted: true },
@@ -71,15 +71,15 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
                 )}
               >
                 <item.icon className={cn(
-                  "size-5", 
-                  item.id === 'admin' && (user?.role === 'founder' ? "text-amber-400" : "text-indigo-400"), 
+                  "size-5",
+                  item.id === 'admin' && (user?.role === 'founder' ? "text-amber-400" : "text-indigo-400"),
                   item.id === 'time' && "text-primary",
-                  item.id === 'vault' && "text-amber-400", 
+                  item.id === 'vault' && "text-amber-400",
                   item.id === 'downloads' && "text-primary"
                 )} />
                 <span className="font-medium">{item.label}</span>
                 {item.badge !== undefined && item.badge > 0 && (
-                   <Badge className="mr-auto bg-indigo-500 h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full">{item.badge}</Badge>
+                  <Badge className="mr-auto bg-indigo-500 h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full">{item.badge}</Badge>
                 )}
               </SidebarMenuButton>
             </SidebarMenuItem>
