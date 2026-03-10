@@ -119,7 +119,7 @@ export function OnboardingModal() {
                     </div>
                     <div className="space-y-3">
                       <h3 className="text-3xl font-headline font-bold text-white tracking-tight">{step.title}</h3>
-                      <p className="text-muted-foreground text-base leading-relaxed max-w-[320px] mx-auto">
+                      <p className="text-muted-foreground text-base leading-relaxed  mx-auto">
                         {step.description}
                       </p>
                     </div>

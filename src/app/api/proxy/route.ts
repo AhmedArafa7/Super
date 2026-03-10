@@ -15,6 +15,24 @@ async function handleProxyRequest(request: NextRequest) {
     return NextResponse.json({ error: 'Missing Target URL' }, { status: 400 });
   }
 
+  // ══ Auth Bypass: NEVER proxy authentication URLs — redirect directly ══
+  // This catches cases where window.open override or cached code routes
+  // Firebase/Google auth popups through the proxy by mistake.
+  const NEVER_PROXY_PATTERNS = [
+    'firebaseapp.com/__/auth',
+    'accounts.google.com',
+    'googleapis.com/identitytoolkit',
+    'securetoken.googleapis.com',
+    'apis.google.com',
+    'gstatic.com',
+    'www.googleapis.com/oauth',
+  ];
+  const lowerUrl = targetUrl.toLowerCase();
+  if (NEVER_PROXY_PATTERNS.some(pattern => lowerUrl.includes(pattern))) {
+    // Redirect browser directly to the original URL — don't proxy it
+    return NextResponse.redirect(targetUrl, 302);
+  }
+
   try {
     const method = request.method;
     let body: any = undefined;
