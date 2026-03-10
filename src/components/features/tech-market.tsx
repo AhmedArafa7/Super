@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import {
   getMarketItems, addMarketItem, updateMarketItem, MarketItem,
   MainCategory, SUB_CATEGORIES, uploadMarketImage, decrementStock
@@ -294,6 +295,3 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
   );
 }
 
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(" ");
-}

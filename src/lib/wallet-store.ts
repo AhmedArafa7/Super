@@ -12,49 +12,16 @@ import {
   getCurrencyDef, canConvertFakeToReal, FakeCurrencyCode
 } from './currency-store';
 
+// Re-export all types & selectors from wallet-types
+export type { TransactionType, Transaction, PendingTransaction, Wallet } from './wallet-types';
+export { selectTotalPendingDebt, selectCurrencyBalance, selectCurrencyFrozen, selectTotalRealBalance, selectTotalFakeBalance } from './wallet-types';
+
+import type { TransactionType, Transaction, PendingTransaction, Wallet } from './wallet-types';
+
 // ============================================================================
-// [STABILITY_ANCHOR: WALLET_STORE_V2.0]
-// النظام المالي المحدث - يدعم عملات متعددة مع توافق عكسي للبيانات القديمة.
+// [STABILITY_ANCHOR: WALLET_STORE_V3.0]
+// النظام المالي المحدث - الأنواع والمحددات في wallet-types.ts
 // ============================================================================
-
-export type TransactionType = 'deposit' | 'withdrawal' | 'purchase_hold' | 'purchase_release' | 'purchase_refund' | 'conversion';
-
-export interface Transaction {
-  id: string;
-  userId?: string;
-  amount: number;
-  type: TransactionType;
-  currency: CurrencyCode;
-  status: 'pending' | 'completed' | 'failed';
-  description: string;
-  timestamp: string;
-  /** For conversion transactions */
-  toCurrency?: CurrencyCode;
-  toAmount?: number;
-}
-
-export interface PendingTransaction {
-  id: string;
-  title: string;
-  price: number;
-  currency: CurrencyCode;
-  status: 'pending_sync' | 'failed_needs_action';
-  timestamp: string;
-  errorReason?: string;
-}
-
-export interface Wallet {
-  /** Multi-currency balances */
-  balances: Record<CurrencyCode, number>;
-  /** Multi-currency frozen balances */
-  frozenBalances: Record<CurrencyCode, number>;
-  /** @deprecated Legacy single-currency field — auto-migrated on first read */
-  balance?: number;
-  /** @deprecated Legacy single-currency field — auto-migrated on first read */
-  frozenBalance?: number;
-  /** @deprecated Legacy field */
-  currency?: string;
-}
 
 interface WalletState {
   wallet: Wallet | null;
@@ -300,32 +267,6 @@ export const getAllTransactionsAdmin = async (
   }
 };
 
-// --- Selectors ---
-
-export const selectTotalPendingDebt = (state: { pendingTransactions: PendingTransaction[] }) =>
-  state.pendingTransactions.reduce((acc, curr) => acc + curr.price, 0);
-
-/** Helper to get balance for a specific currency */
-export const selectCurrencyBalance = (wallet: Wallet | null, currency: CurrencyCode): number =>
-  wallet?.balances?.[currency] || 0;
-
-/** Helper to get frozen balance for a specific currency */
-export const selectCurrencyFrozen = (wallet: Wallet | null, currency: CurrencyCode): number =>
-  wallet?.frozenBalances?.[currency] || 0;
-
-/** Sum all real coin balances */
-export const selectTotalRealBalance = (wallet: Wallet | null): number => {
-  if (!wallet?.balances) return 0;
-  return (['EGC', 'DLC', 'MDC', 'GMC', 'BKC'] as CurrencyCode[])
-    .reduce((sum, code) => sum + (wallet.balances[code] || 0), 0);
-};
-
-/** Sum all fake coin balances */
-export const selectTotalFakeBalance = (wallet: Wallet | null): number => {
-  if (!wallet?.balances) return 0;
-  return (['EGC_FAKE', 'DLC_FAKE', 'MDC_FAKE', 'GMC_FAKE', 'BKC_FAKE'] as CurrencyCode[])
-    .reduce((sum, code) => sum + (wallet.balances[code] || 0), 0);
-};
 
 // --- Backward-compatible exports ---
 export const getTransactions = (userId: string) => useWalletStore.getState().fetchTransactions(userId);

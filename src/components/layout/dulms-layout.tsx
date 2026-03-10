@@ -11,19 +11,19 @@ import React, { useState, useEffect } from "react";
 import {
     LayoutDashboard, Clock, MessageSquare, Cpu, HardDrive,
     MessageCircle, Video, ShoppingBag, Megaphone, DownloadCloud,
-    Rocket, Wallet, Repeat, GraduationCap, Microscope,
-    Users, BookOpen, Zap, Bell, ShieldCheck,
-    ChevronDown, LogOut, Settings, ChevronRight, Tag
+    Rocket, Wallet, GraduationCap, Microscope,
+    Users, BookOpen, Zap, Bell, Tag
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { User } from "@/lib/auth/types";
 import { activateTheme } from "@/lib/theme-store";
-import { NavItemId, useSidebarStore } from "@/lib/sidebar-store";
+import { NavItemId } from "@/lib/sidebar-store";
 import { useStreamStore } from "@/lib/stream-store";
-import { useUploadStore } from "@/lib/upload-store";
 import { getNotifications } from "@/lib/notification-store";
 import { getReceivedOffers } from "@/lib/market-store";
 import { PersistentPlayer } from "@/components/features/persistent-player";
+import { DulmsHeader } from "./dulms/dulms-header";
+import { DulmsSidebar } from "./dulms/dulms-sidebar";
 
 // Views (same as AppShell)
 import { AIChat } from "@/components/features/ai-chat";
@@ -221,197 +221,31 @@ export function DulmsLayout({ user }: DulmsLayoutProps) {
             isDark ? "bg-[#0f111a] text-slate-200" : "bg-[#ecf0f1] text-[#333]"
         )}>
 
-            {/* ─── Top Navbar ─── */}
-            <header className={cn(
-                "h-[50px] w-full flex items-center justify-between px-4 shrink-0 transition-colors z-20 shadow-sm",
-                isDark ? "bg-[#151822] border-b border-white/5" : "bg-[#34495e] text-white"
-            )}>
-                <div className="flex items-center gap-2">
-                    <div className="flex flex-col select-none">
-                        <span className="text-[#f1c40f] font-black text-xl leading-none tracking-wide">DULMS</span>
-                        <span className={cn("text-[8px] uppercase tracking-widest", isDark ? "text-slate-400" : "text-slate-300")}>
-                            NexusAI — Theme Edition
-                        </span>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-5 mr-2">
-                    {/* Notifications badge */}
-                    <button onClick={() => handleTabChange('notifications')} className="relative">
-                        <Bell className={cn("size-4", isDark ? "text-slate-400" : "text-white/80")} />
-                        {unreadCount > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 size-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center">
-                                {unreadCount > 9 ? '9+' : unreadCount}
-                            </span>
-                        )}
-                    </button>
-
-                    {/* Wallet shortcut */}
-                    <button onClick={() => handleTabChange('wallet')} className="relative">
-                        <Wallet className={cn("size-4", isDark ? "text-slate-400" : "text-white/80")} />
-                    </button>
-
-                    {/* User Dropdown */}
-                    <div className="relative pl-4 border-l border-white/20">
-                        <button
-                            onClick={() => setShowDropdown(!showDropdown)}
-                            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-                        >
-                            <div className="size-8 rounded-full border border-white/30 overflow-hidden flex items-center justify-center bg-white/10 shrink-0">
-                                {user?.avatar_url ? (
-                                    <img src={user.avatar_url} alt="User" className="size-full object-cover" />
-                                ) : (
-                                    <span className="text-white text-xs">{user?.name?.charAt(0) || "U"}</span>
-                                )}
-                            </div>
-                            <div className="hidden sm:flex items-center gap-1">
-                                <span className="text-sm font-medium">{user?.name || 'مستخدم'}</span>
-                                <ChevronDown className="size-3 opacity-70" />
-                            </div>
-                        </button>
-
-                        {showDropdown && (
-                            <div className={cn(
-                                "absolute top-full right-0 mt-2 w-52 rounded-md shadow-lg py-1 border z-50",
-                                isDark ? "bg-[#1e2130] border-white/10" : "bg-white border-slate-200"
-                            )}>
-                                <button
-                                    onClick={() => { handleTabChange('dashboard'); setShowDropdown(false); }}
-                                    className={cn(
-                                        "w-full text-right px-4 py-2.5 text-sm flex items-center gap-2 flex-row-reverse transition-colors",
-                                        isDark ? "text-slate-200 hover:bg-white/5" : "text-slate-700 hover:bg-slate-50"
-                                    )}
-                                >
-                                    <Settings className="size-4" />
-                                    الإعدادات
-                                </button>
-                                {hasAdminAccess && (
-                                    <button
-                                        onClick={() => { handleTabChange('admin'); setShowDropdown(false); }}
-                                        className={cn(
-                                            "w-full text-right px-4 py-2.5 text-sm flex items-center gap-2 flex-row-reverse transition-colors",
-                                            isDark ? "text-slate-200 hover:bg-white/5" : "text-slate-700 hover:bg-slate-50"
-                                        )}
-                                    >
-                                        <ShieldCheck className="size-4" />
-                                        لوحة الإدارة
-                                    </button>
-                                )}
-                                <div className={cn("h-px my-1", isDark ? "bg-white/5" : "bg-slate-200")} />
-                                <button
-                                    onClick={handleExitDulms}
-                                    className={cn(
-                                        "w-full text-right px-4 py-2.5 text-sm flex items-center gap-2 flex-row-reverse transition-colors",
-                                        isDark ? "text-amber-400 hover:bg-white/5" : "text-amber-600 hover:bg-slate-50"
-                                    )}
-                                >
-                                    <LogOut className="size-4" />
-                                    العودة إلى Nexus
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </header>
+            <DulmsHeader
+                user={user}
+                isDark={isDark}
+                hasAdminAccess={!!hasAdminAccess}
+                unreadCount={unreadCount}
+                showDropdown={showDropdown}
+                setShowDropdown={setShowDropdown}
+                onTabChange={handleTabChange}
+                onExitDulms={handleExitDulms}
+            />
 
             {/* ─── Main Layout ─── */}
             <div className="flex flex-1 overflow-hidden h-[calc(100vh-50px)]">
 
-                {/* ─── Sidebar ─── */}
-                <aside className={cn(
-                    "w-[240px] flex flex-col shrink-0 overflow-y-auto overflow-x-hidden transition-colors border-r",
-                    isDark ? "bg-[#151822] border-white/5" : "bg-[#34495e] border-transparent shadow-[2px_0_5px_rgba(0,0,0,0.1)] text-white"
-                )}>
-                    {/* User info strip */}
-                    <div className="p-3 bg-[#2ecc71] text-white flex items-center gap-3 flex-row-reverse">
-                        <div className="size-8 rounded-full bg-white/20 flex items-center justify-center shrink-0 overflow-hidden">
-                            {user?.avatar_url ? (
-                                <img src={user.avatar_url} alt="" className="size-full object-cover" />
-                            ) : (
-                                <span className="text-xs font-bold">{user?.name?.charAt(0)}</span>
-                            )}
-                        </div>
-                        <div className="flex flex-col text-right min-w-0">
-                            <span className="text-sm font-bold truncate">{user?.name || 'مستخدم'}</span>
-                            <span className="text-[10px] opacity-90 truncate">@{user?.username}</span>
-                        </div>
-                    </div>
-
-                    {/* Navigation Groups */}
-                    <div className="flex flex-col w-full py-1">
-                        {NAV_GROUPS.map(group => {
-                            const isExpanded = expandedGroup === group.label;
-                            const hasActiveItem = group.items.some(item => item.id === activeTab);
-
-                            return (
-                                <div key={group.label} className="flex flex-col w-full">
-                                    {/* Group Header */}
-                                    <button
-                                        onClick={() => setExpandedGroup(isExpanded ? null : group.label)}
-                                        className={cn(
-                                            "w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold transition-colors border-b",
-                                            hasActiveItem
-                                                ? (isDark ? "bg-[#c088b6] text-white" : "bg-[#c582b4] text-white")
-                                                : (isDark ? "border-white/5 text-slate-400 hover:bg-white/5 hover:text-slate-200" : "border-white/5 text-white/80 hover:bg-white/10")
-                                        )}
-                                    >
-                                        <span className="text-right flex-1">{group.label}</span>
-                                        <ChevronDown className={cn("size-3 transition-transform", isExpanded ? "rotate-0" : "-rotate-90")} />
-                                    </button>
-
-                                    {/* Group Items */}
-                                    {isExpanded && (
-                                        <div className={cn(
-                                            "flex flex-col w-full py-0.5",
-                                            isDark ? "bg-[#0b0d14]" : "bg-[#2c3e50]"
-                                        )}>
-                                            {group.items.map(item => {
-                                                const badge = getBadge(item.id);
-                                                return (
-                                                    <button
-                                                        key={item.id}
-                                                        onClick={() => handleTabChange(item.id)}
-                                                        className={cn(
-                                                            "w-full flex items-center gap-3 px-5 py-2.5 text-xs transition-colors flex-row-reverse",
-                                                            activeTab === item.id
-                                                                ? (isDark ? "bg-[#22273b] text-white font-bold border-l-2 border-slate-400" : "bg-[#1a252f] text-white font-bold border-l-2 border-white/50")
-                                                                : (isDark ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-slate-300 hover:text-white hover:bg-white/5")
-                                                        )}
-                                                    >
-                                                        <item.icon className="size-4 opacity-70" />
-                                                        <span className="flex-1 text-right">{item.label}</span>
-                                                        {badge !== undefined && (
-                                                            <span className="size-5 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center shrink-0">
-                                                                {badge}
-                                                            </span>
-                                                        )}
-                                                        {!badge && <ChevronRight className="size-3 opacity-40" />}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-
-                        {/* Admin Panel — special restricted item */}
-                        {hasAdminAccess && (
-                            <button
-                                onClick={() => handleTabChange('admin')}
-                                className={cn(
-                                    "w-full flex items-center gap-3 px-4 py-3 text-xs transition-colors border-t flex-row-reverse",
-                                    activeTab === 'admin'
-                                        ? (isDark ? "bg-amber-500/20 text-amber-300 font-bold" : "bg-amber-500/20 text-amber-100 font-bold")
-                                        : (isDark ? "border-white/5 text-slate-400 hover:bg-white/5" : "border-white/5 text-white/70 hover:bg-white/10")
-                                )}
-                            >
-                                <ShieldCheck className="size-4" />
-                                <span className="flex-1 text-right font-bold">لوحة الإدارة</span>
-                            </button>
-                        )}
-                    </div>
-                </aside>
+                <DulmsSidebar
+                    user={user}
+                    isDark={isDark}
+                    hasAdminAccess={!!hasAdminAccess}
+                    activeTab={activeTab}
+                    expandedGroup={expandedGroup}
+                    setExpandedGroup={setExpandedGroup}
+                    onTabChange={handleTabChange}
+                    getBadge={getBadge}
+                    navGroups={NAV_GROUPS}
+                />
 
                 {/* ─── Main Content ─── */}
                 <main className={cn(
