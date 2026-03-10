@@ -104,25 +104,12 @@ async function handleProxyRequest(request: NextRequest) {
               }
             });
 
-            // 3. اختطاف مسجل الخدمة (SW Double Virtualization)
-            const originalRegister = navigator.serviceWorker.register;
-            navigator.serviceWorker.register = function(url, options) {
-              // حظر أي محاولة خارجية لتسجيل SW (مثل جوجل) لمنع كسر البروكسي
-              if (url && !url.toString().includes(window.location.origin)) {
-                console.log('🛡️ Nexus Guard: Blocked external SW registration:', url);
-                return Promise.reject(new Error("External SW disabled in Nexus Sandbox"));
-              }
-              return originalRegister.apply(navigator.serviceWorker, arguments);
-            };
-
-            // 4. تسجيل نكسوس السيادي (استخدام المسار النسبي لضمان التوافق)
+            // 3. اختطاف مسجل الخدمة (حظر أي SW من المواقع المُحمّلة عبر البروكسي)
             if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(reg => {
-                console.log('🚀 Nexus Sovereign SW: Registered');
-                if (reg.active) {
-                  reg.active.postMessage({ type: 'SET_TARGET', origin: window.__NEXUS_TARGET_ORIGIN__ });
-                }
-              }).catch(err => console.error('❌ Sovereign SW Fail:', err));
+              navigator.serviceWorker.register = function(url, options) {
+                console.log('🛡️ Nexus Guard: Blocked proxied SW registration:', url);
+                return Promise.resolve({ scope: '/', active: null, installing: null, waiting: null });
+              };
             }
 
             // 5. اختطاف الملاحة لضمان البقاء داخل نكسوس

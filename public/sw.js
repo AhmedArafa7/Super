@@ -8,7 +8,7 @@
  * - Offline fallback: Show cached app shell when offline
  */
 
-const CACHE_NAME = 'nexus-v1';
+const CACHE_NAME = 'nexus-v2';
 const OFFLINE_URL = '/';
 
 // Files to pre-cache on install (app shell)
@@ -50,13 +50,19 @@ self.addEventListener('fetch', (event) => {
     // Skip non-GET requests (POST, PUT, etc.)
     if (request.method !== 'GET') return;
 
-    // Skip Firebase/Firestore and external API requests — always network
+    // Skip internal API routes (proxy, etc.) — never cache
+    if (url.pathname.startsWith('/api/')) return;
+
+    // Skip Firebase/Firestore, Google Auth, and external API requests — always network
     if (
         url.hostname.includes('firestore.googleapis.com') ||
         url.hostname.includes('firebase') ||
         url.hostname.includes('googleapis.com') ||
         url.hostname.includes('identitytoolkit') ||
-        url.hostname.includes('securetoken')
+        url.hostname.includes('securetoken') ||
+        url.hostname.includes('accounts.google.com') ||
+        url.hostname.includes('gstatic.com') ||
+        url.protocol === 'chrome-extension:'
     ) {
         return;
     }
