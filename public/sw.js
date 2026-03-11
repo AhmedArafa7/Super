@@ -8,7 +8,7 @@
  * - Offline fallback: Show cached app shell when offline
  */
 
-const CACHE_NAME = 'nexus-v2';
+const CACHE_NAME = 'nexus-v3';
 const OFFLINE_URL = '/';
 
 // Files to pre-cache on install (app shell)
