@@ -61,6 +61,7 @@ self.addEventListener('fetch', (event) => {
         url.hostname.includes('identitytoolkit') ||
         url.hostname.includes('securetoken') ||
         url.hostname.includes('accounts.google.com') ||
+        url.hostname.includes('apis.google.com') ||
         url.hostname.includes('gstatic.com') ||
         url.protocol === 'chrome-extension:'
     ) {

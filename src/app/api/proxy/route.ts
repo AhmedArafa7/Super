@@ -10,6 +10,7 @@ export const runtime = 'edge';
 async function handleProxyRequest(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const targetUrl = searchParams.get('url');
+  const requestOrigin = request.headers.get('origin') || '*';
 
   if (!targetUrl) {
     return NextResponse.json({ error: 'Missing Target URL' }, { status: 400 });
@@ -149,7 +150,8 @@ async function handleProxyRequest(request: NextRequest) {
         status: response.status,
         headers: { 
           'Content-Type': 'text/html',
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': requestOrigin,
+          'Access-Control-Allow-Credentials': 'true',
           'X-Frame-Options': 'ALLOWALL'
         },
       });
@@ -174,7 +176,8 @@ async function handleProxyRequest(request: NextRequest) {
       status: response.status,
       headers: response.headers,
     });
-    proxyRes.headers.set('Access-Control-Allow-Origin', '*');
+    proxyRes.headers.set('Access-Control-Allow-Origin', requestOrigin);
+    proxyRes.headers.set('Access-Control-Allow-Credentials', 'true');
     
     return proxyRes;
 
