@@ -39,7 +39,31 @@ export async function GET() {
         return;
       }
 
-      // 2. بناء الرابط المستهدف المطلق (تحويل الروابط النسبية إلى كاملة)
+      // 2. استثناء طلبات Firebase/Google Auth — يجب أن تمر مباشراً للشبكة
+      const AUTH_BYPASS_HOSTS = [
+        'apis.google.com',
+        'accounts.google.com',
+        'securetoken.googleapis.com',
+        'identitytoolkit.googleapis.com',
+        'www.googleapis.com',
+        'firebaseinstallations.googleapis.com',
+        'firebaseremoteconfig.googleapis.com',
+        'firestore.googleapis.com',
+        'firebaselogging.googleapis.com',
+      ];
+      const hostname = url.hostname.toLowerCase();
+      if (
+        AUTH_BYPASS_HOSTS.some(h => hostname === h) ||
+        hostname.includes('firebaseapp.com') ||
+        hostname.includes('gstatic.com') ||
+        hostname.includes('firebase') ||
+        hostname.endsWith('.google.com') ||
+        hostname.endsWith('.googleapis.com')
+      ) {
+        return;
+      }
+
+      // 3. بناء الرابط المستهدف المطلق (تحويل الروابط النسبية إلى كاملة)
       let absoluteUrl = event.request.url;
       if (url.origin === self.location.origin && targetOrigin) {
         absoluteUrl = targetOrigin + url.pathname + url.search;
@@ -47,7 +71,7 @@ export async function GET() {
 
       const proxyUrl = self.location.origin + PROXY_PATH + encodeURIComponent(absoluteUrl);
       
-      // 3. حقن الكوكيز والبيانات الافتراضية في كل طلب يخرج
+      // 4. حقن الكوكيز والبيانات الافتراضية في كل طلب يخرج
       const modifiedHeaders = new Headers(event.request.headers);
       if (virtualCookies) {
         modifiedHeaders.set('X-Nexus-Virtual-Cookies', virtualCookies);
