@@ -30,6 +30,7 @@ export function AdSubmissionForm({ user, onSuccess }: AdSubmissionFormProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [thumbnailOptions, setThumbnailOptions] = useState<string[]>([]);
+  const [isExtracting, setIsExtracting] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -38,11 +39,11 @@ export function AdSubmissionForm({ user, onSuccess }: AdSubmissionFormProps) {
     rewardAmount: 0
   });
 
-  const handleLinkInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const url = e.target.value;
-    setFormData({ ...formData, linkUrl: url });
-    
-    // Check if YouTube URL to extract thumbnails
+  const handleUrlBlur = async () => {
+    const url = formData.linkUrl;
+    if (!url || !url.startsWith("http")) return;
+
+    // Fast check for classic YouTube first
     const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
     const match = url.match(ytRegex);
     if (match && match[1]) {
@@ -52,8 +53,24 @@ export function AdSubmissionForm({ user, onSuccess }: AdSubmissionFormProps) {
         `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
         `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
       ]);
-    } else {
-      setThumbnailOptions([]);
+      return;
+    }
+
+    // Universal URL Extractor (YouTube clips, articles, tweets, etc.)
+    setIsExtracting(true);
+    setThumbnailOptions([]);
+    try {
+      const res = await fetch(`/api/extract-og?url=${encodeURIComponent(url)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.image) {
+          setThumbnailOptions([data.image]);
+        }
+      }
+    } catch (err) {
+      console.log("Extraction error ignored.", err);
+    } finally {
+      setIsExtracting(false);
     }
   };
 
@@ -135,8 +152,17 @@ export function AdSubmissionForm({ user, onSuccess }: AdSubmissionFormProps) {
           </div>
 
           <div className="grid grid-cols-1 gap-2">
-            <Label>رابط التوجيه (أو رابط يوتيوب لاستخراج الصور)</Label>
-            <Input className="bg-white/5 border-white/10 text-right h-11" placeholder="https://..." value={formData.linkUrl} onChange={handleLinkInput} />
+            <Label className="flex justify-between items-center flex-row-reverse">
+              <span>رابط التوجيه (أو رابط أي صفحة/فيديو لاستخراج صورتها)</span>
+              {isExtracting && <span className="text-[10px] text-amber-500 flex items-center gap-1 font-bold animate-pulse"><Loader2 className="size-3 animate-spin" /> جاري فحص الرابط...</span>}
+            </Label>
+            <Input 
+              className="bg-white/5 border-white/10 text-right h-11" 
+              placeholder="https://..." 
+              value={formData.linkUrl} 
+              onChange={e => setFormData({ ...formData, linkUrl: e.target.value })} 
+              onBlur={handleUrlBlur}
+            />
           </div>
 
           {(thumbnailOptions.length > 0 || imageUrls.length > 0) && (
