@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { addAd } from "@/lib/ads-store";
+import { uploadMarketImage } from "@/lib/market/upload";
+import Image from "next/image";
 
 interface AdSubmissionFormProps {
   user: any;
@@ -25,18 +27,60 @@ export function AdSubmissionForm({ user, onSuccess }: AdSubmissionFormProps) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [thumbnailOptions, setThumbnailOptions] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    imageUrl: "",
     linkUrl: "",
     category: "promo" as any,
     rewardAmount: 0
   });
 
+  const handleLinkInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setFormData({ ...formData, linkUrl: url });
+    
+    // Check if YouTube URL to extract thumbnails
+    const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+    const match = url.match(ytRegex);
+    if (match && match[1]) {
+      const videoId = match[1];
+      setThumbnailOptions([
+        `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+        `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+        `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+      ]);
+    } else {
+      setThumbnailOptions([]);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const url = await uploadMarketImage(file);
+      setImageUrls(prev => [...prev, url]);
+      toast({ title: "تم رفع الصورة بنجاح" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "فشل الرفع", description: "تعذر رفع الصورة، تأكد من اتصالك." });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const toggleImageSelection = (url: string) => {
+    setImageUrls(prev => 
+      prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url]
+    );
+  };
+
   const handleSubmit = async () => {
-    if (!formData.title || !formData.imageUrl) {
-      toast({ variant: "destructive", title: "بيانات ناقصة", description: "يرجى ملء الحقول الأساسية وعنوان الصورة." });
+    if (!formData.title || imageUrls.length === 0) {
+      toast({ variant: "destructive", title: "بيانات ناقصة", description: "يرجى ملء الحقول الأساسية واختيار صورة واحدة على الأقل." });
       return;
     }
 
@@ -44,6 +88,7 @@ export function AdSubmissionForm({ user, onSuccess }: AdSubmissionFormProps) {
     try {
       await addAd({
         ...formData,
+        imageUrls,
         authorId: user.id,
         authorName: user.name
       }, user.role === 'admin');
@@ -54,7 +99,9 @@ export function AdSubmissionForm({ user, onSuccess }: AdSubmissionFormProps) {
       });
       
       setIsOpen(false);
-      setFormData({ title: "", description: "", imageUrl: "", linkUrl: "", category: "promo", rewardAmount: 0 });
+      setFormData({ title: "", description: "", linkUrl: "", category: "promo", rewardAmount: 0 });
+      setImageUrls([]);
+      setThumbnailOptions([]);
       onSuccess();
     } catch (err) {
       toast({ variant: "destructive", title: "فشل الإرسال", description: "تعذر ربط طلبك بالسجل العالمي." });
@@ -87,14 +134,43 @@ export function AdSubmissionForm({ user, onSuccess }: AdSubmissionFormProps) {
             <Textarea dir="auto" className="bg-white/5 border-white/10 text-right min-h-[100px]" placeholder="اشرح ما تقدمه في هذه اللوحة..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label>رابط الصورة المعروضة</Label>
-              <Input className="bg-white/5 border-white/10 text-right h-11" placeholder="https://..." value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
+          <div className="grid grid-cols-1 gap-2">
+            <Label>رابط التوجيه (أو رابط يوتيوب لاستخراج الصور)</Label>
+            <Input className="bg-white/5 border-white/10 text-right h-11" placeholder="https://..." value={formData.linkUrl} onChange={handleLinkInput} />
+          </div>
+
+          {(thumbnailOptions.length > 0 || imageUrls.length > 0) && (
+            <div className="grid gap-2 border border-white/5 bg-white/5 p-4 rounded-xl">
+              <Label className="text-amber-400">الصور المحددة ({imageUrls.length})</Label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {thumbnailOptions.length > 0 && thumbnailOptions.map((thumb, idx) => (
+                  <div 
+                    key={`thumb-${idx}`} 
+                    onClick={() => toggleImageSelection(thumb)}
+                    className={`relative w-24 h-16 rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${imageUrls.includes(thumb) ? 'border-primary scale-105' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                  >
+                    <Image src={thumb} alt="YouTube Thumbnail" fill className="object-cover" unoptimized />
+                  </div>
+                ))}
+                {imageUrls.filter(url => !thumbnailOptions.includes(url)).map((url, idx) => (
+                  <div 
+                    key={`up-${idx}`} 
+                    onClick={() => toggleImageSelection(url)}
+                    className="relative w-24 h-16 rounded-lg overflow-hidden cursor-pointer border-2 border-primary scale-105 transition-all"
+                  >
+                    <Image src={url} alt="Uploaded Image" fill className="object-cover" />
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2 text-right">اضغط على الصورة لتحديدها أو إلغاء تحديدها. إذا حددت أكثر من صورة، سيتم التبديل بينها عند عرض الإعلان.</p>
             </div>
-            <div className="grid gap-2">
-              <Label>رابط التوجيه (الموقع)</Label>
-              <Input className="bg-white/5 border-white/10 text-right h-11" placeholder="https://..." value={formData.linkUrl} onChange={e => setFormData({...formData, linkUrl: e.target.value})} />
+          )}
+
+          <div className="grid gap-2">
+            <Label>أو رفع صورة من جهازك</Label>
+            <div className="flex items-center gap-4 flex-row-reverse">
+              <Input type="file" accept="image/*" onChange={handleFileUpload} disabled={isUploading} className="bg-white/5 border-white/10 text-right h-11" />
+              {isUploading && <Loader2 className="animate-spin text-primary size-5" />}
             </div>
           </div>
 

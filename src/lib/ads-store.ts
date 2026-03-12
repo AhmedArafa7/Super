@@ -14,7 +14,7 @@ export interface Ad {
   id: string;
   title: string;
   description: string;
-  imageUrl: string;
+  imageUrls: string[];
   linkUrl: string;
   rewardAmount: number;
   status: AdStatus;

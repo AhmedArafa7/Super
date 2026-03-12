@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { ExternalLink, Zap, MousePointer2, Calendar } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +19,19 @@ interface AdCardProps {
 }
 
 export function AdCard({ ad, userId, onRewardClaimed }: AdCardProps) {
+  const [currentImage, setCurrentImage] = useState<string>("");
+
+  useEffect(() => {
+    let selectedImage = `https://picsum.photos/seed/${ad.id}/800/450`;
+    if (ad.imageUrls && ad.imageUrls.length > 0) {
+      // Pick a random image from the array to cycle
+      selectedImage = ad.imageUrls[Math.floor(Math.random() * ad.imageUrls.length)];
+    } else if ((ad as any).imageUrl) {
+      // Fallback for older ads
+      selectedImage = (ad as any).imageUrl;
+    }
+    setCurrentImage(selectedImage);
+  }, [ad.imageUrls, (ad as any).imageUrl, ad.id]);
   const handleAction = async () => {
     await recordAdClick(ad.id);
     if (ad.rewardAmount > 0 && userId) {
@@ -32,7 +45,7 @@ export function AdCard({ ad, userId, onRewardClaimed }: AdCardProps) {
     <Card className="group glass border-white/5 rounded-[2.5rem] overflow-hidden hover:border-primary/40 transition-all duration-500 shadow-2xl relative flex flex-col">
       <div className="relative aspect-[16/9] overflow-hidden">
         <Image 
-          src={ad.imageUrl || `https://picsum.photos/seed/${ad.id}/800/450`} 
+          src={currentImage || `https://picsum.photos/seed/${ad.id}/800/450`} 
           alt={ad.title} 
           fill 
           className="object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" 

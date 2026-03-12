@@ -43,7 +43,12 @@ export function AdsManagement({ ads = [], onRefresh }: AdsManagementProps) {
     setIsSubmitting(true);
     try {
       await addAd({
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        linkUrl: formData.linkUrl,
+        rewardAmount: formData.rewardAmount,
+        category: formData.category,
+        imageUrls: formData.imageUrl ? [formData.imageUrl] : [],
         authorId: "admin",
         authorName: "System Admin"
       }, true);

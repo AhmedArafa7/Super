@@ -56,9 +56,10 @@ export function StorageManagement() {
                       <div className="flex items-center gap-1 bg-white/5 rounded-lg px-2 border border-white/5">
                         <Input 
                           type="number" 
+                          min="1"
                           className="w-16 h-8 bg-transparent border-none text-center text-xs p-0 focus-visible:ring-0"
                           value={limit}
-                          onChange={(e) => setCategoryLimit(section.id, Number(e.target.value))}
+                          onChange={(e) => setCategoryLimit(section.id, Math.max(1, Number(e.target.value)))}
                         />
                         <span className="text-[10px] text-muted-foreground uppercase font-bold">MB</span>
                       </div>
@@ -127,7 +128,11 @@ export function StorageManagement() {
                         variant="ghost" 
                         size="icon" 
                         className="size-8 rounded-lg text-red-400 hover:bg-red-500/10"
-                        onClick={() => removeAsset(asset.id)}
+                        onClick={() => {
+                          if (confirm('هل أنت متأكد من مسح هذا الملف من الذاكرة المحلية؟')) {
+                            removeAsset(asset.id);
+                          }
+                        }}
                       >
                         <Trash2 className="size-4" />
                       </Button>
