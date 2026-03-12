@@ -35,7 +35,8 @@ export function AdsManagement({ ads = [], onRefresh }: AdsManagementProps) {
     imageUrl: "",
     linkUrl: "",
     rewardAmount: 0,
-    category: "promo" as any
+    category: "promo" as any,
+    type: "page" as 'video' | 'image' | 'page'
   });
 
   const handleSave = async () => {
@@ -48,13 +49,14 @@ export function AdsManagement({ ads = [], onRefresh }: AdsManagementProps) {
         linkUrl: formData.linkUrl,
         rewardAmount: formData.rewardAmount,
         category: formData.category,
+        type: formData.type,
         imageUrls: formData.imageUrl ? [formData.imageUrl] : [],
         authorId: "admin",
         authorName: "System Admin"
       }, true);
       toast({ title: "تم نشر الإعلان", description: "اللوحة العصبية أصبحت نشطة الآن." });
       setIsAddModalOpen(false);
-      setFormData({ title: "", description: "", imageUrl: "", linkUrl: "", rewardAmount: 0, category: "promo" });
+      setFormData({ title: "", description: "", imageUrl: "", linkUrl: "", rewardAmount: 0, category: "promo", type: "page" });
       onRefresh();
     } catch (err) {
       toast({ variant: "destructive", title: "فشل النشر" });

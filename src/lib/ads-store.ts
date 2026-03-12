@@ -19,6 +19,7 @@ export interface Ad {
   rewardAmount: number;
   status: AdStatus;
   category: 'promo' | 'news' | 'tutorial';
+  type: 'video' | 'image' | 'page';
   createdAt: string;
   authorId: string;
   authorName: string;

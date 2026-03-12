@@ -36,12 +36,21 @@ export function AdSubmissionForm({ user, onSuccess }: AdSubmissionFormProps) {
     description: "",
     linkUrl: "",
     category: "promo" as any,
+    type: "page" as 'video' | 'image' | 'page',
     rewardAmount: 0
   });
 
   const handleUrlBlur = async () => {
-    const url = formData.linkUrl;
-    if (!url || !url.startsWith("http")) return;
+    const url = formData.linkUrl.trim();
+    if (!url) return;
+
+    // Strict URL Validation Check
+    const urlRegex = /^(https?:\/\/)?([\w.-]+\.[a-z]{2,})(\/.*)?$/i;
+    if (!urlRegex.test(url)) {
+      toast({ variant: "destructive", title: "رابط غير صالح", description: "يرجى إدخال رابط يبدأ بـ http أو https ويكون بصيغة صحيحة." });
+      setFormData({ ...formData, linkUrl: "" });
+      return;
+    }
 
     // Fast check for classic YouTube first
     const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
@@ -53,10 +62,18 @@ export function AdSubmissionForm({ user, onSuccess }: AdSubmissionFormProps) {
         `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
         `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
       ]);
+      setFormData({ ...formData, type: 'video', linkUrl: url }); // Auto-set to video
       return;
     }
 
-    // Universal URL Extractor (YouTube clips, articles, tweets, etc.)
+    // Set to page if not explicitly video before extracting
+    if (formData.type !== 'video' && formData.type !== 'image') {
+       setFormData({ ...formData, type: 'page', linkUrl: url });
+    } else {
+       setFormData({ ...formData, linkUrl: url });
+    }
+
+    // Universal URL Extractor
     setIsExtracting(true);
     setThumbnailOptions([]);
     try {
@@ -96,8 +113,13 @@ export function AdSubmissionForm({ user, onSuccess }: AdSubmissionFormProps) {
   };
 
   const handleSubmit = async () => {
-    if (!formData.title || imageUrls.length === 0) {
-      toast({ variant: "destructive", title: "بيانات ناقصة", description: "يرجى ملء الحقول الأساسية واختيار صورة واحدة على الأقل." });
+    if (!formData.title || !formData.linkUrl) {
+      toast({ variant: "destructive", title: "بيانات ناقصة", description: "العنوان والرابط حقول إجبارية لأي إعلان." });
+      return;
+    }
+
+    if (formData.type === 'image' && imageUrls.length === 0) {
+      toast({ variant: "destructive", title: "خطأ بالصور", description: "بما أنك اخترت نوع (إعلان مصور)، يجب تحديد أو رفع صورة واحدة على الأقل." });
       return;
     }
 
@@ -116,7 +138,7 @@ export function AdSubmissionForm({ user, onSuccess }: AdSubmissionFormProps) {
       });
       
       setIsOpen(false);
-      setFormData({ title: "", description: "", linkUrl: "", category: "promo", rewardAmount: 0 });
+      setFormData({ title: "", description: "", linkUrl: "", category: "promo", type: "page", rewardAmount: 0 });
       setImageUrls([]);
       setThumbnailOptions([]);
       onSuccess();
@@ -131,19 +153,32 @@ export function AdSubmissionForm({ user, onSuccess }: AdSubmissionFormProps) {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button className="bg-amber-600 hover:bg-amber-500 text-white rounded-2xl px-8 h-14 shadow-xl shadow-amber-600/20 font-bold text-base gap-3">
-          <Megaphone className="size-5" /> تقديم طلب إعلاني
+          <Megaphone className="size-5" /> بناء تجربة إعلانية
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[550px] bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right">
+      <DialogContent className="sm:max-w-[600px] bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-3xl font-headline font-bold text-white">إطلاق لوحة إعلانية</DialogTitle>
-          <DialogDescription className="text-muted-foreground text-sm">سيتم مراجعة طلبك من قبل الإدارة قبل ظهوره لبقية العقد في النظام.</DialogDescription>
+          <DialogTitle className="text-3xl font-headline font-bold text-white">إعداد لوحة إعلانية جديدة</DialogTitle>
+          <DialogDescription className="text-muted-foreground text-sm">حدد نوع الإعلان، أضف الرابط، واترك الباقي لمحرك الذكاء الاصطناعي لتهيئة المظهر.</DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-5 py-6">
-          <div className="grid gap-2">
-            <Label>عنوان اللوحة</Label>
-            <Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" placeholder="مثال: خدمة برمجة ذكية..." value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+        <div className="space-y-6 py-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label>نوع الإعلان</Label>
+              <Select value={formData.type} onValueChange={(v: any) => setFormData({...formData, type: v})}>
+                <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-12"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10 text-white">
+                  <SelectItem value="video">إعلان فيديو (يوتيوب وغيرها)</SelectItem>
+                  <SelectItem value="image">إعلان مصوّر بطاقات</SelectItem>
+                  <SelectItem value="page">توجيه لصفحة خارجية</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>عنوان العرض</Label>
+              <Input dir="auto" className="bg-white/5 border-white/10 text-right h-12" placeholder="أفضل موقع للـ..." value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+            </div>
           </div>
 
           <div className="grid gap-2">
