@@ -1,9 +1,18 @@
 "use client";
 
 import React from "react";
-import { MoreHorizontal } from "lucide-react";
+import { 
+    MoreHorizontal, ListEnd, Clock, ListPlus, Download, Share2, Ban, UserX, Flag 
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStreamStore } from "@/lib/stream-store";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 interface WatchSidebarProps {
     relatedVideos: any[];
@@ -44,7 +53,60 @@ export function WatchSidebar({ relatedVideos }: WatchSidebarProps) {
                             <span>•</span>
                             <span>منذ يوم</span>
                         </div>
-                        <button className="absolute top-0 left-0 p-1 opacity-0 group-hover:opacity-100 hover:bg-white/10 rounded-full"><MoreHorizontal className="size-4" /></button>
+                        <div onClick={(e) => e.stopPropagation()} className="absolute top-0 left-0">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/10 rounded-full outline-none">
+                                        <MoreHorizontal className="size-4" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-64 bg-[#282828] border-white/10 text-white rounded-xl shadow-2xl p-1.5">
+                                    <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                                        <ListEnd className="size-4" />
+                                        <span className="text-sm">الإضافة إلى قائمة المحتوى التالي</span>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                                        <Clock className="size-4" />
+                                        <span className="text-sm">حفظ في قائمة "مشاهدة لاحقاً"</span>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors mb-1">
+                                        <ListPlus className="size-4" />
+                                        <span className="text-sm">حفظ في قائمة تشغيل</span>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuSeparator className="bg-white/5 mx-1 my-1" />
+
+                                    <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                                        <Download className="size-4" />
+                                        <span className="text-sm">تنزيل</span>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                                        <Share2 className="size-4" />
+                                        <span className="text-sm">مشاركة</span>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuSeparator className="bg-white/5 mx-1 my-1" />
+
+                                    <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                                        <Ban className="size-4" />
+                                        <span className="text-sm">لا يهمني</span>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                                        <UserX className="size-4" />
+                                        <span className="text-sm">عدم اقتراح القناة</span>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                                        <Flag className="size-4" />
+                                        <span className="text-sm">إبلاغ</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     </div>
                 </div>
             ))}

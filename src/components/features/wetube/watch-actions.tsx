@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { 
     ThumbsUp, ThumbsDown, Share2, Download, Scissors, 
-    Bell, ChevronDown, Settings, CheckCircle2, MoreHorizontal, Flag, Trash2
+    Bell, ChevronDown, Settings, CheckCircle2, MoreHorizontal, Flag, Trash2,
+    Ban, UserX, Scissors as ScissorsIcon
 } from "lucide-react";
 import {
     Select,
@@ -17,6 +18,7 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
+    DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -165,20 +167,35 @@ export function WatchActions({
                                 <MoreHorizontal className="size-5" />
                             </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 bg-[#282828] border-white/10 text-white rounded-xl shadow-2xl p-1">
-                            <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer">
+                        <DropdownMenuContent align="end" className="w-64 bg-[#282828] border-white/10 text-white rounded-xl shadow-2xl p-1.5">
+                            <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                                <ScissorsIcon className="size-4" />
+                                <span className="text-sm">اقتطاع كليب</span>
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                                <Ban className="size-4" />
+                                <span className="text-sm">لا يهمني</span>
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                                <UserX className="size-4" />
+                                <span className="text-sm">عدم اقتراح القناة</span>
+                            </DropdownMenuItem>
+                            
+                            <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
                                 <Flag className="size-4" />
                                 <span className="text-sm">إبلاغ</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer">
-                                <Scissors className="size-4" />
-                                <span className="text-sm">اقتطاع كليب</span>
-                            </DropdownMenuItem>
+
                             {user?.role === 'admin' && (
-                                <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 focus:bg-red-500/20 text-red-400 rounded-lg cursor-pointer">
-                                    <Trash2 className="size-4" />
-                                    <span className="text-sm">حذف الفيديو</span>
-                                </DropdownMenuItem>
+                                <>
+                                    <DropdownMenuSeparator className="bg-white/5 mx-1 my-1" />
+                                    <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 focus:bg-red-500/20 text-red-400 rounded-lg cursor-pointer transition-colors">
+                                        <Trash2 className="size-4" />
+                                        <span className="text-sm">حذف الفيديو</span>
+                                    </DropdownMenuItem>
+                                </>
                             )}
                         </DropdownMenuContent>
                     </DropdownMenu>

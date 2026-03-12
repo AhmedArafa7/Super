@@ -2,7 +2,10 @@
 
 import React, { useMemo } from "react";
 import Image from "next/image";
-import { MoreVertical, CheckCircle2, Volume2, Gamepad2, Play, Video as VideoIcon, Download, Share2, Trash2, AlertCircle } from "lucide-react";
+import { 
+  MoreVertical, CheckCircle2, Volume2, Gamepad2, Play, Video as VideoIcon, 
+  Download, Share2, Trash2, AlertCircle, ListEnd, Clock, ListPlus, Ban, UserX, Flag 
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -168,42 +171,71 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
                 <MoreVertical className="size-5" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-[#282828] border-white/10 text-white rounded-xl shadow-2xl overflow-hidden p-1">
+            <DropdownMenuContent align="end" className="w-72 bg-[#282828] border-white/10 text-white rounded-xl shadow-2xl overflow-hidden p-1.5">
+              <DropdownMenuItem className="flex items-center gap-3 px-3 py-2.5 focus:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                <ListEnd className="size-5 text-white" />
+                <span className="text-[14px] font-medium">الإضافة إلى قائمة المحتوى التالي</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem className="flex items-center gap-3 px-3 py-2.5 focus:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                <Clock className="size-5 text-white" />
+                <span className="text-[14px] font-medium">حفظ في قائمة "مشاهدة لاحقاً"</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem className="flex items-center gap-3 px-3 py-2.5 focus:bg-white/10 rounded-lg cursor-pointer transition-colors mb-1">
+                <ListPlus className="size-5 text-white" />
+                <span className="text-[14px] font-medium">حفظ في قائمة تشغيل</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator className="bg-white/5 mx-1 my-1" />
+
               <DropdownMenuItem 
                 onClick={() => onSync?.(video)}
                 className="flex items-center gap-3 px-3 py-2.5 focus:bg-white/10 rounded-lg cursor-pointer transition-colors"
               >
-                <Download className={cn("size-4", isCached ? "text-indigo-400" : "text-white")} />
-                <span className="text-sm font-medium">{isCached ? "تحديث التنزيل" : "تنزيل الفيديو"}</span>
+                <Download className={cn("size-5", isCached ? "text-indigo-400" : "text-white")} />
+                <span className="text-[14px] font-medium">{isCached ? "تحديث التنزيل" : "تنزيل"}</span>
               </DropdownMenuItem>
 
               <DropdownMenuItem 
-                className="flex items-center gap-3 px-3 py-2.5 focus:bg-white/10 rounded-lg cursor-pointer transition-colors mb-1"
+                className="flex items-center gap-3 px-3 py-2.5 focus:bg-white/10 rounded-lg cursor-pointer transition-colors"
                 onClick={() => {
                   navigator.clipboard.writeText(video.externalUrl || window.location.href);
-                  // toast is not available here easily unless we pass it, but we can assume success
                 }}
               >
-                <Share2 className="size-4 text-white" />
-                <span className="text-sm font-medium">مشاركة الرابط</span>
+                <Share2 className="size-5 text-white" />
+                <span className="text-[14px] font-medium">مشاركة</span>
               </DropdownMenuItem>
-              
+
               <DropdownMenuSeparator className="bg-white/5 mx-1 my-1" />
 
-              {(currentUser?.role === 'admin' || currentUser?.id === video.authorId) && onDelete && (
-                <DropdownMenuItem 
-                  onClick={() => onDelete(video.id)}
-                  className="flex items-center gap-3 px-3 py-2.5 focus:bg-red-500/20 text-red-400 rounded-lg cursor-pointer transition-colors"
-                >
-                  <Trash2 className="size-4" />
-                  <span className="text-sm font-medium">حذف من المنصة</span>
-                </DropdownMenuItem>
-              )}
-
-              <DropdownMenuItem className="flex items-center gap-3 px-3 py-2.5 focus:bg-white/10 rounded-lg cursor-pointer transition-colors opacity-50">
-                <AlertCircle className="size-4" />
-                <span className="text-sm font-medium">إبلاغ</span>
+              <DropdownMenuItem className="flex items-center gap-3 px-3 py-2.5 focus:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                <Ban className="size-5 text-white" />
+                <span className="text-[14px] font-medium">لا يهمني</span>
               </DropdownMenuItem>
+
+              <DropdownMenuItem className="flex items-center gap-3 px-3 py-2.5 focus:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                <UserX className="size-5 text-white" />
+                <span className="text-[14px] font-medium">عدم اقتراح القناة</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem className="flex items-center gap-3 px-3 py-2.5 focus:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                <Flag className="size-5 text-white" />
+                <span className="text-[14px] font-medium">إبلاغ</span>
+              </DropdownMenuItem>
+
+              {(currentUser?.role === 'admin' || currentUser?.id === video.authorId) && onDelete && (
+                <>
+                  <DropdownMenuSeparator className="bg-white/5 mx-1 my-1" />
+                  <DropdownMenuItem 
+                    onClick={() => onDelete(video.id)}
+                    className="flex items-center gap-3 px-3 py-2.5 focus:bg-red-500/20 text-red-400 rounded-lg cursor-pointer transition-colors"
+                  >
+                    <Trash2 className="size-5" />
+                    <span className="text-[14px] font-medium">حذف من المنصة</span>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
