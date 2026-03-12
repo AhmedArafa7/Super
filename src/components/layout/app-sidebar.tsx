@@ -17,7 +17,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { cn } from "@/lib/utils";
 import { useSettingsStore } from "@/lib/settings-store";
 
-export const ALL_NAV_ITEMS = [
+export type NavItem = {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  restricted: boolean;
+  badge?: number;
+};
+
+export const ALL_NAV_ITEMS: NavItem[] = [
   { id: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard, restricted: false },
   { id: "time", label: "تنظيم الوقت", icon: Clock, restricted: false },
   { id: "chat", label: "الدردشة الذكية", icon: MessageSquare, restricted: false },
