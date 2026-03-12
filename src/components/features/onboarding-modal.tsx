@@ -16,7 +16,8 @@ import {
   CarouselContent, 
   CarouselItem, 
   CarouselNext, 
-  CarouselPrevious 
+  CarouselPrevious,
+  type CarouselApi
 } from "@/components/ui/carousel";
 import { MessageSquare, Wallet, ShoppingBag, Sparkles, ShieldCheck, Zap, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,20 @@ import { motion } from "framer-motion";
 
 export function OnboardingModal() {
   const [isOpen, setIsOpen] = useState(false);
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    if (!api) {
+      return;
+    }
+
+    setCurrent(api.selectedScrollSnap());
+
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap());
+    });
+  }, [api]);
 
   useEffect(() => {
     const hasSeen = localStorage.getItem("hasSeenOnboarding");
@@ -74,7 +89,7 @@ export function OnboardingModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="bg-slate-950 border-white/10 rounded-[3rem] p-0  shadow-[0_0_50px_rgba(99,102,241,0.2)] outline-none">
+      <DialogContent className="bg-slate-950 border-white/10 rounded-[3rem] p-0 overflow-hidden shadow-[0_0_50px_rgba(99,102,241,0.2)] outline-none">
         <DialogHeader className="sr-only">
           <DialogTitle>NexusAI Onboarding</DialogTitle>
           <DialogDescription>
@@ -105,7 +120,7 @@ export function OnboardingModal() {
         </div>
 
         <div className="px-10 pb-10 pt-6">
-          <Carousel className="w-full">
+          <Carousel setApi={setApi} className="w-full">
             <CarouselContent>
               {steps.map((step, index) => (
                 <CarouselItem key={index}>
@@ -132,7 +147,13 @@ export function OnboardingModal() {
               <CarouselPrevious className="static translate-y-0 size-10 bg-white/5 border-white/10 hover:bg-white/10 hover:text-white rounded-2xl transition-all" />
               <div className="flex gap-1.5">
                 {steps.map((_, i) => (
-                  <div key={i} className="size-1.5 rounded-full bg-white/10" />
+                  <div 
+                    key={i} 
+                    className={cn(
+                      "h-1.5 rounded-full transition-all duration-300",
+                      i === current ? "bg-white w-4" : "bg-white/20 w-1.5"
+                    )} 
+                  />
                 ))}
               </div>
               <CarouselNext className="static translate-y-0 size-10 bg-white/5 border-white/10 hover:bg-white/10 hover:text-white rounded-2xl transition-all" />
