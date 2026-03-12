@@ -147,6 +147,7 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
                 <WatchComments 
                     comments={comments}
                     user={user}
+                    isLoading={isLoadingDetails}
                 />
             </div>
 
