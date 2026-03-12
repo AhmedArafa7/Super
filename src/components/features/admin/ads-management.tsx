@@ -38,6 +38,9 @@ export function AdsManagement({ ads = [], onRefresh }: AdsManagementProps) {
     category: "promo" as any,
     type: "page" as 'video' | 'image' | 'page'
   });
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [selectedAdId, setSelectedAdId] = useState<string | null>(null);
 
   const handleSave = async () => {
     if (!formData.title) return;
@@ -65,9 +68,14 @@ export function AdsManagement({ ads = [], onRefresh }: AdsManagementProps) {
     }
   };
 
-  const handleStatusUpdate = async (id: string, status: any) => {
-    await updateAdStatus(id, status);
+  const handleStatusUpdate = async (id: string, status: any, reason?: string) => {
+    await updateAdStatus(id, status, reason);
     toast({ title: status === 'active' ? "تم التفعيل" : "تم الرفض" });
+    if (status === 'rejected') {
+      setIsRejectModalOpen(false);
+      setRejectionReason("");
+      setSelectedAdId(null);
+    }
     onRefresh();
   };
 
@@ -135,7 +143,10 @@ export function AdsManagement({ ads = [], onRefresh }: AdsManagementProps) {
                   <Button className="flex-1 bg-green-600 hover:bg-green-500 rounded-xl h-10 font-bold text-xs" onClick={() => handleStatusUpdate(ad.id, 'active')}>
                     <CheckCircle2 className="size-4 mr-2" /> اعتماد النشر
                   </Button>
-                  <Button variant="ghost" className="text-red-400 hover:bg-red-500/10 rounded-xl h-10 px-4" onClick={() => handleStatusUpdate(ad.id, 'rejected')}>
+                  <Button variant="ghost" className="text-red-400 hover:bg-red-500/10 rounded-xl h-10 px-4" onClick={() => {
+                    setSelectedAdId(ad.id);
+                    setIsRejectModalOpen(true);
+                  }}>
                     <XCircle className="size-4" />
                   </Button>
                 </div>
@@ -143,6 +154,33 @@ export function AdsManagement({ ads = [], onRefresh }: AdsManagementProps) {
             ))
           )}
         </TabsContent>
+
+        {/* Reject Dialog */}
+        <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
+          <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right">
+            <DialogHeader><DialogTitle className="text-right text-red-400">توضيح سبب الرفض</DialogTitle></DialogHeader>
+            <div className="space-y-4 py-4">
+              <p className="text-xs text-slate-400">سيظهر هذا التوضيح للمستخدم ليعرف لماذا تم رفض طلبه الإعلاني.</p>
+              <Textarea 
+                dir="auto" 
+                className="bg-white/5 border-white/10 text-right min-h-[100px]" 
+                placeholder="مثال: الرابط لا يعمل، أو المحتوى غير لائق لمجتمعنا..." 
+                value={rejectionReason} 
+                onChange={e => setRejectionReason(e.target.value)} 
+              />
+            </div>
+            <DialogFooter>
+              <Button 
+                variant="destructive" 
+                className="w-full rounded-2xl h-12 font-bold"
+                disabled={!rejectionReason.trim()}
+                onClick={() => selectedAdId && handleStatusUpdate(selectedAdId, 'rejected', rejectionReason)}
+              >
+                تأكيد الرفض مع الأسباب
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <TabsContent value="active" className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {activeAds.map(ad => (

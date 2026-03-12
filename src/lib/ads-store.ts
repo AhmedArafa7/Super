@@ -24,6 +24,7 @@ export interface Ad {
   authorId: string;
   authorName: string;
   clicks: number;
+  rejectionReason?: string;
 }
 
 /**
@@ -56,6 +57,19 @@ export const getAds = async (
   }
 };
 
+export const getUserAds = async (userId: string): Promise<Ad[]> => {
+  const { firestore } = initializeFirebase();
+  try {
+    const q = query(collection(firestore, 'ads'), where('authorId', '==', userId));
+    const snap = await getDocs(q);
+    const ads = snap.docs.map(d => ({ id: d.id, ...d.data() } as Ad));
+    return ads.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } catch (e) {
+    console.error("Fetch User Ads Error:", e);
+    return [];
+  }
+};
+
 export const addAd = async (adData: Omit<Ad, 'id' | 'createdAt' | 'clicks' | 'status'>, isAdmin = false) => {
   const { firestore } = initializeFirebase();
   const docRef = await addDoc(collection(firestore, 'ads'), {
@@ -67,9 +81,11 @@ export const addAd = async (adData: Omit<Ad, 'id' | 'createdAt' | 'clicks' | 'st
   return docRef.id;
 };
 
-export const updateAdStatus = async (id: string, status: AdStatus) => {
+export const updateAdStatus = async (id: string, status: AdStatus, rejectionReason?: string) => {
   const { firestore } = initializeFirebase();
-  await updateDoc(doc(firestore, 'ads', id), { status });
+  const updateData: any = { status };
+  if (rejectionReason) updateData.rejectionReason = rejectionReason;
+  await updateDoc(doc(firestore, 'ads', id), updateData);
 };
 
 export const deleteAd = async (id: string) => {

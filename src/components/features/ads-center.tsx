@@ -13,6 +13,10 @@ import { AdCard } from "./ads/ad-card";
 import { AdSubmissionForm } from "./ads/ad-submission-form";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DocumentSnapshot } from "firebase/firestore";
+import { getUserAds } from "@/lib/ads-store";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertCircle, CheckCircle2, Clock, XCircle, Info } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /**
  * [STABILITY_ANCHOR: ADS_CENTER_V1.2]
@@ -26,6 +30,9 @@ export function AdsCenter() {
   const [isLoading, setIsLoading] = useState(true);
   const [lastVisible, setLastVisible] = useState<DocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [isMySubmissionsOpen, setIsMySubmissionsOpen] = useState(false);
+  const [userAds, setUserAds] = useState<Ad[]>([]);
+  const [isLoadingUserAds, setIsLoadingUserAds] = useState(false);
 
   const loadAds = useCallback(async (isLoadMore = false) => {
     if (!isLoadMore) {
@@ -48,6 +55,19 @@ export function AdsCenter() {
       setIsLoading(false);
     }
   }, [lastVisible, toast]);
+
+  const loadUserAds = async () => {
+    if (!user?.id) return;
+    setIsLoadingUserAds(true);
+    try {
+      const fetched = await getUserAds(user.id);
+      setUserAds(fetched);
+    } catch (err) {
+      toast({ variant: "destructive", title: "فشل تحميل طلباتك" });
+    } finally {
+      setIsLoadingUserAds(false);
+    }
+  };
 
   useEffect(() => {
     loadAds();
@@ -83,6 +103,61 @@ export function AdsCenter() {
           >
             <RefreshCcw className={isLoading ? "animate-spin" : ""} />
           </Button>
+
+          {user && (
+            <Dialog open={isMySubmissionsOpen} onOpenChange={(open) => {
+              setIsMySubmissionsOpen(open);
+              if (open) loadUserAds();
+            }}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="h-14 px-6 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 font-bold gap-2">
+                  <Clock className="size-4" /> طلباتي
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px] bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right max-h-[80vh] overflow-y-auto">
+                <DialogHeader><DialogTitle className="text-right text-2xl font-bold">تتبع طلباتك الإعلانية</DialogTitle></DialogHeader>
+                <div className="space-y-4 py-6">
+                  {isLoadingUserAds ? (
+                    <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary" /></div>
+                  ) : userAds.length === 0 ? (
+                    <div className="text-center py-10 opacity-30 italic">لم تقم بتقديم أي طلبات إعلانية بعد.</div>
+                  ) : (
+                    userAds.map(ad => (
+                      <div key={ad.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-3">
+                        <div className="flex justify-between items-start flex-row-reverse text-right">
+                          <h4 className="font-bold text-white">{ad.title}</h4>
+                          <Badge variant="outline" className={cn(
+                            "px-2 py-0.5",
+                            ad.status === 'active' ? "text-green-400 border-green-400/20" :
+                            ad.status === 'pending_review' ? "text-amber-400 border-amber-400/20" :
+                            ad.status === 'rejected' ? "text-red-400 border-red-400/20" : "text-white/40 border-white/10"
+                          )}>
+                            {ad.status === 'active' && <><CheckCircle2 className="size-3 mr-1" /> نشط</>}
+                            {ad.status === 'pending_review' && <><Clock className="size-3 mr-1" /> قيد المراجعة</>}
+                            {ad.status === 'rejected' && <><XCircle className="size-3 mr-1" /> مرفوض</>}
+                          </Badge>
+                        </div>
+                        {ad.status === 'rejected' && ad.rejectionReason && (
+                          <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-xl flex items-start gap-3 flex-row-reverse text-right">
+                            <AlertCircle className="size-4 text-red-500 shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">سبب الرفض</p>
+                              <p className="text-xs text-slate-400 italic">"{ad.rejectionReason}"</p>
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center text-[10px] text-muted-foreground pt-2 border-t border-white/5">
+                           <span>نوع: {ad.type}</span>
+                           <span>تاريخ: {new Date(ad.createdAt).toLocaleDateString('ar-EG')}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+
           {user && <AdSubmissionForm user={user} onSuccess={() => loadAds()} />}
         </div>
       </header>
