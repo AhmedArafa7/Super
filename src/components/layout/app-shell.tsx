@@ -26,6 +26,7 @@ import { VaultExplorer } from "@/components/features/vault-explorer";
 import { DownloadCenter } from "@/components/features/download-center";
 import { TimeManagement } from "@/components/features/time-management";
 import { LocalDeals } from "@/components/features/local-deals";
+import { HealthView } from "@/components/features/health-view";
 import { getNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
@@ -126,6 +127,7 @@ export function AppShell() {
     switch (activeTab) {
       case "dashboard": return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
       case "time": return <TimeManagement />;
+      case "health": return <HealthView />;
       case "chat": return <AIChat />;
       case "agent-ai": return <AgentAI />;
       case "vault": return <VaultExplorer />;

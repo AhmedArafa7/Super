@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type NavItemId = "chat" | "peer-chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn" | "launcher" | "lab" | "directory" | "agent-ai" | "ads" | "vault" | "downloads" | "time" | "deals";
+export type NavItemId = "chat" | "peer-chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn" | "launcher" | "lab" | "directory" | "agent-ai" | "ads" | "vault" | "downloads" | "time" | "deals" | "health";
 
 interface SidebarState {
   pinnedItems: NavItemId[];
@@ -17,7 +17,7 @@ interface SidebarState {
 export const useSidebarStore = create<SidebarState>()(
   persist(
     (set, get) => ({
-      pinnedItems: ["dashboard", "time", "chat", "vault", "agent-ai", "deals", "peer-chat", "stream", "market", "launcher", "lab", "ads", "downloads", "wallet"],
+      pinnedItems: ["dashboard", "time", "health", "chat", "vault", "agent-ai", "deals", "peer-chat", "stream", "market", "launcher", "lab", "ads", "downloads", "wallet"],
 
       togglePin: (id) => {
         const { pinnedItems } = get();
