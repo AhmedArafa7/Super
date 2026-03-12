@@ -2,8 +2,15 @@
 
 import React, { useMemo } from "react";
 import Image from "next/image";
-import { MoreVertical, CheckCircle2, Volume2, Gamepad2, Play, Video as VideoIcon } from "lucide-react";
+import { MoreVertical, CheckCircle2, Volume2, Gamepad2, Play, Video as VideoIcon, Download, Share2, Trash2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 const getYoutubeId = (url?: string) => {
   if (!url) return null;
@@ -150,13 +157,56 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
           </div>
         </div>
 
-        {/* Context Menu Icon (Hover only on Desktop) */}
-        <button
-          className="p-1.5 -mt-1 -mr-1 h-fit rounded-full text-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:bg-white/10"
-          onClick={(e) => { e.stopPropagation(); /* Options Menu */ }}
-        >
-          <MoreVertical className="size-5" />
-        </button>
+        {/* Context Menu (Dropdown) */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="p-1.5 -mt-1 -mr-1 h-fit rounded-full text-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:bg-white/10 outline-none"
+                aria-label="خيارات إضافية"
+              >
+                <MoreVertical className="size-5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 bg-[#282828] border-white/10 text-white rounded-xl shadow-2xl overflow-hidden p-1">
+              <DropdownMenuItem 
+                onClick={() => onSync?.(video)}
+                className="flex items-center gap-3 px-3 py-2.5 focus:bg-white/10 rounded-lg cursor-pointer transition-colors"
+              >
+                <Download className={cn("size-4", isCached ? "text-indigo-400" : "text-white")} />
+                <span className="text-sm font-medium">{isCached ? "تحديث التنزيل" : "تنزيل الفيديو"}</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem 
+                className="flex items-center gap-3 px-3 py-2.5 focus:bg-white/10 rounded-lg cursor-pointer transition-colors mb-1"
+                onClick={() => {
+                  navigator.clipboard.writeText(video.externalUrl || window.location.href);
+                  // toast is not available here easily unless we pass it, but we can assume success
+                }}
+              >
+                <Share2 className="size-4 text-white" />
+                <span className="text-sm font-medium">مشاركة الرابط</span>
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator className="bg-white/5 mx-1 my-1" />
+
+              {(currentUser?.role === 'admin' || currentUser?.id === video.authorId) && onDelete && (
+                <DropdownMenuItem 
+                  onClick={() => onDelete(video.id)}
+                  className="flex items-center gap-3 px-3 py-2.5 focus:bg-red-500/20 text-red-400 rounded-lg cursor-pointer transition-colors"
+                >
+                  <Trash2 className="size-4" />
+                  <span className="text-sm font-medium">حذف من المنصة</span>
+                </DropdownMenuItem>
+              )}
+
+              <DropdownMenuItem className="flex items-center gap-3 px-3 py-2.5 focus:bg-white/10 rounded-lg cursor-pointer transition-colors opacity-50">
+                <AlertCircle className="size-4" />
+                <span className="text-sm font-medium">إبلاغ</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </div>
   );

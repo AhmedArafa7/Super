@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { fetchVideoDetails, fetchVideoComments, VideoDetails, YouTubeComment } from "@/lib/youtube-discovery-store";
 import {
     ThumbsUp, ThumbsDown, Share2, Download, Scissors,
-    MoreHorizontal, CheckCircle2, UserCircle, Bell, ChevronDown, Check, Settings, AlertTriangle
+    MoreHorizontal, CheckCircle2, UserCircle, Bell, ChevronDown, Check, Settings, AlertTriangle, Trash2, Flag
 } from "lucide-react";
 import {
     Select,
@@ -23,6 +23,12 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { VideoCard } from "../stream/video-card";
 import { NexusVideoPlayer } from "../stream/nexus-video-player";
@@ -283,9 +289,30 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
                         </button>
 
                         {/* More */}
-                        <button className="p-2 bg-[#272727] hover:bg-[#3f3f3f] rounded-full transition-colors shrink-0">
-                            <MoreHorizontal className="size-5" />
-                        </button>
+                        {/* More Options Dropdown */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="p-2 bg-[#272727] hover:bg-[#3f3f3f] rounded-full transition-colors shrink-0 outline-none">
+                                    <MoreHorizontal className="size-5" />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 bg-[#282828] border-white/10 text-white rounded-xl shadow-2xl p-1">
+                                <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer">
+                                    <Flag className="size-4" />
+                                    <span className="text-sm">إبلاغ</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer">
+                                    <Scissors className="size-4" />
+                                    <span className="text-sm">اقتطاع كليب</span>
+                                </DropdownMenuItem>
+                                {user?.role === 'admin' && (
+                                    <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 focus:bg-red-500/20 text-red-400 rounded-lg cursor-pointer">
+                                        <Trash2 className="size-4" />
+                                        <span className="text-sm">حذف الفيديو</span>
+                                    </DropdownMenuItem>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
 
