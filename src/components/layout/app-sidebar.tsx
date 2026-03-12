@@ -15,36 +15,50 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useSettingsStore } from "@/lib/settings-store";
+
+export const ALL_NAV_ITEMS = [
+  { id: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard, restricted: false },
+  { id: "time", label: "تنظيم الوقت", icon: Clock, restricted: false },
+  { id: "chat", label: "الدردشة الذكية", icon: MessageSquare, restricted: false },
+  { id: "agent-ai", label: "المهندس المساعد", icon: Cpu, restricted: false },
+  { id: "vault", label: "خزنة الملفات", icon: HardDrive, restricted: false },
+  { id: "deals", label: "عروض المحلات", icon: Tag, restricted: false },
+  { id: "peer-chat", label: "التواصل المباشر", icon: MessageCircle, restricted: false },
+  { id: "stream", label: "WeTube", icon: Video, restricted: false },
+  { id: "market", label: "المتجر التقني", icon: ShoppingBag, restricted: false },
+  { id: "ads", label: "مركز الإعلانات", icon: Megaphone, restricted: false },
+  { id: "downloads", label: "التحميلات", icon: DownloadCloud, restricted: false },
+  { id: "launcher", label: "مشغل المواقع", icon: Rocket, restricted: false },
+  { id: "wallet", label: "المحفظة الرقمية", icon: Wallet, restricted: false },
+  { id: "offers", label: "صندوق العروض", icon: Repeat, restricted: false },
+  { id: "learning", label: "المكتبة المعرفية", icon: GraduationCap, restricted: false },
+  { id: "lab", label: "المختبر التجريبي", icon: Microscope, restricted: false },
+  { id: "directory", label: "دليل المستخدمين", icon: Users, restricted: false },
+  { id: "hisn", label: "حصن المسلم", icon: BookOpen, restricted: false },
+  { id: "features", label: "المميزات", icon: Zap, restricted: false },
+  { id: "notifications", label: "التنبيهات", icon: Bell, restricted: false },
+  { id: "admin", label: "لوحة الإدارة", icon: ShieldCheck, restricted: true },
+];
 
 export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, togglePin, uploadTasks, unreadCount, pendingOffersCount }: any) {
   const managementRoles = ['founder', 'cofounder', 'admin', 'management'];
   const hasAdminAccess = user && managementRoles.includes(user.role);
 
-  const ALL_NAV_ITEMS = [
-    { id: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard, restricted: false },
-    { id: "time", label: "تنظيم الوقت", icon: Clock, restricted: false },
-    { id: "chat", label: "الدردشة الذكية", icon: MessageSquare, restricted: false },
-    { id: "agent-ai", label: "المهندس المساعد", icon: Cpu, restricted: false },
-    { id: "vault", label: "خزنة الملفات", icon: HardDrive, restricted: false },
-    { id: "deals", label: "عروض المحلات", icon: Tag, restricted: false },
-    { id: "peer-chat", label: "التواصل المباشر", icon: MessageCircle, restricted: false },
-    { id: "stream", label: "WeTube", icon: Video, restricted: false },
-    { id: "market", label: "المتجر التقني", icon: ShoppingBag, restricted: false },
-    { id: "ads", label: "مركز الإعلانات", icon: Megaphone, restricted: false },
-    { id: "downloads", label: "التحميلات", icon: DownloadCloud, restricted: false },
-    { id: "launcher", label: "مشغل المواقع", icon: Rocket, restricted: false },
-    { id: "wallet", label: "المحفظة الرقمية", icon: Wallet, restricted: false },
-    { id: "offers", label: "صندوق العروض", icon: Repeat, badge: pendingOffersCount, restricted: false },
-    { id: "learning", label: "المكتبة المعرفية", icon: GraduationCap, restricted: false },
-    { id: "lab", label: "المختبر التجريبي", icon: Microscope, restricted: false },
-    { id: "directory", label: "دليل المستخدمين", icon: Users, restricted: false },
-    { id: "hisn", label: "حصن المسلم", icon: BookOpen, restricted: false },
-    { id: "features", label: "المميزات", icon: Zap, restricted: false },
-    { id: "notifications", label: "التنبيهات", icon: Bell, badge: unreadCount, restricted: false },
-    { id: "admin", label: "لوحة الإدارة", icon: ShieldCheck, restricted: true },
-  ];
+  const navItemsWithBadges = ALL_NAV_ITEMS.map(item => {
+    if (item.id === 'offers') return { ...item, badge: pendingOffersCount };
+    if (item.id === 'notifications') return { ...item, badge: unreadCount };
+    return item;
+  });
 
-  const visibleItems = ALL_NAV_ITEMS.filter(item => !item.restricted || hasAdminAccess);
+  const { settings } = useSettingsStore();
+  const isBeta = (id: string) => settings?.sections?.[id]?.isBeta ?? false;
+
+  const visibleItems = navItemsWithBadges.filter(item => {
+    if (item.restricted && !hasAdminAccess) return false;
+    if (isBeta(item.id) && !hasAdminAccess) return false;
+    return true;
+  });
   const pinnedSidebarItems = visibleItems.filter(item => isPinned(item.id));
 
   return (
@@ -78,7 +92,10 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
                   item.id === 'downloads' && "text-primary"
                 )} />
                 <span className="font-medium">{item.label}</span>
-                {item.badge !== undefined && item.badge > 0 && (
+                {isBeta(item.id) && (
+                  <Badge variant="outline" className="mr-auto text-[8px] px-1 h-4 border-amber-500/30 text-amber-500 font-black tracking-widest uppercase">BETA</Badge>
+                )}
+                {item.badge !== undefined && item.badge > 0 && !isBeta(item.id) && (
                   <Badge className="mr-auto bg-indigo-500 h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full">{item.badge}</Badge>
                 )}
               </SidebarMenuButton>

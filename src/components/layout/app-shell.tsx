@@ -39,6 +39,7 @@ import { AppSidebar } from "./app-sidebar";
 import { AppHeader } from "./app-header";
 import { DulmsLayout } from "./dulms-layout";
 import { getThemeBySlug } from "@/lib/theme-store";
+import { useSettingsStore } from "@/lib/settings-store";
 
 const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g#list";
 const VAULT_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
@@ -59,10 +60,16 @@ export function AppShell() {
   const setCurrentTab = useStreamStore(state => state.setCurrentTab);
   const { isPinned, togglePin } = useSidebarStore();
   const uploadTasks = useUploadStore(state => state.tasks);
+  const initSettingsListener = useSettingsStore(state => state.initSettingsListener);
 
   useEffect(() => {
     setCurrentTab(activeTab);
   }, [activeTab, setCurrentTab]);
+
+  useEffect(() => {
+    const unsubSettings = initSettingsListener();
+    return () => unsubSettings();
+  }, [initSettingsListener]);
 
   useEffect(() => {
     if (!isAuthenticated || !user) return;

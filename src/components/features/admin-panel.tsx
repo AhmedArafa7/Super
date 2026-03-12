@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import {
   ShieldAlert, RefreshCcw, Users, MessageSquare,
   Video, ShoppingBag, Wallet, Megaphone, Activity, Coins,
-  GraduationCap, CheckCircle2, XCircle, Rocket, Crown, Tag, MessageCircle
+  GraduationCap, CheckCircle2, XCircle, Rocket, Crown, Tag, MessageCircle, Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -25,6 +25,7 @@ import { AdsManagement } from "./admin/ads-management";
 import { QuotaMonitor } from "./admin/quota-monitor";
 import { AppReview } from "./admin/app-review";
 import { CurrencyManagement } from "./admin/currency-management";
+import { SectionsManagement } from "./admin/sections-management";
 
 import { getStoredMessages } from "@/lib/chat-store";
 import { getStoredUsers } from "@/lib/auth-store";
@@ -144,6 +145,7 @@ export function AdminPanel() {
           <TabsTrigger value="media" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse"><Video className="size-4" /> الرقابة</TabsTrigger>
           <TabsTrigger value="ads" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse"><Megaphone className="size-4" /> الإعلانات</TabsTrigger>
           <TabsTrigger value="currency" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse"><Coins className="size-4" /> العملات</TabsTrigger>
+          <TabsTrigger value="sections" className="rounded-xl px-6 py-2.5 font-bold gap-2 flex-row-reverse"><Layers className="size-4" /> الأقسام</TabsTrigger>
         </TabsList>
 
         <TabsContent value="products">
@@ -208,6 +210,7 @@ export function AdminPanel() {
         <TabsContent value="media"><MediaCensorship videos={data.videos} onRefresh={loadAllData} /></TabsContent>
         <TabsContent value="ads"><AdsManagement ads={data.ads} onRefresh={loadAllData} /></TabsContent>
         <TabsContent value="currency"><CurrencyManagement users={data.users} currentUser={currentUser} onRefresh={loadAllData} /></TabsContent>
+        <TabsContent value="sections"><SectionsManagement /></TabsContent>
       </Tabs>
     </div>
   );
