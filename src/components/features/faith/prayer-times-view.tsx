@@ -123,13 +123,13 @@ export function PrayerTimesView() {
       </div>
 
       {/* معلومات العقدة */}
-      <footer className="flex items-center justify-between border-t border-white/5 pt-6 opacity-40 flex-row-reverse">
+      {/*<footer className="flex items-center justify-between border-t border-white/5 pt-6 opacity-40 flex-row-reverse">
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase font-black tracking-widest flex-row-reverse">
           <MapPin className="size-3" />
           Location Synced via Aladhan API
         </div>
         <p className="text-[10px] font-bold text-muted-foreground">Calibration Mode Active</p>
-      </footer>
+      </footer>*/}
     </div>
   );
 }

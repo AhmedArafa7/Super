@@ -36,7 +36,7 @@ export function TimeManagement() {
         </div>
       </main>
 
-      <footer className="p-8 glass rounded-[2.5rem] border border-white/5 flex flex-col md:flex-row items-center justify-between gap-6 flex-row-reverse">
+      {/*<footer className="p-8 glass rounded-[2.5rem] border border-white/5 flex flex-col md:flex-row items-center justify-between gap-6 flex-row-reverse">
         <div className="text-right">
           <h4 className="font-bold text-white text-sm">لماذا تنظيم الوقت في نكسوس؟</h4>
           <p className="text-xs text-muted-foreground mt-1">المزامنة مع الساعة البيولوجية العصبية تضمن استهلاك طاقة أقل وإنتاجية أعلى.</p>
@@ -45,7 +45,7 @@ export function TimeManagement() {
           <Badge variant="outline" className="border-white/10 px-4 py-1 text-[10px] uppercase font-bold">Deep Work Protocol</Badge>
           <Badge variant="outline" className="border-white/10 px-4 py-1 text-[10px] uppercase font-bold">Local Sync Ready</Badge>
         </div>
-      </footer>
+      </footer>*/}
     </div>
   );
 }

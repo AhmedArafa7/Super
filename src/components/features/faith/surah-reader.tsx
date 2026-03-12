@@ -153,7 +153,7 @@ export function SurahReader({ surahId, surahName, englishName, ayahs, isLoading,
         </ScrollArea>
       </div>
 
-      <footer className="p-6 border-t border-white/5 bg-black/60 flex items-center justify-between gap-8 shrink-0 px-10 flex-row-reverse">
+      {/*<footer className="p-6 border-t border-white/5 bg-black/60 flex items-center justify-between gap-8 shrink-0 px-10 flex-row-reverse">
          <div className="flex items-center gap-2 text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-50">
            <Info className="size-3" /> وضع المصحف المطور • اضغط على الآية لعرض التفسير الميسر
          </div>
@@ -163,7 +163,7 @@ export function SurahReader({ surahId, surahName, englishName, ayahs, isLoading,
               <span className="text-[9px] font-bold text-muted-foreground uppercase">Text & Tafsir Integrity Verified</span>
             </div>
          </div>
-      </footer>
+      </footer>*/}
     </DialogContent>
   );
 }

@@ -87,7 +87,7 @@ export function DownloadCenter() {
         <StorageManagement />
       )}
 
-      <footer className="p-10 glass rounded-[3rem] border border-emerald-500/10 bg-emerald-500/5 flex flex-col md:flex-row items-center justify-between gap-8 flex-row-reverse relative overflow-hidden shadow-xl">
+      {/*<footer className="p-10 glass rounded-[3rem] border border-emerald-500/10 bg-emerald-500/5 flex flex-col md:flex-row items-center justify-between gap-8 flex-row-reverse relative overflow-hidden shadow-xl">
         <div className="absolute top-0 right-0 size-32 bg-emerald-500/5 blur-3xl" />
         <div className="text-right space-y-2 flex-1">
           <h4 className="text-xl font-bold text-emerald-400 flex items-center gap-2 justify-end">
@@ -101,7 +101,7 @@ export function DownloadCenter() {
         <div className="flex items-center gap-4 px-6 py-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 shadow-inner">
           <Badge className="bg-emerald-500/20 text-emerald-400 border-none text-[10px] font-black uppercase tracking-widest">Universal Node Ready</Badge>
         </div>
-      </footer>
+      </footer>*/}
     </div>
   );
 }

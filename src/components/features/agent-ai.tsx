@@ -38,13 +38,13 @@ export function AgentAI() {
         <AgentChat />
       </main>
 
-      <footer className="mt-6 flex items-center justify-between opacity-40">
+      {/*<footer className="mt-6 flex items-center justify-between opacity-40">
         <div className="flex items-center gap-4 text-[9px] uppercase font-black tracking-widest">
           <span className="flex items-center gap-1"><ShieldCheck className="size-3" /> Secure AI Sandbox</span>
           <span className="flex items-center gap-1"><Box className="size-3" /> Isolated Execution</span>
         </div>
         <p className="text-[9px] font-bold text-muted-foreground">© Nexus Agent Protocol v1.0</p>
-      </footer>
+      </footer>*/}
     </div>
   );
 }

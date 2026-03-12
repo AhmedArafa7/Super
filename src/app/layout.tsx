@@ -43,7 +43,7 @@ export default function RootLayout({
           <AuthProvider>
             <div className="flex-1 flex flex-col">
               {children}
-              <Footer />
+              {/*<Footer />*/}
             </div>
             <OnboardingModal />
             <PrivacyConsentModal />
