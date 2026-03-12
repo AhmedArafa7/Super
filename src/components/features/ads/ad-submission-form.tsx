@@ -228,7 +228,7 @@ export function AdSubmissionForm({ user, onSuccess }: AdSubmissionFormProps) {
           )}
 
           <div className="grid gap-2">
-            <Label>أو رفع صورة من جهازك</Label>
+            <Label>أو رفع صورة من جهازك <span className="text-[10px] text-primary block mt-1">"إذا لم ترفع صورة، سيتم استخدام صورة الفيديو تلقائياً"</span></Label>
             <div className="flex items-center gap-4 flex-row-reverse">
               <Input type="file" accept="image/*" onChange={handleFileUpload} disabled={isUploading} className="bg-white/5 border-white/10 text-right h-11" />
               {isUploading && <Loader2 className="animate-spin text-primary size-5" />}

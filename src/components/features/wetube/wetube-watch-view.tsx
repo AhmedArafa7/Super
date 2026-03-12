@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { fetchVideoDetails, fetchVideoComments, VideoDetails, YouTubeComment } from "@/lib/youtube-discovery-store";
 import {
     ThumbsUp, ThumbsDown, Share2, Download, Scissors,
     MoreHorizontal, CheckCircle2, UserCircle, Bell, ChevronDown, Check, Settings, AlertTriangle
@@ -41,6 +42,30 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
     const [isSubscribed, setIsSubscribed] = useState(false);
     const [isLiked, setIsLiked] = useState(false);
     const [isDisliked, setIsDisliked] = useState(false);
+    const [details, setDetails] = useState<VideoDetails | null>(null);
+    const [comments, setComments] = useState<YouTubeComment[]>([]);
+    const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+
+    useEffect(() => {
+        if (video.source === 'youtube') {
+            const loadData = async () => {
+                setIsLoadingDetails(true);
+                try {
+                    const [d, c] = await Promise.all([
+                        fetchVideoDetails(video.id),
+                        fetchVideoComments(video.id)
+                    ]);
+                    setDetails(d);
+                    setComments(c);
+                } catch (e) {
+                    console.error("Load Watch Data Error", e);
+                } finally {
+                    setIsLoadingDetails(false);
+                }
+            };
+            loadData();
+        }
+    }, [video.id, video.source]);
 
     // Default to the cached quality if it exists
     const cachedAsset = cachedAssets.find(a => a.id === `video-${video.id}`);
@@ -51,9 +76,10 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
     const [showDataWarningDialog, setShowDataWarningDialog] = useState(false);
     const [showScreenWarningDialog, setShowScreenWarningDialog] = useState(false);
 
-    const viewCount = typeof video.views === 'number' ? video.views.toLocaleString() : video.views || "12,345";
-    const likeCount = "45 ألف"; // Mock data
-    const dateStr = video.time || "منذ يومين";
+    const rawViews = details?.views || video.views;
+    const viewCount = typeof rawViews === 'number' ? rawViews.toLocaleString() : rawViews || "12,345";
+    const likeCount = details ? "مخفي" : "45 ألف"; // YouTube hides precise likes in some views
+    const dateStr = video.time || "حديثاً";
 
     const isPlayingLocally = isCached && selectedQuality === downloadedQuality;
 
@@ -277,7 +303,7 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
                         {video.category && <span className="text-muted-foreground font-medium ml-1">#{video.category}</span>}
                     </div>
                     <div className={cn("text-foreground whitespace-pre-wrap mt-2", !isDescriptionExpanded && "line-clamp-2")}>
-                        {video.description || `هذا هو الوصف التلقائي للفيديو المسمى "${video.title}". في هذه المساحة يمكن للناشر توفير روابط إضافية ومقاطع زمنية وتفاصيل حول المحتوى لكي يستفيد منها المشاهد.\n\nتابعنا على وسائل التواصل الاجتماعي لمزيد من الفيديوهات الحصرية والدروس المتقدمة.`}
+                        {details?.description || video.description || `جاري تحميل تفاصيل الفيديو...`}
                     </div>
                     <button className="mt-2 text-foreground font-bold">
                         {isDescriptionExpanded ? "عرض أقل" : "عرض المزيد"}
@@ -287,7 +313,7 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
                 {/* === 5. COMMENTS SECTION (UI ONLY) === */}
                 <div className="mb-10">
                     <div className="flex items-center gap-6 mb-6">
-                        <h2 className="text-xl font-bold">2,410 التعليقات</h2>
+                        <h2 className="text-xl font-bold">{comments.length > 0 ? comments.length : "2,410"} التعليقات</h2>
                         <button className="flex items-center gap-2 text-sm font-medium hover:bg-white/10 px-3 py-1.5 rounded-full transition-colors">
                             <span className="tracking-wide">≡ الترتيب حسب</span>
                         </button>
@@ -307,23 +333,23 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
                         </div>
                     </div>
 
-                    {/* Dummy Comments */}
-                    {[1, 2, 3, 4].map((i) => (
+                    {/* YouTube Comments */}
+                    {(comments.length > 0 ? comments : [1, 2, 3, 4]).map((c: any, i) => (
                         <div key={i} className="flex gap-4 mb-6 items-start">
                             <div className="size-10 rounded-full bg-[#272727] shrink-0 mt-1 overflow-hidden">
-                                <img src={`https://picsum.photos/seed/commenter${i}/40/40`} className="size-full object-cover" alt="" />
+                                <img src={c.authorThumb || `https://picsum.photos/seed/commenter${i}/40/40`} className="size-full object-cover" alt="" />
                             </div>
                             <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-medium text-sm text-foreground">@user-{i}x9</span>
-                                    <span className="text-xs text-muted-foreground">منذ {i} أيام</span>
+                                    <span className="font-medium text-sm text-foreground">{c.author || `@user-${i}x9`}</span>
+                                    <span className="text-xs text-muted-foreground">{c.time || `منذ ${i} أيام`}</span>
                                 </div>
                                 <p className="text-sm text-foreground mb-2 leading-relaxed">
-                                    هذا تعليق محاكاة يوضح كيف يبدو قسم التعليقات في تصميم يوتيوب. تم مراعاة الخطوط، المسافات، وأزرار التفاعل بالأسفل!
+                                    {c.text || "هذا تعليق محاكاة يوضح كيف يبدو قسم التعليقات في تصميم يوتيوب. تم مراعاة الخطوط، المسافات، وأزرار التفاعل بالأسفل!"}
                                 </p>
                                 <div className="flex items-center gap-4 text-muted-foreground">
                                     <button className="hover:text-white flex items-center justify-center p-1.5 rounded-full hover:bg-white/10"><ThumbsUp className="size-4" /></button>
-                                    <span className="text-xs -mr-2">{(i * 11).toLocaleString()}</span>
+                                    <span className="text-xs -mr-2">{((i+1) * 11).toLocaleString()}</span>
                                     <button className="hover:text-white flex items-center justify-center p-1.5 rounded-full hover:bg-white/10"><ThumbsDown className="size-4" /></button>
                                     <button className="text-xs font-medium hover:bg-white/10 px-3 py-1.5 rounded-full">رد</button>
                                 </div>

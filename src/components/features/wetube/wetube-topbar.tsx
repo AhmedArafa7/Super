@@ -18,13 +18,14 @@ interface WeTubeTopbarProps {
   onOpenVault?: () => void;
   user: any;
   onUpload: (source: any, data: any) => Promise<string | null>;
+  onSearch?: (q: string) => void;
 }
 
 export function WeTubeTopbar({
   isSidebarOpen, setIsSidebarOpen,
   searchQuery, setSearchQuery,
   isMobileSearchOpen, setIsMobileSearchOpen,
-  onOpenVault, user, onUpload
+  onOpenVault, user, onUpload, onSearch
 }: WeTubeTopbarProps) {
   return (
     <header className="sticky top-0 inset-x-0 h-16 w-full glass rounded-[2rem] border border-white/10 z-40 flex items-center justify-between px-6 rtl flex-row-reverse mx-auto my-2 shrink-0">
@@ -53,10 +54,14 @@ export function WeTubeTopbar({
               className="flex-1 bg-transparent border-none outline-none text-white px-4 py-2 h-10 w-full text-right placeholder:text-[#AAAAAA]"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && onSearch?.(searchQuery)}
               dir="auto"
             />
           </div>
-          <button className="bg-[#222222] border border-[#303030] border-r-0 rounded-l-full px-5 h-10 flex items-center justify-center hover:bg-[#303030] transition-colors">
+          <button 
+            onClick={() => onSearch?.(searchQuery)}
+            className="bg-[#222222] border border-[#303030] border-r-0 rounded-l-full px-5 h-10 flex items-center justify-center hover:bg-[#303030] transition-colors"
+          >
             <Search className="size-5 text-white" />
           </button>
           <button className="bg-[#181818] hover:bg-[#303030] rounded-full p-2.5 ml-4 transition-colors">
@@ -96,10 +101,13 @@ export function WeTubeTopbar({
               placeholder="بحث في WeTube..."
               className="flex-1 bg-transparent border-none outline-none text-white px-4 h-full text-right"
               autoFocus
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && onSearch?.(searchQuery)}
             />
           </div>
-          <button className="bg-[#222222] rounded-full p-2">
-            <Mic className="size-5 text-white" />
+          <button className="bg-[#222222] rounded-full p-2" onClick={() => onSearch?.(searchQuery)}>
+            <Search className="size-5 text-white" />
           </button>
         </div>
       )}

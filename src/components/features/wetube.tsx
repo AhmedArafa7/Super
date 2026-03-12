@@ -6,6 +6,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { getStoredVideos, Video, deleteVideo } from "@/lib/video-store";
 import { listenToSubscriptions, YouTubeSubscription } from "@/lib/subscription-store";
 import { fetchAllSubscriptionsFeed, FeedVideo } from "@/lib/youtube-feed-store";
+import { searchYouTube, fetchTrending } from "@/lib/youtube-discovery-store";
 import { useStreamStore } from "@/lib/stream-store";
 import { useGlobalStorage } from "@/lib/global-storage-store";
 import { useUploadStore } from "@/lib/upload-store";
@@ -22,7 +23,7 @@ import { WeTubeTopbar } from "./wetube/wetube-topbar";
 import { WeTubeSidebar } from "./wetube/wetube-sidebar";
 
 const CATEGORIES = [
-  "الكل", "موسيقى", "ألعاب", "مباشر", "رياضة", "أخبار",
+  "الكل", "تريند", "موسيقى", "ألعاب", "مباشر", "رياضة", "أخبار",
   "بودكاست", "برمجة", "طبخ", "تكنولوجيا", "كوميديا", "اقتصاد"
 ];
 
@@ -39,6 +40,9 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const [videos, setVideos] = useState<Video[]>([]);
   const [subscriptions, setSubscriptions] = useState<YouTubeSubscription[]>([]);
   const [feedVideos, setFeedVideos] = useState<FeedVideo[]>([]);
+  const [trendingVideos, setTrendingVideos] = useState<FeedVideo[]>([]);
+  const [searchResults, setSearchResults] = useState<FeedVideo[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'home' | 'shorts' | 'subs' | 'library'>('home');
   const [activeCategory, setActiveCategory] = useState("الكل");
@@ -74,11 +78,12 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   }, [cachedAssets, addAsset]);
 
   useEffect(() => {
-    const loadVideos = async () => {
+    const loadInitialData = async () => {
       const data = await getStoredVideos();
       setVideos(data || []);
+      loadTrending();
     };
-    loadVideos();
+    loadInitialData();
 
     if (user?.id) {
       const unsubscribeSubs = listenToSubscriptions(user.id, (subs) => {
@@ -103,6 +108,31 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       console.error("Feed Sync Failure", e);
     } finally {
       setIsFeedLoading(false);
+    }
+  };
+
+  const loadTrending = async () => {
+    try {
+      const trending = await fetchTrending();
+      setTrendingVideos(trending);
+    } catch (e) {}
+  };
+
+  const handleSearch = async (q: string) => {
+    if (!q.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    setIsSearching(true);
+    setSearchQuery(q);
+    try {
+      const results = await searchYouTube(q);
+      setSearchResults(results);
+      setActiveTab('home');
+    } catch (e) {
+      toast({ variant: "destructive", title: "فشل البحث" });
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -146,6 +176,8 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
 
   // Merge Platform Videos & Feed Videos for "Home"
   const allHomeContent = useMemo(() => {
+    if (searchResults.length > 0 && searchQuery) return searchResults;
+
     const isFakeThumb = (url?: string) => !url || url.includes('photo-1611162617474-5b21e879e113') || url.includes('picsum.photos');
 
     const platformVids = videos.filter(v => v.status === 'published').map(v => ({
@@ -155,9 +187,19 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }));
 
     const feedVids = feedVideos.map(v => ({ ...v, externalUrl: v.url, time: "حديثاً", source: 'youtube' }));
-    const combined = [...platformVids, ...feedVids].sort(() => Math.random() - 0.5); // Random shuffle for mix
+    const trendingVids = trendingVideos.map(v => ({ ...v, externalUrl: v.url, time: "رائج", source: 'youtube' }));
 
-    // Bubble videos with no actual thumbnail to the bottom
+    let combined = [...platformVids, ...feedVids, ...trendingVids];
+    
+    // Category Filter
+    if (activeCategory === "تريند") return trendingVids;
+    if (activeCategory !== "الكل") {
+      combined = combined.filter(v => v.title.toLowerCase().includes(activeCategory.toLowerCase()) || (v as any).category === activeCategory);
+    }
+
+    // Shuffle and prioritize
+    combined = combined.sort(() => Math.random() - 0.5); 
+
     combined.sort((a, b) => {
       const aHasThumb = a.source === 'youtube' || (a.thumbnail && !isFakeThumb(a.thumbnail));
       const bHasThumb = b.source === 'youtube' || (b.thumbnail && !isFakeThumb(b.thumbnail));
@@ -167,7 +209,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     });
 
     return combined;
-  }, [videos, feedVideos]);
+  }, [videos, feedVideos, trendingVideos, searchResults, searchQuery, activeCategory]);
 
   // If a video is playing, replace the entire layout with Watch View
   if (activeVideo) {
@@ -220,6 +262,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
         isMobileSearchOpen={isMobileSearchOpen} setIsMobileSearchOpen={setIsMobileSearchOpen}
         onOpenVault={onOpenVault} user={user} onUpload={handleUpload}
+        onSearch={handleSearch}
       />
 
       <div className="flex flex-1 overflow-hidden mt-4 gap-4 h-[calc(100vh-140px)]">

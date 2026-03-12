@@ -12,6 +12,16 @@ import { adjustFunds } from "@/lib/wallet-store";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
+const getYouTubeThumbnail = (url?: string) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  if (match && match[2].length === 11) {
+    return `https://img.youtube.com/vi/${match[2]}/hqdefault.jpg`;
+  }
+  return null;
+};
+
 interface AdCardProps {
   ad: Ad;
   userId?: string;
@@ -22,16 +32,13 @@ export function AdCard({ ad, userId, onRewardClaimed }: AdCardProps) {
   const [currentImage, setCurrentImage] = useState<string>("");
 
   useEffect(() => {
-    let selectedImage = "";
-    if (ad.imageUrls && ad.imageUrls.length > 0) {
-      // Pick a random image from the array to cycle
-      selectedImage = ad.imageUrls[Math.floor(Math.random() * ad.imageUrls.length)];
-    } else if ((ad as any).imageUrl) {
-      // Fallback for older ads
-      selectedImage = (ad as any).imageUrl;
-    }
-    setCurrentImage(selectedImage);
-  }, [ad.imageUrls, (ad as any).imageUrl, ad.id]);
+    const priorityImage = 
+      (ad.imageUrls && ad.imageUrls.length > 0 ? ad.imageUrls[Math.floor(Math.random() * ad.imageUrls.length)] : null) ||
+      (ad as any).imageUrl || 
+      getYouTubeThumbnail(ad.linkUrl) || 
+      "";
+    setCurrentImage(priorityImage);
+  }, [ad.imageUrls, (ad as any).imageUrl, ad.linkUrl, ad.id]);
   const handleAction = async () => {
     await recordAdClick(ad.id);
     if (ad.rewardAmount > 0 && userId) {
