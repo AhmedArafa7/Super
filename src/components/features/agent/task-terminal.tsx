@@ -54,13 +54,13 @@ export function TaskTerminal() {
         </div>
       </ScrollArea>
 
-      <footer className="p-4 border-t border-white/5 bg-black/20 flex items-center justify-between flex-row-reverse">
+      {/*<footer className="p-4 border-t border-white/5 bg-black/20 flex items-center justify-between flex-row-reverse">
         <span className="text-[8px] font-black text-muted-foreground uppercase">Protocol v1.0</span>
         <div className="flex items-center gap-1">
           <div className="size-1 rounded-full bg-green-500" />
           <span className="text-[8px] font-bold text-green-500">ACTIVE</span>
         </div>
-      </footer>
+      </footer>*/}
     </div>
   );
 }
