@@ -28,25 +28,34 @@ const YOUTUBE_TRENDING_URL = "https://www.youtube.com/feed/trending";
 const YOUTUBE_WATCH_URL = "https://www.youtube.com/watch?v=";
 
 /**
- * دالة لاستخراج ytInitialData من نص الاستجابة
+ * دالة لاستخراج JSON من نص HTML بناءً على اسم المتغير
  */
-function extractInitialData(html: string): any {
+function extractJSONFromHTML(html: string, variableName: string): any {
   try {
-    const startPattern = 'var ytInitialData = ';
-    const endPattern = ';</script>';
-    const startIndex = html.indexOf(startPattern);
+    const pattern = `var ${variableName} = `;
+    const startIndex = html.indexOf(pattern);
     if (startIndex === -1) return null;
+
+    const jsonStart = startIndex + pattern.length;
     
-    const jsonStart = startIndex + startPattern.length;
-    const endIndex = html.indexOf(endPattern, jsonStart);
+    // البحث عن نهاية كائن JSON - يوتيوب أحياناً ينتهي بـ ; وأحياناً بـ ;</script>
+    let endIndex = html.indexOf(';</script>', jsonStart);
+    if (endIndex === -1) {
+        endIndex = html.indexOf(';', jsonStart);
+    }
+    
     if (endIndex === -1) return null;
-    
+
     const jsonString = html.substring(jsonStart, endIndex);
     return JSON.parse(jsonString);
   } catch (e) {
-    console.error("Failed to parse ytInitialData", e);
+    console.error(`Error parsing ${variableName}`, e);
     return null;
   }
+}
+
+function extractInitialData(html: string): any {
+  return extractJSONFromHTML(html, 'ytInitialData');
 }
 
 /**
@@ -172,7 +181,7 @@ export const fetchVideoDetails = async (videoId: string): Promise<VideoDetails |
 
     if (!data) return null;
 
-    const playerResponse = JSON.parse(html.split('var ytInitialPlayerResponse = ')[1].split(';</script>')[0]);
+    const playerResponse = extractJSONFromHTML(html, 'ytInitialPlayerResponse');
     const videoDetails = playerResponse?.videoDetails;
     const primaryInfo = data.contents?.twoColumnWatchNextResults?.results?.results?.contents?.find((c: any) => c.videoPrimaryInfoRenderer)?.videoPrimaryInfoRenderer;
     const dateText = primaryInfo?.dateText?.simpleText || "";
@@ -215,7 +224,39 @@ export const fetchVideoDetails = async (videoId: string): Promise<VideoDetails |
  * جلب تعليقات فيديو (تبسيط)
  */
 export const fetchVideoComments = async (videoId: string): Promise<YouTubeComment[]> => {
-  // للبيئة الحقيقية، نحتاج لاستخدام YouTube Data API أو نظام تعليقات داخلي.
-  // حالياً سنرجع مصفوفة فارغة بدلاً من البيانات الوهمية لضمان مصداقية البيانات في البرودكشن.
-  return [];
+  const url = YOUTUBE_WATCH_URL + videoId;
+  const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+
+  try {
+    const response = await fetch(proxyUrl);
+    const html = await response.text();
+    const data = extractInitialData(html);
+
+    if (!data) return [];
+
+    const comments: YouTubeComment[] = [];
+    
+    // محاول الوصول لمسار التعليقات في شجرة JSON يوتيوب
+    // ملاحظة: التعليقات غالباً لا تكون متوفرة في الطلب الأول وتحتاج لطلب continuation
+    // ولكننا سنحاول البحث عن أي تعليقات موجودة بالفعل
+    const findComments = (obj: any): any => {
+      if (!obj || typeof obj !== 'object') return null;
+      if (obj.commentRenderer) return obj.commentRenderer;
+      
+      for (const key in obj) {
+        const result = findComments(obj[key]);
+        if (result) return result;
+      }
+      return null;
+    };
+
+    // هذا مجرد بحث سطحي، يوتيوب الحديث نادراً ما يرسل التعليقات في التحميل الأول
+    // سنقوم الآن بإرجاع مصفوفة فارغة بشكل نظيف لتجنب الـ SyntaxError 
+    // وجعل الواجهة تعرض "لا توجد تعليقات حالياً" بدلاً من التوقف
+    
+    return comments;
+  } catch (err) {
+    console.error("Comments Fetch Error", err);
+    return [];
+  }
 };
