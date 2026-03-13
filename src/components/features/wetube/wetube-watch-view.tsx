@@ -68,7 +68,7 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached }: an
     const rawViews = details?.views || video.views;
     const viewCount = typeof rawViews === 'number' ? rawViews.toLocaleString() : (rawViews || "");
     const likeCount = details?.likes !== undefined ? details.likes.toLocaleString() : (details ? "مخفي" : "");
-    const dateStr = details?.date || video.time || "حديثاً";
+    const dateStr = details?.date || video.published || video.time || "حديثاً";
 
     const handleQualityChange = (newQuality: string) => {
         if (newQuality === selectedQuality) return;

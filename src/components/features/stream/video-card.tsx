@@ -58,7 +58,7 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
   // For views, if it's not a number, leave it alone. Otherwise format it.
   const views = typeof video.views === 'number' ? (video.views > 1000 ? `${(video.views / 1000).toFixed(1)} ألف` : video.views.toLocaleString()) : (video.views || "");
 
-  const displayTime = getRelativeTime(video.createdAt || video.time, video.time || "حديثاً");
+  const displayTime = getRelativeTime(video.createdAt || video.published || video.time, video.published || video.time || "حديثاً");
 
   // Shorts layout
   if (video.isShorts || video.type === 'short') {

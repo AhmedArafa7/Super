@@ -60,8 +60,8 @@ function parseVideoRenderer(renderer: any): FeedVideo | null {
     const title = renderer.title.runs[0].text;
     const author = renderer.ownerText?.runs[0].text || renderer.shortBylineText?.runs[0].text || "YouTube Channel";
     const authorId = renderer.ownerText?.runs[0].navigationEndpoint?.browseEndpoint?.browseId || "";
-    const published = renderer.publishedTimeText?.simpleText || "";
-    const views = renderer.viewCountText?.simpleText || "";
+    const published = renderer.publishedTimeText?.simpleText || renderer.videoInfo?.runs?.[0]?.text || "";
+    const views = renderer.viewCountText?.simpleText || renderer.shortViewCountText?.simpleText || "";
 
     return {
       id: videoId,
@@ -174,6 +174,8 @@ export const fetchVideoDetails = async (videoId: string): Promise<VideoDetails |
 
     const playerResponse = JSON.parse(html.split('var ytInitialPlayerResponse = ')[1].split(';</script>')[0]);
     const videoDetails = playerResponse?.videoDetails;
+    const primaryInfo = data.contents?.twoColumnWatchNextResults?.results?.results?.contents?.find((c: any) => c.videoPrimaryInfoRenderer)?.videoPrimaryInfoRenderer;
+    const dateText = primaryInfo?.dateText?.simpleText || "";
 
     // استخراج الفيديوهات ذات الصلة
     const secondaryContents = data.contents?.twoColumnWatchNextResults?.secondaryResults?.secondaryResults?.results;
@@ -200,6 +202,7 @@ export const fetchVideoDetails = async (videoId: string): Promise<VideoDetails |
       description: videoDetails?.shortDescription || "",
       views: videoDetails?.viewCount || "0",
       duration: videoDetails?.lengthSeconds || "0",
+      date: dateText,
       relatedVideos: related
     };
   } catch (err) {
