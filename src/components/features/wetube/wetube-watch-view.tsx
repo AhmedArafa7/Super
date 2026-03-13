@@ -206,7 +206,7 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached }: an
 
 export function WeTubeWatchView(props: any) {
     return (
-        <WatchProvider initialVideo={props.video}>
+        <WatchProvider key={props.video?.id} initialVideo={props.video}>
             <WatchViewContent {...props} />
         </WatchProvider>
     );
