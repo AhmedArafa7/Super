@@ -28,7 +28,7 @@ const YOUTUBE_TRENDING_URL = "https://www.youtube.com/feed/trending";
 const YOUTUBE_WATCH_URL = "https://www.youtube.com/watch?v=";
 
 /**
- * دالة لاستخراج JSON من نص HTML بناءً على اسم المتغير
+ * دالة لاستخراج JSON من نص HTML بناءً على اسم المتغير بأسلوب مطابقة الأقواس المتداخلة
  */
 function extractJSONFromHTML(html: string, variableName: string): any {
   try {
@@ -36,18 +36,43 @@ function extractJSONFromHTML(html: string, variableName: string): any {
     const startIndex = html.indexOf(pattern);
     if (startIndex === -1) return null;
 
-    const jsonStart = startIndex + pattern.length;
-    
-    // البحث عن نهاية كائن JSON - يوتيوب أحياناً ينتهي بـ ; وأحياناً بـ ;</script>
-    let endIndex = html.indexOf(';</script>', jsonStart);
-    if (endIndex === -1) {
-        endIndex = html.indexOf(';', jsonStart);
-    }
-    
-    if (endIndex === -1) return null;
+    const jsonStart = html.indexOf('{', startIndex + pattern.length);
+    if (jsonStart === -1) return null;
 
-    const jsonString = html.substring(jsonStart, endIndex);
-    return JSON.parse(jsonString);
+    let braceCount = 0;
+    let inString = false;
+    let escape = false;
+    
+    for (let i = jsonStart; i < html.length; i++) {
+        const char = html[i];
+        
+        if (escape) {
+            escape = false;
+            continue;
+        }
+
+        if (char === '\\') {
+            escape = true;
+            continue;
+        }
+
+        if (char === '"') {
+            inString = !inString;
+            continue;
+        }
+
+        if (!inString) {
+            if (char === '{') braceCount++;
+            else if (char === '}') {
+                braceCount--;
+                if (braceCount === 0) {
+                    const jsonString = html.substring(jsonStart, i + 1);
+                    return JSON.parse(jsonString);
+                }
+            }
+        }
+    }
+    return null;
   } catch (e) {
     console.error(`Error parsing ${variableName}`, e);
     return null;
