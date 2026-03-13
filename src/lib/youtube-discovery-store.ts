@@ -67,7 +67,7 @@ function parseVideoRenderer(renderer: any): FeedVideo | null {
       id: videoId,
       title,
       url: `https://www.youtube.com/watch?v=${videoId}`,
-      thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+      thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
       author,
       authorId,
       published: published || views,

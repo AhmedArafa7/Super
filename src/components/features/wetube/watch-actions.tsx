@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { 
     ThumbsUp, ThumbsDown, Share2, Download, Scissors, 
     Bell, ChevronDown, Settings, CheckCircle2, MoreHorizontal, Flag, Trash2,
@@ -22,16 +22,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useWatch } from "./watch-context";
 
 interface WatchActionsProps {
-    video: any;
-    user: any;
-    isLiked: boolean;
-    setIsLiked: (v: boolean) => void;
-    isDisliked: boolean;
-    setIsDisliked: (v: boolean) => void;
+    currentUser: any;
     likeCount: string;
-    selectedQuality: string;
     handleQualityChange: (q: string) => void;
     downloadedQuality?: string;
     isCached: boolean;
@@ -39,20 +34,20 @@ interface WatchActionsProps {
 }
 
 export function WatchActions({
-    video,
-    user,
-    isLiked,
-    setIsLiked,
-    isDisliked,
-    setIsDisliked,
+    currentUser,
     likeCount,
-    selectedQuality,
     handleQualityChange,
     downloadedQuality,
     isCached,
     onSync
 }: WatchActionsProps) {
-    const [isSubscribed, setIsSubscribed] = useState(false);
+    const { 
+        video, 
+        selectedQuality, 
+        isLiked, setIsLiked, 
+        isDisliked, setIsDisliked,
+        isSubscribed, setIsSubscribed 
+    } = useWatch();
 
     return (
         <>
@@ -194,7 +189,7 @@ export function WatchActions({
                                 <span className="text-sm">إبلاغ</span>
                             </DropdownMenuItem>
 
-                            {user?.role === 'admin' && (
+                            {currentUser?.role === 'admin' && (
                                 <>
                                     <DropdownMenuSeparator className="bg-white/5 mx-1 my-1" />
                                     <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 focus:bg-red-500/20 text-red-400 rounded-lg cursor-pointer transition-colors">

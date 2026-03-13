@@ -2,24 +2,24 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
+import { useWatch } from "./watch-context";
 
 interface WatchDescriptionProps {
-    video: any;
-    details: any;
     viewCount: string;
     dateStr: string;
-    isDescriptionExpanded: boolean;
-    setIsDescriptionExpanded: (v: boolean) => void;
 }
 
 export function WatchDescription({
-    video,
-    details,
     viewCount,
-    dateStr,
-    isDescriptionExpanded,
-    setIsDescriptionExpanded
+    dateStr
 }: WatchDescriptionProps) {
+    const { 
+        video, 
+        details, 
+        isDescriptionExpanded, 
+        setIsDescriptionExpanded 
+    } = useWatch();
+
     return (
         <div
             className={cn(

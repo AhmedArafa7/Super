@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { YoutubeThumbnail } from "@/components/features/wetube/YoutubeThumbnail";
 
 const getYoutubeId = (url?: string) => {
   if (!url) return null;
@@ -49,9 +50,8 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
   const isFakeThumb = (url?: string) => !url || url.includes('photo-1611162617474-5b21e879e113') || url.includes('picsum.photos');
   const validThumb = video.thumbnail && !isFakeThumb(video.thumbnail) ? video.thumbnail : null;
 
-  const thumbSrc = video.source === 'youtube' && ytId
-    ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`
-    : validThumb;
+  const thumbSrc = validThumb;
+  const showYoutubeThumbnail = video.source === 'youtube' && ytId;
 
   const duration = video.duration; // Real duration only. If null, we don't show the badge.
 
@@ -99,7 +99,13 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
     >
       {/* Thumbnail Container */}
       <div className="relative aspect-video rounded-xl overflow-hidden bg-[#272727] flex items-center justify-center border border-white/5">
-        {thumbSrc ? (
+        {showYoutubeThumbnail ? (
+          <YoutubeThumbnail 
+            videoId={ytId!} 
+            alt={video.title} 
+            className="w-full h-full object-cover"
+          />
+        ) : thumbSrc ? (
           <img src={thumbSrc} alt={video.title} className="w-full h-full object-cover" loading="lazy" />
         ) : (
           <VideoIcon className="size-12 text-white/20" />

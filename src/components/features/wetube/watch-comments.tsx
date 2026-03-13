@@ -2,15 +2,15 @@
 
 import React from "react";
 import { UserCircle, ThumbsUp, ThumbsDown, MoreHorizontal } from "lucide-react";
-import { YouTubeComment } from "@/lib/youtube-discovery-store";
+import { useWatch } from "./watch-context";
 
 interface WatchCommentsProps {
-    comments: YouTubeComment[];
     user: any;
-    isLoading?: boolean;
 }
 
-export function WatchComments({ comments, user, isLoading }: WatchCommentsProps) {
+export function WatchComments({ user }: WatchCommentsProps) {
+    const { comments, isLoading } = useWatch();
+
     return (
         <div className="mb-10 min-h-[400px]">
 

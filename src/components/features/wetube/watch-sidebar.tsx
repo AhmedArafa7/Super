@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
     MoreHorizontal, ListEnd, Clock, ListPlus, Download, Share2, Ban, UserX, Flag 
 } from "lucide-react";
@@ -13,6 +13,7 @@ import {
     DropdownMenuTrigger,
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { YoutubeThumbnail } from "./YoutubeThumbnail";
 
 interface WatchSidebarProps {
     relatedVideos: any[];
@@ -20,6 +21,27 @@ interface WatchSidebarProps {
 
 export function WatchSidebar({ relatedVideos }: WatchSidebarProps) {
     const { setActiveVideo } = useStreamStore();
+    const [visibleCount, setVisibleCount] = useState(10);
+    const observerTarget = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && visibleCount < relatedVideos.length) {
+                    setVisibleCount((prev) => prev + 10);
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (observerTarget.current) {
+            observer.observe(observerTarget.current);
+        }
+
+        return () => observer.disconnect();
+    }, [visibleCount, relatedVideos.length]);
+
+    const displayedVideos = relatedVideos.slice(0, visibleCount);
 
     return (
         <div className="w-full lg:w-[400px] flex-shrink-0 flex flex-col gap-3">
@@ -39,10 +61,16 @@ export function WatchSidebar({ relatedVideos }: WatchSidebarProps) {
             </div>
 
             {/* Vertical List of Related Videos */}
-            {relatedVideos.map((rv: any, idx: number) => (
+            {displayedVideos.map((rv: any, idx: number) => (
                 <div key={idx} className="flex gap-2 hover:bg-[#3f3f3f]/50 p-1 rounded-xl transition-colors cursor-pointer group" onClick={() => setActiveVideo(rv)}>
                     <div className="w-[168px] shrink-0 relative rounded-xl overflow-hidden aspect-video bg-[#272727] flex items-center justify-center">
-                        {rv.thumbnail ? (
+                        {rv.source === 'youtube' ? (
+                            <YoutubeThumbnail 
+                                videoId={rv.id} 
+                                alt={rv.title} 
+                                className="w-full h-full object-cover"
+                            />
+                        ) : rv.thumbnail ? (
                             <img src={rv.thumbnail} className="w-full h-full object-cover" alt="" />
                         ) : (
                             <span className="text-white/10 text-xs text-center px-2">لا توجد صورة</span>
@@ -122,6 +150,13 @@ export function WatchSidebar({ relatedVideos }: WatchSidebarProps) {
                     </div>
                 </div>
             ))}
+
+            {/* Intersection Observer Target */}
+            {visibleCount < relatedVideos.length && (
+                <div ref={observerTarget} className="h-20 flex items-center justify-center">
+                    <div className="size-6 border-2 border-white/10 border-t-white/30 rounded-full animate-spin" />
+                </div>
+            )}
         </div>
     );
 }

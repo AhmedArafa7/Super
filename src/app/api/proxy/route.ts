@@ -69,6 +69,7 @@ async function handleProxyRequest(request: NextRequest) {
     });
 
     const contentType = response.headers.get('content-type') || '';
+    const isXml = contentType.includes('xml') || targetUrl.includes('.xml') || targetUrl.includes('feed');
     
     if (contentType.includes('text/html')) {
       let html = await response.text();
@@ -178,6 +179,11 @@ async function handleProxyRequest(request: NextRequest) {
     });
     proxyRes.headers.set('Access-Control-Allow-Origin', requestOrigin);
     proxyRes.headers.set('Access-Control-Allow-Credentials', 'true');
+    
+    if (isXml) {
+      proxyRes.headers.set('Content-Type', 'application/xml; charset=utf-8');
+      proxyRes.headers.set('Cache-Control', 'public, max-age=300');
+    }
     
     return proxyRes;
 

@@ -16,6 +16,7 @@ import {
 import { useGlobalStorage } from "@/lib/global-storage-store";
 
 // Extracted Components
+import { WatchProvider, useWatch } from "./watch-context";
 import { WatchPlayer } from "./watch-player";
 import { WatchActions } from "./watch-actions";
 import { WatchDescription } from "./watch-description";
@@ -23,23 +24,23 @@ import { WatchComments } from "./watch-comments";
 import { WatchSidebar } from "./watch-sidebar";
 
 /**
- * [STABILITY_ANCHOR: WETUBE_WATCH_VIEW_V2.0]
- * Refactored container for the watch view.
+ * [STABILITY_ANCHOR: WETUBE_WATCH_VIEW_V3.0]
+ * Refactored container for the watch view using Context API.
  */
-export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, isCached }: any) {
+function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached }: any) {
     const { cachedAssets } = useGlobalStorage();
-
-    const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-    const [isLiked, setIsLiked] = useState(false);
-    const [isDisliked, setIsDisliked] = useState(false);
-    const [details, setDetails] = useState<VideoDetails | null>(null);
-    const [comments, setComments] = useState<YouTubeComment[]>([]);
-    const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+    const { 
+        video, 
+        details, setDetails, 
+        setComments, 
+        setIsLoading,
+        selectedQuality, setSelectedQuality
+    } = useWatch();
 
     useEffect(() => {
         if (video.source === 'youtube') {
             const loadData = async () => {
-                setIsLoadingDetails(true);
+                setIsLoading(true);
                 try {
                     const [d, c] = await Promise.all([
                         fetchVideoDetails(video.id),
@@ -50,7 +51,7 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
                 } catch (e) {
                     console.error("Load Watch Data Error", e);
                 } finally {
-                    setIsLoadingDetails(false);
+                    setIsLoading(false);
                 }
             };
             loadData();
@@ -60,7 +61,6 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
     const cachedAsset = cachedAssets.find(a => a.id === `video-${video.id}`);
     const downloadedQuality = cachedAsset?.downloadedQuality;
 
-    const [selectedQuality, setSelectedQuality] = useState<string>(downloadedQuality || "720");
     const [pendingQuality, setPendingQuality] = useState<string | null>(null);
     const [showDataWarningDialog, setShowDataWarningDialog] = useState(false);
     const [showScreenWarningDialog, setShowScreenWarningDialog] = useState(false);
@@ -69,8 +69,6 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
     const viewCount = typeof rawViews === 'number' ? rawViews.toLocaleString() : (rawViews || "");
     const likeCount = details?.likes !== undefined ? details.likes.toLocaleString() : (details ? "مخفي" : "");
     const dateStr = details?.date || video.time || "حديثاً";
-
-    const isPlayingLocally = isCached && selectedQuality === downloadedQuality;
 
     const handleQualityChange = (newQuality: string) => {
         if (newQuality === selectedQuality) return;
@@ -109,26 +107,17 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
 
     return (
         <div className="flex flex-col lg:flex-row w-full max-w-[1500px] mx-auto pt-16 px-4 sm:px-6 lg:px-8 gap-6 rtl pb-20">
-
             {/* Left Column: Player, Actions, Description, Comments */}
             <div className="flex-1 lg:max-w-[calc(100%-400px)] flex flex-col min-w-0">
                 <WatchPlayer 
-                    video={video}
-                    isPlayingLocally={isPlayingLocally}
-                    selectedQuality={selectedQuality}
+                    isCached={isCached}
                     downloadedQuality={downloadedQuality}
                     handleQualityChange={handleQualityChange}
                 />
 
                 <WatchActions 
-                    video={video}
-                    user={user}
-                    isLiked={isLiked}
-                    setIsLiked={setIsLiked}
-                    isDisliked={isDisliked}
-                    setIsDisliked={setIsDisliked}
+                    currentUser={user}
                     likeCount={likeCount}
-                    selectedQuality={selectedQuality}
                     handleQualityChange={handleQualityChange}
                     downloadedQuality={downloadedQuality}
                     isCached={isCached}
@@ -136,19 +125,11 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
                 />
 
                 <WatchDescription 
-                    video={video}
-                    details={details}
                     viewCount={viewCount}
                     dateStr={dateStr}
-                    isDescriptionExpanded={isDescriptionExpanded}
-                    setIsDescriptionExpanded={setIsDescriptionExpanded}
                 />
 
-                <WatchComments 
-                    comments={comments}
-                    user={user}
-                    isLoading={isLoadingDetails}
-                />
+                <WatchComments user={user} />
             </div>
 
             {/* Right Column: Related Videos */}
@@ -211,5 +192,13 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
                 </AlertDialogContent>
             </AlertDialog>
         </div>
+    );
+}
+
+export function WeTubeWatchView(props: any) {
+    return (
+        <WatchProvider initialVideo={props.video}>
+            <WatchViewContent {...props} />
+        </WatchProvider>
     );
 }
