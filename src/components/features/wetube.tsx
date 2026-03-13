@@ -262,7 +262,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
         isMobileSearchOpen={isMobileSearchOpen} setIsMobileSearchOpen={setIsMobileSearchOpen}
         onOpenVault={onOpenVault} user={user} onUpload={handleUpload}
-        onSearch={handleSearch}
+        onSearch={handleSearch} onLogoClick={() => setActiveVideo(null)}
       />
 
       <div className="flex flex-1 overflow-hidden mt-4 gap-4 h-[calc(100vh-140px)]">

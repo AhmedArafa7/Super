@@ -123,6 +123,7 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached }: an
                     downloadedQuality={downloadedQuality}
                     isCached={isCached}
                     onSync={onSync}
+                    onClose={onClose}
                 />
 
                 <WatchDescription 

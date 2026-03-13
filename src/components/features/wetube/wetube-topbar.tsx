@@ -19,13 +19,14 @@ interface WeTubeTopbarProps {
   user: any;
   onUpload: (source: any, data: any) => Promise<string | null>;
   onSearch?: (q: string) => void;
+  onLogoClick?: () => void;
 }
 
 export function WeTubeTopbar({
   isSidebarOpen, setIsSidebarOpen,
   searchQuery, setSearchQuery,
   isMobileSearchOpen, setIsMobileSearchOpen,
-  onOpenVault, user, onUpload, onSearch
+  onOpenVault, user, onUpload, onSearch, onLogoClick
 }: WeTubeTopbarProps) {
   return (
     <header className="sticky top-0 inset-x-0 h-16 w-full glass rounded-[2rem] border border-white/10 z-40 flex items-center justify-between px-6 rtl flex-row-reverse mx-auto my-2 shrink-0">
@@ -34,13 +35,13 @@ export function WeTubeTopbar({
         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/10 rounded-full transition-colors hidden md:block">
           <Menu className="size-6 text-white" />
         </button>
-        <div className="flex items-center gap-1 cursor-pointer select-none">
-          <div className="bg-red-600 rounded-lg p-1.5 flex items-center justify-center">
+        <button onClick={onLogoClick} className="flex items-center gap-1 cursor-pointer select-none group/logo">
+          <div className="bg-red-600 rounded-lg p-1.5 flex items-center justify-center group-hover/logo:bg-red-500 transition-colors">
             <PlaySquare className="size-4 text-white fill-white" />
           </div>
           <span className="font-headline font-bold text-xl tracking-tighter text-white">WeTube</span>
           <span className="text-[10px] text-muted-foreground -mt-3 ml-1">EG</span>
-        </div>
+        </button>
       </div>
 
       {/* Center (Search) */}

@@ -4,7 +4,7 @@ import React from "react";
 import { 
     ThumbsUp, ThumbsDown, Share2, Download, Scissors, 
     Bell, ChevronDown, Settings, CheckCircle2, MoreHorizontal, Flag, Trash2,
-    Ban, UserX, Scissors as ScissorsIcon, UserCircle
+    Ban, UserX, Scissors as ScissorsIcon, UserCircle, ArrowRight
 } from "lucide-react";
 import {
     Select,
@@ -31,6 +31,7 @@ interface WatchActionsProps {
     downloadedQuality?: string;
     isCached: boolean;
     onSync: (video: any) => void;
+    onClose?: () => void;
 }
 
 export function WatchActions({
@@ -39,21 +40,29 @@ export function WatchActions({
     handleQualityChange,
     downloadedQuality,
     isCached,
-    onSync
+    onSync,
+    onClose
 }: WatchActionsProps) {
-    const { 
-        video, 
-        selectedQuality, 
-        isLiked, setIsLiked, 
+    const {
+        video,
+        selectedQuality,
+        isLiked, setIsLiked,
         isDisliked, setIsDisliked,
-        isSubscribed, setIsSubscribed 
+        isSubscribed, setIsSubscribed
     } = useWatch();
 
     return (
-        <>
-            <h1 dir="auto" className="text-xl sm:text-2xl font-bold text-foreground mt-4 mb-2 leading-tight">
-                {video.title}
-            </h1>
+        <div className="flex flex-col gap-4 mb-6">
+            <div className="flex items-center justify-between gap-4">
+                <button
+                  onClick={onClose}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors shrink-0"
+                >
+                    <ArrowRight className="size-4" />
+                    الرجوع للرئيسية
+                </button>
+                <h1 className="text-xl font-bold line-clamp-2 text-right flex-1">{video.title}</h1>
+            </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                 {/* Channel Info & Subscribe */}
@@ -202,6 +211,6 @@ export function WatchActions({
                     </DropdownMenu>
                 </div>
             </div>
-        </>
+        </div>
     );
 }
