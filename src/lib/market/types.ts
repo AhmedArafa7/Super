@@ -26,6 +26,7 @@ export interface MarketItem {
   adminFeedback?: string;
   versionStatus?: AppVersionStatus;
   themeSlug?: string;
+  purchasedBy?: string[];
 }
 
 export interface CategoryRequest {

@@ -124,8 +124,8 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
     try {
       const success = await adjustFunds(user.id, item.price, 'purchase_hold');
       if (success) {
-        // تحديث المخزون في السيرفر
-        const stockSuccess = await decrementStock(item.id);
+        // تحديث المخزون في السيرفر مع تسجيل المشتري
+        const stockSuccess = await decrementStock(item.id, user.id);
 
         if (stockSuccess) {
           toast({
@@ -149,8 +149,14 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
   };
 
   const filteredItems = items.filter(item => {
-    if (activeView === 'mine') return item.sellerId === user?.id;
-    return item.sellerId !== user?.id && item.status === 'active';
+    const isOwner = item.sellerId === user?.id;
+    const isBuyer = item.purchasedBy?.includes(user?.id || "");
+    
+    if (activeView === 'mine') {
+      return isOwner || isBuyer;
+    }
+    
+    return !isOwner && !isBuyer && item.status === 'active';
   });
 
   if (viewingItem) {

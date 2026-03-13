@@ -4,7 +4,7 @@
 import { initializeFirebase } from '@/firebase';
 import { 
   collection, doc, getDocs, updateDoc, query, 
-  addDoc, where, limit, increment, getDoc, orderBy, DocumentSnapshot 
+  addDoc, where, limit, increment, getDoc, orderBy, DocumentSnapshot, arrayUnion 
 } from 'firebase/firestore';
 import { MarketItem, MainCategory, MarketItemStatus } from './types';
 
@@ -61,7 +61,7 @@ export const updateMarketItem = async (itemId: string, updates: Partial<MarketIt
   return true;
 };
 
-export const decrementStock = async (itemId: string) => {
+export const decrementStock = async (itemId: string, buyerId?: string) => {
   const { firestore } = initializeFirebase();
   const itemRef = doc(firestore, 'products', itemId);
   const snap = await getDoc(itemRef);
@@ -70,7 +70,8 @@ export const decrementStock = async (itemId: string) => {
     if (currentStock > 0) {
       await updateDoc(itemRef, { 
         stockQuantity: increment(-1),
-        status: currentStock <= 1 ? 'sold' : 'active'
+        status: currentStock <= 1 ? 'sold' : 'active',
+        ...(buyerId ? { purchasedBy: arrayUnion(buyerId) } : {})
       });
       return true;
     }

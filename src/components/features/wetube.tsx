@@ -220,16 +220,21 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           searchQuery={searchQuery} setSearchQuery={setSearchQuery}
           isMobileSearchOpen={isMobileSearchOpen} setIsMobileSearchOpen={setIsMobileSearchOpen}
           onOpenVault={onOpenVault} user={user} onUpload={handleUpload}
+          onLogoClick={() => setActiveVideo(null)}
         />
-        <div className="flex-1 overflow-y-auto w-full glass rounded-3xl mt-4 border border-white/5 relative">
-          <WeTubeWatchView
-            video={activeVideo as any}
-            user={user}
-            onClose={() => setActiveVideo(null)}
-            relatedVideos={allHomeContent.filter(v => v.id !== activeVideo.id).slice(0, 15)}
-            onSync={handleToggleLocal}
-            isCached={cachedAssets.some(a => a.id === `video-${activeVideo.id}`)}
-          />
+        <div className="flex flex-1 overflow-hidden mt-4 gap-4">
+          <WeTubeSidebar isSidebarOpen={isSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} subscriptions={subscriptions} />
+          
+          <div className="flex-1 overflow-y-auto w-full glass rounded-3xl border border-white/5 relative">
+            <WeTubeWatchView
+              video={activeVideo as any}
+              user={user}
+              onClose={() => setActiveVideo(null)}
+              relatedVideos={allHomeContent.filter(v => v.id !== activeVideo.id).slice(0, 15)}
+              onSync={handleToggleLocal}
+              isCached={cachedAssets.some(a => a.id === `video-${activeVideo.id}`)}
+            />
+          </div>
         </div>
       </div>
     );
