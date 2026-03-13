@@ -163,12 +163,21 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         allowedUserIds: [],
         uploaderRole: user.role as any,
         source: source,
-        externalUrl: uploadData.externalUrl
+        externalUrl: uploadData.externalUrl,
+        productIds: uploadData.productIds,
+        productDisplayMode: uploadData.productDisplayMode
       }));
       toast({ title: "تم إرسال الرابط للشبكة بنجاح", description: user.role === 'admin' ? "تم النشر." : "في انتظار المراجعة." });
       return null;
     } else {
-      const taskId = addTask(uploadData.file, 'video', { title: uploadData.title, author: user.name, authorId: user.id, status: user.role === 'admin' ? 'published' : 'pending_review' });
+      const taskId = addTask(uploadData.file, 'video', { 
+        title: uploadData.title, 
+        author: user.name, 
+        authorId: user.id, 
+        status: user.role === 'admin' ? 'published' : 'pending_review',
+        productIds: uploadData.productIds,
+        productDisplayMode: uploadData.productDisplayMode
+      });
       toast({ title: "بدأ الرفع المباشر..." });
       return taskId;
     }

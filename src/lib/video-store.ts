@@ -25,6 +25,8 @@ export interface Video {
   createdAt: string;
   source: VideoSource;
   externalUrl?: string;
+  productIds?: string[];
+  productDisplayMode?: 'none' | 'specific' | 'all';
 }
 
 export const getStoredVideos = async (): Promise<Video[]> => {

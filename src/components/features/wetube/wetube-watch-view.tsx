@@ -23,6 +23,7 @@ import { WatchActions } from "./watch-actions";
 import { WatchDescription } from "./watch-description";
 import { WatchComments } from "./watch-comments";
 import { WatchSidebar } from "./watch-sidebar";
+import { WatchProductShelf } from "./watch-product-shelf";
 
 /**
  * [STABILITY_ANCHOR: WETUBE_WATCH_VIEW_V3.0]
@@ -129,6 +130,12 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached }: an
                 <WatchDescription 
                     viewCount={viewCount}
                     dateStr={dateStr}
+                />
+
+                <WatchProductShelf 
+                    authorId={video.authorId}
+                    productIds={video.productIds}
+                    displayMode={video.productDisplayMode}
                 />
 
                 <WatchComments user={user} />

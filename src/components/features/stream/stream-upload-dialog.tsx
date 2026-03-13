@@ -11,14 +11,22 @@ import { Button } from "@/components/ui/button";
 import { useUploadStore } from "@/lib/upload-store";
 import { Progress } from "@/components/ui/progress";
 
+import { VideoProductSelector } from "../wetube/video-product-selector";
+
 /**
  * [STABILITY_ANCHOR: STREAM_UPLOAD_V1.5]
  * واجهة رفع البث - تفعيل جلب عناوين الفيديوهات حقيقياً من يوتيوب.
  */
-export function StreamUploadDialog({ onUpload, onOpenVault }: any) {
+export function StreamUploadDialog({ onUpload, onOpenVault, user }: any) {
   const [isOpen, setIsOpen] = useState(false);
   const [source, setSource] = useState<any>('drive');
-  const [data, setData] = useState({ title: "", externalUrl: "", file: null as File | null });
+  const [data, setData] = useState({ 
+    title: "", 
+    externalUrl: "", 
+    file: null as File | null,
+    productIds: [] as string[],
+    productDisplayMode: 'none' as 'none' | 'specific' | 'all'
+  });
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
 
@@ -31,12 +39,12 @@ export function StreamUploadDialog({ onUpload, onOpenVault }: any) {
       // Task disappeared, likely finished or failed.
       setIsOpen(false);
       setActiveTaskId(null);
-      setData({ title: "", externalUrl: "", file: null });
+      setData({ title: "", externalUrl: "", file: null, productIds: [], productDisplayMode: 'none' });
     } else if (activeTask && activeTask.status === 'completed') {
       setTimeout(() => {
         setIsOpen(false);
         setActiveTaskId(null);
-        setData({ title: "", externalUrl: "", file: null });
+        setData({ title: "", externalUrl: "", file: null, productIds: [], productDisplayMode: 'none' });
       }, 1000);
     }
   }, [activeTask, activeTaskId]);
@@ -81,7 +89,7 @@ export function StreamUploadDialog({ onUpload, onOpenVault }: any) {
     if (typeof onUpload !== 'function') {
       console.warn('onUpload is not a function or not provided');
       setIsOpen(false);
-      setData({ title: "", externalUrl: "", file: null });
+      setData({ title: "", externalUrl: "", file: null, productIds: [], productDisplayMode: 'none' });
       return;
     }
 
@@ -91,12 +99,12 @@ export function StreamUploadDialog({ onUpload, onOpenVault }: any) {
         setActiveTaskId(taskId);
       } else {
         setIsOpen(false);
-        setData({ title: "", externalUrl: "", file: null });
+        setData({ title: "", externalUrl: "", file: null, productIds: [], productDisplayMode: 'none' });
       }
     } else {
       onUpload(source, data);
       setIsOpen(false);
-      setData({ title: "", externalUrl: "", file: null });
+      setData({ title: "", externalUrl: "", file: null, productIds: [], productDisplayMode: 'none' });
     }
   };
 
@@ -142,7 +150,7 @@ export function StreamUploadDialog({ onUpload, onOpenVault }: any) {
                 </div>
               )}
 
-              <Tabs value={source} onValueChange={(v: any) => { setSource(v); setData({ ...data, title: "" }); }} className="w-full">
+              <Tabs value={source} onValueChange={(v: any) => { setSource(v); setData(prev => ({ ...prev, title: "" })); }} className="w-full">
                 <TabsList className="grid w-full grid-cols-3 bg-white/5 p-1 rounded-xl flex-row-reverse">
                   <TabsTrigger value="drive" className="rounded-lg gap-2 text-[10px] sm:text-sm"><HardDrive className="size-3" /> Vault</TabsTrigger>
                   <TabsTrigger value="youtube" className="rounded-lg gap-2 text-[10px] sm:text-sm"><Youtube className="size-3" /> YouTube</TabsTrigger>
@@ -181,6 +189,16 @@ export function StreamUploadDialog({ onUpload, onOpenVault }: any) {
                     )}
                   </div>
                 </div>
+              )}
+
+              {/* رف المنتجات (Merchandise) - يظهر فقط في حالة الرفع المباشر أو من الخزنة */}
+              {user && (source === 'local' || source === 'drive') && (
+                <VideoProductSelector 
+                  userId={user.id} 
+                  selectedProductIds={data.productIds}
+                  displayMode={data.productDisplayMode}
+                  onChange={(productData) => setData(prev => ({ ...prev, ...productData }))}
+                />
               )}
             </div>
 
