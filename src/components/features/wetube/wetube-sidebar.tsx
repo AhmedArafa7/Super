@@ -13,6 +13,7 @@ interface WeTubeSidebarProps {
   activeTab: string;
   setActiveTab: (tab: any) => void;
   subscriptions: YouTubeSubscription[];
+  variant?: 'permanent' | 'overlay';
 }
 
 const MAIN_LINKS = [
@@ -34,8 +35,9 @@ const EXPLORE_LINKS = [
   { icon: Trophy, label: 'رياضة' },
 ];
 
-export function WeTubeSidebar({ isSidebarOpen, activeTab, setActiveTab, subscriptions }: WeTubeSidebarProps) {
+export function WeTubeSidebar({ isSidebarOpen, activeTab, setActiveTab, subscriptions, variant = 'permanent' }: WeTubeSidebarProps) {
   if (!isSidebarOpen) {
+    if (variant === 'overlay') return null;
     return (
       <aside className="hidden md:flex w-24 flex-col items-center py-4 gap-4 bg-black/20 backdrop-blur-md rounded-3xl border border-white/5 h-full rtl overflow-y-auto no-scrollbar shrink-0 pt-6">
         {MAIN_LINKS.map(link => (
@@ -65,7 +67,10 @@ export function WeTubeSidebar({ isSidebarOpen, activeTab, setActiveTab, subscrip
   }
 
   return (
-    <aside className="hidden md:flex w-64 flex-col py-3 bg-black/20 backdrop-blur-md rounded-3xl border border-white/5 h-full hover:overflow-y-auto no-scrollbar rtl text-right shrink-0">
+    <aside className={cn(
+      "flex flex-col py-3 bg-[#0f0f0f] md:bg-black/20 backdrop-blur-xl rounded-3xl border border-white/10 h-full hover:overflow-y-auto no-scrollbar rtl text-right shrink-0 transition-all duration-300 z-[100]",
+      variant === 'overlay' ? "fixed md:absolute top-0 right-0 w-64 shadow-2xl" : "hidden md:flex w-64"
+    )}>
       {/* Main Links */}
       <div className="pb-3 px-3 border-b border-white/10 space-y-0.5 mt-2">
         {MAIN_LINKS.map(link => (
