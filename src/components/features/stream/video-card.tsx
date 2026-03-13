@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { YoutubeThumbnail } from "@/components/features/wetube/YoutubeThumbnail";
+import { getRelativeTime } from "@/lib/date-utils";
 
 const getYoutubeId = (url?: string) => {
   if (!url) return null;
@@ -23,21 +24,6 @@ const getYoutubeId = (url?: string) => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
-const getRelativeTime = (dateStr?: string, fallback?: string) => {
-  if (!dateStr || dateStr === "حديثاً" || dateStr === "اليوم") return dateStr || fallback;
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return dateStr || fallback;
-
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) return "منذ لحظات";
-  if (diffInSeconds < 3600) return `منذ ${Math.floor(diffInSeconds / 60)} دقيقة`;
-  if (diffInSeconds < 86400) return `منذ ${Math.floor(diffInSeconds / 3600)} ساعة`;
-  if (diffInSeconds < 2592000) return `منذ ${Math.floor(diffInSeconds / 86400)} يوم`;
-  if (diffInSeconds < 31536000) return `منذ ${Math.floor(diffInSeconds / 2592000)} شهر`;
-  return `منذ ${Math.floor(diffInSeconds / 31536000)} سنة`;
-};
 
 /**
  * [STABILITY_ANCHOR: YOUTUBE_VIDEO_CARD_V1.1]

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { UserCircle, ThumbsUp, ThumbsDown, MoreHorizontal } from "lucide-react";
+import { getRelativeTime } from "@/lib/date-utils";
 import { useWatch } from "./watch-context";
 
 interface WatchCommentsProps {
@@ -65,7 +66,7 @@ export function WatchComments({ user }: WatchCommentsProps) {
                         <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                                 <span className="font-medium text-sm text-foreground">{c.author}</span>
-                                <span className="text-xs text-muted-foreground">{c.time}</span>
+                                <span className="text-xs text-muted-foreground">{getRelativeTime(c.time, c.time)}</span>
                             </div>
                             <p className="text-sm text-foreground mb-2 leading-relaxed whitespace-pre-wrap">
                                 {c.text}

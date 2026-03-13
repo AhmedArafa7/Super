@@ -14,6 +14,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { YoutubeThumbnail } from "./YoutubeThumbnail";
+import { getRelativeTime } from "@/lib/date-utils";
 
 interface WatchSidebarProps {
     relatedVideos: any[];
@@ -91,7 +92,7 @@ export function WatchSidebar({ relatedVideos }: WatchSidebarProps) {
                                     <span>•</span>
                                 </>
                             )}
-                            <span>{rv.published || rv.time || "حديثاً"}</span>
+                            <span>{getRelativeTime(rv.published || rv.time)}</span>
                         </div>
                         <div onClick={(e) => e.stopPropagation()} className="absolute top-0 left-0">
                             <DropdownMenu>

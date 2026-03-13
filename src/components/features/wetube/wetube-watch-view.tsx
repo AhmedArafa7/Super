@@ -14,6 +14,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useGlobalStorage } from "@/lib/global-storage-store";
+import { getRelativeTime } from "@/lib/date-utils";
 
 // Extracted Components
 import { WatchProvider, useWatch } from "./watch-context";
@@ -68,7 +69,7 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached }: an
     const rawViews = details?.views || video.views;
     const viewCount = typeof rawViews === 'number' ? rawViews.toLocaleString() : (rawViews || "");
     const likeCount = details?.likes !== undefined ? details.likes.toLocaleString() : (details ? "مخفي" : "");
-    const dateStr = details?.date || video.published || video.time || "حديثاً";
+    const dateStr = getRelativeTime(details?.date || video.published || video.time);
 
     const handleQualityChange = (newQuality: string) => {
         if (newQuality === selectedQuality) return;
