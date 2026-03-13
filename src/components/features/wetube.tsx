@@ -223,7 +223,15 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           onLogoClick={() => setActiveVideo(null)}
         />
         <div className="flex flex-1 overflow-hidden mt-4 gap-4">
-          <WeTubeSidebar isSidebarOpen={isSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} subscriptions={subscriptions} />
+          <WeTubeSidebar 
+            isSidebarOpen={isSidebarOpen} 
+            activeTab={activeTab} 
+            setActiveTab={(tab) => {
+              setActiveTab(tab);
+              setActiveVideo(null);
+            }} 
+            subscriptions={subscriptions} 
+          />
           
           <div className="flex-1 overflow-y-auto w-full glass rounded-3xl border border-white/5 relative">
             <WeTubeWatchView

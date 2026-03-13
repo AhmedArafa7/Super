@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import { useWatch } from "./watch-context";
 
 interface WatchActionsProps {
@@ -43,6 +44,7 @@ export function WatchActions({
     onSync,
     onClose
 }: WatchActionsProps) {
+    const { toast } = useToast();
     const {
         video,
         selectedQuality,
@@ -50,6 +52,19 @@ export function WatchActions({
         isDisliked, setIsDisliked,
         isSubscribed, setIsSubscribed
     } = useWatch();
+
+    const handleShare = () => {
+        const url = video.externalUrl || `https://www.youtube.com/watch?v=${video.id}`;
+        navigator.clipboard.writeText(url);
+        toast({
+            title: "تم نسخ الرابط",
+            description: "يمكنك الآن مشاركة الفيديو مع أصدقائك.",
+        });
+    };
+
+    const handleActionFeedback = (title: string, description: string) => {
+        toast({ title, description });
+    };
 
     return (
         <div className="flex flex-col gap-4 mb-6">
@@ -147,7 +162,10 @@ export function WatchActions({
                     </div>
 
                     {/* Share */}
-                    <button className="flex items-center gap-2 px-4 py-2 bg-[#272727] hover:bg-[#3f3f3f] rounded-full transition-colors shrink-0">
+                    <button 
+                        onClick={handleShare}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#272727] hover:bg-[#3f3f3f] rounded-full transition-colors shrink-0"
+                    >
                         <Share2 className="size-5" />
                         <span className="text-sm font-medium">مشاركة</span>
                     </button>
@@ -165,7 +183,10 @@ export function WatchActions({
                     </button>
 
                     {/* Clip */}
-                    <button className="hidden md:flex items-center gap-2 px-4 py-2 bg-[#272727] hover:bg-[#3f3f3f] rounded-full transition-colors shrink-0">
+                    <button 
+                        onClick={() => handleActionFeedback("قص مقطع", "ميزة اقتطاع المقاطع ستتوفر قريباً في التحديث القادم.")}
+                        className="hidden md:flex items-center gap-2 px-4 py-2 bg-[#272727] hover:bg-[#3f3f3f] rounded-full transition-colors shrink-0"
+                    >
                         <Scissors className="size-5" />
                         <span className="text-sm font-medium">قص</span>
                     </button>
@@ -183,17 +204,26 @@ export function WatchActions({
                                 <span className="text-sm">اقتطاع كليب</span>
                             </DropdownMenuItem>
 
-                            <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                            <DropdownMenuItem 
+                                onClick={() => handleActionFeedback("تم تسجيل تفضيلك", "سنقلل من اقتراح مثل هذا المحتوى لك.")}
+                                className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors"
+                            >
                                 <Ban className="size-4" />
                                 <span className="text-sm">لا يهمني</span>
                             </DropdownMenuItem>
 
-                            <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                            <DropdownMenuItem 
+                                onClick={() => handleActionFeedback("تحديث الاقتراحات", "لن نقوم باقتراح هذه القناة لك مرة أخرى.")}
+                                className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors"
+                            >
                                 <UserX className="size-4" />
                                 <span className="text-sm">عدم اقتراح القناة</span>
                             </DropdownMenuItem>
                             
-                            <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                            <DropdownMenuItem 
+                                onClick={() => handleActionFeedback("إبلاغ", "تم إرسال بلاغك لفريق المراجعة، شكراً لمساعدتنا.")}
+                                className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors"
+                            >
                                 <Flag className="size-4" />
                                 <span className="text-sm">إبلاغ</span>
                             </DropdownMenuItem>
