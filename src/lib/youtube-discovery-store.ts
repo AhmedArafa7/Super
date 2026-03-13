@@ -11,6 +11,8 @@ export interface VideoDetails extends FeedVideo {
   description: string;
   views: string;
   duration: string;
+  likes?: number;
+  date?: string;
   relatedVideos: FeedVideo[];
 }
 
@@ -210,11 +212,7 @@ export const fetchVideoDetails = async (videoId: string): Promise<VideoDetails |
  * جلب تعليقات فيديو (تبسيط)
  */
 export const fetchVideoComments = async (videoId: string): Promise<YouTubeComment[]> => {
-  // ملاحظة: التعليقات في يوتيوب يتم تحميلها عبر Ajax منفصل عادة
-  // سنقوم هنا بمحاكاة سحب عينة من الكود الأولي إذا وجد أو إرجاع عينة عشوائية منظمة
-  return [
-    { author: "أحمد علي", text: "فيديو رائع ومفيد جداً، استمر!", authorThumb: "", time: "منذ ساعة" },
-    { author: "Smart User", text: "I love the quality of these tech reviews.", authorThumb: "", time: "2 hours ago" },
-    { author: "محمد محمود", text: "شكراً على المعلومات القيمة.", authorThumb: "", time: "منذ يوم" }
-  ];
+  // للبيئة الحقيقية، نحتاج لاستخدام YouTube Data API أو نظام تعليقات داخلي.
+  // حالياً سنرجع مصفوفة فارغة بدلاً من البيانات الوهمية لضمان مصداقية البيانات في البرودكشن.
+  return [];
 };

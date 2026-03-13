@@ -66,9 +66,9 @@ export function WeTubeWatchView({ video, user, onClose, relatedVideos, onSync, i
     const [showScreenWarningDialog, setShowScreenWarningDialog] = useState(false);
 
     const rawViews = details?.views || video.views;
-    const viewCount = typeof rawViews === 'number' ? rawViews.toLocaleString() : rawViews || "12,345";
-    const likeCount = details ? "مخفي" : "45 ألف";
-    const dateStr = video.time || "حديثاً";
+    const viewCount = typeof rawViews === 'number' ? rawViews.toLocaleString() : (rawViews || "");
+    const likeCount = details?.likes !== undefined ? details.likes.toLocaleString() : (details ? "مخفي" : "");
+    const dateStr = details?.date || video.time || "حديثاً";
 
     const isPlayingLocally = isCached && selectedQuality === downloadedQuality;
 

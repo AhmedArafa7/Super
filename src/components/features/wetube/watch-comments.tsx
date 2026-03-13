@@ -55,8 +55,12 @@ export function WatchComments({ comments, user, isLoading }: WatchCommentsProps)
             ) : comments.length > 0 ? (
                 comments.map((c: any, i) => (
                     <div key={i} className="flex gap-4 mb-6 items-start group">
-                        <div className="size-10 rounded-full bg-[#272727] shrink-0 mt-1 overflow-hidden">
-                            <img src={c.authorThumb || `https://picsum.photos/seed/commenter${i}/40/40`} className="size-full object-cover" alt="" />
+                        <div className="size-10 rounded-full bg-[#272727] shrink-0 mt-1 overflow-hidden flex items-center justify-center">
+                            {c.authorThumb ? (
+                                <img src={c.authorThumb} className="size-full object-cover" alt="" />
+                            ) : (
+                                <UserCircle className="size-6 text-white/20" />
+                            )}
                         </div>
                         <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">

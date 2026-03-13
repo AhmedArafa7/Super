@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { 
     ThumbsUp, ThumbsDown, Share2, Download, Scissors, 
     Bell, ChevronDown, Settings, CheckCircle2, MoreHorizontal, Flag, Trash2,
-    Ban, UserX, Scissors as ScissorsIcon
+    Ban, UserX, Scissors as ScissorsIcon, UserCircle
 } from "lucide-react";
 import {
     Select,
@@ -63,12 +63,18 @@ export function WatchActions({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                 {/* Channel Info & Subscribe */}
                 <div className="flex items-center gap-4">
-                    <div className="size-10 rounded-full bg-[#272727] overflow-hidden cursor-pointer shrink-0">
-                        <img src={`https://picsum.photos/seed/${video.author}/40/40`} className="size-full object-cover" alt="Avatar" />
+                    <div className="size-10 rounded-full bg-[#272727] overflow-hidden cursor-pointer shrink-0 flex items-center justify-center">
+                        {video.channelAvatar ? (
+                            <img src={video.channelAvatar} className="size-full object-cover" alt="Avatar" />
+                        ) : (
+                            <UserCircle className="size-6 text-white/20" />
+                        )}
                     </div>
                     <div className="flex flex-col min-w-0 pr-1">
                         <span className="font-bold text-foreground text-[16px] truncate cursor-pointer hover:text-white">{video.author}</span>
-                        <span className="text-muted-foreground text-xs truncate">456 ألف مشترك</span>
+                        {video.subscriberCount && (
+                            <span className="text-muted-foreground text-xs truncate">{video.subscriberCount} مشترك</span>
+                        )}
                     </div>
 
                     <button
