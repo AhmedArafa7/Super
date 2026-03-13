@@ -2,7 +2,7 @@
 
 import React from "react";
 import { NexusVideoPlayer } from "@/components/features/stream/nexus-video-player";
-import { detectVideoSource } from "@/lib/video-source-detector";
+import { detectVideoSource } from "./video-source-detector";
 import { useWatch } from "./watch-context";
 
 interface WatchPlayerProps {
