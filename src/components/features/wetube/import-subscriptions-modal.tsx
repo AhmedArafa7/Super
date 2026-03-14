@@ -13,6 +13,11 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { addSubscription } from "@/lib/subscription-store";
+import { GoogleAuthProvider } from "firebase/auth";
+import { linkYouTubeAccount } from "@/lib/auth/providers";
+import { fetchMyChannelInfo } from "@/lib/youtube-auth-service";
+import { updateUserProfile } from "@/lib/auth/service";
+import { Globe, ShieldCheck, Youtube } from "lucide-react";
 
 interface ImportSubscriptionsModalProps {
     isOpen: boolean;
@@ -30,6 +35,7 @@ export function ImportSubscriptionsModal({ isOpen, onOpenChange, userId }: Impor
     const [progress, setProgress] = useState(0);
     const [total, setTotal] = useState(0);
     const [errorMsg, setErrorMsg] = useState("");
+    const [isLinking, setIsLinking] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,7 +120,50 @@ export function ImportSubscriptionsModal({ isOpen, onOpenChange, userId }: Impor
     };
 
     reader.readAsText(file);
-  };
+    };
+
+    const handleLinkChannel = async () => {
+        setIsLinking(true);
+        setErrorMsg("");
+        try {
+            const result = await linkYouTubeAccount();
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            const accessToken = credential?.accessToken;
+
+            if (!accessToken) {
+                throw new Error("فشل الحصول على رمز الوصول من جوجل");
+            }
+
+            const channelInfo = await fetchMyChannelInfo(accessToken);
+            if (!channelInfo) {
+                throw new Error("لم يتم العثور على قناة يوتيوب مرتبطة بهذا الحساب");
+            }
+
+            await updateUserProfile(userId, {
+                linkedYouTubeChannel: {
+                    id: channelInfo.id,
+                    title: channelInfo.title,
+                    avatarUrl: channelInfo.avatarUrl,
+                    customUrl: channelInfo.customUrl,
+                    linkedAt: new Date().toISOString()
+                }
+            });
+
+            toast({
+                title: "تم ربط القناة بنجاح",
+                description: `تم ربط قناة "${channelInfo.title}" بحسابك في نكسوس.`,
+            });
+
+            // If it's a success, we can close the modal after a short delay
+            setTimeout(() => onOpenChange(false), 1500);
+
+        } catch (err: any) {
+            console.error("Link Channel Error:", err);
+            setErrorMsg(err.message || "حدث خطأ أثناء محاولة ربط القناة");
+        } finally {
+            setIsLinking(false);
+        }
+    };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !isImporting && onOpenChange(open)}>
@@ -137,8 +186,33 @@ export function ImportSubscriptionsModal({ isOpen, onOpenChange, userId }: Impor
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4 py-8 flex flex-col items-center justify-center">
+        <div className="space-y-6 py-6 flex flex-col items-center justify-center">
           
+          {/* الخيار الأول: ربط القناة الرسمية عبر OAuth */}
+          <div className="w-full bg-blue-500/10 border border-blue-500/20 rounded-[2rem] p-6 text-center space-y-4">
+            <div className="flex items-center justify-center gap-3 text-blue-400 mb-2">
+                <ShieldCheck className="size-5" />
+                <span className="text-xs font-bold uppercase tracking-widest">الطريقة الرسمية والآمنة</span>
+            </div>
+            <h3 className="text-white font-bold text-lg leading-tight">ربط قناتك على يوتيوب مباشرة</h3>
+            <p className="text-sm text-muted-foreground">اربط هويتك كمنشئ محتوى واستمتع بتكامل أعمق مع نكسوس.</p>
+            
+            <Button 
+                onClick={handleLinkChannel} 
+                className="bg-blue-600 hover:bg-blue-700 text-white w-full h-12 rounded-xl font-bold gap-2 shadow-lg shadow-blue-900/20"
+                disabled={isLinking || isImporting}
+            >
+                {isLinking ? <Loader2 className="size-5 animate-spin" /> : <Youtube className="size-5" />}
+                {isLinking ? "جاري الاتصال بجوجل..." : "ربط القناة الرسمية"}
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-4 w-full">
+            <div className="h-px bg-white/10 flex-1"></div>
+            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">أو عبر الملفات</span>
+            <div className="h-px bg-white/10 flex-1"></div>
+          </div>
+
           {!isImporting && progress === 0 && (
              <div 
                className="border-2 border-dashed border-white/20 rounded-2xl p-10 w-full flex flex-col items-center justify-center cursor-pointer hover:border-blue-500/50 hover:bg-blue-500/5 transition-all text-center group"

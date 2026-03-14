@@ -36,4 +36,11 @@ export interface User {
   ownedThemes?: string[];
   activeTheme?: string;
   themeMode?: 'light' | 'dark';
+  linkedYouTubeChannel?: {
+    id: string;
+    title: string;
+    avatarUrl: string;
+    customUrl?: string;
+    linkedAt: string;
+  };
 }

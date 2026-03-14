@@ -24,6 +24,13 @@ export const signInWithGoogle = async () => {
   return signInWithPopup(auth, provider);
 };
 
+export const linkYouTubeAccount = async () => {
+  const { auth } = initializeFirebase();
+  const provider = new GoogleAuthProvider();
+  provider.addScope('https://www.googleapis.com/auth/youtube.readonly');
+  return signInWithPopup(auth, provider);
+};
+
 export const signInWithGithub = async () => {
   const { auth } = initializeFirebase();
   const provider = new GithubAuthProvider();
