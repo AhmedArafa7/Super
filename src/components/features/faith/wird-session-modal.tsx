@@ -5,9 +5,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { useWirdStore, WirdType } from "@/lib/wird-store";
 import { useQuranStore } from "@/lib/quran-store";
-import { Loader2, BookOpen, Headphones, Edit3, CheckCircle2, ChevronLeft, Save } from "lucide-react";
+import { Loader2, BookOpen, Headphones, Edit3, CheckCircle2, ChevronLeft, Save, Pause, Play } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 interface WirdSessionModalProps {
   isOpen: boolean;
@@ -21,8 +22,8 @@ const TYPE_CONFIG = {
 };
 
 export function WirdSessionModal({ isOpen, onClose }: WirdSessionModalProps) {
-  const { enabledTypes, currentSurahId, todayCompletedTypes, markStepComplete, resetTodayProgress } = useWirdStore();
-  const { surahs, fetchSurahText, currentReadingText, isReadingLoading, setCurrentSurah, setIsPlaying } = useQuranStore();
+  const { enabledTypes, currentSurahId, todayCompletedTypes, amountType, verseRange, markStepComplete, resetTodayProgress } = useWirdStore();
+  const { surahs, fetchSurahText, currentReadingText, isReadingLoading, setCurrentSurah, setIsPlaying, isPlaying, currentSurah } = useQuranStore();
   
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [writeText, setWriteText] = useState("");
@@ -53,6 +54,11 @@ export function WirdSessionModal({ isOpen, onClose }: WirdSessionModalProps) {
     const currentType = enabledTypes[currentStepIndex];
     markStepComplete(currentType);
     
+    // Stop audio if it was playing after a listening session
+    if (currentType === 'listen') {
+      setIsPlaying(false);
+    }
+
     if (currentStepIndex < enabledTypes.length - 1) {
       setCurrentStepIndex(prev => prev + 1);
       setWriteText(""); // Reset writing pad for next step if any
@@ -61,9 +67,13 @@ export function WirdSessionModal({ isOpen, onClose }: WirdSessionModalProps) {
     }
   };
 
-  const handleStartListening = () => {
-    setCurrentSurah(targetSurah);
-    setIsPlaying(true);
+  const handleToggleListening = () => {
+    if (isPlaying && currentSurah?.id === targetSurah.id) {
+       setIsPlaying(false);
+    } else {
+       setCurrentSurah(targetSurah);
+       setIsPlaying(true);
+    }
   };
 
   const currentType = enabledTypes[currentStepIndex];
@@ -136,29 +146,48 @@ export function WirdSessionModal({ isOpen, onClose }: WirdSessionModalProps) {
                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex-1 flex flex-col">
                   {currentType === 'read' && (
                     <div className="text-center">
-                       <h3 className="text-2xl font-bold text-white mb-6">اقرأ السورة وتدبرها</h3>
-                       <div className="bg-black/40 rounded-2xl p-6 max-h-[250px] overflow-y-auto text-right font-quran text-2xl leading-[2.5] text-white/90">
-                         {currentReadingText?.map(a => `${a.text} ﴿${a.numberInSurah}﴾ `).join("")}
+                       <h3 className="text-2xl font-bold text-white mb-6">
+                         {amountType === 'verses' ? `اقرأ الآيات (${verseRange.start} - ${verseRange.end})` : "اقرأ السورة وتدبرها"}
+                       </h3>
+                       <div className="bg-black/40 rounded-2xl p-6 max-h-[350px] overflow-y-auto text-right font-quran text-2xl leading-[2.5] text-white/90 custom-scrollbar">
+                         {currentReadingText
+                           ?.filter(a => amountType === 'surah' || (a.numberInSurah >= verseRange.start && a.numberInSurah <= verseRange.end))
+                           .map(a => `${a.text} ﴿${a.numberInSurah}﴾ `).join("")}
                        </div>
                     </div>
                   )}
 
                   {currentType === 'listen' && (
                     <div className="text-center flex-1 flex flex-col items-center justify-center">
-                       <div className="size-24 bg-indigo-500/10 text-indigo-400 rounded-[2.5rem] flex items-center justify-center mb-8 ring-8 ring-indigo-500/5">
-                          <Headphones className="size-10" />
+                       <div className={cn(
+                         "size-24 rounded-[2.5rem] flex items-center justify-center mb-8 ring-8 transition-all duration-500",
+                         isPlaying ? "bg-red-500/10 text-red-500 ring-red-500/5 pulse-subtle" : "bg-indigo-500/10 text-indigo-400 ring-indigo-500/5"
+                       )}>
+                          {isPlaying ? <Pause className="size-10" /> : <Headphones className="size-10" />}
                        </div>
-                       <h3 className="text-2xl font-bold text-white mb-4">استمع للورد وانصت خاشعاً</h3>
-                       <Button onClick={handleStartListening} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-8 py-6 text-lg">
-                          تشغيل التلاوة
-                       </Button>
+                       <h3 className="text-2xl font-bold text-white mb-4">
+                         {isPlaying ? "جاري الاستماع للورد..." : "استمع للورد وانصت خاشعاً"}
+                       </h3>
+                       <div className="flex gap-4">
+                         <Button 
+                           onClick={handleToggleListening} 
+                           className={cn(
+                             "rounded-xl px-8 py-6 text-lg font-bold transition-all",
+                             isPlaying ? "bg-red-500 hover:bg-red-600 shadow-[0_0_20px_rgba(239,68,68,0.3)]" : "bg-indigo-600 hover:bg-indigo-700"
+                           )}
+                         >
+                            {isPlaying ? "إيقاف مؤقت" : "تشغيل التلاوة"}
+                         </Button>
+                       </div>
                     </div>
                   )}
 
                   {currentType === 'write' && (
                     <div className="text-center flex-1 flex flex-col">
-                       <h3 className="text-2xl font-bold text-white mb-4">اختبر حفظك للسورة</h3>
-                       <p className="text-sm text-muted-foreground mb-6">اكتب ما تحفظه من السورة، وبعد الانتهاء قاره مع النص الأصلي للتثبيت.</p>
+                       <h3 className="text-2xl font-bold text-white mb-4">
+                         {amountType === 'verses' ? `اختبر حفظك للآيات (${verseRange.start} - ${verseRange.end})` : "اختبر حفظك للسورة"}
+                       </h3>
+                       <p className="text-sm text-muted-foreground mb-6">اكتب الآيات المحددة، وبعد الانتهاء قارنها مع النص الأصلي لتثبيت الحفظ.</p>
                        <Textarea 
                          dir="auto"
                          placeholder="بسم الله الرحمن الرحيم..."

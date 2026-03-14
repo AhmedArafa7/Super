@@ -13,7 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { useQuranStore, QuranSurah } from "@/lib/quran-store";
 import { useGlobalStorage } from "@/lib/global-storage-store";
-import { useWirdStore, WirdType } from "@/lib/wird-store";
+import { useWirdStore, WirdType, WirdAmountType } from "@/lib/wird-store";
 import { SurahReader } from "./surah-reader";
 import { WirdSessionModal } from "./wird-session-modal";
 import { cn } from "@/lib/utils";
@@ -34,16 +34,22 @@ export function QuranView() {
   } = useQuranStore();
   
   const { cachedAssets } = useGlobalStorage();
-  const { enabledTypes, currentSurahId, todayCompletedTypes, lastCompletedDate, setWirdConfig } = useWirdStore();
+  const { enabledTypes, currentSurahId, todayCompletedTypes, lastCompletedDate, amountType, verseRange, setWirdConfig, setWirdAmount } = useWirdStore();
   
   const [isWirdSessionOpen, setIsWirdSessionOpen] = useState(false);
   const [isWirdSettingsOpen, setIsWirdSettingsOpen] = useState(false);
   const [tempWirdConfig, setTempWirdConfig] = useState<WirdType[]>(enabledTypes);
+  const [tempAmountType, setTempAmountType] = useState<WirdAmountType>(amountType);
+  const [tempRange, setTempRange] = useState(verseRange);
 
   // Sync temp config when modal opens
   React.useEffect(() => {
-    if (isWirdSettingsOpen) setTempWirdConfig(enabledTypes);
-  }, [isWirdSettingsOpen, enabledTypes]);
+    if (isWirdSettingsOpen) {
+      setTempWirdConfig(enabledTypes);
+      setTempAmountType(amountType);
+      setTempRange(verseRange);
+    }
+  }, [isWirdSettingsOpen, enabledTypes, amountType, verseRange]);
 
   const filteredQuran = useMemo(() => {
     if (!search) return surahs;
@@ -70,7 +76,14 @@ export function QuranView() {
       toast({ title: "تنبيه", description: "يجب اختيار خطوة واحدة على الأقل للورد", variant: "destructive" });
       return;
     }
+    
+    if (tempAmountType === 'verses' && (tempRange.start < 1 || tempRange.end < tempRange.start)) {
+      toast({ title: "خطأ في النطاق", description: "يرجى التأكد من بداية ونهاية الآيات بشكل صحيح", variant: "destructive" });
+      return;
+    }
+
     setWirdConfig(tempWirdConfig);
+    setWirdAmount(tempAmountType, tempRange);
     setIsWirdSettingsOpen(false);
     toast({ title: "تم الحفظ", description: "تم تحديث خطة الورد اليومي بنجاح." });
   };
@@ -205,6 +218,43 @@ export function QuranView() {
                       </div>
                     )
                   })}
+                </div>
+
+                <div className="border-t border-white/5 pt-6 mb-8 text-right">
+                   <h4 className="text-lg font-bold text-white mb-4">كمية الورد اليومي</h4>
+                   <div className="flex gap-2 p-1 bg-white/5 rounded-xl mb-4 flex-row-reverse">
+                      <button 
+                        onClick={() => setTempAmountType('surah')}
+                        className={cn("flex-1 py-2 rounded-lg text-sm transition-all", tempAmountType === 'surah' ? "bg-indigo-600 text-white shadow-lg" : "text-muted-foreground hover:text-white")}
+                      >السورة كاملة</button>
+                      <button 
+                        onClick={() => setTempAmountType('verses')}
+                        className={cn("flex-1 py-2 rounded-lg text-sm transition-all", tempAmountType === 'verses' ? "bg-indigo-600 text-white shadow-lg" : "text-muted-foreground hover:text-white")}
+                      >آيات محددة</button>
+                   </div>
+                   
+                   {tempAmountType === 'verses' && (
+                     <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
+                        <div className="space-y-2">
+                          <label className="text-xs text-muted-foreground">إلى الآية</label>
+                          <Input 
+                            type="number" 
+                            value={tempRange.end} 
+                            onChange={(e) => setTempRange(prev => ({ ...prev, end: parseInt(e.target.value) || 0 }))}
+                            className="bg-white/5 border-white/10 rounded-xl"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs text-muted-foreground">من الآية</label>
+                          <Input 
+                            type="number" 
+                            value={tempRange.start} 
+                            onChange={(e) => setTempRange(prev => ({ ...prev, start: parseInt(e.target.value) || 0 }))}
+                            className="bg-white/5 border-white/10 rounded-xl"
+                          />
+                        </div>
+                     </div>
+                   )}
                 </div>
                 
                 <div className="flex justify-end gap-3">
