@@ -23,13 +23,20 @@ const DRIVE_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbr
 interface VaultExplorerProps {
   folderId?: string;
   hideSidebar?: boolean;
+  title?: string;
+  icon?: React.ReactNode;
 }
 
 /**
  * [STABILITY_ANCHOR: NATIVE_VAULT_V2.2]
  * مستكشف الخزنة المطور - يعالج حالات تعطل الـ API بدون إظهار أخطاء برمجية للمستخدم.
  */
-export function VaultExplorer({ folderId = VAULT_FOLDER_ID, hideSidebar = false }: VaultExplorerProps = {}) {
+export function VaultExplorer({ 
+  folderId = VAULT_FOLDER_ID, 
+  hideSidebar = false,
+  title = "استعراض الخزنة المركزية",
+  icon = <ShieldCheck className="size-5 text-indigo-400" />
+}: VaultExplorerProps = {}) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [assets, setAssets] = useState<any[]>([]);
@@ -184,8 +191,8 @@ export function VaultExplorer({ folderId = VAULT_FOLDER_ID, hideSidebar = false 
           {!hideSidebar && (
           <div className="flex items-center justify-between mb-8 flex-row-reverse">
             <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-              استعراض الخزنة المركزية
-              <ShieldCheck className="size-5 text-indigo-400" />
+              {title}
+              {icon}
             </h2>
             <Badge variant="outline" className="border-indigo-500/20 text-indigo-400 text-[10px] uppercase">
               {isKeyMissing ? "Maintenance Mode" : `${filteredAssets.length} Physical Assets Synced`}
