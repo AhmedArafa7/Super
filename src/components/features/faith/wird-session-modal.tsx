@@ -81,14 +81,15 @@ export function WirdSessionModal({ isOpen, onClose }: WirdSessionModalProps) {
             </div>
           </div>
           <DialogTitle className="text-3xl font-bold text-white text-right font-quran">
-            سورة {targetSurah.name}
+            {targetSurah.name.includes("سورة") ? targetSurah.name : `سورة ${targetSurah.name}`}
           </DialogTitle>
           <DialogDescription className="text-right text-muted-foreground text-lg">
             أنجز خطوات وردك بالترتيب الذي حددته لتعزيز تفاعلك مع القرآن.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="p-8">
+        <div className="flex-1 overflow-y-auto max-h-[70vh] custom-scrollbar">
+          <div className="p-8">
           {/* Timeline / Progress Steps */}
           <div className="flex justify-between items-center mb-8 relative px-4">
             <div className="absolute top-1/2 left-4 right-4 h-0.5 bg-white/5 -z-10 -translate-y-1/2" />
@@ -172,6 +173,7 @@ export function WirdSessionModal({ isOpen, onClose }: WirdSessionModalProps) {
              )}
           </div>
 
+          </div>
         </div>
 
         <div className="p-6 border-t border-white/5 bg-white/[0.02] flex justify-between items-center">
