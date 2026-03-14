@@ -99,6 +99,8 @@ export function ItemModal({ isOpen, onOpenChange, value, onChange, onSubmit }: I
   );
 }
 
+import { VaultExplorer } from '../vault-explorer';
+
 // ─── Drive Modal ───
 
 interface DriveModalProps {
@@ -123,14 +125,7 @@ export function DriveModal({ isOpen, onOpenChange }: DriveModalProps) {
         </DialogHeader>
 
         <div className="flex-1 w-full mt-6 bg-white/5 rounded-3xl border border-white/10 overflow-hidden relative">
-          <iframe
-            src="https://drive.google.com/embeddedfolderview?id=13PPxL5FD4f0aVhhI7JMuoQo8oEENRoEm#list"
-            width="100%"
-            height="100%"
-            className="border-0 bg-transparent"
-            title="Nexus Vault Drive"
-            allow="autoplay"
-          />
+          <VaultExplorer hideSidebar={true} folderId="13PPxL5FD4f0aVhhI7JMuoQo8oEENRoEm" />
         </div>
 
         <DialogFooter className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between w-full">

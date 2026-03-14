@@ -20,11 +20,16 @@ import { cn } from "@/lib/utils";
 const VAULT_FOLDER_ID = "16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g";
 const DRIVE_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
+interface VaultExplorerProps {
+  folderId?: string;
+  hideSidebar?: boolean;
+}
+
 /**
  * [STABILITY_ANCHOR: NATIVE_VAULT_V2.2]
  * مستكشف الخزنة المطور - يعالج حالات تعطل الـ API بدون إظهار أخطاء برمجية للمستخدم.
  */
-export function VaultExplorer() {
+export function VaultExplorer({ folderId = VAULT_FOLDER_ID, hideSidebar = false }: VaultExplorerProps = {}) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [assets, setAssets] = useState<any[]>([]);
@@ -52,7 +57,7 @@ export function VaultExplorer() {
         return;
       }
 
-      const files = await fetchDriveFolderFiles(VAULT_FOLDER_ID);
+      const files = await fetchDriveFolderFiles(folderId);
       
       // إذا عادت المصفوفة فارغة بالرغم من وجود مفتاح، فالمفتاح غالباً غير صالح
       if (files.length === 0 && apiKey) {
@@ -86,8 +91,9 @@ export function VaultExplorer() {
   };
 
   return (
-    <div className="flex h-full bg-slate-950 font-sans text-right">
+    <div className={cn("flex h-full font-sans text-right", hideSidebar ? "bg-transparent rounded-3xl" : "bg-slate-950")}>
       {/* Sidebar */}
+      {!hideSidebar && (
       <aside className="w-64 border-l border-white/5 bg-slate-900/40 p-6 flex flex-col gap-8 hidden lg:flex">
         <Button 
           className="w-full h-14 rounded-2xl bg-white text-slate-950 hover:bg-slate-200 shadow-xl font-bold gap-3 flex-row-reverse"
@@ -130,9 +136,11 @@ export function VaultExplorer() {
           </p>
         </div>
       </aside>
+      )}
 
       {/* Main Area */}
       <main className="flex-1 flex flex-col min-w-0">
+        {!hideSidebar && (
         <header className="h-16 border-b border-white/5 flex items-center justify-between px-8 bg-slate-900/20 backdrop-blur-md shrink-0 flex-row-reverse">
           <div className="relative w-full max-w-xl">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -150,8 +158,30 @@ export function VaultExplorer() {
             <Button variant="ghost" size="icon" onClick={() => setViewMode('list')} className={cn("rounded-xl", viewMode === 'list' && "bg-white/10 text-white")}><List className="size-4" /></Button>
           </div>
         </header>
+        )}
+
+        {hideSidebar && (
+          <div className="flex items-center justify-between px-8 py-4 shrink-0 flex-row-reverse gap-4 bg-black/20 border-b border-white/5">
+              <div className="relative flex-1">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input 
+                  dir="auto" 
+                  placeholder="البحث في ملفات الخزنة..." 
+                  className="h-10 pr-10 bg-white/5 border-white/10 rounded-xl text-right text-sm focus-visible:ring-indigo-500 w-full" 
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={loadRealDriveData} className="rounded-xl hover:bg-white/5"><RefreshCw className={cn("size-4", isLoading && "animate-spin")} /></Button>
+                <Button variant="ghost" size="icon" onClick={() => setViewMode('grid')} className={cn("rounded-xl", viewMode === 'grid' && "bg-white/10 text-white")}><Grid className="size-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => setViewMode('list')} className={cn("rounded-xl", viewMode === 'list' && "bg-white/10 text-white")}><List className="size-4" /></Button>
+              </div>
+          </div>
+        )}
 
         <div className="flex-1 overflow-hidden flex flex-col p-8">
+          {!hideSidebar && (
           <div className="flex items-center justify-between mb-8 flex-row-reverse">
             <h2 className="text-2xl font-bold text-white flex items-center gap-3">
               استعراض الخزنة المركزية
@@ -161,8 +191,9 @@ export function VaultExplorer() {
               {isKeyMissing ? "Maintenance Mode" : `${filteredAssets.length} Physical Assets Synced`}
             </Badge>
           </div>
+          )}
 
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 h-full pr-4">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-32 gap-4">
                 <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
