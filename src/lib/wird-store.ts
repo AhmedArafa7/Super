@@ -4,13 +4,14 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type WirdType = 'read' | 'write' | 'listen';
-export type WirdAmountType = 'surah' | 'verses';
+export type WirdAmountType = 'surah' | 'verses' | 'juz';
 
 interface WirdState {
   // User Preferences
   enabledTypes: WirdType[];
   amountType: WirdAmountType;
   verseRange: { start: number; end: number };
+  juzNumber: number;
   
   // Current Progress State
   currentSurahId: number;
@@ -19,7 +20,7 @@ interface WirdState {
 
   // Actions
   setWirdConfig: (types: WirdType[]) => void;
-  setWirdAmount: (type: WirdAmountType, range?: { start: number; end: number }) => void;
+  setWirdAmount: (type: WirdAmountType, range?: { start: number; end: number }, juz?: number) => void;
   setCurrentSurah: (id: number) => void;
   markStepComplete: (type: WirdType) => void;
   resetTodayProgress: () => void;
@@ -31,15 +32,17 @@ export const useWirdStore = create<WirdState>()(
       enabledTypes: ['read', 'listen', 'write'], // Default sequence
       amountType: 'surah',
       verseRange: { start: 1, end: 10 },
+      juzNumber: 1,
       currentSurahId: 1, // Default starts at Al-Fatihah
       lastCompletedDate: null,
       todayCompletedTypes: [],
 
       setWirdConfig: (types) => set({ enabledTypes: types }),
       
-      setWirdAmount: (amountType, verseRange) => set((state) => ({ 
+      setWirdAmount: (amountType, verseRange, juzNumber) => set((state) => ({ 
         amountType, 
-        verseRange: verseRange || state.verseRange 
+        verseRange: verseRange || state.verseRange,
+        juzNumber: juzNumber || state.juzNumber
       })),
 
       setCurrentSurah: (id) => set({ currentSurahId: id, todayCompletedTypes: [] }), // Reset daily part if surah changes

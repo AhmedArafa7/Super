@@ -5,10 +5,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { useWirdStore, WirdType } from "@/lib/wird-store";
 import { useQuranStore } from "@/lib/quran-store";
-import { Loader2, BookOpen, Headphones, Edit3, CheckCircle2, ChevronLeft, Save, Pause, Play } from "lucide-react";
+import { 
+  Loader2, BookOpen, Headphones, Edit3, CheckCircle2, 
+  ChevronLeft, Save, Pause, Play, RotateCcw, RotateCw 
+} from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+
+const formatTime = (seconds: number) => {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+};
 
 interface WirdSessionModalProps {
   isOpen: boolean;
@@ -22,8 +32,12 @@ const TYPE_CONFIG = {
 };
 
 export function WirdSessionModal({ isOpen, onClose }: WirdSessionModalProps) {
-  const { enabledTypes, currentSurahId, todayCompletedTypes, amountType, verseRange, markStepComplete, resetTodayProgress } = useWirdStore();
-  const { surahs, fetchSurahText, currentReadingText, isReadingLoading, setCurrentSurah, setIsPlaying, isPlaying, currentSurah } = useQuranStore();
+  const { enabledTypes, currentSurahId, todayCompletedTypes, amountType, verseRange, juzNumber, markStepComplete, resetTodayProgress } = useWirdStore();
+  const { 
+    surahs, fetchSurahText, fetchJuzText, currentReadingText, currentJuzText, isReadingLoading, 
+    setCurrentSurah, setIsPlaying, isPlaying, currentSurah,
+    playbackPosition, duration, performSeek
+  } = useQuranStore();
   
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [writeText, setWriteText] = useState("");
@@ -43,9 +57,13 @@ export function WirdSessionModal({ isOpen, onClose }: WirdSessionModalProps) {
         setCurrentStepIndex(nextIncompleteIndex !== -1 ? nextIncompleteIndex : 0);
       }
       
-      fetchSurahText(currentSurahId);
+      if (amountType === 'juz') {
+        fetchJuzText(juzNumber);
+      } else {
+        fetchSurahText(currentSurahId);
+      }
     }
-  }, [isOpen, currentSurahId]);
+  }, [isOpen, currentSurahId, juzNumber, amountType]);
 
   const targetSurah = surahs.find(s => s.id === currentSurahId);
   if (!targetSurah || !enabledTypes.length) return null;
@@ -147,12 +165,15 @@ export function WirdSessionModal({ isOpen, onClose }: WirdSessionModalProps) {
                   {currentType === 'read' && (
                     <div className="text-center">
                        <h3 className="text-2xl font-bold text-white mb-6">
-                         {amountType === 'verses' ? `اقرأ الآيات (${verseRange.start} - ${verseRange.end})` : "اقرأ السورة وتدبرها"}
+                         {amountType === 'verses' ? `اقرأ الآيات (${verseRange.start} - ${verseRange.end})` : 
+                          amountType === 'juz' ? `اقرأ الجزء ${juzNumber}` : "اقرأ السورة وتدبرها"}
                        </h3>
                        <div className="bg-black/40 rounded-2xl p-6 max-h-[350px] overflow-y-auto text-right font-quran text-2xl leading-[2.5] text-white/90 custom-scrollbar">
-                         {currentReadingText
-                           ?.filter(a => amountType === 'surah' || (a.numberInSurah >= verseRange.start && a.numberInSurah <= verseRange.end))
-                           .map(a => `${a.text} ﴿${a.numberInSurah}﴾ `).join("")}
+                         {amountType === 'juz' 
+                           ? currentJuzText?.map(a => `${a.text} ﴿${a.numberInSurah}﴾ `).join("")
+                           : currentReadingText
+                             ?.filter(a => amountType === 'surah' || (a.numberInSurah >= verseRange.start && a.numberInSurah <= verseRange.end))
+                             .map(a => `${a.text} ﴿${a.numberInSurah}﴾ `).join("")}
                        </div>
                     </div>
                   )}
@@ -160,23 +181,51 @@ export function WirdSessionModal({ isOpen, onClose }: WirdSessionModalProps) {
                   {currentType === 'listen' && (
                     <div className="text-center flex-1 flex flex-col items-center justify-center">
                        <div className={cn(
-                         "size-24 rounded-[2.5rem] flex items-center justify-center mb-8 ring-8 transition-all duration-500",
+                         "size-24 rounded-[2.5rem] flex items-center justify-center mb-6 ring-8 transition-all duration-500",
                          isPlaying ? "bg-red-500/10 text-red-500 ring-red-500/5 pulse-subtle" : "bg-indigo-500/10 text-indigo-400 ring-indigo-500/5"
                        )}>
                           {isPlaying ? <Pause className="size-10" /> : <Headphones className="size-10" />}
                        </div>
-                       <h3 className="text-2xl font-bold text-white mb-4">
-                         {isPlaying ? "جاري الاستماع للورد..." : "استمع للورد وانصت خاشعاً"}
-                       </h3>
-                       <div className="flex gap-4">
+                       
+                       <div className="w-full max-w-md px-6 mb-8">
+                         <div className="flex justify-between items-center mb-2 px-1">
+                           <span className="text-xs font-mono text-muted-foreground">{formatTime(playbackPosition)}</span>
+                           <span className="text-xs font-mono text-muted-foreground">{formatTime(duration)}</span>
+                         </div>
+                         <Slider
+                           value={[playbackPosition]}
+                           max={duration || 100}
+                           step={1}
+                           onValueChange={([val]) => performSeek(val)}
+                           className="cursor-pointer"
+                         />
+                       </div>
+
+                       <div className="flex items-center gap-6">
+                         <Button 
+                           variant="outline" 
+                           onClick={() => performSeek(Math.max(0, playbackPosition - 15))}
+                           className="size-12 rounded-xl border-white/10 text-muted-foreground hover:text-white"
+                         >
+                           <RotateCcw className="size-5" />
+                         </Button>
+
                          <Button 
                            onClick={handleToggleListening} 
                            className={cn(
-                             "rounded-xl px-8 py-6 text-lg font-bold transition-all",
-                             isPlaying ? "bg-red-500 hover:bg-red-600 shadow-[0_0_20px_rgba(239,68,68,0.3)]" : "bg-indigo-600 hover:bg-indigo-700"
+                             "rounded-2xl h-16 px-10 text-xl font-bold transition-all shadow-2xl",
+                             isPlaying ? "bg-red-500 hover:bg-red-600 shadow-red-500/20" : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20"
                            )}
                          >
                             {isPlaying ? "إيقاف مؤقت" : "تشغيل التلاوة"}
+                         </Button>
+
+                         <Button 
+                           variant="outline" 
+                           onClick={() => performSeek(Math.min(duration, playbackPosition + 15))}
+                           className="size-12 rounded-xl border-white/10 text-muted-foreground hover:text-white"
+                         >
+                           <RotateCw className="size-5" />
                          </Button>
                        </div>
                     </div>
@@ -185,7 +234,8 @@ export function WirdSessionModal({ isOpen, onClose }: WirdSessionModalProps) {
                   {currentType === 'write' && (
                     <div className="text-center flex-1 flex flex-col">
                        <h3 className="text-2xl font-bold text-white mb-4">
-                         {amountType === 'verses' ? `اختبر حفظك للآيات (${verseRange.start} - ${verseRange.end})` : "اختبر حفظك للسورة"}
+                         {amountType === 'verses' ? `اختبر حفظك للآيات (${verseRange.start} - ${verseRange.end})` : 
+                          amountType === 'juz' ? `اختبر حفظك للجزء ${juzNumber}` : "اختبر حفظك للسورة"}
                        </h3>
                        <p className="text-sm text-muted-foreground mb-6">اكتب الآيات المحددة، وبعد الانتهاء قارنها مع النص الأصلي لتثبيت الحفظ.</p>
                        <Textarea 

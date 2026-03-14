@@ -31,16 +31,28 @@ interface QuranState {
   surahs: QuranSurah[];
   currentSurah: QuranSurah | null;
   currentReadingText: Ayah[] | null;
+  currentJuzText: Ayah[] | null;
   isPlaying: boolean;
   isLoading: boolean;
   isReadingLoading: boolean;
   isBulkSyncing: boolean;
   bulkSyncProgress: number;
+
+  // New Playback State
+  playbackPosition: number;
+  duration: number;
+  savedPositions: Record<number, number>; // Persisted map of surahId -> seconds
+  seekToCommand: number | null; // Used to trigger seek in the audio element
   
   fetchSurahs: () => Promise<void>;
   fetchSurahText: (id: number) => Promise<void>;
+  fetchJuzText: (juz: number) => Promise<void>;
   setCurrentSurah: (surah: QuranSurah | null) => void;
   setIsPlaying: (playing: boolean) => void;
+  setPlaybackPosition: (pos: number) => void;
+  setDuration: (dur: number) => void;
+  performSeek: (pos: number) => void;
+  clearSeekCommand: () => void;
   downloadToLocal: (surah: QuranSurah) => Promise<void>;
   toggleFavoriteSurah: (id: number) => void;
   syncAllQuranText: () => Promise<void>;
@@ -52,11 +64,17 @@ export const useQuranStore = create<QuranState>()(
       surahs: [],
       currentSurah: null,
       currentReadingText: null,
+      currentJuzText: null,
       isPlaying: false,
       isLoading: false,
       isReadingLoading: false,
       isBulkSyncing: false,
       bulkSyncProgress: 0,
+      
+      playbackPosition: 0,
+      duration: 0,
+      savedPositions: {},
+      seekToCommand: null,
 
       fetchSurahs: async () => {
         set({ isLoading: true });
@@ -119,6 +137,46 @@ export const useQuranStore = create<QuranState>()(
         }
       },
 
+      fetchJuzText: async (juz) => {
+        set({ isReadingLoading: true, currentJuzText: null });
+        try {
+          const cache = await caches.open('nexus-quran-text-cache');
+          const textUrl = `https://api.alquran.cloud/v1/juz/${juz}/quran-uthmani`;
+          const tafsirUrl = `https://api.alquran.cloud/v1/juz/${juz}/ar.muyassar`;
+
+          let textData, tafsirData;
+          const cachedText = await cache.match(textUrl);
+          const cachedTafsir = await cache.match(tafsirUrl);
+
+          if (cachedText && cachedTafsir) {
+            textData = await cachedText.json();
+            tafsirData = await cachedTafsir.json();
+          } else {
+            const [textRes, tafsirRes] = await Promise.all([fetch(textUrl), fetch(tafsirUrl)]);
+            textData = await textRes.json();
+            tafsirData = await tafsirRes.json();
+            if (textRes.ok && tafsirRes.ok) {
+              const c = await caches.open('nexus-quran-text-cache');
+              c.put(textUrl, textRes.clone());
+              c.put(tafsirUrl, tafsirRes.clone());
+            }
+          }
+
+          if (textData.code === 200 && tafsirData.code === 200) {
+            const combinedAyahs = textData.data.ayahs.map((ayah: any, index: number) => ({
+              number: ayah.number,
+              text: ayah.text,
+              numberInSurah: ayah.numberInSurah,
+              tafsir: tafsirData.data.ayahs[index].text,
+              surahId: ayah.surah.number // Helpful for display
+            }));
+            set({ currentJuzText: combinedAyahs, isReadingLoading: false });
+          }
+        } catch (err) {
+          set({ isReadingLoading: false });
+        }
+      },
+
       setCurrentSurah: (surah) => {
         set({ currentSurah: surah, isPlaying: !!surah });
         if (surah) {
@@ -127,6 +185,22 @@ export const useQuranStore = create<QuranState>()(
       },
 
       setIsPlaying: (isPlaying) => set({ isPlaying }),
+
+      setPlaybackPosition: (pos) => {
+        const { currentSurah, savedPositions } = get();
+        if (currentSurah) {
+          set({ 
+            playbackPosition: pos,
+            savedPositions: { ...savedPositions, [currentSurah.id]: pos }
+          });
+        }
+      },
+
+      setDuration: (dur) => set({ duration: dur }),
+
+      performSeek: (pos) => set({ seekToCommand: pos }),
+
+      clearSeekCommand: () => set({ seekToCommand: null }),
 
       downloadToLocal: async (surah) => {
         if (!window.navigator.onLine) return;

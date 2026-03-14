@@ -22,7 +22,7 @@ import { AnimatePresence } from "framer-motion";
  */
 export function HisnAlMuslim() {
   const [activeTab, setActiveTab] = useState("quran");
-  const { currentSurah, isPlaying, fetchSurahs, setIsPlaying } = useQuranStore();
+  const { currentSurah, isPlaying, fetchSurahs, setIsPlaying, setPlaybackPosition, setDuration, seekToCommand, clearSeekCommand, savedPositions } = useQuranStore();
   const { getTotalUsedSpace, storageLimitMB } = useGlobalStorage();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -35,15 +35,45 @@ export function HisnAlMuslim() {
     if (!audioRef.current) {
       audioRef.current = new Audio();
       audioRef.current.onended = () => setIsPlaying(false);
+      
+      audioRef.current.ontimeupdate = () => {
+        if (audioRef.current) setPlaybackPosition(audioRef.current.currentTime);
+      };
+      
+      audioRef.current.onloadedmetadata = () => {
+        if (audioRef.current) setDuration(audioRef.current.duration);
+      };
     }
+    
     const audio = audioRef.current;
     if (currentSurah) {
-      if (audio.src !== currentSurah.url) audio.src = currentSurah.url;
-      if (isPlaying) audio.play().catch(() => setIsPlaying(false));
-      else audio.pause();
+      if (audio.src !== currentSurah.url) {
+        audio.src = currentSurah.url;
+        // Restore saved position if available
+        const savedPos = savedPositions[currentSurah.id] || 0;
+        audio.currentTime = savedPos;
+      }
+      
+      if (isPlaying) {
+        audio.play().catch((err) => {
+          console.error("Audio playback failed:", err);
+          setIsPlaying(false);
+        });
+      } else {
+        audio.pause();
+      }
     }
+    
     return () => { if (audio) audio.pause(); };
-  }, [isPlaying, currentSurah]);
+  }, [isPlaying, currentSurah, savedPositions, setIsPlaying, setPlaybackPosition, setDuration]);
+
+  // Handle seeking commands
+  useEffect(() => {
+    if (seekToCommand !== null && audioRef.current) {
+      audioRef.current.currentTime = seekToCommand;
+      clearSeekCommand();
+    }
+  }, [seekToCommand, clearSeekCommand]);
 
   const usedStorage = getTotalUsedSpace();
   const storagePercentage = Math.round((usedStorage / storageLimitMB) * 100);

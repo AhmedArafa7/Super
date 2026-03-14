@@ -34,13 +34,14 @@ export function QuranView() {
   } = useQuranStore();
   
   const { cachedAssets } = useGlobalStorage();
-  const { enabledTypes, currentSurahId, todayCompletedTypes, lastCompletedDate, amountType, verseRange, setWirdConfig, setWirdAmount } = useWirdStore();
+  const { enabledTypes, currentSurahId, todayCompletedTypes, lastCompletedDate, amountType, verseRange, juzNumber, setWirdConfig, setWirdAmount } = useWirdStore();
   
   const [isWirdSessionOpen, setIsWirdSessionOpen] = useState(false);
   const [isWirdSettingsOpen, setIsWirdSettingsOpen] = useState(false);
   const [tempWirdConfig, setTempWirdConfig] = useState<WirdType[]>(enabledTypes);
   const [tempAmountType, setTempAmountType] = useState<WirdAmountType>(amountType);
   const [tempRange, setTempRange] = useState(verseRange);
+  const [tempJuz, setTempJuz] = useState(juzNumber);
 
   // Sync temp config when modal opens
   React.useEffect(() => {
@@ -48,8 +49,9 @@ export function QuranView() {
       setTempWirdConfig(enabledTypes);
       setTempAmountType(amountType);
       setTempRange(verseRange);
+      setTempJuz(juzNumber);
     }
-  }, [isWirdSettingsOpen, enabledTypes, amountType, verseRange]);
+  }, [isWirdSettingsOpen, enabledTypes, amountType, verseRange, juzNumber]);
 
   const filteredQuran = useMemo(() => {
     if (!search) return surahs;
@@ -83,7 +85,7 @@ export function QuranView() {
     }
 
     setWirdConfig(tempWirdConfig);
-    setWirdAmount(tempAmountType, tempRange);
+    setWirdAmount(tempAmountType, tempRange, tempJuz);
     setIsWirdSettingsOpen(false);
     toast({ title: "تم الحفظ", description: "تم تحديث خطة الورد اليومي بنجاح." });
   };
@@ -105,7 +107,7 @@ export function QuranView() {
               <Badge className="bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30">الورد اليومي</Badge>
               <h2 className="text-3xl font-bold text-white flex items-center gap-2 flex-row-reverse">
                 <BookOpen className="size-6 text-indigo-400" />
-                سورة {targetSurah?.name || "الفاتحة"}
+                {amountType === 'juz' ? `الجزء ${juzNumber}` : `سورة ${targetSurah?.name || "الفاتحة"}`}
               </h2>
             </div>
             <p className="text-muted-foreground text-lg mb-6 max-w-lg ml-auto">
@@ -226,7 +228,11 @@ export function QuranView() {
                       <button 
                         onClick={() => setTempAmountType('surah')}
                         className={cn("flex-1 py-2 rounded-lg text-sm transition-all", tempAmountType === 'surah' ? "bg-indigo-600 text-white shadow-lg" : "text-muted-foreground hover:text-white")}
-                      >السورة كاملة</button>
+                      >سورة كاملة</button>
+                      <button 
+                        onClick={() => setTempAmountType('juz')}
+                        className={cn("flex-1 py-2 rounded-lg text-sm transition-all", tempAmountType === 'juz' ? "bg-indigo-600 text-white shadow-lg" : "text-muted-foreground hover:text-white")}
+                      >جزء كامل</button>
                       <button 
                         onClick={() => setTempAmountType('verses')}
                         className={cn("flex-1 py-2 rounded-lg text-sm transition-all", tempAmountType === 'verses' ? "bg-indigo-600 text-white shadow-lg" : "text-muted-foreground hover:text-white")}
@@ -251,6 +257,22 @@ export function QuranView() {
                             value={tempRange.start} 
                             onChange={(e) => setTempRange(prev => ({ ...prev, start: parseInt(e.target.value) || 0 }))}
                             className="bg-white/5 border-white/10 rounded-xl"
+                          />
+                        </div>
+                     </div>
+                   )}
+
+                   {tempAmountType === 'juz' && (
+                     <div className="animate-in slide-in-from-top-2">
+                        <div className="space-y-2 text-right">
+                          <label className="text-xs text-muted-foreground">اختر رقم الجزء (1-30)</label>
+                          <Input 
+                            type="number" 
+                            min={1}
+                            max={30}
+                            value={tempJuz} 
+                            onChange={(e) => setTempJuz(parseInt(e.target.value) || 1)}
+                            className="bg-white/5 border-white/10 rounded-xl text-center"
                           />
                         </div>
                      </div>
