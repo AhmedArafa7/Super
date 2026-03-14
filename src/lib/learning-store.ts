@@ -40,8 +40,10 @@ export interface Subject {
   allowedUserIds: string[] | null;
 }
 
-// مفتاح API لـ Google Drive - يجب إضافته في ملف .env
+// مفتاح API لـ Google Drive - يُنصح بعدم استخدامه مباشرة في الإنتاجية
 const DRIVE_API_KEY = process.env.NEXT_PUBLIC_DRIVE_API_KEY || "";
+// رابط الخادم الوسيط (Cloudflare Worker) المفضل لأسباب أمنية
+const DRIVE_PROXY_URL = process.env.NEXT_PUBLIC_DRIVE_PROXY_URL || "";
 
 /**
  * [STABILITY_ANCHOR: LEARNING_STORE_V4.3]
@@ -54,9 +56,14 @@ export const extractDriveId = (url: string) => {
 };
 
 export const fetchDriveMetadata = async (fileId: string) => {
-  if (!DRIVE_API_KEY) return null;
+  if (!DRIVE_PROXY_URL && !DRIVE_API_KEY) return null;
+  
   try {
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=name,size,mimeType,thumbnailLink,iconLink&key=${DRIVE_API_KEY}`);
+    const targetUrl = DRIVE_PROXY_URL
+      ? `${DRIVE_PROXY_URL}/drive/v3/files/${fileId}?fields=name,size,mimeType,thumbnailLink,iconLink`
+      : `https://www.googleapis.com/drive/v3/files/${fileId}?fields=name,size,mimeType,thumbnailLink,iconLink&key=${DRIVE_API_KEY}`;
+
+    const res = await fetch(targetUrl);
     const data = await res.json();
     if (data.error) return null;
     return data;
@@ -70,19 +77,29 @@ export const fetchDriveMetadata = async (fileId: string) => {
  * تم تحصينها لتعيد مصفوفة فارغة وتستخدم console.warn لمنع ظهور أخطاء UI في Next.js.
  */
 export const fetchDriveFolderFiles = async (folderId: string) => {
-  if (!DRIVE_API_KEY) {
-    console.warn("DRIVE_API_KEY_MISSING: يرجى إعداد مفتاح API في المتغيرات البيئية.");
+  if (!DRIVE_PROXY_URL && !DRIVE_API_KEY) {
+    console.warn("DRIVE_API_MISSING: يرجى إعداد NEXT_PUBLIC_DRIVE_PROXY_URL أو NEXT_PUBLIC_DRIVE_API_KEY.");
     return [];
   }
+  
+  if (!DRIVE_PROXY_URL) {
+      console.warn("SECURITY WARNING: استخدام NEXT_PUBLIC_DRIVE_API_KEY في الواجهة الأمامية أقل أماناً. ينصح باستخدام NEXT_PUBLIC_DRIVE_PROXY_URL.");
+  }
+
   try {
-    const res = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&fields=files(id,name,size,mimeType,webViewLink,thumbnailLink)&key=${DRIVE_API_KEY}`
-    );
+    const query = `'${folderId}'+in+parents+and+trashed=false`;
+    const fields = `files(id,name,size,mimeType,webViewLink,thumbnailLink)`;
+    
+    const targetUrl = DRIVE_PROXY_URL
+      ? `${DRIVE_PROXY_URL}/drive/v3/files?q=${query}&fields=${fields}`
+      : `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}&key=${DRIVE_API_KEY}`;
+
+    const res = await fetch(targetUrl);
     const data = await res.json();
     
     if (data.error) {
       // استخدام warn بدلاً من error لمنع تفعيل واجهة الخطأ في Next.js
-      console.warn("Google Drive API Notice:", data.error.message);
+      console.warn("Google Drive API Notice:", data.error.message || data.error);
       return [];
     }
     
