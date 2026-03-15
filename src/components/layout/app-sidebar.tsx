@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat,
-  BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell,
+  BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, Library,
   ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown, Clock, Tag, HeartPulse
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +42,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { id: "wallet", label: "المحفظة الرقمية", icon: Wallet, restricted: false },
   { id: "offers", label: "صندوق العروض", icon: Repeat, restricted: false },
   { id: "learning", label: "المكتبة المعرفية", icon: GraduationCap, restricted: false },
+  { id: "library", label: "المكتبة العامة", icon: Library, restricted: false },
   { id: "lab", label: "المختبر التجريبي", icon: Microscope, restricted: false },
   { id: "directory", label: "دليل المستخدمين", icon: Users, restricted: false },
   { id: "hisn", label: "حصن المسلم", icon: BookOpen, restricted: false },

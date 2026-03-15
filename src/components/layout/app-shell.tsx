@@ -27,6 +27,7 @@ import { DownloadCenter } from "@/components/features/download-center";
 import { TimeManagement } from "@/components/features/time-management";
 import { LocalDeals } from "@/components/features/local-deals";
 import { HealthView } from "@/components/features/health-view";
+import { LibraryView } from "@/components/features/library/library-view";
 import { getNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
@@ -150,6 +151,7 @@ export function AppShell() {
         if (['founder', 'cofounder', 'admin', 'management'].includes(user?.role || '')) return <AdminPanel />;
         return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
       case "learning": return <KnowledgeHub />;
+      case "library": return <LibraryView />;
       case "hisn": return <HisnAlMuslim />;
       case "notifications": return <NotificationsView onSmartRoute={() => { }} />;
       default: return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
