@@ -39,27 +39,44 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
     if (!url.includes('youtube.com') && !url.includes('youtu.be')) return;
     setIsFetching(true);
     try {
-      const response = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
+      // Append hl=en to try and bypass localized consent pages and get English metadata
+      const fetchUrl = url + (url.includes('?') ? '&' : '?') + 'hl=en&gl=US';
+      const response = await fetch(`/api/proxy?url=${encodeURIComponent(fetchUrl)}`);
       const html = await response.text();
       
+      // Look for the canonical title first
       const titleMatch = html.match(/<title>(.*?)<\/title>/);
-      if (titleMatch) {
-        setNewSubName(titleMatch[1].replace(' - YouTube', '').trim());
+      const extractedTitle = titleMatch ? titleMatch[1].replace(' - YouTube', '').trim() : "";
+      
+      // If we hit the consent page, the title will be "Before you continue to YouTube" or similar
+      if (extractedTitle && !extractedTitle.toLowerCase().includes('before you continue')) {
+        setNewSubName(extractedTitle);
+      } else {
+        // Try to get from meta tags if title is blocked
+        const metaTitle = html.match(/<meta name="title" content="(.*?)">/) || 
+                          html.match(/property="og:title" content="(.*?)">/);
+        if (metaTitle && !metaTitle[1].toLowerCase().includes('before you continue')) {
+          setNewSubName(metaTitle[1].replace(' - YouTube', '').trim());
+        }
       }
 
-      // استخراج ID القناة
+      // Improved Channel ID extraction
       const channelIdMatch = html.match(/"channelId":"(UC[a-zA-Z0-9_-]+)"/) || 
-                           html.match(/meta itemprop="channelId" content="(UC[a-zA-Z0-9_-]+)"/);
+                           html.match(/meta itemprop="channelId" content="(UC[a-zA-Z0-9_-]+)"/) ||
+                           html.match(/youtube\.com\/channel\/(UC[a-zA-Z0-9_-]+)/);
       
       if (channelIdMatch) {
         setNewSubId(channelIdMatch[1]);
       }
 
+      // Improved Avatar extraction
       const avatarMatch = html.match(/"avatar":{"thumbnails":\[{"url":"(https:\/\/yt3\.ggpht\.com\/.*?)"/) ||
-                          html.match(/property="og:image" content="(https:\/\/yt3\.ggpht\.com\/.*?)"/);
+                          html.match(/property="og:image" content="(https:\/\/yt3\.ggpht\.com\/.*?)"/) ||
+                          html.match(/"owner":{"videoOwnerRenderer":{"thumbnail":{"thumbnails":\[{"url":"(https:\/\/yt3\.ggpht\.com\/.*?)"/);
       
       if (avatarMatch) {
-        setNewSubAvatar(avatarMatch[1]);
+        // Cleanup URL escaped characters
+        setNewSubAvatar(avatarMatch[1].replace(/\\u0026/g, '&'));
       }
 
     } catch (e) {
