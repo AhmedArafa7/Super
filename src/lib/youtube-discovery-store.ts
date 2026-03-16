@@ -1,6 +1,7 @@
 'use client';
 
 import { FeedVideo } from "./youtube-feed-store";
+import { useDataUsageStore } from "./data-usage-store";
 
 /**
  * [STABILITY_ANCHOR: YOUTUBE_DISCOVERY_V1.0]
@@ -126,6 +127,7 @@ export const searchYouTube = async (query: string, sp?: string): Promise<FeedVid
   try {
     const response = await fetch(proxyUrl);
     const html = await response.text();
+    useDataUsageStore.getState().recordUsage(html.length, 'api');
     const data = extractInitialData(html);
 
     if (!data) return [];
@@ -163,6 +165,7 @@ export const fetchTrending = async (): Promise<FeedVideo[]> => {
   try {
     const response = await fetch(proxyUrl);
     const html = await response.text();
+    useDataUsageStore.getState().recordUsage(html.length, 'api');
     const data = extractInitialData(html);
 
     if (!data) return [];
@@ -205,6 +208,7 @@ export const fetchVideoDetails = async (videoId: string): Promise<VideoDetails |
   try {
     const response = await fetch(proxyUrl);
     const html = await response.text();
+    useDataUsageStore.getState().recordUsage(html.length, 'api');
     const data = extractInitialData(html);
 
     if (!data) return null;

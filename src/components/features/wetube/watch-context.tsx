@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { VideoDetails, YouTubeComment } from "@/lib/youtube-discovery-store";
 import { ProSettings, DEFAULT_PRO_SETTINGS, checkProOwnership } from "@/lib/wetube-pro-engine";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useDataUsageStore } from "@/lib/data-usage-store";
 
 interface WatchContextType {
   video: any;
@@ -61,6 +62,34 @@ export function WatchProvider({ children, initialVideo, initialQuality }: {
   const updateProSettings = (updates: Partial<ProSettings>) => {
     setProSettings(prev => ({ ...prev, ...updates }));
   };
+
+  // تقدير استهلاك البيانات أثناء المشاهدة
+  useEffect(() => {
+    if (isLoading) return;
+
+    const interval = setInterval(() => {
+        // Mbps estimations for different qualities
+        const qualityMap: Record<string, number> = {
+            "144": 0.1,
+            "240": 0.3,
+            "360": 0.5,
+            "480": 1.0,
+            "720": 2.5,
+            "1080": 5.0,
+            "1440": 10.0,
+            "2160": 20.0
+        };
+
+        const mbps = qualityMap[selectedQuality] || 1.0;
+        // bytes per 5 seconds: (Mbps * 1024 * 1024 / 8) * 5
+        const bytes = Math.floor((mbps * 1024 * 1024 / 8) * 2); // 2 seconds for more granularity if we want, or adjust interval
+        
+        // We track "online" status later if needed, for now assume active if mounted and not loading
+        useDataUsageStore.getState().recordUsage(bytes, 'video');
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [selectedQuality, isLoading]);
 
   return (
     <WatchContext.Provider value={{

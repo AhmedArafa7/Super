@@ -1,5 +1,6 @@
-
 'use client';
+
+import { useDataUsageStore } from "./data-usage-store";
 
 /**
  * [STABILITY_ANCHOR: YOUTUBE_FEED_V3.0]
@@ -28,6 +29,7 @@ export const fetchChannelVideos = async (channelId: string): Promise<FeedVideo[]
   try {
     const response = await fetch(proxyUrl);
     const xmlText = await response.text();
+    useDataUsageStore.getState().recordUsage(xmlText.length, 'api');
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, "text/xml");
     

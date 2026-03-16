@@ -12,6 +12,15 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useDataUsageStore } from "@/lib/data-usage-store";
+
+const formatBytes = (bytes: number) => {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+};
 
 interface QuickActionProps {
   icon: React.ElementType;
@@ -40,6 +49,8 @@ const QuickActionCard = ({ icon: Icon, title, desc, onClick, color }: QuickActio
 );
 
 export function DashboardOverview({ user, wallet, usedSpace, storageLimitMB, storagePercentage, cachedAssets, onNavigate }: any) {
+  const usage = useDataUsageStore();
+
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -109,6 +120,67 @@ export function DashboardOverview({ user, wallet, usedSpace, storageLimitMB, sto
           </Button>
         </Card>
       </div>
+
+      {/* استهلاك البيانات */}
+      <Card className="glass border-white/5 rounded-[2.5rem] p-8 overflow-hidden relative">
+        <div className="absolute top-0 left-0 size-64 bg-emerald-500/5 blur-[80px] -ml-32 -mt-32" />
+        <div className="flex items-center justify-between mb-8 flex-row-reverse">
+            <h3 className="text-xl font-bold text-white flex items-center gap-3 flex-row-reverse">
+                <Zap className="text-emerald-400" />
+                مركز استهلاك البيانات
+            </h3>
+            <div className="flex gap-2">
+                <Badge variant="outline" className="border-white/10 text-muted-foreground">تحديث لحظي</Badge>
+                <Badge className="bg-emerald-600">نشط</Badge>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white/5 p-6 rounded-[2rem] border border-white/5 text-right">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-1">الجلسة الحالية</p>
+                <h4 className="text-3xl font-black text-white">{formatBytes(usage.sessionBytes)}</h4>
+                <p className="text-[9px] text-emerald-400 mt-2 italic">يتم تصفيره عند إغلاق الموقع</p>
+            </div>
+            
+            <div className="bg-white/5 p-6 rounded-[2rem] border border-white/5 text-right">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-1">الاستهلاك اليومي</p>
+                <h4 className="text-3xl font-black text-white">{formatBytes(usage.dailyBytes)}</h4>
+                <div className="mt-4 space-y-2">
+                    <div className="flex justify-between text-[8px] font-bold text-muted-foreground">
+                        <span>{formatBytes(usage.dailyBytes)} / 5 GB</span>
+                        <span>معدل الاستهلاك</span>
+                    </div>
+                    <Progress value={Math.min((usage.dailyBytes / (5 * 1024 * 1024 * 1024)) * 100, 100)} className="h-1 bg-white/10" />
+                </div>
+            </div>
+
+            <div className="bg-white/5 p-6 rounded-[2rem] border border-white/5 text-right relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <Video className="size-12" />
+                </div>
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-1">تقدير استهلاك الفيديو</p>
+                <h4 className="text-3xl font-black text-indigo-400">{formatBytes(usage.videoEstimatedBytes)}</h4>
+                <p className="text-[9px] text-muted-foreground mt-2 leading-relaxed">
+                    تقدير تقريبي بناءً على جودة ومدة المشاهدة عبر المشغل المدمج.
+                </p>
+            </div>
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between flex-row-reverse">
+            <div className="flex items-center gap-4 flex-row-reverse">
+                <div className="text-right">
+                    <p className="text-[10px] text-muted-foreground">إجمالي الاستهلاك على هذا الجهاز</p>
+                    <p className="text-lg font-bold text-white">{formatBytes(usage.totalBytes)}</p>
+                </div>
+                <div className="size-10 rounded-xl bg-white/5 flex items-center justify-center">
+                    <HardDrive className="size-5 text-muted-foreground" />
+                </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground italic">
+                * جميع البيانات يتم تخزينها محلياً ولا يتم مشاركتها مع أي جهة خارجية.
+            </p>
+        </div>
+      </Card>
     </div>
   );
 }
