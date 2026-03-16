@@ -44,7 +44,7 @@ export function VaultExplorer({
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [activeTab, setActiveTab] = useState<'all' | 'recent' | 'favorites'>('all');
-  const [isKeyMissing, setIsKeyKeyMissing] = useState(false);
+  const [isKeyMissing, setIsKeyMissing] = useState(false);
 
   useEffect(() => {
     loadRealDriveData();
@@ -52,13 +52,14 @@ export function VaultExplorer({
 
   const loadRealDriveData = async () => {
     setIsLoading(true);
-    setIsKeyKeyMissing(false);
+    setIsKeyMissing(false);
     try {
       const apiKey = process.env.NEXT_PUBLIC_DRIVE_API_KEY;
+      const proxyUrl = process.env.NEXT_PUBLIC_DRIVE_PROXY_URL;
       
-      // التحقق من وجود المفتاح قبل المحاولة
-      if (!apiKey || apiKey === 'YOUR_GOOGLE_DRIVE_API_KEY') {
-        setIsKeyKeyMissing(true);
+      // التحقق من وجود وسيلة اتصال (مفتاح أو بروكسي)
+      if (!proxyUrl && (!apiKey || apiKey === 'YOUR_GOOGLE_DRIVE_API_KEY')) {
+        setIsKeyMissing(true);
         setAssets([]);
         setIsLoading(false);
         return;
