@@ -16,6 +16,7 @@ export interface Video {
   views: string;
   author: string;
   authorId: string;
+  channelAvatar?: string;
   time: string;
   status: VideoStatus;
   visibility: Visibility;

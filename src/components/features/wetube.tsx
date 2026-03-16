@@ -185,6 +185,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         title: uploadData.title,
         author: user.name,
         authorId: user.id,
+        channelAvatar: user.avatar_url,
         thumbnail: "", // Real thumbnail is parsed automatically by the cards for youtube
         time: source === 'youtube' ? "YouTube" : "Vault",
         status: user.role === 'admin' ? 'published' : 'pending_review',
@@ -203,6 +204,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         title: uploadData.title, 
         author: user.name, 
         authorId: user.id, 
+        channelAvatar: user.avatar_url,
         status: user.role === 'admin' ? 'published' : 'pending_review',
         productIds: uploadData.productIds,
         productDisplayMode: uploadData.productDisplayMode
@@ -253,7 +255,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
 
     const platformVids = videos.filter(v => v.status === 'published').map(v => ({
       ...v,
-      source: 'platform',
+      source: v.source || 'platform',
       thumbnail: isFakeThumb(v.thumbnail) ? null : v.thumbnail
     }));
 
