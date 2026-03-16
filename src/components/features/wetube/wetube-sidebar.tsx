@@ -13,6 +13,7 @@ interface WeTubeSidebarProps {
   activeTab: string;
   setActiveTab: (tab: any) => void;
   subscriptions: YouTubeSubscription[];
+  onChannelClick?: (id: string, name: string, avatar?: string) => void;
   variant?: 'permanent' | 'overlay';
 }
 
@@ -36,7 +37,7 @@ const EXPLORE_LINKS = [
   { icon: Trophy, label: 'رياضة' },
 ];
 
-export function WeTubeSidebar({ isSidebarOpen, activeTab, setActiveTab, subscriptions, variant = 'permanent' }: WeTubeSidebarProps) {
+export function WeTubeSidebar({ isSidebarOpen, activeTab, setActiveTab, subscriptions, onChannelClick, variant = 'permanent' }: WeTubeSidebarProps) {
   if (!isSidebarOpen) {
     if (variant === 'overlay') return null;
     return (
@@ -114,7 +115,11 @@ export function WeTubeSidebar({ isSidebarOpen, activeTab, setActiveTab, subscrip
           <p className="px-4 py-2 text-sm text-muted-foreground">لا توجد اشتراكات</p>
         ) : (
           subscriptions.map((sub: any) => (
-            <button key={sub.id} onClick={() => setActiveTab('subs')} className="flex items-center gap-3 w-full p-2 px-3 rounded-lg hover:bg-white/10 transition-colors group">
+            <button 
+              key={sub.id} 
+              onClick={() => onChannelClick?.(sub.channelId, sub.channelName, sub.avatarUrl)} 
+              className="flex items-center gap-3 w-full p-2 px-3 rounded-lg hover:bg-white/10 transition-colors group"
+            >
               <div className="size-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-[10px] font-bold shrink-0 shadow-sm border border-white/5 overflow-hidden">
                 {sub.avatarUrl ? <img src={sub.avatarUrl} className="size-full object-cover" /> : (sub.channelName?.charAt(0) || "?")}
               </div>

@@ -19,11 +19,12 @@ import { useWatch } from "./watch-context";
 
 interface WatchSidebarProps {
     relatedVideos: any[];
+    onChannelClick?: (id: string, name: string, avatar?: string) => void;
 }
 
 const CATEGORIES = ["الكل", "من نفس القناة", "ذات صلة", "حديثاً"];
 
-export function WatchSidebar({ relatedVideos }: WatchSidebarProps) {
+export function WatchSidebar({ relatedVideos, onChannelClick }: WatchSidebarProps) {
     const { setActiveVideo } = useStreamStore();
     const { video: currentVideo } = useWatch();
     
@@ -123,7 +124,15 @@ export function WatchSidebar({ relatedVideos }: WatchSidebarProps) {
                             </div>
                             <div className="flex flex-col flex-1 py-0.5 relative pr-1 overflow-hidden">
                                 <h4 dir="auto" className="text-sm font-medium text-foreground line-clamp-2 leading-snug group-hover:text-blue-400 transition-colors">{rv.title}</h4>
-                                <p className="text-xs text-muted-foreground mt-1 hover:text-foreground transition-colors truncate">{rv.author}</p>
+                                <p 
+                                    className="text-xs text-muted-foreground mt-1 hover:text-foreground transition-colors truncate cursor-pointer w-fit"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (rv.authorId) onChannelClick?.(rv.authorId, rv.author, rv.channelAvatar);
+                                    }}
+                                >
+                                    {rv.author}
+                                </p>
                                 <div className="text-xs text-muted-foreground flex items-center gap-1">
                                     {rv.views !== undefined && (
                                         <>

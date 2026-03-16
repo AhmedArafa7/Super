@@ -29,7 +29,7 @@ const getYoutubeId = (url?: string) => {
  * [STABILITY_ANCHOR: YOUTUBE_VIDEO_CARD_V1.1]
  * تصنيف واقعي لبيانات الفيديو، إزالة مدة 10:24 الوهمية، وتجميل حالة الفيديوهات بدون صورة مصغرة.
  */
-export function VideoCard({ video, isActive, isCached, currentUser, onClick, onSync, onDelete }: any) {
+export function VideoCard({ video, isActive, isCached, currentUser, onClick, onSync, onDelete, onChannelClick }: any) {
   const ytId = video.source === 'youtube' ? getYoutubeId(video.externalUrl) : null;
 
   // Clean off the fake data fallback (netflix/picsum) that used to be here
@@ -127,7 +127,13 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
       {/* Metadata Container */}
       <div className="flex gap-3 pr-2 flex-row-reverse">
         {/* Channel Avatar */}
-        <div className="mt-1 shrink-0">
+        <div 
+          className="mt-1 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (video.authorId) onChannelClick?.(video.authorId, video.author, video.channelAvatar);
+          }}
+        >
           <div className="size-9 rounded-full bg-[#272727] overflow-hidden flex items-center justify-center text-white/50 text-[10px]">
             {video.channelAvatar ? (
               <img src={video.channelAvatar} className="size-full object-cover" alt={video.author} />
@@ -143,7 +149,15 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
             {video.title}
           </h3>
           <div className="text-[14px] text-muted-foreground flex flex-col">
-            <span className="truncate hover:text-foreground transition-colors">{video.author || "مستخدم مخفي"}</span>
+            <span 
+              className="truncate hover:text-foreground transition-colors cursor-pointer w-fit"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (video.authorId) onChannelClick?.(video.authorId, video.author, video.channelAvatar);
+              }}
+            >
+              {video.author || "مستخدم مخفي"}
+            </span>
             <div className="flex items-center justify-end gap-1 flex-row-reverse truncate">
               <span>{views} مشاهدة</span>
               <span className="text-[10px] mx-0.5">•</span>

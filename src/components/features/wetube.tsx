@@ -59,6 +59,10 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
+  const [activeChannel, setActiveChannel] = useState<{ id: string, name: string, avatar?: string } | null>(null);
+  const [channelVideos, setChannelVideos] = useState<FeedVideo[]>([]);
+  const [isChannelLoading, setIsChannelLoading] = useState(false);
+
   // Auto-sync logic (kept from original)
   const runAutoSync = useCallback(async (subs: YouTubeSubscription[], feed: FeedVideo[]) => {
     const favorites = subs.filter(s => s.isFavorite);
@@ -153,6 +157,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       const results = await searchYouTube(q, sp || searchSp);
       setSearchResults(results);
       setActiveTab('home');
+      setActiveChannel(null); // Clear channel view on search
     } catch (e) {
       toast({ variant: "destructive", title: "فشل البحث" });
     } finally {
@@ -207,9 +212,29 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }
   };
 
+  const handleChannelClick = async (id: string, name: string, avatar?: string) => {
+    setActiveVideo(null);
+    setActiveTab('home');
+    setSearchResults([]);
+    setSearchQuery("");
+    setActiveChannel({ id, name, avatar });
+    setIsChannelLoading(true);
+    try {
+      const { fetchChannelVideos } = await import("@/lib/youtube-feed-store");
+      const vids = await fetchChannelVideos(id);
+      setChannelVideos(vids);
+    } catch (e) {
+      toast({ variant: "destructive", title: "فشل تحميل محتوى القناة" });
+    } finally {
+      setIsChannelLoading(false);
+    }
+  };
+
+
   // Merge Platform Videos & Feed Videos for "Home"
   const allHomeContent = useMemo(() => {
     if (searchResults.length > 0 && searchQuery) return searchResults;
+    if (activeChannel) return channelVideos;
 
     const isFakeThumb = (url?: string) => !url || url.includes('photo-1611162617474-5b21e879e113') || url.includes('picsum.photos');
 
@@ -284,6 +309,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
               onClose={() => setActiveVideo(null)}
               relatedVideos={allHomeContent.filter(v => v.id !== activeVideo.id).slice(0, 15)}
               onSync={handleToggleLocal}
+              onChannelClick={handleChannelClick}
               isCached={cachedAssets.some(a => a.id === `video-${activeVideo.id}`)}
             />
           </div>
@@ -319,11 +345,14 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
         isMobileSearchOpen={isMobileSearchOpen} setIsMobileSearchOpen={setIsMobileSearchOpen}
         onOpenVault={onOpenVault} user={user} onUpload={handleUpload}
-        onSearch={handleSearch} onLogoClick={() => setActiveVideo(null)}
+        onSearch={handleSearch} onLogoClick={() => { setActiveVideo(null); setActiveChannel(null); }}
       />
 
       <div className="flex flex-1 overflow-hidden mt-4 gap-4 h-[calc(100vh-140px)]">
-        <WeTubeSidebar isSidebarOpen={isSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} subscriptions={subscriptions} />
+        <WeTubeSidebar 
+          isSidebarOpen={isSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} 
+          subscriptions={subscriptions} onChannelClick={handleChannelClick} 
+        />
 
         <main className="flex-1 overflow-y-auto w-full glass rounded-3xl border border-white/5 relative flex flex-col hide-scroll">
           {/* Categories & Search Filters Wrapper */}
@@ -391,6 +420,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                     isCached={cachedAssets.some(a => a.id === `video-${v.id}`)}
                     currentUser={user} onClick={() => setActiveVideo(v)}
                     onSync={handleToggleLocal} onDelete={deleteVideo}
+                    onChannelClick={handleChannelClick}
                   />
                 ))}
               </div>
@@ -407,7 +437,32 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                     <button onClick={() => setIsAddModalOpen(true)} className="text-blue-400 text-sm font-bold w-full sm:w-auto px-3 py-2 hover:bg-blue-500/10 rounded-full transition-colors truncate">إضافة قناة</button>
                   </div>
                 </div>
-                {isFeedLoading ? (
+                {activeChannel && (
+                  <div className="flex items-center gap-6 mb-8 pb-6 border-b border-white/10 pr-4 flex-row-reverse">
+                    <div className="size-20 rounded-full bg-white/5 overflow-hidden border-2 border-white/10">
+                      {activeChannel.avatar ? (
+                        <img src={activeChannel.avatar} className="size-full object-cover" alt={activeChannel.name} />
+                      ) : (
+                        <div className="size-full flex items-center justify-center text-2xl font-bold opacity-30">{activeChannel.name.charAt(0)}</div>
+                      )}
+                    </div>
+                    <div className="flex flex-col text-right">
+                      <h2 className="text-3xl font-bold text-white mb-2">{activeChannel.name}</h2>
+                      <div className="flex items-center gap-4 text-muted-foreground text-sm flex-row-reverse">
+                        <span className="bg-white/10 px-3 py-1 rounded-full text-white">مشترك</span>
+                        <span>{channelVideos.length} فيديو</span>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => setActiveChannel(null)}
+                      className="mr-auto px-4 py-2 rounded-full border border-white/10 hover:bg-white/5 transition-colors text-sm"
+                    >
+                      إغلاق القناة
+                    </button>
+                  </div>
+                )}
+
+                {isChannelLoading || isFeedLoading ? (
                   <div className="flex flex-col items-center justify-center py-20">
                     <Loader2 className="size-10 animate-spin text-white/50 mb-4" />
                   </div>
@@ -423,6 +478,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                         key={`feed-${v.id}-${i}`} video={{ ...v, externalUrl: v.url, time: "اليوم" } as any}
                         isCached={cachedAssets.some(a => a.id === `video-${v.id}`)}
                         onSync={handleToggleLocal} onClick={() => setActiveVideo({ ...v, externalUrl: v.url, source: 'youtube' } as any)}
+                        onChannelClick={handleChannelClick}
                       />
                     ))}
                   </div>
@@ -447,6 +503,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                           key={`saved-${asset.id}-${i}`} video={vid as any}
                           isCached={true} onSync={handleToggleLocal}
                           onClick={() => setActiveVideo(vid as any)}
+                          onChannelClick={handleChannelClick}
                         />
                       );
                     })}
@@ -468,6 +525,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                               video={{ id: h.videoId, title: h.title, thumbnail: h.thumbnail, author: h.author, channelAvatar: h.channelAvatar, source: 'youtube', time: "شوهد مؤخراً" } as any}
                               isCached={cachedAssets.some(a => a.id === `video-${h.videoId}`)} 
                               onSync={handleToggleLocal}
+                              onChannelClick={handleChannelClick}
                               onClick={() => setActiveVideo({ id: h.videoId, title: h.title, thumbnail: h.thumbnail, author: h.author, source: 'youtube' } as any)}
                           />
                       ))}
@@ -503,9 +561,23 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                                 <div className="flex-1 text-right">
                                     <p className="font-bold text-sm line-clamp-2 mb-1 group-hover:text-indigo-400 transition-colors">{v.title}</p>
                                     <div className="flex items-center gap-2 justify-end text-[10px] text-muted-foreground">
-                                        <span>• {v.author}</span>
+                                        <span 
+                                            className="hover:text-white transition-colors cursor-pointer"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleChannelClick(v.authorId, v.author, v.channelAvatar);
+                                            }}
+                                        >
+                                            • {v.author}
+                                        </span>
                                         {v.channelAvatar && (
-                                            <div className="size-4 rounded-full overflow-hidden border border-white/10 shrink-0">
+                                            <div 
+                                                className="size-4 rounded-full overflow-hidden border border-white/10 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleChannelClick(v.authorId, v.author, v.channelAvatar);
+                                                }}
+                                            >
                                                 <img src={v.channelAvatar} className="size-full object-cover" />
                                             </div>
                                         )}

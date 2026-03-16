@@ -30,7 +30,7 @@ import { WatchProductShelf } from "./watch-product-shelf";
  * [STABILITY_ANCHOR: WETUBE_WATCH_VIEW_V3.0]
  * Refactored container for the watch view using Context API.
  */
-function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached }: any) {
+function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached, onChannelClick }: any) {
     const { cachedAssets } = useGlobalStorage();
     const { 
         video, 
@@ -152,7 +152,7 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached }: an
             </div>
 
             {/* Right Column: Related Videos */}
-            <WatchSidebar relatedVideos={relatedVideos} />
+            <WatchSidebar relatedVideos={relatedVideos} onChannelClick={onChannelClick} />
 
             {/* Warning Dialogs */}
             <AlertDialog open={showDataWarningDialog} onOpenChange={(o) => !o && abortQualityChange()}>

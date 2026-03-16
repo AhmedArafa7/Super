@@ -108,7 +108,8 @@ function parseVideoRenderer(renderer: any): FeedVideo | null {
       published: published || views,
       source: 'youtube',
       isShorts: false, // سيتم التحقق لاحقاً إذا كان الرابط shorts
-      channelAvatar
+      channelAvatar,
+      type: renderer.videoId ? 'video' : 'channel'
     };
   } catch (e) {
     return null;
