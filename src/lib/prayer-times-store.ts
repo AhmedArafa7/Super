@@ -30,6 +30,7 @@ interface PrayerState {
   method: number;
   asrSchool: number; // 0 for Shafi/Standard, 1 for Hanafi
   location: { city: string; country: string } | null;
+  lastUpdated: string | null;
   isLoading: boolean;
   
   setMethod: (method: number) => void;
@@ -46,6 +47,7 @@ export const usePrayerStore = create<PrayerState>()(
       method: 5, // Default to Egyptian Survey Authority
       asrSchool: 0,
       location: null,
+      lastUpdated: null,
       isLoading: false,
 
       setMethod: (method) => {
@@ -59,12 +61,23 @@ export const usePrayerStore = create<PrayerState>()(
       },
 
       fetchTimings: async () => {
-        set({ isLoading: true });
-        const { method, asrSchool } = get();
+        const { timings, method, asrSchool } = get();
+        
+        // Show loading only if we have no cached data
+        if (!timings) {
+          set({ isLoading: true });
+        } else {
+          // If we have data, mark as loading but keep the UI informative
+          set({ isLoading: true });
+        }
+
         try {
           // محاولة الحصول على الموقع الجغرافي
           const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+            navigator.geolocation.getCurrentPosition(resolve, reject, { 
+              timeout: 10000,
+              enableHighAccuracy: false // Use faster positioning for background refresh
+            });
           });
 
           const { latitude, longitude } = position.coords;
@@ -75,18 +88,26 @@ export const usePrayerStore = create<PrayerState>()(
             set({ 
               timings: data.data.timings, 
               location: { city: data.data.meta.timezone, country: "" },
+              lastUpdated: new Date().toISOString(),
               isLoading: false 
             });
             get().calculateNextPrayer();
           }
         } catch (err) {
+          console.warn("Geolocation failed, falling back to Cairo:", err);
           // العودة للإعداد الافتراضي (القاهرة) إذا فشل تحديد الموقع
           const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=Cairo&country=Egypt&method=${method}&school=${asrSchool}`);
           const data = await res.json();
           if (data.code === 200) {
-            set({ timings: data.data.timings, isLoading: false });
+            set({ 
+              timings: data.data.timings, 
+              lastUpdated: new Date().toISOString(),
+              isLoading: false 
+            });
             get().calculateNextPrayer();
           }
+        } finally {
+          set({ isLoading: false });
         }
       },
 
@@ -127,7 +148,13 @@ export const usePrayerStore = create<PrayerState>()(
     }),
     {
       name: 'nexus-prayer-settings',
-      partialize: (state) => ({ method: state.method, asrSchool: state.asrSchool }),
+      partialize: (state) => ({ 
+        method: state.method, 
+        asrSchool: state.asrSchool,
+        timings: state.timings,
+        location: state.location,
+        lastUpdated: state.lastUpdated
+      }),
     }
   )
 );

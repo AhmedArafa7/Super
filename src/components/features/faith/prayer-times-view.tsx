@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
  */
 export function PrayerTimesView() {
   const { 
-    timings, nextPrayer, isLoading, method, asrSchool,
+    timings, nextPrayer, isLoading, method, asrSchool, lastUpdated,
     fetchTimings, calculateNextPrayer, setMethod, setAsrSchool 
   } = usePrayerStore();
 
@@ -34,6 +34,12 @@ export function PrayerTimesView() {
     { id: 'Maghrib', label: 'المغرب' },
     { id: 'Isha', label: 'العشاء' },
   ];
+
+  const formattedDate = lastUpdated 
+    ? new Intl.DateTimeFormat('ar-EG', { 
+        month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' 
+      }).format(new Date(lastUpdated))
+    : null;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -69,11 +75,20 @@ export function PrayerTimesView() {
       {/* العداد التنازلي الرئيسي */}
       <Card className="glass border-primary/20 rounded-[3rem] p-10 relative overflow-hidden shadow-2xl bg-primary/5">
         <div className="absolute top-0 right-0 size-64 bg-primary/10 blur-[100px] -mr-32 -mt-32" />
+        
+        {/* مؤشر التحيث في الخلفية */}
+        {isLoading && timings && (
+          <div className="absolute top-6 left-6 flex items-center gap-2 animate-pulse">
+            <Loader2 className="size-3 animate-spin text-primary" />
+            <span className="text-[8px] font-bold text-primary uppercase tracking-tighter">Updating Data...</span>
+          </div>
+        )}
+
         <div className="relative z-10 flex flex-col items-center text-center">
-          {isLoading ? (
+          {isLoading && !timings ? (
             <div className="py-10 flex flex-col items-center gap-4">
               <Loader2 className="size-12 animate-spin text-primary" />
-              <p className="text-xs font-bold text-muted-foreground uppercase">جاري إعادة المعايرة...</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">تحديد الموقع الزمني...</p>
             </div>
           ) : (
             <>
@@ -86,6 +101,13 @@ export function PrayerTimesView() {
               <p className="text-muted-foreground text-sm flex items-center gap-2">
                 <Clock className="size-4" /> متبقي على رفع الأذان
               </p>
+              
+              {formattedDate && (
+                 <div className="mt-6 flex items-center gap-2 text-[10px] text-muted-foreground/60 font-medium">
+                    <MapPin className="size-3" />
+                    <span>آخر تحديث: {formattedDate}</span>
+                 </div>
+              )}
             </>
           )}
         </div>
