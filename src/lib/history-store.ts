@@ -11,6 +11,7 @@ export interface HistoryItem {
   author: string;
   watchedAt: string;
   userId: string;
+  channelAvatar?: string;
 }
 
 export const addToHistory = async (userId: string, video: any) => {
@@ -26,6 +27,7 @@ export const addToHistory = async (userId: string, video: any) => {
       title: video.title,
       thumbnail: video.thumbnail || `https://img.youtube.com/vi/${video.id}/hqdefault.jpg`,
       author: video.author,
+      channelAvatar: video.channelAvatar || "",
       userId: userId,
       watchedAt: new Timestamp(Math.floor(Date.now() / 1000), 0)
     });
@@ -56,7 +58,8 @@ export const getHistory = async (userId: string, count: number = 50): Promise<Hi
         thumbnail: data.thumbnail,
         author: data.author,
         watchedAt: data.watchedAt?.toDate().toISOString() || new Date().toISOString(),
-        userId: data.userId
+        userId: data.userId,
+        channelAvatar: data.channelAvatar
       };
     });
   } catch (e) {

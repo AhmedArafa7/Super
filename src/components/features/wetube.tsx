@@ -90,7 +90,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     if (user?.id) {
       const unsubscribeSubs = listenToSubscriptions(user.id, (subs) => {
         setSubscriptions(subs);
-        syncFeed(subs);
+        // Removed: syncFeed(subs); // Optimization: Fetch on demand instead of auto-sync
       });
       
       const loadHistory = async () => {
@@ -107,6 +107,13 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }
   }, [user?.id]);
 
+  // Performance Optimization: Trigger feed sync only when relevant tabs are accessed
+  useEffect(() => {
+    if ((activeTab === 'subs' || activeTab === 'notifications') && feedVideos.length === 0 && subscriptions.length > 0 && !isFeedLoading) {
+      syncFeed(subscriptions);
+    }
+  }, [activeTab, feedVideos.length, subscriptions, isFeedLoading]);
+
   const syncFeed = async (subs: YouTubeSubscription[]) => {
     if (subs.length === 0) {
       setFeedVideos([]);
@@ -115,8 +122,12 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     setIsFeedLoading(true);
     try {
       const feed = await fetchAllSubscriptionsFeed(subs.map(s => s.channelId));
-      setFeedVideos(feed);
-      runAutoSync(subs, feed);
+      const enrichedFeed = feed.map(v => {
+        const sub = subs.find(s => s.channelId === v.authorId);
+        return { ...v, channelAvatar: sub?.avatarUrl };
+      });
+      setFeedVideos(enrichedFeed);
+      runAutoSync(subs, enrichedFeed);
     } catch (e) {
       console.error("Feed Sync Failure", e);
     } finally {
@@ -209,7 +220,17 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }));
 
     const feedVids = feedVideos.map(v => ({ ...v, externalUrl: v.url, time: "حديثاً", source: 'youtube' }));
-    const trendingVids = trendingVideos.map(v => ({ ...v, externalUrl: v.url, time: "رائج", source: 'youtube' }));
+
+    const trendingVids = trendingVideos.map(v => {
+      const sub = subscriptions.find(s => s.channelId === v.authorId);
+      return { 
+        ...v, 
+        externalUrl: v.url, 
+        time: "رائج", 
+        source: 'youtube',
+        channelAvatar: v.channelAvatar || sub?.avatarUrl 
+      };
+    });
 
     let combined = [...platformVids, ...feedVids, ...trendingVids];
     
@@ -444,7 +465,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                       {history.map((h, i) => (
                           <VideoCard
                               key={`hist-${h.id}-${i}`} 
-                              video={{ id: h.videoId, title: h.title, thumbnail: h.thumbnail, author: h.author, source: 'youtube', time: "شوهد مؤخراً" } as any}
+                              video={{ id: h.videoId, title: h.title, thumbnail: h.thumbnail, author: h.author, channelAvatar: h.channelAvatar, source: 'youtube', time: "شوهد مؤخراً" } as any}
                               isCached={cachedAssets.some(a => a.id === `video-${h.videoId}`)} 
                               onSync={handleToggleLocal}
                               onClick={() => setActiveVideo({ id: h.videoId, title: h.title, thumbnail: h.thumbnail, author: h.author, source: 'youtube' } as any)}
@@ -483,6 +504,11 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                                     <p className="font-bold text-sm line-clamp-2 mb-1 group-hover:text-indigo-400 transition-colors">{v.title}</p>
                                     <div className="flex items-center gap-2 justify-end text-[10px] text-muted-foreground">
                                         <span>• {v.author}</span>
+                                        {v.channelAvatar && (
+                                            <div className="size-4 rounded-full overflow-hidden border border-white/10 shrink-0">
+                                                <img src={v.channelAvatar} className="size-full object-cover" />
+                                            </div>
+                                        )}
                                         <span className="bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded">فيديو جديد</span>
                                     </div>
                                 </div>

@@ -96,6 +96,7 @@ function parseVideoRenderer(renderer: any): FeedVideo | null {
     const authorId = renderer.ownerText?.runs[0].navigationEndpoint?.browseEndpoint?.browseId || "";
     const published = renderer.publishedTimeText?.simpleText || renderer.videoInfo?.runs?.[0]?.text || "";
     const views = renderer.viewCountText?.simpleText || renderer.shortViewCountText?.simpleText || "";
+    const channelAvatar = renderer.channelThumbnail?.thumbnails?.[0]?.url;
 
     return {
       id: videoId,
@@ -106,7 +107,8 @@ function parseVideoRenderer(renderer: any): FeedVideo | null {
       authorId,
       published: published || views,
       source: 'youtube',
-      isShorts: false // سيتم التحقق لاحقاً إذا كان الرابط shorts
+      isShorts: false, // سيتم التحقق لاحقاً إذا كان الرابط shorts
+      channelAvatar
     };
   } catch (e) {
     return null;

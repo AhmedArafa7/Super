@@ -16,6 +16,7 @@ export interface FeedVideo {
   published: string;
   source: 'youtube';
   isShorts: boolean;
+  channelAvatar?: string;
 }
 
 export const fetchChannelVideos = async (channelId: string): Promise<FeedVideo[]> => {
