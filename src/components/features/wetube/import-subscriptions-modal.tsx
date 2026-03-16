@@ -18,7 +18,7 @@ import { linkYouTubeAccount } from "@/lib/auth/providers";
 import { fetchMyChannelInfo } from "@/lib/youtube-auth-service";
 import { updateUserProfile } from "@/lib/auth/service";
 import { Globe, ShieldCheck, Youtube } from "lucide-react";
-import { useWatch } from "./watch-context";
+import { useAuth } from "@/components/auth/auth-provider";
 
 interface ImportSubscriptionsModalProps {
     isOpen: boolean;
@@ -32,7 +32,7 @@ interface ImportSubscriptionsModalProps {
  */
 export function ImportSubscriptionsModal({ isOpen, onOpenChange, userId }: ImportSubscriptionsModalProps) {
     const { toast } = useToast();
-    const { setYoutubeToken } = useWatch();
+    const { setYoutubeToken } = useAuth();
     const [isImporting, setIsImporting] = useState(false);
     const [progress, setProgress] = useState(0);
     const [total, setTotal] = useState(0);

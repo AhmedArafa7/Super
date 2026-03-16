@@ -18,6 +18,8 @@ interface AuthContextType {
   register: (username: string, name: string, password?: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
+  youtubeToken: string | null;
+  setYoutubeToken: (token: string | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,8 +27,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [youtubeToken, setYoutubeToken] = useState<string | null>(null);
 
   useEffect(() => {
+    // استعادة توكن يوتيوب من sessionStorage إذا وجد
+    const savedToken = sessionStorage.getItem('yt_access_token');
+    if (savedToken) setYoutubeToken(savedToken);
+
     const { auth } = initializeFirebase();
     
     // مراقبة حالة Firebase Auth - المصدر الوحيد للحقيقة
@@ -129,7 +136,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loginWithGithub,
       register, 
       logout, 
-      isLoading: loading 
+      isLoading: loading,
+      youtubeToken,
+      setYoutubeToken: (token: string | null) => {
+        setYoutubeToken(token);
+        if (token) sessionStorage.setItem('yt_access_token', token);
+        else sessionStorage.removeItem('yt_access_token');
+      }
     }}>
       {!loading && children}
     </AuthContext.Provider>

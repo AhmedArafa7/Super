@@ -26,8 +26,6 @@ interface WatchContextType {
   isPro: boolean;
   proSettings: ProSettings;
   updateProSettings: (s: Partial<ProSettings>) => void;
-  youtubeToken: string | null;
-  setYoutubeToken: (token: string | null) => void;
 }
 
 const WatchContext = createContext<WatchContextType | undefined>(undefined);
@@ -49,13 +47,8 @@ export function WatchProvider({ children, initialVideo, initialQuality }: {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isPro, setIsPro] = useState(false);
   const [proSettings, setProSettings] = useState<ProSettings>(DEFAULT_PRO_SETTINGS);
-  const [youtubeToken, setYoutubeToken] = useState<string | null>(null);
 
   useEffect(() => {
-    // Attempt to recover token from session storage
-    const savedToken = sessionStorage.getItem('yt_access_token');
-    if (savedToken) setYoutubeToken(savedToken);
-
     const checkPro = async () => {
       if (user?.id) {
         const owned = await checkProOwnership(user.id);
@@ -64,15 +57,6 @@ export function WatchProvider({ children, initialVideo, initialQuality }: {
     };
     checkPro();
   }, [user?.id]);
-
-  const handleSetYoutubeToken = (token: string | null) => {
-    setYoutubeToken(token);
-    if (token) {
-        sessionStorage.setItem('yt_access_token', token);
-    } else {
-        sessionStorage.removeItem('yt_access_token');
-    }
-  };
 
   const updateProSettings = (updates: Partial<ProSettings>) => {
     setProSettings(prev => ({ ...prev, ...updates }));
@@ -99,9 +83,7 @@ export function WatchProvider({ children, initialVideo, initialQuality }: {
       setIsDescriptionExpanded,
       isPro,
       proSettings,
-      updateProSettings,
-      youtubeToken,
-      setYoutubeToken: handleSetYoutubeToken
+      updateProSettings
     }}>
       {children}
     </WatchContext.Provider>

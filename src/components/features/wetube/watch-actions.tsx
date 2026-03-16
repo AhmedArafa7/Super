@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useWatch } from "./watch-context";
+import { useAuth } from "@/components/auth/auth-provider";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { syncLike, syncSubscription } from "@/lib/youtube-sync-service";
@@ -54,9 +55,10 @@ export function WatchActions({
         isLiked, setIsLiked,
         isDisliked, setIsDisliked,
         isSubscribed, setIsSubscribed,
-        isPro, proSettings, updateProSettings,
-        youtubeToken
+        isPro, proSettings, updateProSettings
     } = useWatch();
+
+    const { youtubeToken } = useAuth();
 
     const [isSyncingLike, setIsSyncingLike] = React.useState(false);
     const [isSyncingSub, setIsSyncingSub] = React.useState(false);

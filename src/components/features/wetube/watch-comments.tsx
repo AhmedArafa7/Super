@@ -4,6 +4,7 @@ import React from "react";
 import { UserCircle, ThumbsUp, ThumbsDown, MoreHorizontal, Loader2, Send } from "lucide-react";
 import { getRelativeTime } from "@/lib/date-utils";
 import { useWatch } from "./watch-context";
+import { useAuth } from "@/components/auth/auth-provider";
 import { postComment } from "@/lib/youtube-sync-service";
 import { useToast } from "@/hooks/use-toast";
 
@@ -12,7 +13,8 @@ interface WatchCommentsProps {
 }
 
 export function WatchComments({ user }: WatchCommentsProps) {
-    const { video, comments, setComments, isLoading, youtubeToken } = useWatch();
+    const { video, comments, setComments, isLoading } = useWatch();
+    const { youtubeToken } = useAuth();
     const { toast } = useToast();
     const [commentText, setCommentText] = React.useState("");
     const [isPosting, setIsPosting] = React.useState(false);
