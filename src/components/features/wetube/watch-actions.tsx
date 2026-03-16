@@ -4,8 +4,10 @@ import React from "react";
 import { 
     ThumbsUp, ThumbsDown, Share2, Download, Scissors, Loader2,
     Bell, ChevronDown, Settings, CheckCircle2, MoreHorizontal, Flag, Trash2,
-    Ban, UserX, Scissors as ScissorsIcon, UserCircle, ArrowRight, Zap, ShieldCheck
+    Ban, UserX, Scissors as ScissorsIcon, UserCircle, ArrowRight, Zap, ShieldCheck,
+    ListPlus
 } from "lucide-react";
+import { PlaylistSelectorModal } from "./playlist-selector-modal";
 import {
     Select,
     SelectContent,
@@ -62,6 +64,7 @@ export function WatchActions({
 
     const [isSyncingLike, setIsSyncingLike] = React.useState(false);
     const [isSyncingSub, setIsSyncingSub] = React.useState(false);
+    const [isPlaylistModalOpen, setIsPlaylistModalOpen] = React.useState(false);
 
     const handleShare = () => {
         const url = video.externalUrl || `https://www.youtube.com/watch?v=${video.id}`;
@@ -256,6 +259,21 @@ export function WatchActions({
                         <span className="text-sm font-medium">قص</span>
                     </button>
 
+                    {/* Save to Playlist */}
+                    <button 
+                        onClick={() => {
+                            if (!youtubeToken) {
+                                toast({ variant: "destructive", title: "حساب غير مربوط", description: "يرجى ربط حساب يوتيوب أولاً لتتمكن من حفظ الفيديوهات." });
+                                return;
+                            }
+                            setIsPlaylistModalOpen(true);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#272727] hover:bg-[#3f3f3f] rounded-full transition-colors shrink-0"
+                    >
+                        <ListPlus className="size-5" />
+                        <span className="text-sm font-medium">حفظ</span>
+                    </button>
+
                     {/* WeTube Pro Controls */}
                     {isPro && (
                         <DropdownMenu>
@@ -370,6 +388,12 @@ export function WatchActions({
                     </DropdownMenu>
                 </div>
             </div>
+
+            <PlaylistSelectorModal 
+                isOpen={isPlaylistModalOpen} 
+                onOpenChange={setIsPlaylistModalOpen} 
+                videoId={video.id} 
+            />
         </div>
     );
 }

@@ -114,10 +114,10 @@ function parseVideoRenderer(renderer: any): FeedVideo | null {
 }
 
 /**
- * البحث في يوتيوب
+ * البحث في يوتيوب مع دعم الفلاتر
  */
-export const searchYouTube = async (query: string): Promise<FeedVideo[]> => {
-  const url = YOUTUBE_SEARCH_URL + encodeURIComponent(query);
+export const searchYouTube = async (query: string, sp?: string): Promise<FeedVideo[]> => {
+  const url = YOUTUBE_SEARCH_URL + encodeURIComponent(query) + (sp ? `&sp=${sp}` : "");
   const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
 
   try {

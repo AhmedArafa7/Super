@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Loader2, History } from "lucide-react";
+import { Loader2, History, Bell } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { getStoredVideos, Video, deleteVideo } from "@/lib/video-store";
 import { listenToSubscriptions, YouTubeSubscription } from "@/lib/subscription-store";
@@ -12,6 +12,7 @@ import { useGlobalStorage } from "@/lib/global-storage-store";
 import { useUploadStore } from "@/lib/upload-store";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { getHistory, HistoryItem } from "@/lib/history-store";
 
 import { VideoCard } from "./stream/video-card";
 import { AddChannelModal } from "./wetube/add-channel-modal";
@@ -44,13 +45,16 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const [searchResults, setSearchResults] = useState<FeedVideo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'home' | 'shorts' | 'subs' | 'library'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'shorts' | 'subs' | 'library' | 'notifications'>('home');
   const [activeCategory, setActiveCategory] = useState("الكل");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
   const [isFeedLoading, setIsFeedLoading] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [searchSp, setSearchSp] = useState<string>("");
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -59,7 +63,6 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const runAutoSync = useCallback(async (subs: YouTubeSubscription[], feed: FeedVideo[]) => {
     const favorites = subs.filter(s => s.isFavorite);
     if (favorites.length === 0) return;
-    let syncCount = 0;
     for (const sub of favorites) {
       const channelFeed = feed.filter(v => v.authorId === sub.channelId);
       const toSync = channelFeed.filter(v => {
@@ -71,7 +74,6 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       if (toSync.length > 0) {
         toSync.forEach(v => {
           addAsset({ id: `video-${v.id}`, type: 'video', title: v.title, sizeMB: v.isShorts ? 15 : 45 });
-          syncCount++;
         });
       }
     }
@@ -90,7 +92,18 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         setSubscriptions(subs);
         syncFeed(subs);
       });
-      return () => unsubscribeSubs();
+      
+      const loadHistory = async () => {
+        const data = await getHistory(user.id);
+        setHistory(data);
+      };
+      loadHistory();
+      
+      window.addEventListener('history-update', loadHistory);
+      return () => {
+        unsubscribeSubs();
+        window.removeEventListener('history-update', loadHistory);
+      };
     }
   }, [user?.id]);
 
@@ -118,7 +131,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     } catch (e) {}
   };
 
-  const handleSearch = async (q: string) => {
+  const handleSearch = async (q: string, sp?: string) => {
     if (!q.trim()) {
       setSearchResults([]);
       return;
@@ -126,7 +139,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     setIsSearching(true);
     setSearchQuery(q);
     try {
-      const results = await searchYouTube(q);
+      const results = await searchYouTube(q, sp || searchSp);
       setSearchResults(results);
       setActiveTab('home');
     } catch (e) {
@@ -292,22 +305,59 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         <WeTubeSidebar isSidebarOpen={isSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} subscriptions={subscriptions} />
 
         <main className="flex-1 overflow-y-auto w-full glass rounded-3xl border border-white/5 relative flex flex-col hide-scroll">
-          {/* Categories Filter (Chips) */}
-          <div className="sticky top-0 z-10 bg-black/40 backdrop-blur-md px-6 py-3 border-b border-white/10 flex items-center gap-3 overflow-x-auto no-scrollbar rtl flex-row-reverse shadow-lg">
-            {CATEGORIES.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
-                  activeCategory === cat
-                    ? "bg-white text-black"
-                    : "bg-white/10 text-white hover:bg-white/20"
-                )}
-              >
-                {cat}
-              </button>
-            ))}
+          {/* Categories & Search Filters Wrapper */}
+          <div className="sticky top-0 z-10 bg-black/40 backdrop-blur-md border-b border-white/10 flex flex-col shadow-lg">
+            {/* Categories Filter (Chips) */}
+            <div className="px-6 py-3 flex items-center gap-3 overflow-x-auto no-scrollbar rtl flex-row-reverse">
+              {CATEGORIES.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
+                    activeCategory === cat
+                      ? "bg-white text-black"
+                      : "bg-white/10 text-white hover:bg-white/20"
+                  )}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Search Filters (Only if searching) */}
+            {searchResults.length > 0 && searchQuery && (
+              <div className="px-6 py-2 border-t border-white/5 flex items-center gap-2 overflow-x-auto no-scrollbar rtl flex-row-reverse bg-black/20">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground ml-2 whitespace-nowrap">الفلاتر:</span>
+                {[
+                  { label: "الكل", sp: "" },
+                  { label: "آخر ساعة", sp: "EgIIAQ%3D%3D" },
+                  { label: "اليوم", sp: "EgQIAhAB" },
+                  { label: "هذا الأسبوع", sp: "EgQIAxAB" },
+                  { label: "قنوات", sp: "EgIQAg%3D%3D" },
+                  { label: "قوائم تشغيل", sp: "EgIQAw%3D%3D" },
+                  { label: "أفلام", sp: "EgIQBA%3D%3D" },
+                  { label: "قصير (<4د)", sp: "EgQYAXAB" },
+                  { label: "طويل (>20د)", sp: "EgQYAnAB" },
+                ].map(f => (
+                  <button
+                    key={f.label}
+                    onClick={() => {
+                        setSearchSp(f.sp);
+                        handleSearch(searchQuery, f.sp);
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-xs font-medium transition-all border whitespace-nowrap",
+                      searchSp === f.sp 
+                        ? "bg-white text-black border-white shadow-lg" 
+                        : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
+                    )}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="p-4 md:p-6 pb-24">
@@ -361,24 +411,86 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
 
             {/* LIBRARY TAB */}
             {activeTab === 'library' && (
-              <div className="space-y-8 rtl flex-row-reverse text-right">
-                <div className="flex items-center gap-3 border-b border-white/10 pb-4 mb-6">
-                  <History className="size-6" />
-                  <h2 className="text-xl font-bold">المشاهدة لاحقاً والتنزيلات</h2>
+              <div className="space-y-12 rtl flex flex-col items-end text-right">
+                <div className="w-full">
+                  <div className="flex items-center gap-3 border-b border-white/10 pb-4 mb-6">
+                    <History className="size-6 text-indigo-400" />
+                    <h2 className="text-xl font-bold">المشاهدة لاحقاً والتنزيلات</h2>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-10">
+                    {cachedAssets.map((asset, i) => {
+                      const vidId = asset.id.replace('video-', '');
+                      const vid = allHomeContent.find(v => v.id === vidId) || { id: vidId, title: asset.title, author: 'Offline Video', status: 'published', source: 'offline' };
+                      return (
+                        <VideoCard
+                          key={`saved-${asset.id}-${i}`} video={vid as any}
+                          isCached={true} onSync={handleToggleLocal}
+                          onClick={() => setActiveVideo(vid as any)}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-10 rtl flex-row-reverse">
-                  {cachedAssets.map((asset, i) => {
-                    const vidId = asset.id.replace('video-', '');
-                    const vid = allHomeContent.find(v => v.id === vidId) || { id: vidId, title: asset.title, authorName: 'Offline Video', status: 'published', source: 'offline' };
-                    return (
-                      <VideoCard
-                        key={`saved-${asset.id}-${i}`} video={vid as any}
-                        isCached={true} onSync={handleToggleLocal}
-                        onClick={() => setActiveVideo(vid as any)}
-                      />
-                    );
-                  })}
+
+                <div className="w-full">
+                  <div className="flex items-center gap-3 border-b border-white/10 pb-4 mb-6">
+                    <History className="size-6 text-blue-400" />
+                    <h2 className="text-xl font-bold">سجل المشاهدة الأخير</h2>
+                  </div>
+                  {history.length === 0 ? (
+                      <p className="text-center py-20 opacity-50 bg-white/5 rounded-3xl">لا يوجد سجل مشاهدة حالياً</p>
+                  ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-10">
+                      {history.map((h, i) => (
+                          <VideoCard
+                              key={`hist-${h.id}-${i}`} 
+                              video={{ id: h.videoId, title: h.title, thumbnail: h.thumbnail, author: h.author, source: 'youtube', time: "شوهد مؤخراً" } as any}
+                              isCached={cachedAssets.some(a => a.id === `video-${h.videoId}`)} 
+                              onSync={handleToggleLocal}
+                              onClick={() => setActiveVideo({ id: h.videoId, title: h.title, thumbnail: h.thumbnail, author: h.author, source: 'youtube' } as any)}
+                          />
+                      ))}
+                      </div>
+                  )}
                 </div>
+              </div>
+            )}
+
+            {/* NOTIFICATIONS TAB */}
+            {activeTab === 'notifications' && (
+              <div className="space-y-6 rtl flex flex-col items-end text-right">
+                <div className="w-full flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+                   <h2 className="text-xl font-bold">التنبيهات والمستجدات</h2>
+                   <Bell className="size-6 text-yellow-400" />
+                </div>
+                {feedVideos.length === 0 ? (
+                    <div className="w-full text-center py-20 opacity-50 bg-white/5 rounded-3xl">
+                        <Bell className="size-12 mx-auto mb-4 opacity-20" />
+                        <p>لا توجد تنبيهات جديدة من قنواتك</p>
+                    </div>
+                ) : (
+                    <div className="w-full space-y-4">
+                        {feedVideos.slice(0, 20).map((v, i) => (
+                            <button 
+                                key={`notif-${v.id}-${i}`}
+                                onClick={() => setActiveVideo({ ...v, externalUrl: v.url, source: 'youtube' } as any)}
+                                className="w-full flex items-start gap-4 p-4 rounded-2xl hover:bg-white/5 transition-all group border border-transparent hover:border-white/10"
+                            >
+                                <div className="size-16 rounded-xl overflow-hidden shrink-0 shadow-lg border border-white/5">
+                                    <img src={v.thumbnail} className="size-full object-cover" />
+                                </div>
+                                <div className="flex-1 text-right">
+                                    <p className="font-bold text-sm line-clamp-2 mb-1 group-hover:text-indigo-400 transition-colors">{v.title}</p>
+                                    <div className="flex items-center gap-2 justify-end text-[10px] text-muted-foreground">
+                                        <span>• {v.author}</span>
+                                        <span className="bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded">فيديو جديد</span>
+                                    </div>
+                                </div>
+                                <div className="size-2 rounded-full bg-blue-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                            </button>
+                        ))}
+                    </div>
+                )}
               </div>
             )}
           </div>

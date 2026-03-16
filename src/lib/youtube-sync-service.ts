@@ -101,3 +101,100 @@ export async function postComment(videoId: string, text: string, accessToken: st
     throw error;
   }
 }
+
+export async function listMyPlaylists(accessToken: string) {
+  try {
+    const response = await fetch(
+      "https://www.googleapis.com/youtube/v3/playlists?part=snippet,contentDetails&mine=true&maxResults=50",
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || "فشل جلب قوائم التشغيل");
+    }
+
+    const data = await response.json();
+    return data.items.map((item: any) => ({
+      id: item.id,
+      title: item.snippet.title,
+      itemCount: item.contentDetails.itemCount,
+      thumbnail: item.snippet.thumbnails.default?.url
+    }));
+  } catch (error) {
+    console.error("YouTube Sync Error (ListPlaylists):", error);
+    throw error;
+  }
+}
+
+export async function addToPlaylist(playlistId: string, videoId: string, accessToken: string) {
+  try {
+    const response = await fetch(
+      "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet",
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          snippet: {
+            playlistId: playlistId,
+            resourceId: {
+              kind: 'youtube#video',
+              videoId: videoId,
+            },
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || "فشلت الإضافة لقائمة التشغيل");
+    }
+
+    return true;
+  } catch (error) {
+    console.error("YouTube Sync Error (AddToPlaylist):", error);
+    throw error;
+  }
+}
+
+export async function createPlaylist(title: string, privacyStatus: 'public' | 'private' | 'unlisted' = 'private', accessToken: string) {
+  try {
+    const response = await fetch(
+      "https://www.googleapis.com/youtube/v3/playlists?part=snippet,status",
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          snippet: {
+            title: title,
+          },
+          status: {
+            privacyStatus: privacyStatus,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || "فشل إنشاء قائمة التشغيل");
+    }
+
+    const data = await response.json();
+    return data.id;
+  } catch (error) {
+    console.error("YouTube Sync Error (CreatePlaylist):", error);
+    throw error;
+  }
+}

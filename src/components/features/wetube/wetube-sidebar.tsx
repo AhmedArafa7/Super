@@ -3,7 +3,7 @@
 import React from 'react';
 import {
   Home, Compass, PlaySquare, Clock, ThumbsUp,
-  History, Flame, Music2, Gamepad2, Trophy
+  History, Flame, Music2, Gamepad2, Trophy, Bell
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { YouTubeSubscription } from '@/lib/subscription-store';
@@ -20,6 +20,7 @@ const MAIN_LINKS = [
   { id: 'home', label: 'الصفحة الرئيسية', icon: Home },
   { id: 'shorts', label: 'Shorts', icon: Flame },
   { id: 'subs', label: 'الاشتراكات', icon: PlaySquare },
+  { id: 'notifications', label: 'الإشعارات', icon: Bell },
 ];
 
 const LIBRARY_LINKS = [

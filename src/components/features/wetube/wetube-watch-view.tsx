@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useGlobalStorage } from "@/lib/global-storage-store";
 import { getRelativeTime } from "@/lib/date-utils";
+import { addToHistory } from "@/lib/history-store";
 
 // Extracted Components
 import { WatchProvider, useWatch } from "./watch-context";
@@ -50,6 +51,15 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached }: an
                     ]);
                     setDetails(d);
                     setComments(c);
+                    
+                    if (user?.id) {
+                        addToHistory(user.id, {
+                            id: video.id,
+                            title: d?.title || video.title,
+                            thumbnail: d?.thumbnail || video.thumbnail,
+                            author: d?.author || video.author
+                        });
+                    }
                 } catch (e) {
                     console.error("Load Watch Data Error", e);
                 } finally {
