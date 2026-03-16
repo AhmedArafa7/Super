@@ -1,16 +1,46 @@
 "use client";
 
 import React from "react";
-import { UserCircle, ThumbsUp, ThumbsDown, MoreHorizontal } from "lucide-react";
+import { UserCircle, ThumbsUp, ThumbsDown, MoreHorizontal, Loader2, Send } from "lucide-react";
 import { getRelativeTime } from "@/lib/date-utils";
 import { useWatch } from "./watch-context";
+import { postComment } from "@/lib/youtube-sync-service";
+import { useToast } from "@/hooks/use-toast";
 
 interface WatchCommentsProps {
     user: any;
 }
 
 export function WatchComments({ user }: WatchCommentsProps) {
-    const { comments, isLoading } = useWatch();
+    const { video, comments, setComments, isLoading, youtubeToken } = useWatch();
+    const { toast } = useToast();
+    const [commentText, setCommentText] = React.useState("");
+    const [isPosting, setIsPosting] = React.useState(false);
+
+    const handlePostComment = async () => {
+        if (!commentText.trim() || !youtubeToken) return;
+        
+        setIsPosting(true);
+        try {
+            await postComment(video.id, commentText, youtubeToken);
+            toast({ title: "تم نشر التعليق", description: "تعليقك متاح الآن على يوتيوب." });
+            
+            // Optimistic update
+            const newComment = {
+                author: user?.name || "أنت",
+                authorThumb: user?.avatar_url,
+                text: commentText,
+                time: new Date().toISOString(),
+                likes: 0
+            };
+            setComments([newComment as any, ...comments]);
+            setCommentText("");
+        } catch (e: any) {
+            toast({ title: "فشل نشر التعليق", description: e.message, variant: "destructive" });
+        } finally {
+            setIsPosting(false);
+        }
+    };
 
     return (
         <div className="mb-10 min-h-[400px]">
@@ -31,12 +61,23 @@ export function WatchComments({ user }: WatchCommentsProps) {
                 <div className="size-10 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden shrink-0 mt-1">
                     {user?.avatar_url ? <img src={user.avatar_url} className="size-full object-cover" alt="" /> : <UserCircle className="size-6 text-white" />}
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 relative flex items-center gap-2">
                     <input
                         type="text"
-                        placeholder="إضافة تعليق..."
-                        className="w-full bg-transparent border-b border-[#3f3f3f] focus:border-[#f1f1f1] outline-none py-1 transition-colors text-sm"
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handlePostComment()}
+                        disabled={isPosting || !youtubeToken}
+                        placeholder={youtubeToken ? "إضافة تعليق..." : "يجب ربط القناة للتعليق"}
+                        className="flex-1 bg-transparent border-b border-[#3f3f3f] focus:border-[#f1f1f1] outline-none py-1 transition-colors text-sm disabled:opacity-50"
                     />
+                    <button 
+                        onClick={handlePostComment}
+                        disabled={!commentText.trim() || isPosting || !youtubeToken}
+                        className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-30"
+                    >
+                        {isPosting ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                    </button>
                 </div>
             </div>
 

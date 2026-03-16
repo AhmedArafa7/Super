@@ -2,7 +2,7 @@
 
 import React from "react";
 import { 
-    ThumbsUp, ThumbsDown, Share2, Download, Scissors, 
+    ThumbsUp, ThumbsDown, Share2, Download, Scissors, Loader2,
     Bell, ChevronDown, Settings, CheckCircle2, MoreHorizontal, Flag, Trash2,
     Ban, UserX, Scissors as ScissorsIcon, UserCircle, ArrowRight, Zap, ShieldCheck
 } from "lucide-react";
@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useWatch } from "./watch-context";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { syncLike, syncSubscription } from "@/lib/youtube-sync-service";
 
 interface WatchActionsProps {
     currentUser: any;
@@ -53,8 +54,12 @@ export function WatchActions({
         isLiked, setIsLiked,
         isDisliked, setIsDisliked,
         isSubscribed, setIsSubscribed,
-        isPro, proSettings, updateProSettings
+        isPro, proSettings, updateProSettings,
+        youtubeToken
     } = useWatch();
+
+    const [isSyncingLike, setIsSyncingLike] = React.useState(false);
+    const [isSyncingSub, setIsSyncingSub] = React.useState(false);
 
     const handleShare = () => {
         const url = video.externalUrl || `https://www.youtube.com/watch?v=${video.id}`;
@@ -100,15 +105,33 @@ export function WatchActions({
                     </div>
 
                     <button
-                        onClick={() => setIsSubscribed(!isSubscribed)}
+                        onClick={async () => {
+                            const newStatus = !isSubscribed;
+                            setIsSubscribed(newStatus);
+                            if (youtubeToken && video.authorId && newStatus) {
+                                setIsSyncingSub(true);
+                                try {
+                                    await syncSubscription(video.authorId, 'subscribe', youtubeToken);
+                                    toast({ title: "تم الاشتراك", description: `أنت الآن مشترك في ${video.author} على يوتيوب.` });
+                                } catch (e) {
+                                    console.error(e);
+                                } finally {
+                                    setIsSyncingSub(false);
+                                }
+                            }
+                        }}
+                        disabled={isSyncingSub}
                         className={cn(
                             "ml-2 mr-4 px-4 py-2 font-medium text-sm rounded-full transition-all flex items-center gap-2",
                             isSubscribed
                                 ? "bg-[#272727] text-[#f1f1f1] hover:bg-[#3f3f3f]"
-                                : "bg-[#f1f1f1] text-[#0f0f0f] hover:bg-white"
+                                : "bg-[#f1f1f1] text-[#0f0f0f] hover:bg-white",
+                            isSyncingSub && "opacity-50 cursor-wait"
                         )}
                     >
-                        {isSubscribed ? (
+                        {isSyncingSub ? (
+                            <Loader2 className="size-4 animate-spin" />
+                        ) : isSubscribed ? (
                             <>
                                 <Bell className="size-4" fill="currentColor" />
                                 <span>مشترك</span>
@@ -150,15 +173,52 @@ export function WatchActions({
                     {/* Like/Dislike Pill */}
                     <div className="flex items-center bg-[#272727] rounded-full overflow-hidden shrink-0">
                         <button
-                            onClick={() => { setIsLiked(!isLiked); setIsDisliked(false); }}
-                            className="flex items-center gap-2 px-4 py-2 hover:bg-[#3f3f3f] transition-colors border-l border-white/10"
+                            onClick={async () => { 
+                                const newStatus = !isLiked;
+                                setIsLiked(newStatus); 
+                                setIsDisliked(false); 
+                                if (youtubeToken) {
+                                    setIsSyncingLike(true);
+                                    try {
+                                        await syncLike(video.id, newStatus ? 'like' : 'none', youtubeToken);
+                                        toast({ title: "تمت المزامنة", description: newStatus ? "تم تسجيل الإعجاب على يوتيوب." : "تمت إزالة الإعجاب." });
+                                    } catch (e) {
+                                        console.error(e);
+                                    } finally {
+                                        setIsSyncingLike(false);
+                                    }
+                                }
+                            }}
+                            disabled={isSyncingLike}
+                            className={cn(
+                                "flex items-center gap-2 px-4 py-2 hover:bg-[#3f3f3f] transition-colors border-l border-white/10",
+                                isSyncingLike && "opacity-50 cursor-wait"
+                            )}
                         >
-                            <ThumbsUp className="size-5" fill={isLiked ? "currentColor" : "none"} />
+                            {isSyncingLike ? <Loader2 className="size-5 animate-spin" /> : <ThumbsUp className="size-5" fill={isLiked ? "currentColor" : "none"} />}
                             <span className="text-sm font-medium">{likeCount}</span>
                         </button>
                         <button
-                            onClick={() => { setIsDisliked(!isDisliked); setIsLiked(false); }}
-                            className="px-4 py-2 hover:bg-[#3f3f3f] transition-colors"
+                            onClick={async () => { 
+                                const newStatus = !isDisliked;
+                                setIsDisliked(newStatus); 
+                                setIsLiked(false); 
+                                if (youtubeToken) {
+                                    setIsSyncingLike(true);
+                                    try {
+                                        await syncLike(video.id, newStatus ? 'dislike' : 'none', youtubeToken);
+                                    } catch (e) {
+                                        console.error(e);
+                                    } finally {
+                                        setIsSyncingLike(false);
+                                    }
+                                }
+                            }}
+                            disabled={isSyncingLike}
+                            className={cn(
+                                "px-4 py-2 hover:bg-[#3f3f3f] transition-colors",
+                                isSyncingLike && "opacity-50 cursor-wait"
+                            )}
                         >
                             <ThumbsDown className="size-5" fill={isDisliked ? "currentColor" : "none"} />
                         </button>

@@ -18,6 +18,7 @@ import { linkYouTubeAccount } from "@/lib/auth/providers";
 import { fetchMyChannelInfo } from "@/lib/youtube-auth-service";
 import { updateUserProfile } from "@/lib/auth/service";
 import { Globe, ShieldCheck, Youtube } from "lucide-react";
+import { useWatch } from "./watch-context";
 
 interface ImportSubscriptionsModalProps {
     isOpen: boolean;
@@ -31,6 +32,7 @@ interface ImportSubscriptionsModalProps {
  */
 export function ImportSubscriptionsModal({ isOpen, onOpenChange, userId }: ImportSubscriptionsModalProps) {
     const { toast } = useToast();
+    const { setYoutubeToken } = useWatch();
     const [isImporting, setIsImporting] = useState(false);
     const [progress, setProgress] = useState(0);
     const [total, setTotal] = useState(0);
@@ -125,20 +127,25 @@ export function ImportSubscriptionsModal({ isOpen, onOpenChange, userId }: Impor
     const handleLinkChannel = async () => {
         setIsLinking(true);
         setErrorMsg("");
+        setProgress(0);
+        setTotal(0);
         try {
             const result = await linkYouTubeAccount();
             const credential = GoogleAuthProvider.credentialFromResult(result);
             const accessToken = credential?.accessToken;
 
             if (!accessToken) {
-                throw new Error("فشل الحصول على رمز الوصول من جوجل");
+                throw new Error("فشل الحصول على رمز الحصول كود الوصول من جوجل");
             }
+
+            setYoutubeToken(accessToken);
 
             const channelInfo = await fetchMyChannelInfo(accessToken);
             if (!channelInfo) {
                 throw new Error("لم يتم العثور على قناة يوتيوب مرتبطة بهذا الحساب");
             }
 
+            // 1. Link profile metadata
             await updateUserProfile(userId, {
                 linkedYouTubeChannel: {
                     id: channelInfo.id,
@@ -151,15 +158,49 @@ export function ImportSubscriptionsModal({ isOpen, onOpenChange, userId }: Impor
 
             toast({
                 title: "تم ربط القناة بنجاح",
-                description: `تم ربط قناة "${channelInfo.title}" بحسابك في نكسوس.`,
+                description: "جاري الآن استخراج اشتراكاتك تلقائياً...",
             });
 
-            // If it's a success, we can close the modal after a short delay
-            setTimeout(() => onOpenChange(false), 1500);
+            // 2. Fetch and import subscriptions
+            setIsImporting(true);
+            const subs = await import('@/lib/youtube-auth-service').then(m => m.fetchMySubscriptions(accessToken));
+            
+            if (subs && subs.length > 0) {
+                setTotal(subs.length);
+                let successCount = 0;
+                
+                for (let i = 0; i < subs.length; i++) {
+                    const sub = subs[i];
+                    const channelUrl = `https://www.youtube.com/channel/${sub.channelId}`;
+                    try {
+                        await addSubscription(userId, channelUrl, sub.title, sub.channelId, sub.thumbnail);
+                        successCount++;
+                    } catch (e) {
+                         console.warn("Failed to import sub:", sub.title, e);
+                    }
+                    setProgress(i + 1);
+                }
+
+                toast({
+                    title: "تمت المزامنة العصبية",
+                    description: `تم استيراد ${successCount} قناة من اشتراكاتك بنجاح.`,
+                });
+            } else {
+                toast({
+                    title: "اكتمل الربط",
+                    description: "تم ربط القناة، ولكن لم يتم العثور على اشتراكات عامة لاستيرادها.",
+                });
+            }
+
+            setTimeout(() => {
+                onOpenChange(false);
+                setIsImporting(false);
+            }, 2000);
 
         } catch (err: any) {
             console.error("Link Channel Error:", err);
             setErrorMsg(err.message || "حدث خطأ أثناء محاولة ربط القناة");
+            setIsImporting(false);
         } finally {
             setIsLinking(false);
         }

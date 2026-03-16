@@ -57,3 +57,51 @@ export async function fetchMyChannelInfo(accessToken: string): Promise<YouTubeCh
     return null;
   }
 }
+
+export interface YouTubeSubscriptionItem {
+  channelId: string;
+  title: string;
+  thumbnail: string;
+}
+
+/**
+ * Fetches the authenticated user's YouTube subscriptions.
+ * @param accessToken Google OAuth Access Token with youtube.readonly scope.
+ */
+export async function fetchMySubscriptions(accessToken: string): Promise<YouTubeSubscriptionItem[]> {
+  let allSubscriptions: YouTubeSubscriptionItem[] = [];
+  let nextPageToken: string | undefined = undefined;
+
+  try {
+    do {
+      const url: string = `https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=50${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("YouTube API Error (Subscriptions):", errorData);
+        break;
+      }
+
+      const data = await response.json();
+      const items = data.items.map((item: any) => ({
+        channelId: item.snippet.resourceId.channelId,
+        title: item.snippet.title,
+        thumbnail: item.snippet.thumbnails.default?.url || ""
+      }));
+
+      allSubscriptions = [...allSubscriptions, ...items];
+      nextPageToken = data.nextPageToken;
+
+    } while (nextPageToken);
+
+    return allSubscriptions;
+  } catch (error) {
+    console.error("Failed to fetch YouTube subscriptions:", error);
+    return [];
+  }
+}

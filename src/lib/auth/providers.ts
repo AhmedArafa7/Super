@@ -27,7 +27,12 @@ export const signInWithGoogle = async () => {
 export const linkYouTubeAccount = async () => {
   const { auth } = initializeFirebase();
   const provider = new GoogleAuthProvider();
-  provider.addScope('https://www.googleapis.com/auth/youtube.readonly');
+  // Upgrade to full YouTube scope for bi-directional sync (likes, comments, subscriptions)
+  provider.addScope('https://www.googleapis.com/auth/youtube');
+  provider.setCustomParameters({
+    access_type: 'offline',
+    prompt: 'consent'
+  });
   return signInWithPopup(auth, provider);
 };
 
