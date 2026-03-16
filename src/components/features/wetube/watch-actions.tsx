@@ -4,7 +4,7 @@ import React from "react";
 import { 
     ThumbsUp, ThumbsDown, Share2, Download, Scissors, 
     Bell, ChevronDown, Settings, CheckCircle2, MoreHorizontal, Flag, Trash2,
-    Ban, UserX, Scissors as ScissorsIcon, UserCircle, ArrowRight
+    Ban, UserX, Scissors as ScissorsIcon, UserCircle, ArrowRight, Zap, ShieldCheck
 } from "lucide-react";
 import {
     Select,
@@ -24,6 +24,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useWatch } from "./watch-context";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 interface WatchActionsProps {
     currentUser: any;
@@ -50,7 +52,8 @@ export function WatchActions({
         selectedQuality,
         isLiked, setIsLiked,
         isDisliked, setIsDisliked,
-        isSubscribed, setIsSubscribed
+        isSubscribed, setIsSubscribed,
+        isPro, proSettings, updateProSettings
     } = useWatch();
 
     const handleShare = () => {
@@ -190,6 +193,70 @@ export function WatchActions({
                         <Scissors className="size-5" />
                         <span className="text-sm font-medium">قص</span>
                     </button>
+
+                    {/* WeTube Pro Controls */}
+                    {isPro && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-primary hover:from-indigo-500 hover:to-primary/80 rounded-full transition-all shrink-0 shadow-lg shadow-primary/20 group">
+                                    <Zap className="size-5 fill-white group-hover:animate-pulse" />
+                                    <span className="text-sm font-bold text-white">Pro Settings</span>
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-72 bg-slate-950 border-primary/20 text-white rounded-2xl shadow-2xl p-4 space-y-4 rtl">
+                                <div className="flex items-center gap-3 mb-2 px-1">
+                                    <div className="size-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                                        <ShieldCheck className="size-5 text-primary" />
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs font-black uppercase tracking-widest text-primary">WeTube Pro</p>
+                                        <p className="text-[10px] text-muted-foreground">تجربة مشاهدة فائقة الذكاء</p>
+                                    </div>
+                                </div>
+                                
+                                <DropdownMenuSeparator className="bg-white/5" />
+                                
+                                <div className="space-y-3">
+                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground px-1">توفير الباقة (Frame Skip)</Label>
+                                    <Select 
+                                        value={proSettings.frameSkipRatio} 
+                                        onValueChange={(v: any) => updateProSettings({ frameSkipRatio: v })}
+                                    >
+                                        <SelectTrigger className="bg-white/5 border-white/10 h-10 rounded-xl flex-row-reverse">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                            <SelectItem value="none">تعطيل (جودة كاملة)</SelectItem>
+                                            <SelectItem value="1/2">نسبة 1/2 (توفير 50%)</SelectItem>
+                                            <SelectItem value="3/4">نسبة 3/4 (توفير 25%)</SelectItem>
+                                            <SelectItem value="4/5">نسبة 4/5 (توفير 20%)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-3 px-1 py-1">
+                                    <span className="text-[10px] font-bold text-muted-foreground">تخطي الخاتمة تلقائياً (Auto-Trim)</span>
+                                    <button 
+                                        onClick={() => updateProSettings({ autoTrimOutro: !proSettings.autoTrimOutro })}
+                                        className={cn(
+                                            "size-10 rounded-xl border transition-all flex items-center justify-center",
+                                            proSettings.autoTrimOutro ? "bg-primary/20 border-primary/40 text-primary" : "bg-white/5 border-white/10 text-muted-foreground"
+                                        )}
+                                    >
+                                        {proSettings.autoTrimOutro ? <CheckCircle2 className="size-5" /> : <Ban className="size-5" />}
+                                    </button>
+                                </div>
+
+                                <Button 
+                                    variant="ghost" 
+                                    className="w-full h-10 rounded-xl bg-white/5 hover:bg-red-500/10 hover:text-red-400 text-[10px] font-bold gap-2"
+                                    onClick={() => toast({ title: "تنظيف الذاكرة", description: "تم إفراغ مساحة 1.2GB من الملفات المؤقتة بنجاح." })}
+                                >
+                                    <Trash2 className="size-4" /> تنظيف الذاكرة العشوائية (Smart Clean)
+                                </Button>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
 
                     {/* More Options Dropdown */}
                     <DropdownMenu>

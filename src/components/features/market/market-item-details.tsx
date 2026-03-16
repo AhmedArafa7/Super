@@ -7,14 +7,16 @@ import { ArrowLeft, Play, Download, Edit3, MessageCircle, Info, Loader2, Zap, Al
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MarketItem, SUB_CATEGORIES } from "@/lib/market-store";
+import { MarketItem, SUB_CATEGORIES, updateStock } from "@/lib/market-store";
 import { MakeOfferModal } from "../make-offer-modal";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 interface MarketItemDetailsProps {
   item: MarketItem;
   userId?: string;
+  isAdmin?: boolean;
   userBalance?: number;
   onBack: () => void;
   onLaunch?: (url: string, title: string) => void;
@@ -26,11 +28,26 @@ interface MarketItemDetailsProps {
  * [STABILITY_ANCHOR: MARKET_DETAILS_V2.5]
  * واجهة تفاصيل المنتج - تم تحسين استجابة زر الاستحواذ وتفعيل مؤشرات التحميل.
  */
-export function MarketItemDetails({ item, userId, userBalance = 0, onBack, onLaunch, onEdit, onAcquire }: MarketItemDetailsProps) {
+export function MarketItemDetails({ item, userId, isAdmin, userBalance = 0, onBack, onLaunch, onEdit, onAcquire }: MarketItemDetailsProps) {
   const { toast } = useToast();
   const [isAcquiring, setIsAcquiring] = useState(false);
+  const [newStock, setNewStock] = useState(item.stockQuantity.toString());
+  const [isUpdatingStock, setIsUpdatingStock] = useState(false);
   const isOwner = item.sellerId === userId;
   const subCatLabel = SUB_CATEGORIES.find(s => s.id === item.subCategory)?.label || item.subCategory;
+
+  const handleUpdateStock = async () => {
+    setIsUpdatingStock(true);
+    try {
+      await updateStock(item.id, parseInt(newStock));
+      toast({ title: "تم تحديث المخزون", description: "تمت مزامنة الكمية الجديدة بنجاح." });
+      item.stockQuantity = parseInt(newStock); // Optimistic update
+    } catch (e) {
+      toast({ variant: "destructive", title: "فشل التحديث", description: "عذراً، حدث خطأ أثناء تحديث المخزون." });
+    } finally {
+      setIsUpdatingStock(false);
+    }
+  };
 
   const handleDownload = () => {
     if (!item.downloadUrl) return;
@@ -120,13 +137,38 @@ export function MarketItemDetails({ item, userId, userBalance = 0, onBack, onLau
             <div className="space-y-4">
               <h1 dir="auto" className="text-5xl font-black text-white tracking-tighter leading-tight">{item.title}</h1>
               <div className="flex items-center justify-end gap-4">
-                 <div className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-2xl">
-                    <span className="text-3xl font-black text-indigo-400">{item.price?.toLocaleString()}</span>
-                    <span className="text-xs font-bold text-muted-foreground uppercase">Credits</span>
-                 </div>
+                <div className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-2xl">
+                    {item.price === 0 ? (
+                      <span className="text-3xl font-black text-green-400">مجاناً</span>
+                    ) : (
+                      <>
+                        <span className="text-3xl font-black text-indigo-400">{item.price?.toLocaleString()}</span>
+                        <span className="text-xs font-bold text-muted-foreground uppercase">Credits</span>
+                      </>
+                    )}
+                </div>
                  <Badge variant="outline" className="h-10 px-4 rounded-xl border-white/10 text-muted-foreground">
                     STOCK: {item.stockQuantity}
                  </Badge>
+                  {isAdmin && (
+                    <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
+                      <Input 
+                        type="number" 
+                        value={newStock} 
+                        onChange={(e) => setNewStock(e.target.value)} 
+                        className="w-20 h-8 bg-transparent border-none text-center font-bold"
+                      />
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={handleUpdateStock} 
+                        disabled={isUpdatingStock}
+                        className="h-8 rounded-xl bg-primary/20 hover:bg-primary/40 text-[10px] font-bold"
+                      >
+                        {isUpdatingStock ? <Loader2 className="size-3 animate-spin" /> : "تعديل المخزون"}
+                      </Button>
+                    </div>
+                  )}
               </div>
             </div>
 

@@ -24,7 +24,7 @@ export const getMarketItems = async (
   let items = snap.docs.map(d => ({ id: d.id, ...d.data() } as MarketItem));
 
   if (!includePending) {
-    items = items.filter(i => i.status === 'active' || i.status === 'sold');
+    items = items.filter(i => (i.status === 'active' || i.status === 'sold') && !(i.stockQuantity === 0 && i.hideWhenOutOfStock));
   }
 
   if (mainCat && mainCat !== 'all') {
@@ -75,6 +75,40 @@ export const decrementStock = async (itemId: string, buyerId?: string) => {
       });
       return true;
     }
+  }
+  return false;
+};
+export const updateStock = async (itemId: string, newQuantity: number) => {
+  const { firestore } = initializeFirebase();
+  const itemRef = doc(firestore, 'products', itemId);
+  await updateDoc(itemRef, { 
+    stockQuantity: newQuantity,
+    status: newQuantity > 0 ? 'active' : 'sold'
+  });
+  return true;
+};
+
+export const seedProProduct = async (sellerId: string) => {
+  const { firestore } = initializeFirebase();
+  const q = query(collection(firestore, 'products'), where('title', '==', 'WeTube Pro'), limit(1));
+  const snap = await getDocs(q);
+  
+  if (snap.empty) {
+    await addDoc(collection(firestore, 'products'), {
+      title: 'WeTube Pro',
+      description: 'المفتاح الذهبي لتجربة WeTube فائقة الذكاء. استمتع بتوفير الباقة (Frame Skipping)، تخطي الخواتيم تلقائياً، والتحميل الذكي (Smart Cache) بسعة 1GB.',
+      price: 0,
+      stockQuantity: 1000,
+      mainCategory: 'software',
+      subCategory: 'pro',
+      status: 'active',
+      sellerId: sellerId,
+      hideWhenOutOfStock: false,
+      imageUrl: 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=1000&auto=format&fit=crop',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    return true;
   }
   return false;
 };

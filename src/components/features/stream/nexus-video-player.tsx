@@ -14,6 +14,10 @@ interface NexusVideoPlayerProps {
     defaultQuality?: string;
     onQualityChange?: (quality: string) => void;
     sourceType?: "local" | "telegram" | "tiktok";
+    proSettings?: {
+        autoTrimOutro: boolean;
+        frameSkipRatio: string;
+    };
 }
 
 export function NexusVideoPlayer({
@@ -23,7 +27,8 @@ export function NexusVideoPlayer({
     qualityOptions = ["Auto (720p)"],
     defaultQuality = "Auto (720p)",
     onQualityChange,
-    sourceType
+    sourceType,
+    proSettings
 }: NexusVideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -74,6 +79,13 @@ export function NexusVideoPlayer({
         if (videoRef.current) {
             const current = videoRef.current.currentTime;
             const dur = videoRef.current.duration;
+            
+            // Pro Feature: Auto-Trim Outro (Skip last 5 seconds)
+            if (proSettings?.autoTrimOutro && dur > 10 && (dur - current) < 5) {
+                videoRef.current.currentTime = dur;
+                return;
+            }
+
             setProgress((current / dur) * 100);
             setCurrentTime(formatTime(current));
         }

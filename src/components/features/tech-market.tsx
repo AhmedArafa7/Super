@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   getMarketItems, addMarketItem, updateMarketItem, MarketItem,
-  MainCategory, SUB_CATEGORIES, uploadMarketImage, decrementStock
+  MainCategory, SUB_CATEGORIES, uploadMarketImage, decrementStock, seedProProduct
 } from "@/lib/market-store";
 import { uploadLearningFile } from "@/lib/learning-store";
 import { useWalletStore } from "@/lib/wallet-store";
@@ -164,6 +164,7 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
       <MarketItemDetails
         item={viewingItem}
         userId={user?.id}
+        isAdmin={user?.role === 'admin'}
         userBalance={wallet?.balance || 0}
         onBack={() => setViewingItem(null)}
         onLaunch={onLaunchApp}
@@ -184,7 +185,22 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8 flex-row-reverse text-right">
             <div className="space-y-1">
               <div className="flex items-center gap-3 justify-end">
-                <h1 className="text-4xl font-headline font-bold text-white tracking-tight">TechMarket</h1>
+                <div className="flex items-center gap-4 flex-row-reverse">
+            <h1 className="text-3xl font-black text-white tracking-tighter">سوق العقد العصبية</h1>
+            {user?.role === 'admin' && (
+              <Button 
+                onClick={async () => {
+                   await seedProProduct(user.id);
+                   toast({ title: "تم بذر منتج Pro", description: "منتج WeTube Pro متاح الآن في السوق." });
+                }}
+                variant="outline" 
+                size="sm" 
+                className="rounded-xl border-indigo-500/20 text-indigo-400 bg-indigo-500/5 hover:bg-indigo-500/10 h-8 text-[10px] font-bold gap-2"
+              >
+                <Zap className="size-3" /> بذر WeTube Pro
+              </Button>
+            )}
+          </div>
                 <Badge variant="outline" className="text-[10px] border-primary/30 text-primary uppercase">v5.0</Badge>
               </div>
               <p className="text-muted-foreground">سوق الأصول البرمجية والحلول الذكية اللامركزي.</p>

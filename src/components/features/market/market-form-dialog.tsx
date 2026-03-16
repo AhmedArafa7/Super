@@ -39,7 +39,8 @@ export function MarketFormDialog({ isOpen, onClose, onSave, editingItem, isSubmi
     promoVideoUrl: "",
     promoFileUrl: "",
     buildFile: null as File | null,
-    versionStatus: "final" as AppVersionStatus
+    versionStatus: "final" as AppVersionStatus,
+    hideWhenOutOfStock: false
   });
 
   useEffect(() => {
@@ -59,7 +60,8 @@ export function MarketFormDialog({ isOpen, onClose, onSave, editingItem, isSubmi
         promoVideoUrl: editingItem.promoVideoUrl || "",
         promoFileUrl: editingItem.promoFileUrl || "",
         buildFile: null,
-        versionStatus: editingItem.versionStatus || "final"
+        versionStatus: editingItem.versionStatus || "final",
+        hideWhenOutOfStock: editingItem.hideWhenOutOfStock || false
       });
     } else {
       setFormData(prev => ({ ...prev, mainCategory: defaultCat }));
@@ -146,6 +148,17 @@ export function MarketFormDialog({ isOpen, onClose, onSave, editingItem, isSubmi
           <div className="grid gap-2">
             <Label className="text-right">المخزون</Label>
             <Input type="number" value={formData.stockQuantity} onChange={e => setFormData({...formData, stockQuantity: Number(e.target.value)})} className="bg-white/5 border-white/10 text-right h-11" />
+          </div>
+
+          <div className="md:col-span-2 flex items-center justify-end gap-3 py-2">
+            <Label className="text-right cursor-pointer" htmlFor="hide-stock">إخفاء المنتج تلقائياً عند نفاذ الكمية</Label>
+            <input 
+              id="hide-stock"
+              type="checkbox" 
+              checked={formData.hideWhenOutOfStock} 
+              onChange={e => setFormData({...formData, hideWhenOutOfStock: e.target.checked})}
+              className="size-5 rounded border-white/10 bg-white/5 accent-primary"
+            />
           </div>
         </div>
 

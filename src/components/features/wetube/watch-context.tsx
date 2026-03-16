@@ -1,7 +1,7 @@
-"use client";
-
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { VideoDetails, YouTubeComment } from "@/lib/youtube-discovery-store";
+import { ProSettings, DEFAULT_PRO_SETTINGS, checkProOwnership } from "@/lib/wetube-pro-engine";
+import { useAuth } from "@/components/auth/auth-provider";
 
 interface WatchContextType {
   video: any;
@@ -21,6 +21,9 @@ interface WatchContextType {
   setIsSubscribed: (v: boolean) => void;
   isDescriptionExpanded: boolean;
   setIsDescriptionExpanded: (v: boolean) => void;
+  isPro: boolean;
+  proSettings: ProSettings;
+  updateProSettings: (s: Partial<ProSettings>) => void;
 }
 
 const WatchContext = createContext<WatchContextType | undefined>(undefined);
@@ -30,6 +33,7 @@ export function WatchProvider({ children, initialVideo, initialQuality }: {
   initialVideo: any;
   initialQuality?: string;
 }) {
+  const { user } = useAuth();
   const [video, setVideo] = useState(initialVideo);
   const [details, setDetails] = useState<VideoDetails | null>(null);
   const [comments, setComments] = useState<YouTubeComment[]>([]);
@@ -39,6 +43,22 @@ export function WatchProvider({ children, initialVideo, initialQuality }: {
   const [isDisliked, setIsDisliked] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+  const [proSettings, setProSettings] = useState<ProSettings>(DEFAULT_PRO_SETTINGS);
+
+  useEffect(() => {
+    const checkPro = async () => {
+      if (user?.id) {
+        const owned = await checkProOwnership(user.id);
+        setIsPro(owned);
+      }
+    };
+    checkPro();
+  }, [user?.id]);
+
+  const updateProSettings = (updates: Partial<ProSettings>) => {
+    setProSettings(prev => ({ ...prev, ...updates }));
+  };
 
   return (
     <WatchContext.Provider value={{
@@ -58,7 +78,10 @@ export function WatchProvider({ children, initialVideo, initialQuality }: {
       isSubscribed,
       setIsSubscribed,
       isDescriptionExpanded,
-      setIsDescriptionExpanded
+      setIsDescriptionExpanded,
+      isPro,
+      proSettings,
+      updateProSettings
     }}>
       {children}
     </WatchContext.Provider>

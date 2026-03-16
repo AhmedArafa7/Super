@@ -12,7 +12,7 @@ interface WatchPlayerProps {
 }
 
 export function WatchPlayer({ isCached, downloadedQuality, handleQualityChange }: WatchPlayerProps) {
-    const { video, selectedQuality } = useWatch();
+    const { video, selectedQuality, proSettings, isPro } = useWatch();
     
     // Detect source
     const source = detectVideoSource(video.externalUrl || video.url, video.source);
@@ -32,6 +32,7 @@ export function WatchPlayer({ isCached, downloadedQuality, handleQualityChange }
                     src={video.externalUrl || video.url}
                     poster={video.thumbnail}
                     autoPlay
+                    proSettings={isPro ? proSettings : undefined}
                 />
             )}
         </div>

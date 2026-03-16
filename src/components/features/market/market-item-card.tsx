@@ -57,8 +57,14 @@ export function MarketItemCard({ item, userId, onClick, onEdit }: MarketItemCard
           {item.description}
         </p>
         <div className="flex items-baseline justify-end gap-2 mb-6 flex-row-reverse">
-          <span className="text-3xl font-black text-white tracking-tighter">{item.price?.toLocaleString()}</span>
-          <span className="text-primary font-bold text-xs uppercase">رصيد</span>
+          {item.price === 0 ? (
+            <span className="text-3xl font-black text-green-400 tracking-tighter">مجاناً</span>
+          ) : (
+            <>
+              <span className="text-3xl font-black text-white tracking-tighter">{item.price?.toLocaleString()}</span>
+              <span className="text-primary font-bold text-xs uppercase">رصيد</span>
+            </>
+          )}
         </div>
 
         <div className="flex flex-col gap-3 border-t border-white/5 pt-6 mt-2">

@@ -27,6 +27,7 @@ export interface MarketItem {
   versionStatus?: AppVersionStatus;
   themeSlug?: string;
   purchasedBy?: string[];
+  hideWhenOutOfStock?: boolean;
 }
 
 export interface CategoryRequest {
