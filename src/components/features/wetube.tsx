@@ -253,11 +253,15 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
 
     const isFakeThumb = (url?: string) => !url || url.includes('photo-1611162617474-5b21e879e113') || url.includes('picsum.photos');
 
-    const platformVids = videos.filter(v => v.status === 'published').map(v => ({
-      ...v,
-      source: v.source || 'platform',
-      thumbnail: isFakeThumb(v.thumbnail) ? null : v.thumbnail
-    }));
+    const platformVids = videos.filter(v => v.status === 'published').map(v => {
+      const sub = subscriptions.find(s => s.channelId === v.authorId);
+      return {
+        ...v,
+        source: v.source || 'platform',
+        thumbnail: isFakeThumb(v.thumbnail) ? null : v.thumbnail,
+        channelAvatar: v.channelAvatar || sub?.avatarUrl || (v.authorId === user?.id ? user?.avatar_url : null)
+      };
+    });
 
     const feedVids = feedVideos.map(v => {
       const sub = subscriptions.find(s => s.channelId === v.authorId);
