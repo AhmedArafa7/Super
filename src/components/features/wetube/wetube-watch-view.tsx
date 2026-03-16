@@ -57,7 +57,9 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached, onCh
                             id: video.id,
                             title: d?.title || video.title,
                             thumbnail: d?.thumbnail || video.thumbnail,
-                            author: d?.author || video.author
+                            author: d?.author || video.author,
+                            authorId: d?.authorId || video.authorId,
+                            channelAvatar: d?.channelAvatar || video.channelAvatar
                         });
                     }
                 } catch (e) {

@@ -222,7 +222,9 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     try {
       const { fetchChannelVideos } = await import("@/lib/youtube-feed-store");
       const vids = await fetchChannelVideos(id);
-      setChannelVideos(vids);
+      // Enrich with avatar
+      const enriched = vids.map(v => ({ ...v, channelAvatar: avatar }));
+      setChannelVideos(enriched);
     } catch (e) {
       toast({ variant: "destructive", title: "فشل تحميل محتوى القناة" });
     } finally {
@@ -233,8 +235,19 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
 
   // Merge Platform Videos & Feed Videos for "Home"
   const allHomeContent = useMemo(() => {
-    if (searchResults.length > 0 && searchQuery) return searchResults;
-    if (activeChannel) return channelVideos;
+    if (searchResults.length > 0 && searchQuery) {
+      return searchResults.map(v => {
+        const sub = subscriptions.find(s => s.channelId === v.authorId);
+        return { ...v, channelAvatar: v.channelAvatar || sub?.avatarUrl };
+      });
+    }
+
+    if (activeChannel) {
+      return channelVideos.map(v => {
+        const sub = subscriptions.find(s => s.channelId === v.authorId);
+        return { ...v, channelAvatar: v.channelAvatar || activeChannel.avatar || sub?.avatarUrl };
+      });
+    }
 
     const isFakeThumb = (url?: string) => !url || url.includes('photo-1611162617474-5b21e879e113') || url.includes('picsum.photos');
 
@@ -244,7 +257,16 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       thumbnail: isFakeThumb(v.thumbnail) ? null : v.thumbnail
     }));
 
-    const feedVids = feedVideos.map(v => ({ ...v, externalUrl: v.url, time: "حديثاً", source: 'youtube' }));
+    const feedVids = feedVideos.map(v => {
+      const sub = subscriptions.find(s => s.channelId === v.authorId);
+      return { 
+        ...v, 
+        externalUrl: v.url, 
+        time: "حديثاً", 
+        source: 'youtube',
+        channelAvatar: v.channelAvatar || sub?.avatarUrl 
+      };
+    });
 
     const trendingVids = trendingVideos.map(v => {
       const sub = subscriptions.find(s => s.channelId === v.authorId);
@@ -519,16 +541,28 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                       <p className="text-center py-20 opacity-50 bg-white/5 rounded-3xl">لا يوجد سجل مشاهدة حالياً</p>
                   ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-10">
-                      {history.map((h, i) => (
-                          <VideoCard
-                              key={`hist-${h.id}-${i}`} 
-                              video={{ id: h.videoId, title: h.title, thumbnail: h.thumbnail, author: h.author, channelAvatar: h.channelAvatar, source: 'youtube', time: "شوهد مؤخراً" } as any}
-                              isCached={cachedAssets.some(a => a.id === `video-${h.videoId}`)} 
-                              onSync={handleToggleLocal}
-                              onChannelClick={handleChannelClick}
-                              onClick={() => setActiveVideo({ id: h.videoId, title: h.title, thumbnail: h.thumbnail, author: h.author, source: 'youtube' } as any)}
-                          />
-                      ))}
+                       {history.map((h, i) => {
+                           const sub = subscriptions.find(s => s.channelId === h.channelId);
+                           const vid = { 
+                               id: h.videoId, 
+                               title: h.title, 
+                               thumbnail: h.thumbnail, 
+                               author: h.author, 
+                               channelAvatar: h.channelAvatar || sub?.avatarUrl, 
+                               source: 'youtube' as const, 
+                               time: "شوهد مؤخراً" 
+                           };
+                           return (
+                               <VideoCard
+                                   key={`hist-${h.id}-${i}`} 
+                                   video={vid as any}
+                                   isCached={cachedAssets.some(a => a.id === `video-${h.videoId}`)} 
+                                   onSync={handleToggleLocal}
+                                   onChannelClick={handleChannelClick}
+                                   onClick={() => setActiveVideo(vid as any)}
+                               />
+                           );
+                       })}
                       </div>
                   )}
                 </div>
