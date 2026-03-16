@@ -111,6 +111,36 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }
   }, [user?.id]);
 
+  // Channel Content Effect - Prevents Race Conditions
+  useEffect(() => {
+    let isMounted = true;
+    
+    if (activeChannel?.id) {
+      const loadChannelContent = async () => {
+        setIsChannelLoading(true);
+        setChannelVideos([]); // Clear immediately for visual feedback
+        try {
+          const { fetchChannelVideos } = await import("@/lib/youtube-feed-store");
+          const vids = await fetchChannelVideos(activeChannel.id);
+          if (isMounted) {
+            const enriched = vids.map(v => ({ ...v, channelAvatar: activeChannel.avatar }));
+            setChannelVideos(enriched);
+          }
+        } catch (e) {
+          if (isMounted) toast({ variant: "destructive", title: "فشل تحميل محتوى القناة" });
+        } finally {
+          if (isMounted) setIsChannelLoading(false);
+        }
+      };
+      loadChannelContent();
+    } else {
+      setChannelVideos([]);
+      setIsChannelLoading(false);
+    }
+
+    return () => { isMounted = false; };
+  }, [activeChannel?.id, activeChannel?.avatar]);
+
   // Performance Optimization: Trigger feed sync only when relevant tabs are accessed
   useEffect(() => {
     if ((activeTab === 'subs' || activeTab === 'notifications') && feedVideos.length === 0 && subscriptions.length > 0 && !isFeedLoading) {
@@ -214,24 +244,12 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }
   };
 
-  const handleChannelClick = async (id: string, name: string, avatar?: string) => {
+  const handleChannelClick = (id: string, name: string, avatar?: string) => {
     setActiveVideo(null);
     setActiveTab('home');
     setSearchResults([]);
     setSearchQuery("");
     setActiveChannel({ id, name, avatar });
-    setIsChannelLoading(true);
-    try {
-      const { fetchChannelVideos } = await import("@/lib/youtube-feed-store");
-      const vids = await fetchChannelVideos(id);
-      // Enrich with avatar
-      const enriched = vids.map(v => ({ ...v, channelAvatar: avatar }));
-      setChannelVideos(enriched);
-    } catch (e) {
-      toast({ variant: "destructive", title: "فشل تحميل محتوى القناة" });
-    } finally {
-      setIsChannelLoading(false);
-    }
   };
 
 
