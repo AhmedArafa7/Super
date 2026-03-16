@@ -295,7 +295,7 @@ export function WatchActions({
                                 <span className="text-sm">إبلاغ</span>
                             </DropdownMenuItem>
 
-                            {currentUser?.role === 'admin' && (
+                            {(currentUser?.role === 'admin' || currentUser?.role === 'founder') && (
                                 <>
                                     <DropdownMenuSeparator className="bg-white/5 mx-1 my-1" />
                                     <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 focus:bg-red-500/20 text-red-400 rounded-lg cursor-pointer transition-colors">

@@ -164,7 +164,7 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
       <MarketItemDetails
         item={viewingItem}
         userId={user?.id}
-        isAdmin={user?.role === 'admin'}
+        isAdmin={user?.role === 'admin' || user?.role === 'founder'}
         userBalance={wallet?.balance || 0}
         onBack={() => setViewingItem(null)}
         onLaunch={onLaunchApp}
@@ -187,7 +187,7 @@ export function TechMarket({ onLaunchApp }: { onLaunchApp?: (url: string, title:
               <div className="flex items-center gap-3 justify-end">
                 <div className="flex items-center gap-4 flex-row-reverse">
             <h1 className="text-3xl font-black text-white tracking-tighter">سوق العقد العصبية</h1>
-            {user?.role === 'admin' && (
+            {(user?.role === 'admin' || user?.role === 'founder') && (
               <Button 
                 onClick={async () => {
                    await seedProProduct(user.id);

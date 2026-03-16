@@ -30,18 +30,20 @@ interface MarketItemDetailsProps {
  */
 export function MarketItemDetails({ item, userId, isAdmin, userBalance = 0, onBack, onLaunch, onEdit, onAcquire }: MarketItemDetailsProps) {
   const { toast } = useToast();
+  const [localItem, setLocalItem] = useState<MarketItem>(item);
   const [isAcquiring, setIsAcquiring] = useState(false);
-  const [newStock, setNewStock] = useState(item.stockQuantity.toString());
+  const [newStock, setNewStock] = useState(localItem.stockQuantity.toString());
   const [isUpdatingStock, setIsUpdatingStock] = useState(false);
-  const isOwner = item.sellerId === userId;
-  const subCatLabel = SUB_CATEGORIES.find(s => s.id === item.subCategory)?.label || item.subCategory;
+  const isOwner = localItem.sellerId === userId;
+  const subCatLabel = SUB_CATEGORIES.find(s => s.id === localItem.subCategory)?.label || localItem.subCategory;
 
   const handleUpdateStock = async () => {
     setIsUpdatingStock(true);
     try {
-      await updateStock(item.id, parseInt(newStock));
+      const stockVal = parseInt(newStock);
+      await updateStock(localItem.id, stockVal);
       toast({ title: "تم تحديث المخزون", description: "تمت مزامنة الكمية الجديدة بنجاح." });
-      item.stockQuantity = parseInt(newStock); // Optimistic update
+      setLocalItem(prev => ({ ...prev, stockQuantity: stockVal }));
     } catch (e) {
       toast({ variant: "destructive", title: "فشل التحديث", description: "عذراً، حدث خطأ أثناء تحديث المخزون." });
     } finally {
@@ -50,29 +52,29 @@ export function MarketItemDetails({ item, userId, isAdmin, userBalance = 0, onBa
   };
 
   const handleDownload = () => {
-    if (!item.downloadUrl) return;
-    toast({ title: "بدأ التحميل العصبي", description: `جاري جلب ملفات ${item.title}...` });
-    window.open(item.downloadUrl, '_blank');
+    if (!localItem.downloadUrl) return;
+    toast({ title: "بدأ التحميل العصبي", description: `جاري جلب ملفات ${localItem.title}...` });
+    window.open(localItem.downloadUrl, '_blank');
   };
 
   const handleAcquireClick = async () => {
-    if (userBalance < item.price) {
+    if (userBalance < localItem.price) {
       toast({ 
         variant: "destructive", 
         title: "رصيد غير كافٍ", 
-        description: `تحتاج إلى ${item.price - userBalance} Credits إضافية لإتمام المزامنة.` 
+        description: `تحتاج إلى ${localItem.price - userBalance} Credits إضافية لإتمام المزامنة.` 
       });
       return;
     }
 
     const warning = "\n\n⚠️ تنبيه هام: لا يمكن إرجاع البرمجيات بعد الاستحواذ إلا في حال وجود عطل تقني مثبت من قبل المطور.";
-    const confirmed = window.confirm(`هل أنت متأكد من رغبتك في استحواذ "${item.title}" مقابل ${item.price} Credits؟${warning}`);
+    const confirmed = window.confirm(`هل أنت متأكد من رغبتك في استحواذ "${localItem.title}" مقابل ${localItem.price} Credits؟${warning}`);
     
     if (!confirmed) return;
 
     setIsAcquiring(true);
     try {
-      await onAcquire(item);
+      await onAcquire(localItem);
     } catch (e: any) {
       console.error("Acquisition Error:", e);
       toast({ 
@@ -92,7 +94,7 @@ export function MarketItemDetails({ item, userId, isAdmin, userBalance = 0, onBa
           <ArrowLeft className="size-4 rotate-180" /> العودة للسجل
         </Button>
         <div className="text-right">
-          <h2 dir="auto" className="text-xl font-bold text-white">{item.title}</h2>
+          <h2 dir="auto" className="text-xl font-bold text-white">{localItem.title}</h2>
           <p className="text-xs text-muted-foreground uppercase tracking-widest">معاينة تفاصيل العقدة</p>
         </div>
       </header>
@@ -102,8 +104,8 @@ export function MarketItemDetails({ item, userId, isAdmin, userBalance = 0, onBa
           <div className="space-y-6">
             <div className="relative aspect-square rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl group">
               <Image 
-                src={item.imageUrl || `https://picsum.photos/seed/${item.id}/800/800`} 
-                alt={item.title} 
+                src={localItem.imageUrl || `https://picsum.photos/seed/${localItem.id}/800/800`} 
+                alt={localItem.title} 
                 fill 
                 className="object-cover transition-transform duration-1000 group-hover:scale-105"
               />
@@ -111,12 +113,12 @@ export function MarketItemDetails({ item, userId, isAdmin, userBalance = 0, onBa
                 <Badge className="bg-black/60 backdrop-blur-md border-white/10 px-4 py-1.5 text-xs font-bold uppercase">
                   {subCatLabel}
                 </Badge>
-                {item.mainCategory === 'software' && (
+                {localItem.mainCategory === 'software' && (
                   <Badge className={cn(
                     "backdrop-blur-md border-white/10 px-4 py-1.5 text-xs font-black uppercase",
-                    item.versionStatus === 'beta' ? "bg-amber-500/80" : "bg-green-500/80"
+                    localItem.versionStatus === 'beta' ? "bg-amber-500/80" : "bg-green-500/80"
                   )}>
-                    {item.versionStatus === 'beta' ? 'BETA' : 'FINAL'}
+                    {localItem.versionStatus === 'beta' ? 'BETA' : 'FINAL'}
                   </Badge>
                 )}
               </div>
@@ -135,20 +137,20 @@ export function MarketItemDetails({ item, userId, isAdmin, userBalance = 0, onBa
 
           <div className="flex flex-col space-y-8 text-right">
             <div className="space-y-4">
-              <h1 dir="auto" className="text-5xl font-black text-white tracking-tighter leading-tight">{item.title}</h1>
+              <h1 dir="auto" className="text-5xl font-black text-white tracking-tighter leading-tight">{localItem.title}</h1>
               <div className="flex items-center justify-end gap-4">
                 <div className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-2xl">
-                    {item.price === 0 ? (
+                    {localItem.price === 0 ? (
                       <span className="text-3xl font-black text-green-400">مجاناً</span>
                     ) : (
                       <>
-                        <span className="text-3xl font-black text-indigo-400">{item.price?.toLocaleString()}</span>
+                        <span className="text-3xl font-black text-indigo-400">{localItem.price?.toLocaleString()}</span>
                         <span className="text-xs font-bold text-muted-foreground uppercase">Credits</span>
                       </>
                     )}
                 </div>
                  <Badge variant="outline" className="h-10 px-4 rounded-xl border-white/10 text-muted-foreground">
-                    STOCK: {item.stockQuantity}
+                    STOCK: {localItem.stockQuantity}
                  </Badge>
                   {isAdmin && (
                     <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
@@ -175,7 +177,7 @@ export function MarketItemDetails({ item, userId, isAdmin, userBalance = 0, onBa
             <div className="space-y-4">
               <h3 className="text-xs font-bold text-primary uppercase tracking-[0.3em]">الوصف العصبي</h3>
               <p dir="auto" className="text-lg text-slate-300 leading-relaxed whitespace-pre-wrap italic">
-                "{item.description}"
+                "{localItem.description}"
               </p>
             </div>
 
@@ -183,7 +185,7 @@ export function MarketItemDetails({ item, userId, isAdmin, userBalance = 0, onBa
               {!isOwner ? (
                 <>
                   <MakeOfferModal 
-                    item={item} 
+                    item={localItem} 
                     trigger={
                       <Button variant="outline" disabled={isAcquiring} className="h-16 rounded-2xl border-white/10 hover:bg-white/5 font-bold text-lg gap-3">
                         <MessageCircle className="size-6 text-indigo-400" /> تقديم عرض
@@ -192,7 +194,7 @@ export function MarketItemDetails({ item, userId, isAdmin, userBalance = 0, onBa
                   />
                   <Button 
                     onClick={handleAcquireClick}
-                    disabled={isAcquiring || item.stockQuantity <= 0}
+                    disabled={isAcquiring || localItem.stockQuantity <= 0}
                     className="h-16 bg-primary rounded-2xl font-bold text-lg shadow-2xl shadow-primary/20 relative"
                   >
                     {isAcquiring ? (
@@ -203,22 +205,22 @@ export function MarketItemDetails({ item, userId, isAdmin, userBalance = 0, onBa
                     ) : (
                       <div className="flex items-center gap-3">
                         <Zap className="size-6" />
-                        <span>{item.stockQuantity <= 0 ? "نفذت الكمية" : "استحواذ الآن"}</span>
+                        <span>{localItem.stockQuantity <= 0 ? "نفذت الكمية" : "استحواذ الآن"}</span>
                       </div>
                     )}
                   </Button>
                 </>
               ) : (
                 <>
-                  {item.isLaunchable && item.launchUrl && (
+                  {localItem.isLaunchable && localItem.launchUrl && (
                     <Button 
-                      onClick={() => onLaunch?.(item.launchUrl!, item.title)}
+                      onClick={() => onLaunch?.(localItem.launchUrl!, localItem.title)}
                       className="h-16 bg-green-600 hover:bg-green-500 rounded-2xl font-bold text-lg gap-3"
                     >
                       <Play className="size-6" /> تشغيل العقدة
                     </Button>
                   )}
-                  {item.downloadUrl && (
+                  {localItem.downloadUrl && (
                     <Button 
                       onClick={handleDownload}
                       variant="outline" 
@@ -228,7 +230,7 @@ export function MarketItemDetails({ item, userId, isAdmin, userBalance = 0, onBa
                     </Button>
                   )}
                   <Button 
-                    onClick={() => onEdit(item)}
+                    onClick={() => onEdit(localItem)}
                     variant="ghost" 
                     className="col-span-full h-14 bg-white/5 hover:bg-white/10 rounded-2xl font-bold gap-3 border border-white/5"
                   >
@@ -241,11 +243,11 @@ export function MarketItemDetails({ item, userId, isAdmin, userBalance = 0, onBa
             <div className="p-6 bg-white/5 rounded-3xl border border-white/5 flex items-center justify-between flex-row-reverse">
               <div className="flex items-center gap-4 flex-row-reverse">
                 <div className="size-12 rounded-2xl bg-slate-800 border border-white/10 overflow-hidden">
-                  <img src={`https://picsum.photos/seed/${item.sellerId}/60/60`} className="size-full object-cover" alt="owner" />
+                  <img src={`https://picsum.photos/seed/${localItem.sellerId}/60/60`} className="size-full object-cover" alt="owner" />
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">المالك / المطور</p>
-                  <p className="font-bold text-white">@{item.sellerId.substring(0, 8)}</p>
+                  <p className="font-bold text-white">@{localItem.sellerId.substring(0, 8)}</p>
                 </div>
               </div>
               <Badge variant="outline" className="border-indigo-500/20 text-indigo-400">VERIFIED NODE</Badge>

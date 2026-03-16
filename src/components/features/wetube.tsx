@@ -167,7 +167,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         productIds: uploadData.productIds,
         productDisplayMode: uploadData.productDisplayMode
       }));
-      toast({ title: "تم إرسال الرابط للشبكة بنجاح", description: user.role === 'admin' ? "تم النشر." : "في انتظار المراجعة." });
+      toast({ title: "تم إرسال الرابط للشبكة بنجاح", description: (user.role === 'admin' || user.role === 'founder') ? "تم النشر." : "في انتظار المراجعة." });
       return null;
     } else {
       const taskId = addTask(uploadData.file, 'video', { 

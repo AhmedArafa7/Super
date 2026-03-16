@@ -67,7 +67,7 @@ export function StreamHub({ onOpenVault }: { onOpenVault?: () => void }) {
         authorId: user.id,
         thumbnail: source === 'youtube' ? "https://images.unsplash.com/photo-1611162617474-5b21e879e113" : "https://images.unsplash.com/photo-1544391496-1ca7c974b711",
         time: source === 'youtube' ? "YouTube" : "Vault",
-        status: user.role === 'admin' ? 'published' : 'pending_review',
+        status: (user.role === 'admin' || user.role === 'founder') ? 'published' : 'pending_review',
         visibility: 'public',
         allowedUserIds: [],
         uploaderRole: user.role as any,
@@ -77,7 +77,7 @@ export function StreamHub({ onOpenVault }: { onOpenVault?: () => void }) {
       toast({ title: "تم ربط العقدة" });
       return null;
     } else {
-      const taskId = addTask(uploadData.file, 'video', { title: uploadData.title, author: user.name, authorId: user.id, status: user.role === 'admin' ? 'published' : 'pending_review' });
+      const taskId = addTask(uploadData.file, 'video', { title: uploadData.title, author: user.name, authorId: user.id, status: (user.role === 'admin' || user.role === 'founder') ? 'published' : 'pending_review' });
       toast({ title: "بدأ الإرسال العصبي" });
       return taskId;
     }

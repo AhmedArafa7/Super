@@ -216,7 +216,7 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
                 <span className="text-[14px] font-medium">إبلاغ</span>
               </DropdownMenuItem>
 
-              {(currentUser?.role === 'admin' || currentUser?.id === video.authorId) && onDelete && (
+              {(currentUser?.role === 'admin' || currentUser?.role === 'founder' || currentUser?.id === video.authorId) && onDelete && (
                 <>
                   <DropdownMenuSeparator className="bg-white/5 mx-1 my-1" />
                   <DropdownMenuItem 
