@@ -44,7 +44,11 @@ export async function POST(req: Request) {
 
       if (data.error) {
         console.error(`Google Drive API Error for folder ${id}:`, data.error.message);
-        continue;
+        return NextResponse.json({ 
+          error: true, 
+          message: `خطأ من Google Drive: ${data.error.message}. تأكد من تفعيل Drive API لمفتاحك.`,
+          diagnostics: { googleError: data.error }
+        }, { status: 403 });
       }
 
       if (data.files) {

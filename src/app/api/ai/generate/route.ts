@@ -15,7 +15,7 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_AP
 async function callGemini(model: string, prompt: string, history: any[] = [], imageDataUri?: string) {
   if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_MISSING");
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
   
   const contents = history.map(h => ({
     role: h.role === 'model' ? 'model' : 'user',
@@ -77,7 +77,13 @@ export async function POST(req: Request) {
     let modelToUse = isAutoMode ? 'gemini-1.5-flash' : (manualModel || 'gemini-1.5-flash');
     // تنظيف اسم الموديل من بادئة genkit إذا وجدت
     modelToUse = modelToUse.replace('googleai/', '').replace('groq/', '');
-    if (modelToUse === 'flash-latest') modelToUse = 'gemini-1.5-flash';
+    
+    // تصحيح مسميات Gemini
+    if (modelToUse.includes('gemini')) {
+      if (modelToUse.includes('1.5-flash')) modelToUse = 'gemini-1.5-flash';
+      else if (modelToUse.includes('1.5-pro')) modelToUse = 'gemini-1.5-pro';
+      else if (modelToUse === 'flash-latest') modelToUse = 'gemini-1.5-flash';
+    }
 
     let responseText = "";
     let engineName = "NexusAI";
