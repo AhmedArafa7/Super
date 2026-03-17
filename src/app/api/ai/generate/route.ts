@@ -1,57 +1,68 @@
 import { NextResponse } from 'next/server';
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import Groq from 'groq-sdk';
 
 export const runtime = 'edge';
 
-const PROJECT_ID = "studio-3522991053-84d29";
+const GEMINI_API_KEY = process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_DRIVE_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY;
 
-const optimizePrompt = ai.definePrompt({
-  name: 'optimizePromptAPI',
-  model: 'googleai/gemini-1.5-flash',
-  input: { schema: z.object({ message: z.string() }) },
-  prompt: `أنت مُحسن أوامر (Prompt Optimizer) لنظام NexusAI.
-مهمتك: تحويل طلب المستخدم إلى أمر دقيق للذكاء الاصطناعي.
-القواعد الصارمة:
-1. إذا كانت الرسالة مجرد تحية، أعدها كما هي.
-2. لا تضف أي شرح أو مقدمات مثل "سأقوم بتحسين رسالتك".
-3. المخرجات هي النص المحسن فقط بالعربية.
+/**
+ * [STABILITY_ANCHOR: LIGHTWEIGHT_NEURAL_ENGINE_V1.0]
+ * محرك عصبي خفيف الوزن مصمم للعمل على الـ Edge بدون تبعيات ثقيلة.
+ * يستخدم الـ fetch المباشر لـ Gemini و Groq SDK لإصلاح أخطاء البناء.
+ */
 
-رسالة المستخدم: {{{message}}}
-النص المحسن:`,
-});
+async function callGemini(model: string, prompt: string, history: any[] = [], imageDataUri?: string) {
+  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_MISSING");
 
-const responsePrompt = ai.definePrompt({
-  name: 'aiChatGenerateResponsePromptAPI',
-  model: 'googleai/gemini-1.5-flash',
-  input: {
-    schema: z.object({
-      message: z.string(),
-      imageDataUri: z.string().optional(),
-      history: z.array(z.object({ role: z.enum(['user', 'model']), content: z.string() })).optional()
-    })
-  },
-  prompt: `أنت مساعد NexusAI المتقدم. أجب بالعربية الفصحى وبأسلوب مستقبلي.
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+  
+  const contents = history.map(h => ({
+    role: h.role === 'model' ? 'model' : 'user',
+    parts: [{ text: h.content }]
+  }));
 
-{{#if imageDataUri}}لقد أرفق المستخدم صورة: {{media url=imageDataUri}}{{/if}}
+  const userParts: any[] = [{ text: prompt }];
+  if (imageDataUri) {
+    const [mimeType, base64Data] = imageDataUri.split(';base64,');
+    userParts.push({
+      inline_data: {
+        mime_type: mimeType.replace('data:', ''),
+        data: base64Data
+      }
+    });
+  }
 
-سياق الدردشة:
-{{#each history}}
-  {{role}}: {{{content}}}
-{{/each}}
+  contents.push({ role: 'user', parts: userParts });
 
-الرسالة: {{{message}}}
-الرد الحكيم:`,
-});
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents })
+  });
+ 
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+}
 
-function checkNeuralEnvironment() {
-  return {
-    hasGoogleKey: !!(process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_DRIVE_API_KEY),
-    hasGroqKey: !!(process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY),
-    runtime: typeof (globalThis as any).EdgeRuntime !== 'undefined' ? 'edge' : 'nodejs',
-    nodeVersion: process.version,
-    envKeys: Object.keys(process.env).filter(k => k.includes('KEY') || k.includes('API')).map(k => k.replace(/./g, (c, i) => i < 3 ? c : '*'))
-  };
+async function callGroq(model: string, prompt: string, history: any[] = []) {
+  if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY_MISSING");
+  const groq = new Groq({ apiKey: GROQ_API_KEY });
+
+  const messages = history.map(h => ({
+    role: h.role === 'model' ? 'assistant' : 'user',
+    content: h.content
+  }));
+  messages.push({ role: 'user', content: prompt });
+
+  const completion = await groq.chat.completions.create({
+    model,
+    messages: messages as any,
+    temperature: 0.7,
+  });
+
+  return completion.choices[0]?.message?.content || "";
 }
 
 export async function POST(req: Request) {
@@ -60,59 +71,61 @@ export async function POST(req: Request) {
     const { message, imageDataUri, isAutoMode, manualModel, history } = body;
 
     if (!message) {
-      return NextResponse.json({ success: false, error: true, message: "Message is required." }, { status: 400 });
+      return NextResponse.json({ success: false, error: true, message: "مطلوب رسالة." }, { status: 400 });
     }
 
-    let modelToUse = isAutoMode ? 'googleai/gemini-1.5-flash' : (manualModel || 'googleai/gemini-1.5-flash');
-    if (modelToUse.includes('flash-latest')) modelToUse = 'googleai/gemini-1.5-flash';
+    let modelToUse = isAutoMode ? 'gemini-1.5-flash' : (manualModel || 'gemini-1.5-flash');
+    // تنظيف اسم الموديل من بادئة genkit إذا وجدت
+    modelToUse = modelToUse.replace('googleai/', '').replace('groq/', '');
+    if (modelToUse === 'flash-latest') modelToUse = 'gemini-1.5-flash';
 
-    let finalPrompt = message;
+    let responseText = "";
+    let engineName = "NexusAI";
     let optimizedText = null;
 
+    // محاكاة تحسين الـ Prompt إذا كان الوضع التلقائي مفعل
+    let promptToUse = message;
     if (isAutoMode) {
       try {
-        const { text: optimized } = await optimizePrompt({ message });
-        if (optimized && optimized.trim() !== message.trim()) {
-          finalPrompt = optimized;
-          optimizedText = optimized;
-        }
+        const optimizationPrompt = `أنت مُحسن أوامر لنظام NexusAI. حول طلب المستخدم التالي إلى أمر دقيق بالعربية الفصحى وبدون مقدمات:\n\n${message}`;
+        optimizedText = await callGemini('gemini-1.5-flash', optimizationPrompt);
+        if (optimizedText) promptToUse = optimizedText;
       } catch (e) {
-        console.warn("Prompt optimization failed.");
+        console.warn("Optimization failed, using original prompt.");
       }
     }
 
-    const { text: responseText } = await responsePrompt({
-      message: finalPrompt,
-      imageDataUri,
-      history: history?.filter((h: any) => !!h.content)
-    }, { model: modelToUse as any });
-
-    let engineName = "NexusAI";
-    if (modelToUse.includes('gemini-1.5-pro')) engineName = "Gemini Pro";
-    else if (modelToUse.includes('llama-3.3')) engineName = "Llama 3.3 70B";
-    else if (modelToUse.includes('groq/')) engineName = "Groq Engine";
+    if (modelToUse.includes('llama') || modelToUse.includes('mixtral') || modelToUse.includes('gemma')) {
+      responseText = await callGroq(modelToUse, promptToUse, history);
+      engineName = "Groq Engine";
+    } else {
+      // افتراضاً نستخدم Gemini
+      const geminiModel = modelToUse.includes('gemini') ? modelToUse : 'gemini-1.5-flash';
+      responseText = await callGemini(geminiModel, promptToUse, history, imageDataUri);
+      engineName = geminiModel.includes('pro') ? "Gemini Pro" : "Gemini Flash";
+    }
 
     return NextResponse.json({
       success: true,
       response: responseText || "تمت المعالجة عصبياً.",
       engine: engineName,
       optimizedText,
-      selectedModel: modelToUse
+      selectedModel: modelToUse as string
     });
 
   } catch (err: any) {
-    console.error("Critical Neural API Failure:", err);
-    const errorMsg = err.message || "Unknown error";
-    const envState = checkNeuralEnvironment();
-
+    console.error("Lightweight Neural API Failure:", err);
     return NextResponse.json({
       success: false,
       error: true,
-      message: `حدث اضطراب في الاتصال العصبى: ${errorMsg.substring(0, 100)}`,
+      message: `حدث اضطراب في الاتصال العصبى: ${err.message || 'Unknown Error'}`,
       diagnostics: {
-        error: errorMsg,
-        stack: err.stack?.substring(0, 200),
-        envState
+        error: err.message,
+        env: {
+          hasGemini: !!GEMINI_API_KEY,
+          hasGroq: !!GROQ_API_KEY,
+          runtime: 'edge'
+        }
       }
     }, { status: 500 });
   }
