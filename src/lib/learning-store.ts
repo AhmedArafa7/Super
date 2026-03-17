@@ -76,34 +76,45 @@ export const fetchDriveMetadata = async (fileId: string) => {
  * جلب قائمة الملفات من مجلد محدد في Google Drive.
  * تم تحصينها لتعيد مصفوفة فارغة وتستخدم console.warn لمنع ظهور أخطاء UI في Next.js.
  */
-export const fetchDriveFolderFiles = async (folderId: string) => {
+export const fetchDriveFolderFiles = async (folderId: string | string[]) => {
   if (!DRIVE_PROXY_URL && !DRIVE_API_KEY) {
     console.warn("DRIVE_API_MISSING: يرجى إعداد NEXT_PUBLIC_DRIVE_PROXY_URL أو NEXT_PUBLIC_DRIVE_API_KEY.");
     return [];
   }
   
-  if (!DRIVE_PROXY_URL) {
-      console.warn("SECURITY WARNING: استخدام NEXT_PUBLIC_DRIVE_API_KEY في الواجهة الأمامية أقل أماناً. ينصح باستخدام NEXT_PUBLIC_DRIVE_PROXY_URL.");
-  }
-
+  const folderIds = Array.isArray(folderId) ? folderId : [folderId];
+  
   try {
-    const query = `'${folderId}'+in+parents+and+trashed=false`;
-    const fields = `files(id,name,size,mimeType,webViewLink,thumbnailLink)`;
+    const allFiles: any[] = [];
     
-    const targetUrl = DRIVE_PROXY_URL
-      ? `${DRIVE_PROXY_URL}/drive/v3/files?q=${query}&fields=${fields}`
-      : `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${fields}&key=${DRIVE_API_KEY}`;
+    for (const id of folderIds) {
+      const queryStr = `'${id}'+in+parents+and+trashed=false`;
+      const fields = `files(id,name,size,mimeType,webViewLink,thumbnailLink)`;
+      
+      const targetUrl = DRIVE_PROXY_URL
+        ? `${DRIVE_PROXY_URL}/drive/v3/files?q=${queryStr}&fields=${fields}`
+        : `https://www.googleapis.com/drive/v3/files?q=${queryStr}&fields=${fields}&key=${DRIVE_API_KEY}`;
 
-    const res = await fetch(targetUrl);
-    const data = await res.json();
-    
-    if (data.error) {
-      // استخدام warn بدلاً من error لمنع تفعيل واجهة الخطأ في Next.js
-      console.warn("Google Drive API Notice:", data.error.message || data.error);
-      return [];
+      const res = await fetch(targetUrl);
+      const data = await res.json();
+      
+      if (data.nexusProxyError) {
+        console.warn("Nexus Proxy Error:", data.message);
+        continue;
+      }
+
+      if (data.error) {
+        console.warn("Google Drive API Notice:", data.error.message || data.error);
+        continue;
+      }
+      
+      if (data.files) {
+        allFiles.push(...data.files);
+      }
     }
     
-    return data.files || [];
+    // Sort combined results by name
+    return allFiles.sort((a, b) => a.name.localeCompare(b.name));
   } catch (e) {
     console.warn("Fetch Drive Folder Network Notice:", e);
     return [];

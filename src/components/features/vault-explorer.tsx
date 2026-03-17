@@ -21,7 +21,7 @@ const VAULT_FOLDER_ID = "16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g";
 const DRIVE_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
 
 interface VaultExplorerProps {
-  folderId?: string;
+  folderId?: string | string[];
   hideSidebar?: boolean;
   title?: string;
   icon?: React.ReactNode;
@@ -57,8 +57,10 @@ export function VaultExplorer({
       const apiKey = process.env.NEXT_PUBLIC_DRIVE_API_KEY;
       const proxyUrl = process.env.NEXT_PUBLIC_DRIVE_PROXY_URL;
       
-      // التحقق من وجود وسيلة اتصال (مفتاح أو بروكسي)
-      if (!proxyUrl && (!apiKey || apiKey === 'YOUR_GOOGLE_DRIVE_API_KEY')) {
+      // التعديل: نعتبر المفتاح موجوداً إذا توفر البروكسي أو المفتاح الصريح
+      const hasConnection = proxyUrl || (apiKey && apiKey !== 'YOUR_GOOGLE_DRIVE_API_KEY');
+      
+      if (!hasConnection) {
         setIsKeyMissing(true);
         setAssets([]);
         setIsLoading(false);
@@ -134,13 +136,15 @@ export function VaultExplorer({
           <div className="flex items-center justify-between flex-row-reverse text-[10px] font-bold">
             <span className="text-indigo-400">Nexus Vault Status</span>
             <span className={cn(isKeyMissing ? "text-amber-400" : "text-green-400")}>
-              {isKeyMissing ? "API Inactive" : "API Handshake"}
+              {isKeyMissing ? "API Inactive" : (process.env.NEXT_PUBLIC_DRIVE_PROXY_URL ? "Proxy Bridge" : "API Handshake")}
             </span>
           </div>
           <p className="text-[9px] text-muted-foreground text-center leading-relaxed">
             {isKeyMissing 
-              ? "يرجى تهيئة مفتاح API صالح في المتغيرات البيئية لتفعيل المزامنة التلقائية للملفات." 
-              : "تعمل الخزنة الآن بنظام المزامنة المباشرة. يتم جلب البيانات من جوجل ومعالجتها عصبياً هنا."}
+              ? "يرجى تهيئة مفتاح API صالح أو رابط بروكسي في الإعدادات لتفعيل المزامنة." 
+              : process.env.NEXT_PUBLIC_DRIVE_PROXY_URL 
+                ? "تعمل الخزنة الآن بنظام البروكسي العصبي. يتم تأمين المفاتيح عبر Cloudflare."
+                : "تعمل الخزنة الآن بنظام المزامنة المباشرة عبر مفتاح الـ API العام."}
           </p>
         </div>
       </aside>
