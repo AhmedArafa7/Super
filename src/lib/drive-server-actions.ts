@@ -8,6 +8,14 @@
 
 const DRIVE_API_KEY = process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_DRIVE_API_KEY;
 
+function checkDriveEnv() {
+  return {
+    hasKey: !!DRIVE_API_KEY,
+    keyPrefix: DRIVE_API_KEY ? DRIVE_API_KEY.substring(0, 5) : 'none',
+    envKeys: Object.keys(process.env).filter(k => k.includes('KEY')).map(k => k.replace(/./g, (c, i) => i < 3 ? c : '*'))
+  };
+}
+
 export async function fetchDriveFilesServer(folderId: string | string[]) {
   if (!DRIVE_API_KEY) {
     return { error: true, message: "DRIVE_API_KEY missing in project environment." };
@@ -40,7 +48,14 @@ export async function fetchDriveFilesServer(folderId: string | string[]) {
       files: allFiles.sort((a, b) => a.name.localeCompare(b.name)) 
     };
   } catch (err: any) {
-    return { error: true, message: err.message || "Failed to fetch from Google Drive." };
+    return { 
+      error: true, 
+      message: err.message || "Failed to fetch from Google Drive.",
+      diagnostics: {
+        error: err.message,
+        env: checkDriveEnv()
+      }
+    };
   }
 }
 

@@ -129,17 +129,19 @@ export function AIChat() {
         }
       }
     } catch (err: any) {
-      const errorMsg = err.message || "تعذر الاتصال بالنخاع العصبي.";
+      const diag = err.diagnostics ? `\n\nDiagnostics: ${JSON.stringify(err.diagnostics, null, 2)}` : "";
+      const errorMsg = (err.message || "تعذر الاتصال بالنخاع العصبي.") + (err.diagnostics ? " (انقر لنسخ بيانات التشخيص)" : "");
+      
       toast({
         variant: "destructive",
         title: "Neural Link Error",
         description: errorMsg,
         action: (
           <ToastAction altText="Copy" onClick={() => {
-            navigator.clipboard.writeText(errorMsg);
-            toast({ title: "تم نسخ كود الخطأ" });
+            navigator.clipboard.writeText(errorMsg + diag);
+            toast({ title: "تم نسخ بيانات التشخيص كاملة" });
           }}>
-            <Copy className="size-3 mr-1" /> نسخ الخطأ
+            <Copy className="size-3 mr-1" /> نسخ التفاصيل
           </ToastAction>
         )
       });

@@ -36,6 +36,17 @@ const AIChatGenerateResponseInputSchema = z.object({
   })).optional(),
 });
 
+// تتبع حالة البيئة (Telemetry)
+function checkNeuralEnvironment() {
+  return {
+    hasGoogleKey: !!(process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_DRIVE_API_KEY),
+    hasGroqKey: !!(process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY),
+    runtime: typeof (globalThis as any).EdgeRuntime !== 'undefined' ? 'edge' : 'nodejs',
+    nodeVersion: process.version,
+    envKeys: Object.keys(process.env).filter(k => k.includes('KEY') || k.includes('API')).map(k => k.replace(/./g, (c, i) => i < 3 ? c : '*'))
+  };
+}
+
 export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerateResponseInputSchema>) {
   try {
     const result = await aiChatGenerateResponseFlow(input);
@@ -74,10 +85,16 @@ export async function aiChatGenerateResponse(input: z.infer<typeof AIChatGenerat
       };
     }
 
+    const envState = checkNeuralEnvironment();
     return { 
       success: false, 
       error: true, 
-      message: `حدث اضطراب في الاتصال العصبى: ${errorMsg.substring(0, 100)}...` 
+      message: `حدث اضطراب في الاتصال العصبى: ${errorMsg.substring(0, 100)}`,
+      diagnostics: {
+        error: errorMsg,
+        stack: err.stack?.substring(0, 200),
+        envState
+      }
     };
   }
 }
