@@ -5,6 +5,8 @@ import { Play, Pause, Volume2, VolumeX, Maximize, Settings } from "lucide-react"
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { NeuralMetadata } from "@/lib/wetube-pro-engine";
+import { Forward } from "lucide-react";
 
 interface NexusVideoPlayerProps {
     src: string;
@@ -18,6 +20,7 @@ interface NexusVideoPlayerProps {
         autoTrimOutro: boolean;
         frameSkipRatio: string;
     };
+    neuralMetadata?: NeuralMetadata;
 }
 
 export function NexusVideoPlayer({
@@ -28,7 +31,8 @@ export function NexusVideoPlayer({
     defaultQuality = "Auto (720p)",
     onQualityChange,
     sourceType,
-    proSettings
+    proSettings,
+    neuralMetadata
 }: NexusVideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -40,6 +44,7 @@ export function NexusVideoPlayer({
     const [isMuted, setIsMuted] = useState(false);
     const [showControls, setShowControls] = useState(true);
     const [quality, setQuality] = useState(defaultQuality);
+    const [showSkipIntro, setShowSkipIntro] = useState(false);
 
     let hideControlsTimeout: NodeJS.Timeout;
 
@@ -80,10 +85,20 @@ export function NexusVideoPlayer({
             const current = videoRef.current.currentTime;
             const dur = videoRef.current.duration;
             
-            // Pro Feature: Auto-Trim Outro (Skip last 5 seconds)
-            if (proSettings?.autoTrimOutro && dur > 10 && (dur - current) < 5) {
+            // Pro Feature: Auto-Trim Outro (Skip last 5 seconds or use metadata)
+            const outroTrigger = neuralMetadata?.outroStart || (dur > 10 ? dur - 5 : dur);
+            if (proSettings?.autoTrimOutro && current >= outroTrigger) {
                 videoRef.current.currentTime = dur;
                 return;
+            }
+
+            // Neural Jump: Intro skipping
+            if (neuralMetadata?.introStart !== undefined && neuralMetadata?.introEnd !== undefined) {
+                if (current >= neuralMetadata.introStart && current < neuralMetadata.introEnd) {
+                    setShowSkipIntro(true);
+                } else {
+                    setShowSkipIntro(false);
+                }
             }
 
             setProgress((current / dur) * 100);
@@ -153,6 +168,23 @@ export function NexusVideoPlayer({
                 onPause={() => setIsPlaying(false)}
                 onClick={togglePlay}
             />
+
+            {/* Neural Jump Button */}
+            {showSkipIntro && neuralMetadata?.introEnd && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (videoRef.current && neuralMetadata.introEnd) {
+                            videoRef.current.currentTime = neuralMetadata.introEnd;
+                            setShowSkipIntro(false);
+                        }
+                    }}
+                    className="absolute bottom-24 right-8 z-20 flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold shadow-2xl transition-all animate-in fade-in slide-in-from-right-4"
+                >
+                    <Forward className="size-5" />
+                    تخطي المقدمة
+                </button>
+            )}
 
             {/* Source Badge overlay */}
             {sourceType && (

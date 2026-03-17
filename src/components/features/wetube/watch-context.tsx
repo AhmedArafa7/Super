@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { VideoDetails, YouTubeComment } from "@/lib/youtube-discovery-store";
-import { ProSettings, DEFAULT_PRO_SETTINGS, checkProOwnership } from "@/lib/wetube-pro-engine";
+import { ProSettings, DEFAULT_PRO_SETTINGS, checkProOwnership, NeuralMetadata } from "@/lib/wetube-pro-engine";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useDataUsageStore } from "@/lib/data-usage-store";
 
@@ -14,6 +14,8 @@ interface WatchContextType {
   setComments: (c: YouTubeComment[]) => void;
   isLoading: boolean;
   setIsLoading: (l: boolean) => void;
+  neuralMetadata: NeuralMetadata | null;
+  setNeuralMetadata: (m: NeuralMetadata | null) => void;
   selectedQuality: string;
   setSelectedQuality: (q: string) => void;
   isLiked: boolean;
@@ -41,6 +43,7 @@ export function WatchProvider({ children, initialVideo, initialQuality }: {
   const [details, setDetails] = useState<VideoDetails | null>(null);
   const [comments, setComments] = useState<YouTubeComment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [neuralMetadata, setNeuralMetadata] = useState<NeuralMetadata | null>(null);
   const [selectedQuality, setSelectedQuality] = useState(initialQuality || "720");
   const [isLiked, setIsLiked] = useState(false);
   const [isDisliked, setIsDisliked] = useState(false);
@@ -58,6 +61,23 @@ export function WatchProvider({ children, initialVideo, initialQuality }: {
     };
     checkPro();
   }, [user?.id]);
+
+  // محاكاة اكتشاف المقدمة والخاتمة (Neural Analytics)
+  useEffect(() => {
+    if (video) {
+        // في النسخة الحقيقية، سيتم جلب هذا من قاعدة بيانات مسبقة المعالجة
+        // هنا نقوم بتمثيل العملية لبيان المبدأ
+        if (video.title.includes("مسلسل") || video.title.includes("الحلقة")) {
+            setNeuralMetadata({
+                introStart: 5,
+                introEnd: 60, // تخطي أول دقيقة
+                outroStart: video.duration ? Number(video.duration) - 30 : undefined
+            });
+        } else {
+            setNeuralMetadata(null);
+        }
+    }
+  }, [video]);
 
   const updateProSettings = (updates: Partial<ProSettings>) => {
     setProSettings(prev => ({ ...prev, ...updates }));
@@ -100,6 +120,8 @@ export function WatchProvider({ children, initialVideo, initialQuality }: {
       setComments,
       isLoading,
       setIsLoading,
+      neuralMetadata,
+      setNeuralMetadata,
       selectedQuality,
       setSelectedQuality,
       isLiked,

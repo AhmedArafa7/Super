@@ -109,7 +109,11 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
     inputSchema: AIChatGenerateResponseInputSchema,
   },
   async input => {
-    let modelToUse = input.isAutoMode ? 'googleai/gemini-1.5-flash' : (input.manualModel || 'googleai/gemini-1.5-flash');
+    try {
+      let modelToUse = input.isAutoMode ? 'googleai/gemini-1.5-flash' : (input.manualModel || 'googleai/gemini-1.5-flash');
+      
+      // تصحيح الموديلات القديمة أو غير الصالحة
+      if (modelToUse.includes('flash-latest')) modelToUse = 'googleai/gemini-1.5-flash';
     let finalPrompt = input.message;
     let optimizedText = null;
 
@@ -136,11 +140,15 @@ const aiChatGenerateResponseFlow = ai.defineFlow(
     else if (modelToUse.includes('llama-3.3')) engineName = "Llama 3.3 70B";
     else if (modelToUse.includes('groq/')) engineName = "Groq Engine";
 
-    return {
-      response: responseText || "تمت المعالجة عصبياً.",
-      engine: engineName,
-      optimizedText: optimizedText,
-      selectedModel: modelToUse
-    };
+      return {
+        response: responseText || "تمت المعالجة عصبياً.",
+        engine: engineName,
+        optimizedText: optimizedText,
+        selectedModel: modelToUse
+      };
+    } catch (innerErr: any) {
+      console.error("Neural Flow Error:", innerErr);
+      throw new Error(innerErr.message || "فشل محرك المعالجة الداخلية.");
+    }
   }
 );

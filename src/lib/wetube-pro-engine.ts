@@ -10,6 +10,12 @@ import { collection, query, where, getDocs, limit } from 'firebase/firestore';
  * المحرك الرئيسي لمزايا WeTube Pro - يعالج التحقق من الملكية، التحكم في الفريمات، والتخزين الذكي.
  */
 
+export interface NeuralMetadata {
+  introStart?: number; // In seconds
+  introEnd?: number;   // In seconds
+  outroStart?: number; // In seconds
+}
+
 export interface ProSettings {
   frameSkipRatio: 'none' | '1/2' | '3/4' | '4/5';
   autoTrimOutro: boolean;

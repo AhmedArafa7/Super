@@ -98,7 +98,7 @@ export function AIChat() {
       setEditingMsg(null);
     } else {
       const savedMsg = await sendMessage(userText, user.id, user.name, currentAttachments);
-      if (!savedMsg) return;
+      if (!savedMsg || !savedMsg.id) return;
       savedMsgId = savedMsg.id;
     }
 

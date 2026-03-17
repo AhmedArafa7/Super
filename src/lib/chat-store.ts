@@ -59,7 +59,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isConnected: true,
   isSending: false,
   autoMode: true,
-  selectedManualModel: 'googleai/gemini-1.5-flash-latest',
+  selectedManualModel: 'googleai/gemini-1.5-flash',
 
   setConnected: (status) => set({ isConnected: status }),
   setAutoMode: (autoMode) => set({ autoMode }),
@@ -109,22 +109,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     const messagesRef = collection(firestore, 'users', userId, 'messages');
     
-    addDoc(messagesRef, msgData)
-      .then((docRef) => {
-        set({ isSending: false });
-      })
-      .catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: messagesRef.path,
-          operation: 'create',
-          requestResourceData: msgData,
-        } satisfies SecurityRuleContext);
-        
-        errorEmitter.emit('permission-error', permissionError);
-        set({ isSending: false });
-      });
-
-    return { id: 'temp-' + Date.now(), ...msgData } as WizardMessage;
+    try {
+      const docRef = await addDoc(messagesRef, msgData);
+      set({ isSending: false });
+      return { id: docRef.id, ...msgData } as WizardMessage;
+    } catch (serverError: any) {
+      console.error("Firestore Send Error:", serverError);
+      const permissionError = new FirestorePermissionError({
+        path: messagesRef.path,
+        operation: 'create',
+        requestResourceData: msgData,
+      } satisfies SecurityRuleContext);
+      
+      errorEmitter.emit('permission-error', permissionError);
+      set({ isSending: false });
+      return null;
+    }
   },
 
   updateMessageRequest: async (id, userId, newText) => {
