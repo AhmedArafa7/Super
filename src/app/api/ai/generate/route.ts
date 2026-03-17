@@ -106,14 +106,30 @@ export async function POST(req: Request) {
       }
     }
 
-    if (modelToUse.includes('llama') || modelToUse.includes('mixtral') || modelToUse.includes('gemma')) {
-      responseText = await callGroq(modelToUse, promptToUse, history);
-      engineName = "Groq Engine";
-    } else {
-      // افتراضاً نستخدم Gemini
-      const geminiModel = modelToUse.includes('gemini') ? modelToUse : 'gemini-1.5-flash';
-      responseText = await callGemini(geminiModel, promptToUse, history, imageDataUri);
-      engineName = geminiModel.includes('pro') ? "Gemini Pro" : "Gemini Flash";
+    try {
+      if (modelToUse.includes('llama') || modelToUse.includes('mixtral') || modelToUse.includes('gemma')) {
+        responseText = await callGroq(modelToUse, promptToUse, history);
+        engineName = "Groq Engine";
+      } else {
+        // [STABILITY] محاولة استخدام Gemini مع Fallback داخلي لنسخة 2.0
+        const geminiModel = modelToUse.includes('gemini') ? modelToUse : 'gemini-1.5-flash';
+        responseText = await callGemini(geminiModel, promptToUse, history, imageDataUri);
+        engineName = geminiModel.includes('pro') ? "Gemini Pro" : "Gemini Flash";
+      }
+    } catch (primaryErr: any) {
+      console.error("Primary AI Engine Failed, attempting Global Fallback:", primaryErr.message);
+      
+      // [NEURAL_RESILIENCE] التبديل لـ Groq إذا فشل Gemini (بسبب الكوتة أو غيره)
+      if (GROQ_API_KEY && !modelToUse.includes('llama')) {
+        try {
+          responseText = await callGroq('llama-3.3-70b-versatile', promptToUse, history);
+          engineName = "Nexus Resilience (Groq)";
+        } catch (groqErr: any) {
+          throw new Error(`تعذر الاتصال بجميع المحركات: ${primaryErr.message}`);
+        }
+      } else {
+        throw primaryErr;
+      }
     }
 
     return NextResponse.json({
