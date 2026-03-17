@@ -3,6 +3,7 @@
 import { initializeFirebase } from '@/firebase';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc, deleteDoc, where } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { fetchDriveFilesServer, fetchDriveMetadataServer } from './drive-server-actions';
 
 export type LearningItemType = 'video' | 'audio' | 'file' | 'quiz_json' | 'text';
 export type ApprovalStatus = 'approved' | 'pending';
@@ -56,20 +57,7 @@ export const extractDriveId = (url: string) => {
 };
 
 export const fetchDriveMetadata = async (fileId: string) => {
-  if (!DRIVE_PROXY_URL && !DRIVE_API_KEY) return null;
-  
-  try {
-    const targetUrl = DRIVE_PROXY_URL
-      ? `${DRIVE_PROXY_URL}/drive/v3/files/${fileId}?fields=name,size,mimeType,thumbnailLink,iconLink`
-      : `https://www.googleapis.com/drive/v3/files/${fileId}?fields=name,size,mimeType,thumbnailLink,iconLink&key=${DRIVE_API_KEY}`;
-
-    const res = await fetch(targetUrl);
-    const data = await res.json();
-    if (data.error) return null;
-    return data;
-  } catch (e) {
-    return null;
-  }
+  return await fetchDriveMetadataServer(fileId);
 };
 
 /**
@@ -77,48 +65,14 @@ export const fetchDriveMetadata = async (fileId: string) => {
  * تم تحصينها لتعيد مصفوفة فارغة وتستخدم console.warn لمنع ظهور أخطاء UI في Next.js.
  */
 export const fetchDriveFolderFiles = async (folderId: string | string[]) => {
-  if (!DRIVE_PROXY_URL && !DRIVE_API_KEY) {
-    console.warn("DRIVE_API_MISSING: يرجى إعداد NEXT_PUBLIC_DRIVE_PROXY_URL أو NEXT_PUBLIC_DRIVE_API_KEY.");
+  const result = await fetchDriveFilesServer(folderId);
+  
+  if (result.error) {
+    console.warn("Drive Server Action Notice:", result.message);
     return [];
   }
   
-  const folderIds = Array.isArray(folderId) ? folderId : [folderId];
-  
-  try {
-    const allFiles: any[] = [];
-    
-    for (const id of folderIds) {
-      const queryStr = `'${id}'+in+parents+and+trashed=false`;
-      const fields = `files(id,name,size,mimeType,webViewLink,thumbnailLink)`;
-      
-      const targetUrl = DRIVE_PROXY_URL
-        ? `${DRIVE_PROXY_URL}/drive/v3/files?q=${queryStr}&fields=${fields}`
-        : `https://www.googleapis.com/drive/v3/files?q=${queryStr}&fields=${fields}&key=${DRIVE_API_KEY}`;
-
-      const res = await fetch(targetUrl);
-      const data = await res.json();
-      
-      if (data.nexusProxyError) {
-        console.warn("Nexus Proxy Error:", data.message);
-        continue;
-      }
-
-      if (data.error) {
-        console.warn("Google Drive API Notice:", data.error.message || data.error);
-        continue;
-      }
-      
-      if (data.files) {
-        allFiles.push(...data.files);
-      }
-    }
-    
-    // Sort combined results by name
-    return allFiles.sort((a, b) => a.name.localeCompare(b.name));
-  } catch (e) {
-    console.warn("Fetch Drive Folder Network Notice:", e);
-    return [];
-  }
+  return result.files || [];
 };
 
 export const getSubjects = async (userId?: string, isAdmin = false): Promise<Subject[]> => {

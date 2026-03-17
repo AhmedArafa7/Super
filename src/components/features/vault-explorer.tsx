@@ -54,31 +54,19 @@ export function VaultExplorer({
     setIsLoading(true);
     setIsKeyMissing(false);
     try {
-      const apiKey = process.env.NEXT_PUBLIC_DRIVE_API_KEY;
-      const proxyUrl = process.env.NEXT_PUBLIC_DRIVE_PROXY_URL;
-      
-      // التعديل: نعتبر المفتاح موجوداً إذا توفر البروكسي أو المفتاح الصريح
-      const hasConnection = proxyUrl || (apiKey && apiKey !== 'YOUR_GOOGLE_DRIVE_API_KEY');
-      
-      if (!hasConnection) {
-        setIsKeyMissing(true);
-        setAssets([]);
-        setIsLoading(false);
-        return;
-      }
-
+      // التحقق سيتم الآن عبر فحص نتيجة الـ Server Action مباشرة
       const files = await fetchDriveFolderFiles(folderId);
       
-      // إذا عادت المصفوفة فارغة بالرغم من وجود مفتاح، فالمفتاح غالباً غير صالح
-      if (files.length === 0 && apiKey) {
-        // لا نقوم بتغيير حالة isKeyMissing هنا فوراً للسماح للمستخدم بـ Refresh
-        // لكننا نضمن عدم انهيار الواجهة
+      if (files.length === 0) {
+        // قد يكون المجلد فارغاً أو هناك مشكلة في المفاتيح
+        // لا نجزم باختفاء المفتاح هنا فوراً بل نترك الواجهة مرنة
       }
       
       setAssets(files || []);
+      setIsKeyMissing(false); // إذا وصل لهذه النقطة بنجاح أو مصفوفة فارغة
     } catch (err) {
       console.warn("Vault Sync Interrupted:", err);
-      // تجنب إظهار toast مزعج لأخطاء الـ API المتوقعة عند غياب المفتاح
+      setIsKeyMissing(true); 
     } finally {
       setIsLoading(false);
     }
@@ -136,15 +124,13 @@ export function VaultExplorer({
           <div className="flex items-center justify-between flex-row-reverse text-[10px] font-bold">
             <span className="text-indigo-400">Nexus Vault Status</span>
             <span className={cn(isKeyMissing ? "text-amber-400" : "text-green-400")}>
-              {isKeyMissing ? "API Inactive" : (process.env.NEXT_PUBLIC_DRIVE_PROXY_URL ? "Proxy Bridge" : "API Handshake")}
+              {isKeyMissing ? "Sync Offline" : "Nexus Core Sync"}
             </span>
           </div>
           <p className="text-[9px] text-muted-foreground text-center leading-relaxed">
             {isKeyMissing 
-              ? "يرجى تهيئة مفتاح API صالح أو رابط بروكسي في الإعدادات لتفعيل المزامنة." 
-              : process.env.NEXT_PUBLIC_DRIVE_PROXY_URL 
-                ? "تعمل الخزنة الآن بنظام البروكسي العصبي. يتم تأمين المفاتيح عبر Cloudflare."
-                : "تعمل الخزنة الآن بنظام المزامنة المباشرة عبر مفتاح الـ API العام."}
+              ? "تعذر الاتصال بالسيرفر. يرجى التأكد من تهيئة Google API Keys في إعدادات المشروع." 
+              : "تعمل الخزنة الآن بنظام المزامنة السيادية (Core Sync). البيانات محمية ومشفرة عبر السيرفر."}
           </p>
         </div>
       </aside>
