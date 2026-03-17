@@ -3,7 +3,6 @@
 import { initializeFirebase } from '@/firebase';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, addDoc, deleteDoc, where } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { fetchDriveFilesServer, fetchDriveMetadataServer } from './drive-server-actions';
 
 export type LearningItemType = 'video' | 'audio' | 'file' | 'quiz_json' | 'text';
 export type ApprovalStatus = 'approved' | 'pending';
@@ -57,7 +56,15 @@ export const extractDriveId = (url: string) => {
 };
 
 export const fetchDriveMetadata = async (fileId: string) => {
-  return await fetchDriveMetadataServer(fileId);
+  try {
+    const res = await fetch('/api/drive/files', {
+      method: 'POST',
+      body: JSON.stringify({ fileId })
+    });
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
 };
 
 /**
@@ -65,14 +72,23 @@ export const fetchDriveMetadata = async (fileId: string) => {
  * تم تحصينها لتعيد مصفوفة فارغة وتستخدم console.warn لمنع ظهور أخطاء UI في Next.js.
  */
 export const fetchDriveFolderFiles = async (folderId: string | string[]) => {
-  const result = await fetchDriveFilesServer(folderId);
-  
-  if (result.error) {
-    console.warn("Drive Server Action Notice:", result.message);
+  try {
+    const res = await fetch('/api/drive/files', {
+      method: 'POST',
+      body: JSON.stringify({ folderId })
+    });
+    const result = await res.json();
+    
+    if (result.error) {
+      console.warn("Drive API Notice:", result.message);
+      return [];
+    }
+    
+    return result.files || [];
+  } catch (err) {
+    console.error("Drive API Request Failed:", err);
     return [];
   }
-  
-  return result.files || [];
 };
 
 export const getSubjects = async (userId?: string, isAdmin = false): Promise<Subject[]> => {

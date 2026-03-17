@@ -8,7 +8,6 @@ import { useChatStore, Attachment } from "@/lib/chat-store";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/ui/empty-state";
-import { aiChatGenerateResponse } from "@/ai/flows/ai-chat-generate-response";
 import { generateNeuralImage } from "@/ai/flows/ai-media-generation";
 import { updateUserProfile } from "@/lib/auth-store";
 import { ToastAction } from "@/components/ui/toast";
@@ -108,14 +107,22 @@ export function AIChat() {
         await generateNeuralImage(userText.replace("/imagine", ""));
         await provideAIResponse(savedMsgId, user.id, { response: `لقد ولدت الصورة المطلوبة بنجاح.`, engine: "Imagen 4.0" });
       } else {
-        const res = await aiChatGenerateResponse({
-          message: userText,
-          isAutoMode: false,
-          manualModel: selectedManualModel,
-          history: messages.slice(-6).map(m => ({ role: m.status === 'replied' ? 'model' : 'user', content: m.response || m.text }))
+        const response = await fetch('/api/ai/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: userText,
+            isAutoMode: false,
+            manualModel: selectedManualModel,
+            history: messages.slice(-6).map(m => ({ role: m.status === 'replied' ? 'model' : 'user', content: m.response || m.text }))
+          })
         });
 
-        if (res.error) throw new Error(res.message);
+        const res = await response.json();
+        
+        if (!response.ok || res.error) {
+          throw res; // Throw the error object to be caught by the catch block
+        }
 
         await provideAIResponse(savedMsgId, user.id, {
           response: res.response,
