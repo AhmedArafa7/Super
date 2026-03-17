@@ -44,9 +44,21 @@ export async function POST(req: Request) {
 
       if (data.error) {
         console.error(`Google Drive API Error for folder ${id}:`, data.error.message);
+        let errorMsg = `خطأ من Google Drive: ${data.error.message}.`;
+        
+        // [STABILITY] Detect project ID mismatch automatically
+        if (data.error.message?.includes('project')) {
+          const match = data.error.message.match(/project (\d+)/);
+          if (match) {
+            errorMsg += ` تنبيه هام: مفتاح الـ API الخاص بك مرتبط بالمشروع رقم (${match[1]})، تأكد من تفعيل Drive API في هذا المشروع تحديداً وليس مشروعاً آخر.`;
+          }
+        } else {
+          errorMsg += ` تأكد من تفعيل Drive API لمفتاحك.`;
+        }
+
         return NextResponse.json({ 
           error: true, 
-          message: `خطأ من Google Drive: ${data.error.message}. تأكد من تفعيل Drive API لمفتاحك.`,
+          message: errorMsg,
           diagnostics: { googleError: data.error }
         }, { status: 403 });
       }

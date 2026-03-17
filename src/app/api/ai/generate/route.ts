@@ -12,38 +12,43 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_AP
  * يستخدم الـ fetch المباشر لـ Gemini و Groq SDK لإصلاح أخطاء البناء.
  */
 
-async function callGemini(model: string, prompt: string, history: any[] = [], imageDataUri?: string) {
+async function callGemini(model: string, prompt: string, history: any[] = [], imageDataUri?: string): Promise<string> {
   if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_MISSING");
 
-  const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-  
-  const contents = history.map(h => ({
-    role: h.role === 'model' ? 'model' : 'user',
-    parts: [{ text: h.content }]
-  }));
+  const execute = async (targetModel: string) => {
+    const url = `https://generativelanguage.googleapis.com/v1/models/${targetModel}:generateContent?key=${GEMINI_API_KEY}`;
+    const contents = history.map(h => ({
+      role: h.role === 'model' ? 'model' : 'user',
+      parts: [{ text: h.content }]
+    }));
+    const userParts: any[] = [{ text: prompt }];
+    if (imageDataUri) {
+      const [mimeType, base64Data] = imageDataUri.split(';base64,');
+      userParts.push({ inline_data: { mime_type: mimeType.replace('data:', ''), data: base64Data } });
+    }
+    contents.push({ role: 'user', parts: userParts });
 
-  const userParts: any[] = [{ text: prompt }];
-  if (imageDataUri) {
-    const [mimeType, base64Data] = imageDataUri.split(';base64,');
-    userParts.push({
-      inline_data: {
-        mime_type: mimeType.replace('data:', ''),
-        data: base64Data
-      }
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents })
     });
+
+    const data = await res.json();
+    if (data.error) throw data.error;
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  };
+
+  try {
+    return await execute(model);
+  } catch (err: any) {
+    // [STABILITY] Fallback to 2.0-flash if 1.5 is missing or restricted
+    if (err.message?.includes('not found') && model === 'gemini-1.5-flash') {
+      console.warn("Gemini 1.5 Flash not found, falling back to 2.0 Flash.");
+      return await execute('gemini-2.0-flash');
+    }
+    throw err;
   }
-
-  contents.push({ role: 'user', parts: userParts });
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents })
-  });
- 
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
 async function callGroq(model: string, prompt: string, history: any[] = []) {
