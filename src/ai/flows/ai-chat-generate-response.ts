@@ -1,6 +1,5 @@
 
 'use server';
-export const runtime = 'edge';
 /**
  * @fileOverview [STABILITY_ANCHOR: NEURAL_ENGINE_V7.7]
  * المحرك العصبي المطور - تم تحسين تشخيص الأخطاء لدعم المفتاح الجديد وتوضيح خطوات التفعيل.

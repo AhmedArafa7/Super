@@ -1,5 +1,4 @@
 'use server';
-export const runtime = 'edge';
 /**
  * [STABILITY_ANCHOR: DRIVE_SERVER_ACTIONS_V1.0]
  * محرك معالجة ملفات جوجل درايف برمجياً عبر السيرفر.
