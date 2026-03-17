@@ -13,6 +13,7 @@ import { useUploadStore } from "@/lib/upload-store";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { getHistory, HistoryItem } from "@/lib/history-store";
+import { extractYouTubeId } from "@/lib/youtube-utils";
 
 import { VideoCard } from "./stream/video-card";
 import { AddChannelModal } from "./wetube/add-channel-modal";
@@ -45,7 +46,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const [searchResults, setSearchResults] = useState<FeedVideo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'home' | 'shorts' | 'subs' | 'library' | 'notifications'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'shorts' | 'subs' | 'library' | 'notifications' | 'explore'>('home');
   const [activeCategory, setActiveCategory] = useState("الكل");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -273,11 +274,20 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
 
     const platformVids = videos.filter(v => v.status === 'published').map(v => {
       const sub = subscriptions.find(s => s.channelId === v.authorId);
+      
+      // Fix: Extract real YouTube ID if source is youtube
+      let vidId = v.id;
+      if (v.source === 'youtube' && v.externalUrl) {
+        const extractedId = extractYouTubeId(v.externalUrl);
+        if (extractedId) vidId = extractedId;
+      }
+
       return {
         ...v,
+        id: vidId,
         source: v.source || 'platform',
         thumbnail: isFakeThumb(v.thumbnail) ? null : v.thumbnail,
-        channelAvatar: v.channelAvatar || sub?.avatarUrl || (v.authorId === user?.id ? user?.avatar_url : null)
+        channelAvatar: v.channelAvatar || sub?.avatarUrl || (v.authorId === user?.id ? user?.id === v.authorId ? user?.avatar_url : null : null)
       };
     });
 
@@ -303,7 +313,19 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       };
     });
 
-    let combined = [...platformVids, ...feedVids, ...trendingVids];
+    // logic for strict filtering or explore
+    let combined: any[] = [];
+    
+    if (activeTab === 'home') {
+      // Home is strictly what the user/admin uploaded + subscribers feed
+      // We EXCLUDE trending here to avoid "leaks"
+      combined = [...platformVids, ...feedVids];
+    } else if (activeTab === 'explore') {
+      // Explore is specifically for discovering new stuff (trending)
+      combined = trendingVids;
+    } else {
+      combined = [...platformVids, ...feedVids, ...trendingVids];
+    }
     
     // Category Filter
     if (activeCategory === "تريند") return trendingVids;
@@ -457,8 +479,8 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           </div>
 
           <div className="p-4 md:p-6 pb-24">
-            {/* HOME TAB */}
-            {activeTab === 'home' && (
+            {/* HOME & EXPLORE TABS */}
+            {(activeTab === 'home' || activeTab === 'explore') && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-10 rtl flex-row-reverse">
                 {allHomeContent.map((v: any, i) => (
                   <VideoCard

@@ -19,6 +19,7 @@ interface WeTubeSidebarProps {
 
 const MAIN_LINKS = [
   { id: 'home', label: 'الصفحة الرئيسية', icon: Home },
+  { id: 'explore', label: 'استكشاف يوتيوب', icon: Compass },
   { id: 'shorts', label: 'Shorts', icon: Flame },
   { id: 'subs', label: 'الاشتراكات', icon: PlaySquare },
   { id: 'notifications', label: 'الإشعارات', icon: Bell },
