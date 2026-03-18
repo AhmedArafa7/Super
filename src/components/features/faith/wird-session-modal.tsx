@@ -22,7 +22,10 @@ const formatTime = (seconds: number) => {
 
 const cleanText = (text: string) => {
   return text
-    .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, "") // Remove diacritics and signs
+    .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, "") // Remove all diacritics and signs
+    .replace(/[أإآ]/g, "ا") // Normalize Alef
+    .replace(/ة/g, "ه") // Normalize Teh Marbuta
+    .replace(/[ىي]/g, "ي") // Normalize Yeh
     .replace(/[﴾﴿0-9]/g, "") // Remove verse marks
     .replace(/\s+/g, " ") // Normalize spaces
     .trim();
@@ -43,22 +46,45 @@ const calculateDiff = (original: string, user: string): { results: DiffResult[],
   
   const results: DiffResult[] = [];
   let correctCount = 0;
-  
-  const maxLen = Math.max(origWords.length, userWords.length);
-  
-  for (let i = 0; i < maxLen; i++) {
-    const o = origWords[i];
-    const u = userWords[i];
-    
+  let oIdx = 0;
+  let uIdx = 0;
+
+  while (oIdx < origWords.length || uIdx < userWords.length) {
+    const o = origWords[oIdx];
+    const u = userWords[uIdx];
+
     if (o === u && o !== undefined) {
       results.push({ word: u, type: 'correct' });
       correctCount++;
+      oIdx++;
+      uIdx++;
     } else if (u === undefined) {
+      // User finished early, remaining words are wrong
       results.push({ word: o, type: 'wrong', expected: o });
+      oIdx++;
     } else if (o === undefined) {
+      // User added extra words
       results.push({ word: u, type: 'added' });
+      uIdx++;
     } else {
-      results.push({ word: u, type: 'wrong', expected: o });
+      // Mismatch - look ahead to see if user skipped a word or added one
+      const nextO = origWords[oIdx + 1];
+      const nextU = userWords[uIdx + 1];
+
+      if (u === nextO) {
+        // User skipped a word (o)
+        results.push({ word: o, type: 'wrong', expected: o });
+        oIdx++;
+      } else if (o === nextU) {
+        // User added a word (u)
+        results.push({ word: u, type: 'added' });
+        uIdx++;
+      } else {
+        // Just a wrong word
+        results.push({ word: u, type: 'wrong', expected: o });
+        oIdx++;
+        uIdx++;
+      }
     }
   }
   

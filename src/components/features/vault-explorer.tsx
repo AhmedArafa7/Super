@@ -82,9 +82,11 @@ export function VaultExplorer({
 
   const filteredAssets = assets.filter(a => a.name.toLowerCase().includes(search.toLowerCase()));
 
-  const formatSize = (bytes?: string) => {
+  const formatSize = (bytes?: string, mimeType?: string) => {
+    if (mimeType?.includes('folder')) return "Folder";
     if (!bytes) return "Unknown";
     const mb = parseInt(bytes) / (1024 * 1024);
+    if (mb < 0.1) return "< 0.1 MB";
     return `${mb.toFixed(1)} MB`;
   };
 
@@ -229,7 +231,7 @@ export function VaultExplorer({
                       <>
                         <div className="flex justify-between items-start flex-row-reverse mb-auto">
                           {getFileIcon(asset.mimeType)}
-                          <Badge className="bg-black/40 text-[8px]">{formatSize(asset.size)}</Badge>
+                          <Badge className="bg-black/40 text-[8px]">{formatSize(asset.size, asset.mimeType)}</Badge>
                         </div>
                         <div className="mt-4 text-right">
                           <p dir="auto" className="font-bold text-white text-sm truncate">{asset.name}</p>
@@ -248,7 +250,7 @@ export function VaultExplorer({
                       <div className="flex items-center gap-4 flex-1 flex-row-reverse">
                         <div className="size-10 bg-white/5 rounded-lg flex items-center justify-center shrink-0">{getFileIcon(asset.mimeType)}</div>
                         <p dir="auto" className="font-bold text-white text-sm flex-1 truncate">{asset.name}</p>
-                        <p className="text-[10px] text-muted-foreground font-mono hidden md:block">{formatSize(asset.size)}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono hidden md:block">{formatSize(asset.size, asset.mimeType)}</p>
                         <Button variant="ghost" size="icon" onClick={() => window.open(asset.webViewLink, '_blank')}><ExternalLink className="size-4 text-indigo-400" /></Button>
                       </div>
                     )}
