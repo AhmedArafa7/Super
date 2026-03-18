@@ -46,12 +46,14 @@ export async function POST(req: Request) {
         console.error(`Google Drive API Error for folder ${id}:`, data.error.message);
         let errorMsg = `خطأ من Google Drive: ${data.error.message}.`;
         
-        // [STABILITY] Detect project ID mismatch automatically
+        // [STABILITY] Detect project ID mismatch or API restrictions automatically
         if (data.error.message?.includes('project')) {
           const match = data.error.message.match(/project (\d+)/);
           if (match) {
             errorMsg += ` تنبيه هام: مفتاح الـ API الخاص بك مرتبط بالمشروع رقم (${match[1]})، تأكد من تفعيل Drive API في هذا المشروع تحديداً وليس مشروعاً آخر.`;
           }
+        } else if (data.error.message?.includes('blocked')) {
+          errorMsg += ` يبدو أن مفتاح الـ API الخاص بك "مقيد" (Restricted). يرجى التأكد من عدم وجود قيود على "Google Drive API" في إعدادات المفتاح هنا: https://console.cloud.google.com/apis/credentials`;
         } else {
           errorMsg += ` تأكد من تفعيل Drive API لمفتاحك.`;
         }
