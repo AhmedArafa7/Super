@@ -45,27 +45,29 @@ export function VaultExplorer({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [activeTab, setActiveTab] = useState<'all' | 'recent' | 'favorites'>('all');
   const [isKeyMissing, setIsKeyMissing] = useState(false);
-  const [currentFolderId, setCurrentFolderId] = useState<string>(typeof folderId === 'string' ? folderId : VAULT_FOLDER_ID);
-  const [folderStack, setFolderStack] = useState<{id: string, name: string}[]>([]);
+  const [currentFolderId, setCurrentFolderId] = useState<string | string[]>(folderId);
+  const [folderStack, setFolderStack] = useState<{id: string | string[], name: string}[]>([]);
 
   useEffect(() => {
     loadRealDriveData(currentFolderId);
   }, [currentFolderId]);
 
-  const loadRealDriveData = async (fId: string = currentFolderId) => {
+  const loadRealDriveData = async (fId: string | string[] = currentFolderId) => {
     setIsLoading(true);
     setIsKeyMissing(false);
     try {
-      // التحقق سيتم الآن عبر فحص نتيجة الـ Server Action مباشرة
-      const files = await fetchDriveFolderFiles(fId);
+      let allFiles: any[] = [];
       
-      if (files.length === 0) {
-        // قد يكون المجلد فارغاً أو هناك مشكلة في المفاتيح
-        // لا نجزم باختفاء المفتاح هنا فوراً بل نترك الواجهة مرنة
+      if (Array.isArray(fId)) {
+        // Fetch from multiple sources if it's an array
+        const results = await Promise.all(fId.map(id => fetchDriveFolderFiles(id)));
+        allFiles = results.flat();
+      } else {
+        allFiles = await fetchDriveFolderFiles(fId);
       }
       
-      setAssets(files || []);
-      setIsKeyMissing(false); // إذا وصل لهذه النقطة بنجاح أو مصفوفة فارغة
+      setAssets(allFiles || []);
+      setIsKeyMissing(false);
     } catch (err) {
       console.warn("Vault Sync Interrupted:", err);
       setIsKeyMissing(true); 
