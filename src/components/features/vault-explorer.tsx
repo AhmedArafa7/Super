@@ -45,17 +45,19 @@ export function VaultExplorer({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [activeTab, setActiveTab] = useState<'all' | 'recent' | 'favorites'>('all');
   const [isKeyMissing, setIsKeyMissing] = useState(false);
+  const [currentFolderId, setCurrentFolderId] = useState<string>(typeof folderId === 'string' ? folderId : VAULT_FOLDER_ID);
+  const [folderStack, setFolderStack] = useState<{id: string, name: string}[]>([]);
 
   useEffect(() => {
-    loadRealDriveData();
-  }, []);
+    loadRealDriveData(currentFolderId);
+  }, [currentFolderId]);
 
-  const loadRealDriveData = async () => {
+  const loadRealDriveData = async (fId: string = currentFolderId) => {
     setIsLoading(true);
     setIsKeyMissing(false);
     try {
       // التحقق سيتم الآن عبر فحص نتيجة الـ Server Action مباشرة
-      const files = await fetchDriveFolderFiles(folderId);
+      const files = await fetchDriveFolderFiles(fId);
       
       if (files.length === 0) {
         // قد يكون المجلد فارغاً أو هناك مشكلة في المفاتيح
@@ -83,11 +85,30 @@ export function VaultExplorer({
   const filteredAssets = assets.filter(a => a.name.toLowerCase().includes(search.toLowerCase()));
 
   const formatSize = (bytes?: string, mimeType?: string) => {
-    if (mimeType?.includes('folder')) return "Folder";
+    if (mimeType?.includes('folder')) return "مجلد";
     if (!bytes) return "Unknown";
     const mb = parseInt(bytes) / (1024 * 1024);
     if (mb < 0.1) return "< 0.1 MB";
     return `${mb.toFixed(1)} MB`;
+  };
+
+  const handleLevelDown = (id: string, name: string) => {
+    setFolderStack([...folderStack, { id: currentFolderId, name: folderStack.length === 0 ? "الرئيسية" : assets.find(a => a.id === currentFolderId)?.name || "السابق" }]);
+    setCurrentFolderId(id);
+  };
+
+  const handleLevelUp = () => {
+    const newStack = [...folderStack];
+    const parent = newStack.pop();
+    if (parent) {
+      setFolderStack(newStack);
+      setCurrentFolderId(parent.id);
+    }
+  };
+
+  const getPreviewUrl = (asset: any) => {
+    if (asset.mimeType.includes('folder')) return asset.webViewLink;
+    return `https://drive.google.com/file/d/${asset.id}/view?usp=sharing`;
   };
 
   return (
@@ -153,7 +174,12 @@ export function VaultExplorer({
             />
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={loadRealDriveData} className="rounded-xl hover:bg-white/5"><RefreshCw className={cn("size-4", isLoading && "animate-spin")} /></Button>
+            {folderStack.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={handleLevelUp} className="rounded-xl gap-2 text-indigo-400 hover:text-indigo-300">
+                <ArrowLeft className="size-4" /> العودة
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); loadRealDriveData(currentFolderId); }} className="rounded-xl hover:bg-white/5"><RefreshCw className={cn("size-4", isLoading && "animate-spin")} /></Button>
             <Button variant="ghost" size="icon" onClick={() => setViewMode('grid')} className={cn("rounded-xl", viewMode === 'grid' && "bg-white/10 text-white")}><Grid className="size-4" /></Button>
             <Button variant="ghost" size="icon" onClick={() => setViewMode('list')} className={cn("rounded-xl", viewMode === 'list' && "bg-white/10 text-white")}><List className="size-4" /></Button>
           </div>
@@ -173,7 +199,7 @@ export function VaultExplorer({
                 />
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={loadRealDriveData} className="rounded-xl hover:bg-white/5"><RefreshCw className={cn("size-4", isLoading && "animate-spin")} /></Button>
+            <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); loadRealDriveData(currentFolderId); }} className="rounded-xl hover:bg-white/5"><RefreshCw className={cn("size-4", isLoading && "animate-spin")} /></Button>
                 <Button variant="ghost" size="icon" onClick={() => setViewMode('grid')} className={cn("rounded-xl", viewMode === 'grid' && "bg-white/10 text-white")}><Grid className="size-4" /></Button>
                 <Button variant="ghost" size="icon" onClick={() => setViewMode('list')} className={cn("rounded-xl", viewMode === 'list' && "bg-white/10 text-white")}><List className="size-4" /></Button>
               </div>
@@ -222,11 +248,15 @@ export function VaultExplorer({
                 "pb-20",
                 viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6" : "space-y-2"
               )}>
-                {filteredAssets.map(asset => (
-                  <Card key={asset.id} className={cn(
-                    "group glass border-white/5 hover:border-indigo-500/40 transition-all cursor-pointer relative",
-                    viewMode === 'grid' ? "aspect-[4/3] flex flex-col p-6 rounded-[2rem]" : "flex items-center p-4 rounded-xl flex-row-reverse"
-                  )}>
+                 {filteredAssets.map(asset => (
+                  <Card 
+                    key={asset.id} 
+                    onClick={() => asset.mimeType.includes('folder') ? handleLevelDown(asset.id, asset.name) : window.open(getPreviewUrl(asset), '_blank')}
+                    className={cn(
+                      "group glass border-white/5 hover:border-indigo-500/40 transition-all cursor-pointer relative",
+                      viewMode === 'grid' ? "aspect-[4/3] flex flex-col p-6 rounded-[2rem]" : "flex items-center p-4 rounded-xl flex-row-reverse"
+                    )}
+                  >
                     {viewMode === 'grid' ? (
                       <>
                         <div className="flex justify-between items-start flex-row-reverse mb-auto">
@@ -240,9 +270,9 @@ export function VaultExplorer({
                         <div className="flex gap-2 mt-6">
                           <Button 
                             className="flex-1 h-10 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-[10px] gap-2"
-                            onClick={() => window.open(asset.webViewLink, '_blank')}
+                            onClick={(e) => { e.stopPropagation(); window.open(getPreviewUrl(asset), '_blank'); }}
                           >
-                            <ExternalLink className="size-3" /> معاينة
+                            <Eye className="size-3" /> {asset.mimeType.includes('folder') ? 'فتح' : 'معاينة'}
                           </Button>
                         </div>
                       </>
@@ -251,7 +281,7 @@ export function VaultExplorer({
                         <div className="size-10 bg-white/5 rounded-lg flex items-center justify-center shrink-0">{getFileIcon(asset.mimeType)}</div>
                         <p dir="auto" className="font-bold text-white text-sm flex-1 truncate">{asset.name}</p>
                         <p className="text-[10px] text-muted-foreground font-mono hidden md:block">{formatSize(asset.size, asset.mimeType)}</p>
-                        <Button variant="ghost" size="icon" onClick={() => window.open(asset.webViewLink, '_blank')}><ExternalLink className="size-4 text-indigo-400" /></Button>
+                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); window.open(getPreviewUrl(asset), '_blank'); }}><ExternalLink className="size-4 text-indigo-400" /></Button>
                       </div>
                     )}
                   </Card>

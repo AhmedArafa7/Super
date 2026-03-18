@@ -23,12 +23,17 @@ const formatTime = (seconds: number) => {
 const cleanText = (text: string) => {
   return text
     .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, "") // Remove all diacritics and signs
-    .replace(/[أإآ]/g, "ا") // Normalize Alef
+    .replace(/[أإآآى]/g, "ا") // Normalize Alef variants
     .replace(/ة/g, "ه") // Normalize Teh Marbuta
-    .replace(/[ىي]/g, "ي") // Normalize Yeh
+    .replace(/[يئ]/g, "ي") // Normalize Yeh
     .replace(/[﴾﴿0-9]/g, "") // Remove verse marks
     .replace(/\s+/g, " ") // Normalize spaces
     .trim();
+};
+
+const normalizeForComparison = (word: string) => {
+  // Ultra-normalize for comparison only (remove Alefs to handle Uthmani vs Modern script)
+  return word.replace(/ا/g, "");
 };
 
 interface DiffResult {
@@ -53,7 +58,9 @@ const calculateDiff = (original: string, user: string): { results: DiffResult[],
     const o = origWords[oIdx];
     const u = userWords[uIdx];
 
-    if (o === u && o !== undefined) {
+    const isMatch = o === u || (o && u && normalizeForComparison(o) === normalizeForComparison(u));
+
+    if (isMatch && o !== undefined) {
       results.push({ word: u, type: 'correct' });
       correctCount++;
       oIdx++;
