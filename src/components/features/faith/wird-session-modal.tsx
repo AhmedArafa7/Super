@@ -20,6 +20,53 @@ const formatTime = (seconds: number) => {
   return `${m}:${s.toString().padStart(2, '0')}`;
 };
 
+const cleanText = (text: string) => {
+  return text
+    .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, "") // Remove diacritics and signs
+    .replace(/[﴾﴿0-9]/g, "") // Remove verse marks
+    .replace(/\s+/g, " ") // Normalize spaces
+    .trim();
+};
+
+interface DiffResult {
+  word: string;
+  type: 'correct' | 'wrong' | 'added';
+  expected?: string;
+}
+
+const calculateDiff = (original: string, user: string): { results: DiffResult[], accuracy: number } => {
+  const origClean = cleanText(original);
+  const userClean = cleanText(user);
+  
+  const origWords = origClean.split(/\s+/).filter(Boolean);
+  const userWords = userClean.split(/\s+/).filter(Boolean);
+  
+  const results: DiffResult[] = [];
+  let correctCount = 0;
+  
+  const maxLen = Math.max(origWords.length, userWords.length);
+  
+  for (let i = 0; i < maxLen; i++) {
+    const o = origWords[i];
+    const u = userWords[i];
+    
+    if (o === u && o !== undefined) {
+      results.push({ word: u, type: 'correct' });
+      correctCount++;
+    } else if (u === undefined) {
+      results.push({ word: o, type: 'wrong', expected: o });
+    } else if (o === undefined) {
+      results.push({ word: u, type: 'added' });
+    } else {
+      results.push({ word: u, type: 'wrong', expected: o });
+    }
+  }
+  
+  const accuracy = origWords.length > 0 ? Math.round((correctCount / origWords.length) * 100) : 0;
+  
+  return { results, accuracy };
+};
+
 interface WirdSessionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -41,6 +88,8 @@ export function WirdSessionModal({ isOpen, onClose }: WirdSessionModalProps) {
   
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [writeText, setWriteText] = useState("");
+  const [showWriteResult, setShowWriteResult] = useState(false);
+  const [memorizationResult, setMemorizationResult] = useState<{ results: DiffResult[], accuracy: number } | null>(null);
 
   const todayString = new Date().toISOString().split('T')[0];
   const { lastCompletedDate } = useWirdStore.getState();
@@ -70,6 +119,21 @@ export function WirdSessionModal({ isOpen, onClose }: WirdSessionModalProps) {
 
   const handleNextStep = () => {
     const currentType = enabledTypes[currentStepIndex];
+    
+    // Logic for 'write' step completion
+    if (currentType === 'write' && !showWriteResult) {
+      const targetText = amountType === 'juz' 
+        ? currentJuzText?.map(a => a.text).join(" ") || ""
+        : currentReadingText
+          ?.filter(a => amountType === 'surah' || (a.numberInSurah >= verseRange.start && a.numberInSurah <= verseRange.end))
+          .map(a => a.text).join(" ") || ""
+      
+      const analysis = calculateDiff(targetText, writeText);
+      setMemorizationResult(analysis);
+      setShowWriteResult(true);
+      return; // Stop here to show results
+    }
+
     markStepComplete(currentType);
     
     // Stop audio if it was playing after a listening session
@@ -79,7 +143,9 @@ export function WirdSessionModal({ isOpen, onClose }: WirdSessionModalProps) {
 
     if (currentStepIndex < enabledTypes.length - 1) {
       setCurrentStepIndex(prev => prev + 1);
-      setWriteText(""); // Reset writing pad for next step if any
+      setWriteText(""); // Reset writing pad for next step
+      setShowWriteResult(false);
+      setMemorizationResult(null);
     } else {
       onClose(); // Finished all steps
     }
@@ -232,20 +298,81 @@ export function WirdSessionModal({ isOpen, onClose }: WirdSessionModalProps) {
                   )}
 
                   {currentType === 'write' && (
-                    <div className="text-center flex-1 flex flex-col">
-                       <h3 className="text-2xl font-bold text-white mb-4">
+                    <div className="text-center flex-1 flex flex-col h-full">
+                       <h3 className="text-2xl font-bold text-white mb-2">
                          {amountType === 'verses' ? `اختبر حفظك للآيات (${verseRange.start} - ${verseRange.end})` : 
                           amountType === 'juz' ? `اختبر حفظك للجزء ${juzNumber}` : "اختبر حفظك للسورة"}
                        </h3>
-                       <p className="text-sm text-muted-foreground mb-6">اكتب الآيات المحددة، وبعد الانتهاء قارنها مع النص الأصلي لتثبيت الحفظ.</p>
-                       <Textarea 
-                         dir="auto"
-                         placeholder="بسم الله الرحمن الرحيم..."
-                         className="flex-1 min-h-[150px] bg-black/40 border-white/10 rounded-2xl text-xl font-quran text-right p-6 focus-visible:ring-indigo-500"
-                         value={writeText}
-                         onChange={(e) => setWriteText(e.target.value)}
-                       />
-                       {/* Note: the comparison logic could be added here in a more advanced version */}
+                       
+                       {!showWriteResult ? (
+                         <>
+                           <p className="text-sm text-muted-foreground mb-6">اكتب الآيات المحددة، وبعد الانتهاء سأقوم بمقارنتها لك وتوضيح الأخطاء.</p>
+                           <Textarea 
+                             dir="auto"
+                             placeholder="بسم الله الرحمن الرحيم..."
+                             className="flex-1 min-h-[220px] bg-black/40 border-white/10 rounded-2xl text-xl font-quran text-right p-6 focus-visible:ring-indigo-500 leading-relaxed shadow-inner"
+                             value={writeText}
+                             onChange={(e) => setWriteText(e.target.value)}
+                           />
+                         </>
+                       ) : (
+                         <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-top-4 duration-500">
+                           <div className="flex items-center justify-between mb-6 bg-white/5 p-4 rounded-2xl border border-white/5">
+                             <div className="text-right">
+                               <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">نسبة الحفظ</p>
+                               <p className={cn(
+                                 "text-3xl font-black",
+                                 (memorizationResult?.accuracy || 0) > 90 ? "text-green-500" : 
+                                 (memorizationResult?.accuracy || 0) > 60 ? "text-amber-500" : "text-red-500"
+                               )}>{memorizationResult?.accuracy}%</p>
+                             </div>
+                             <div className="flex items-center gap-3">
+                               <div className="text-right">
+                                 <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">التقييم العصبي</p>
+                                 <p className="text-sm font-bold text-white">
+                                   {(memorizationResult?.accuracy || 0) === 100 ? "حفظ متقن ماشاء الله" : 
+                                    (memorizationResult?.accuracy || 0) > 80 ? "حفظ جيد جداً" : "تحتاج لمزيد من المراجعة"}
+                                 </p>
+                               </div>
+                               <div className="size-12 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">
+                                 <Save className="size-6" />
+                               </div>
+                             </div>
+                           </div>
+
+                           <div className="bg-black/60 rounded-[1.5rem] p-6 flex-1 text-right font-quran text-2xl leading-[2.2] overflow-y-auto custom-scrollbar border border-white/10 shadow-2xl">
+                             <div className="flex flex-wrap gap-x-2 gap-y-3 justify-end items-center" dir="rtl">
+                               {memorizationResult?.results.map((r, i) => (
+                                 <span 
+                                   key={i} 
+                                   className={cn(
+                                     "px-1.5 py-0.5 rounded-lg transition-all",
+                                     r.type === 'correct' ? "text-white/90" : 
+                                     r.type === 'wrong' ? "bg-red-500/20 text-red-400 border border-red-500/30 line-through decoration-red-500/50" : 
+                                     "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                   )}
+                                   title={r.expected ? `المتوقع: ${r.expected}` : undefined}
+                                 >
+                                   {r.word}
+                                   {r.type === 'wrong' && r.expected && (
+                                     <span className="mr-1 inline-flex items-center justify-center p-1 bg-green-500/20 text-green-400 text-xs rounded font-sans line-through-none no-underline border border-green-500/20 align-top translate-y-[-10px]">
+                                       {r.expected}
+                                     </span>
+                                   )}
+                                 </span>
+                               ))}
+                             </div>
+                           </div>
+                           
+                           <Button 
+                             variant="ghost" 
+                             onClick={() => setShowWriteResult(false)}
+                             className="mt-4 text-[10px] text-muted-foreground uppercase font-bold tracking-[0.2em] hover:text-white"
+                           >
+                              إعادة المحاولة <RotateCcw className="size-3 mr-2" />
+                           </Button>
+                         </div>
+                       )}
                     </div>
                   )}
                </div>
@@ -261,8 +388,12 @@ export function WirdSessionModal({ isOpen, onClose }: WirdSessionModalProps) {
            </Button>
 
            {!isFinished && (
-             <Button onClick={handleNextStep} className="bg-primary hover:bg-primary/90 text-white rounded-xl px-8 flex items-center gap-2">
-               {currentStepIndex === enabledTypes.length - 1 ? "إتمام الورد" : "الخطوة التالية"}
+             <Button onClick={handleNextStep} className={cn(
+               "rounded-xl px-8 flex items-center gap-2",
+               showWriteResult ? "bg-green-600 hover:bg-green-700 shadow-green-600/20" : "bg-primary hover:bg-primary/90"
+             )}>
+               {showWriteResult ? "الخطوة التالية واحتساب التقدم" : 
+                currentStepIndex === enabledTypes.length - 1 ? "إكمال الخطوة والنتيجة" : "الخطوة التالية"}
                <ChevronLeft className="size-5" />
              </Button>
            )}
