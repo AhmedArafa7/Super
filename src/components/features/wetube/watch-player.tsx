@@ -49,6 +49,7 @@ export function WatchPlayer({ isCached, downloadedQuality, handleQualityChange }
             ) : (
                 <NexusVideoPlayer
                     src={video.externalUrl || video.url}
+                    videoId={video.id}
                     poster={video.thumbnail}
                     autoPlay
                     sourceType={isPlayingLocally ? "local" : "telegram"}

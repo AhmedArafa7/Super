@@ -6,10 +6,13 @@ import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { NeuralMetadata } from "@/lib/wetube-pro-engine";
-import { Forward } from "lucide-react";
+import { Forward, Loader2 } from "lucide-react";
+import { shouldRenderFrame } from "@/lib/wetube-pro-engine";
+import { getChunk, saveChunk } from "@/lib/wetube-pro-cache-manager";
 
 interface NexusVideoPlayerProps {
     src: string;
+    videoId?: string;
     poster?: string;
     autoPlay?: boolean;
     qualityOptions?: string[];
@@ -25,6 +28,7 @@ interface NexusVideoPlayerProps {
 
 export function NexusVideoPlayer({
     src,
+    videoId,
     poster,
     autoPlay = false,
     qualityOptions = ["Auto (720p)"],
@@ -36,6 +40,7 @@ export function NexusVideoPlayer({
 }: NexusVideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const [isPlaying, setIsPlaying] = useState(autoPlay);
     const [progress, setProgress] = useState(0);
@@ -45,8 +50,71 @@ export function NexusVideoPlayer({
     const [showControls, setShowControls] = useState(true);
     const [quality, setQuality] = useState(defaultQuality);
     const [showSkipIntro, setShowSkipIntro] = useState(false);
+    
+    // WeTube Pro States
+    const [internalSrc, setInternalSrc] = useState(src);
+    const [isCaching, setIsCaching] = useState(false);
+    const frameRef = useRef(0);
+    const rafRef = useRef<number>();
 
     let hideControlsTimeout: NodeJS.Timeout;
+
+    // --- WeTube Pro: Smart Cache ---
+    useEffect(() => {
+        if (!proSettings || !videoId || !src.startsWith("http")) {
+            setInternalSrc(src);
+            return;
+        }
+
+        const loadCache = async () => {
+            const chunk = await getChunk(videoId, 'auto', 0);
+            if (chunk) {
+                const blobUrl = URL.createObjectURL(new Blob([chunk]));
+                setInternalSrc(blobUrl);
+                return;
+            }
+            // Fetch if caching is authorized (simulated for files < 200MB usually)
+            setIsCaching(true);
+            try {
+                const res = await fetch(src);
+                const arrayBuffer = await res.arrayBuffer();
+                await saveChunk(videoId, 'auto', 0, arrayBuffer);
+                const blobUrl = URL.createObjectURL(new Blob([arrayBuffer]));
+                setInternalSrc(blobUrl);
+            } catch (err) {
+                console.error("Pro Smart Cache failed to cache video chunks", err);
+                setInternalSrc(src); // fallback
+            } finally {
+                setIsCaching(false);
+            }
+        };
+        loadCache();
+    }, [src, videoId, proSettings]);
+
+    // --- WeTube Pro: Frame Skipping ---
+    useEffect(() => {
+        if (!proSettings || proSettings.frameSkipRatio === 'none' || !videoRef.current || !canvasRef.current) {
+            if (rafRef.current) cancelAnimationFrame(rafRef.current);
+            return;
+        }
+
+        const renderLoop = () => {
+            if (videoRef.current && canvasRef.current) {
+                if (videoRef.current.readyState >= 2 && !videoRef.current.paused) {
+                    if (shouldRenderFrame(frameRef.current, proSettings.frameSkipRatio as any)) {
+                        const ctx = canvasRef.current.getContext('2d');
+                        if (ctx) {
+                            ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+                        }
+                    }
+                    frameRef.current++;
+                }
+            }
+            rafRef.current = requestAnimationFrame(renderLoop);
+        };
+        rafRef.current = requestAnimationFrame(renderLoop);
+        return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+    }, [proSettings, internalSrc]);
 
     useEffect(() => {
         if (autoPlay && videoRef.current) {
@@ -109,6 +177,10 @@ export function NexusVideoPlayer({
     const handleLoadedMetadata = () => {
         if (videoRef.current) {
             setDuration(formatTime(videoRef.current.duration));
+            if (canvasRef.current) {
+                canvasRef.current.width = videoRef.current.videoWidth;
+                canvasRef.current.height = videoRef.current.videoHeight;
+            }
         }
     };
 
@@ -159,15 +231,31 @@ export function NexusVideoPlayer({
         >
             <video
                 ref={videoRef}
-                src={src}
+                src={internalSrc}
                 poster={poster}
-                className="w-full h-full object-contain"
+                className={cn("w-full h-full object-contain", proSettings?.frameSkipRatio !== 'none' ? 'opacity-0 absolute inset-0 pointer-events-none' : '')}
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleLoadedMetadata}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 onClick={togglePlay}
+                playsInline
             />
+
+            {/* Neural Canvas Overlay used for Frame Throttle Saving */}
+            {proSettings?.frameSkipRatio !== 'none' && (
+                <canvas 
+                    ref={canvasRef} 
+                    className="w-full h-full object-contain absolute inset-0 z-0 pointer-events-none" 
+                />
+            )}
+
+            {isCaching && (
+                <div className="absolute top-4 right-4 z-20 flex items-center gap-2 bg-indigo-500/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-indigo-500/30">
+                    <Loader2 className="size-4 text-indigo-400 animate-spin" />
+                    <span className="text-[10px] font-bold tracking-widest text-indigo-400 uppercase">Caching Smart Chunks</span>
+                </div>
+            )}
 
             {/* Neural Jump Button */}
             {showSkipIntro && neuralMetadata?.introEnd && (
