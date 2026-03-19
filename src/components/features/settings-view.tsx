@@ -17,16 +17,18 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { useSettingsStore } from "@/lib/settings-store";
+import { useSettingsStore, PREMIUM_VOICES } from "@/lib/settings-store";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 /**
  * [STABILITY_ANCHOR: SETTINGS_ORCHESTRATOR_V1.0]
  * واجهة الإعدادات المركزية - تتضمن مختبر الصوت العصبي (TTS Lab).
  */
 export function SettingsView() {
-  const { settings, updateVoiceSettings, updateGeneralSettings, isLoading } = useSettingsStore();
+  const { settings, updateVoiceSettings, updateGeneralSettings, downloadVoice, isLoading } = useSettingsStore();
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [downloadingIds, setDownloadingIds] = useState<string[]>([]);
   const [testText, setTestText] = useState("مرحباً بك في نظام نكسوس الذكي. هذا اختبار للصوت العصبي.");
   const [isSpeaking, setIsSpeaking] = useState(false);
   const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
@@ -68,6 +70,18 @@ export function SettingsView() {
     
     utteranceRef.current = utterance;
     synth.speak(utterance);
+  };
+
+  const handleDownloadPreview = async (voiceId: string) => {
+    setDownloadingIds(prev => [...prev, voiceId]);
+    // Simulate network delay
+    await new Promise(r => setTimeout(r, 2000));
+    await downloadVoice(voiceId);
+    setDownloadingIds(prev => prev.filter(id => id !== voiceId));
+    toast({
+      title: "تم التحميل بنجاح",
+      description: "المحرك الصوتي متاح الآن للاستخدام الأساسي.",
+    });
   };
 
   const stopTestVoice = () => {
@@ -232,6 +246,12 @@ export function SettingsView() {
                             <span className="text-[8px] opacity-40">[{v.lang}]</span>
                           </SelectItem>
                         ))}
+                        {PREMIUM_VOICES.filter(pv => settings.voice.downloadedVoices?.includes(pv.id)).map((v) => (
+                          <SelectItem key={v.id} value={v.name} className="flex-row-reverse gap-2 border-primary/20 bg-primary/5">
+                            <span className="font-bold text-primary">{v.name} (Neural)</span>
+                            <span className="text-[8px] opacity-40">[{v.lang}]</span>
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                  </div>
@@ -289,7 +309,7 @@ export function SettingsView() {
                  </div>
                  <Switch 
                   checked={settings.voice.isEmergencyOnly} 
-                  onCheckedChange={(v) => updateVoiceSettings({ isEmergencyOnly: v })} 
+                  onCheckedChange={(v: boolean) => updateVoiceSettings({ isEmergencyOnly: v })} 
                  />
               </div>
 
@@ -303,6 +323,69 @@ export function SettingsView() {
               </div>
             </div>
           </Card>
+
+          {/* متجر أصوات نكسوس العصبية */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between flex-row-reverse px-2">
+               <h2 className="text-xl font-black text-white flex items-center gap-3">
+                  متجر أصوات نكسوس العصبية
+                  <Sparkles className="text-yellow-400 size-5" />
+               </h2>
+               <div className="border border-white/10 text-muted-foreground text-[10px] px-2 py-1 rounded-full text-right">5 محركات جديدة متوفرة</div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+               {PREMIUM_VOICES.map((v) => {
+                 const isDownloaded = settings.voice.downloadedVoices?.includes(v.id);
+                 const isDownloading = downloadingIds.includes(v.id);
+
+                 return (
+                   <Card key={v.id} className={cn(
+                     "glass p-6 rounded-[2rem] border-white/5 relative overflow-hidden group transition-all hover:scale-[1.02] hover:border-primary/30",
+                     isDownloaded && "border-green-500/20 bg-green-500/5"
+                   )}>
+                      <div className="absolute top-2 left-2 flex gap-1">
+                         <div className="bg-white/10 text-white text-[8px] px-1.5 py-0.5 rounded-sm">{v.provider}</div>
+                         <div className="bg-primary/20 text-primary text-[8px] px-1.5 py-0.5 rounded-sm">{v.quality}</div>
+                      </div>
+
+                      <div className="pt-4 text-right space-y-4">
+                         <div>
+                            <h3 className="font-black text-lg text-white">{v.name}</h3>
+                            <p className="text-[10px] text-muted-foreground uppercase">{v.lang}</p>
+                         </div>
+
+                         <div className="flex items-end justify-between flex-row-reverse">
+                            <div className="text-right">
+                               <span className="text-[8px] text-muted-foreground block uppercase">حجم المحرك</span>
+                               <span className="text-lg font-mono font-bold text-white">{v.sizeMB}MB</span>
+                            </div>
+                            <Button 
+                              size="sm" 
+                              variant={isDownloaded ? "outline" : "default"}
+                              className={cn(
+                                "rounded-xl font-bold gap-2",
+                                isDownloaded ? "border-green-500/30 text-green-400 hover:bg-green-500/10" : "bg-primary shadow-lg shadow-primary/20"
+                              )}
+                              disabled={isDownloading}
+                              onClick={() => !isDownloaded && handleDownloadPreview(v.id)}
+                            >
+                               {isDownloading ? (
+                                 <div className="size-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                               ) : isDownloaded ? (
+                                 <ShieldAlert className="size-3" />
+                               ) : (
+                                 <Download className="size-3" />
+                               )}
+                               {isDownloading ? "جاري التحميل..." : isDownloaded ? "نمط الطوارئ متاح" : "تحميل واستخدام"}
+                            </Button>
+                         </div>
+                      </div>
+                   </Card>
+                 );
+               })}
+            </div>
+          </div>
         </div>
       </div>
     </div>

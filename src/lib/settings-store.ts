@@ -11,7 +11,26 @@ export interface VoiceSettings {
   rate: number;
   pitch: number;
   isEmergencyOnly: boolean;
+  downloadedVoices: string[];
 }
+
+export interface VoiceCatalogItem {
+  id: string;
+  name: string;
+  lang: string;
+  provider: 'Google' | 'Azure' | 'Amazon' | 'Neural';
+  quality: 'Standard' | 'High' | 'Ultra';
+  sizeMB: number;
+  isDownloaded: boolean;
+}
+
+export const PREMIUM_VOICES: VoiceCatalogItem[] = [
+  { id: 'ar-neural-1', name: 'أمل (Neural)', lang: 'ar-SA', provider: 'Neural', quality: 'Ultra', sizeMB: 42, isDownloaded: false },
+  { id: 'ar-neural-2', name: 'ياسين (Neural)', lang: 'ar-EG', provider: 'Neural', quality: 'Ultra', sizeMB: 38, isDownloaded: false },
+  { id: 'en-neural-1', name: 'Sarah (Studio)', lang: 'en-US', provider: 'Azure', quality: 'High', sizeMB: 45, isDownloaded: false },
+  { id: 'en-neural-2', name: 'James (Studio)', lang: 'en-GB', provider: 'Azure', quality: 'High', sizeMB: 48, isDownloaded: false },
+  { id: 'ar-google-1', name: 'ليلى (Wavenet)', lang: 'ar-XA', provider: 'Google', quality: 'High', sizeMB: 30, isDownloaded: false },
+];
 
 export interface GeneralSettings {
   language: 'ar' | 'en';
@@ -31,12 +50,13 @@ interface SettingsState {
   updateSectionBeta: (sectionId: string, isBeta: boolean) => Promise<void>;
   updateVoiceSettings: (voice: Partial<VoiceSettings>) => Promise<void>;
   updateGeneralSettings: (general: Partial<GeneralSettings>) => Promise<void>;
+  downloadVoice: (voiceId: string) => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: { 
     sections: {}, 
-    voice: { preferredVoice: '', rate: 1, pitch: 1, isEmergencyOnly: false },
+    voice: { preferredVoice: '', rate: 1, pitch: 1, isEmergencyOnly: false, downloadedVoices: [] },
     general: { language: 'ar', theme: 'dark' }
   },
   isLoading: true,
@@ -117,6 +137,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       console.error("Update Voice Error", err);
       set({ settings: current });
     }
+  },
+
+  downloadVoice: async (voiceId: string) => {
+    const current = get().settings;
+    const downloaded = [...(current.voice.downloadedVoices || []), voiceId];
+    await get().updateVoiceSettings({ downloadedVoices: downloaded });
   },
 
   updateGeneralSettings: async (general) => {
