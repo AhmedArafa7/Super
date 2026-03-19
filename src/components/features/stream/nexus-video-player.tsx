@@ -7,8 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { NeuralMetadata } from "@/lib/wetube-pro-engine";
 import { Forward, Loader2 } from "lucide-react";
-import { shouldRenderFrame } from "@/lib/wetube-pro-engine";
 import { getChunk, saveChunk } from "@/lib/wetube-pro-cache-manager";
+import { useProStore, ConsumptionRecord, shouldRenderFrame } from "@/lib/wetube-pro-engine";
 
 interface NexusVideoPlayerProps {
     src: string;
@@ -56,6 +56,7 @@ export function NexusVideoPlayer({
     const [isCaching, setIsCaching] = useState(false);
     const frameRef = useRef(0);
     const rafRef = useRef<number>();
+    const { addUsageRecord } = useProStore();
 
     let hideControlsTimeout: NodeJS.Timeout;
 
@@ -71,9 +72,16 @@ export function NexusVideoPlayer({
             if (chunk) {
                 const blobUrl = URL.createObjectURL(new Blob([chunk]));
                 setInternalSrc(blobUrl);
+                addUsageRecord({
+                    videoId,
+                    quality: quality,
+                    bytesConsumed: 0,
+                    bytesSaved: chunk.byteLength,
+                    method: 'cache'
+                });
                 return;
             }
-            // Fetch if caching is authorized (simulated for files < 200MB usually)
+            // Fetch if caching is authorized
             setIsCaching(true);
             try {
                 const res = await fetch(src);
@@ -81,9 +89,17 @@ export function NexusVideoPlayer({
                 await saveChunk(videoId, 'auto', 0, arrayBuffer);
                 const blobUrl = URL.createObjectURL(new Blob([arrayBuffer]));
                 setInternalSrc(blobUrl);
+                
+                addUsageRecord({
+                    videoId,
+                    quality: quality,
+                    bytesConsumed: arrayBuffer.byteLength,
+                    bytesSaved: 0,
+                    method: 'network'
+                });
             } catch (err) {
-                console.error("Pro Smart Cache failed to cache video chunks", err);
-                setInternalSrc(src); // fallback
+                console.error("Pro Smart Cache failed", err);
+                setInternalSrc(src);
             } finally {
                 setIsCaching(false);
             }

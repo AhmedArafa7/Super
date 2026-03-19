@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useSettingsStore, PREMIUM_VOICES } from "@/lib/settings-store";
+import { useProStore } from "@/lib/wetube-pro-engine";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
@@ -27,6 +28,7 @@ import { toast } from "@/hooks/use-toast";
  */
 export function SettingsView() {
   const { settings, updateVoiceSettings, updateGeneralSettings, downloadVoice, isLoading } = useSettingsStore();
+  const { usageLog, totalSavedMB, clearLog } = useProStore();
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [downloadingIds, setDownloadingIds] = useState<string[]>([]);
   const [testText, setTestText] = useState("مرحباً بك في نظام نكسوس الذكي. هذا اختبار للصوت العصبي.");

@@ -1,13 +1,13 @@
 
 'use client';
 
-import { MarketItem } from './market/types';
+import { create } from 'zustand';
 import { initializeFirebase } from '@/firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 
 /**
- * [STABILITY_ANCHOR: WETUBE_PRO_ENGINE_V1.0]
- * المحرك الرئيسي لمزايا WeTube Pro - يعالج التحقق من الملكية، التحكم في الفريمات، والتخزين الذكي.
+ * [STABILITY_ANCHOR: WETUBE_PRO_ENGINE_V1.1]
+ * المحرك الرئيسي لمزايا WeTube Pro - يعالج التحقق من الملكية، التحكم في الفريمات، والتخزين الذكي، وتتبع الاستهلاك.
  */
 
 export interface NeuralMetadata {
@@ -17,15 +17,62 @@ export interface NeuralMetadata {
 }
 
 export interface ProSettings {
-  frameSkipRatio: 'none' | '1/2' | '3/4' | '4/5';
-  autoTrimOutro: boolean;
-  maxCacheSizeGB: number;
+  isSmartCacheEnabled: boolean;
+  isFrameSkipEnabled: boolean;
+  cacheSizeLimitMB: number;
+  frameSkipRatio: number; // 0 to 1 (e.g. 0.5 for 1/2)
 }
 
+export interface ConsumptionRecord {
+  id: string;
+  videoId: string;
+  timestamp: number;
+  quality: string;
+  bytesConsumed: number;
+  bytesSaved: number;
+  method: 'cache' | 'skip' | 'network';
+}
+
+interface ProState {
+  settings: ProSettings;
+  usageLog: ConsumptionRecord[];
+  totalSavedMB: number;
+  updateSettings: (settings: Partial<ProSettings>) => void;
+  addUsageRecord: (record: Omit<ConsumptionRecord, 'id' | 'timestamp'>) => void;
+  clearLog: () => void;
+}
+
+export const useProStore = create<ProState>((set) => ({
+  settings: {
+    isSmartCacheEnabled: true,
+    isFrameSkipEnabled: true,
+    cacheSizeLimitMB: 1024,
+    frameSkipRatio: 0
+  },
+  usageLog: [],
+  totalSavedMB: 0,
+  updateSettings: (newSettings) => set((state) => ({
+    settings: { ...state.settings, ...newSettings }
+  })),
+  addUsageRecord: (record) => set((state) => {
+    const newRecord = {
+      ...record,
+      id: Math.random().toString(36).substr(2, 9),
+      timestamp: Date.now()
+    };
+    return {
+      usageLog: [newRecord, ...state.usageLog].slice(0, 50),
+      totalSavedMB: state.totalSavedMB + (record.bytesSaved / (1024 * 1024))
+    };
+  }),
+  clearLog: () => set({ usageLog: [], totalSavedMB: 0 })
+}));
+
 export const DEFAULT_PRO_SETTINGS: ProSettings = {
-  frameSkipRatio: 'none',
-  autoTrimOutro: true,
-  maxCacheSizeGB: 1
+  isSmartCacheEnabled: true,
+  isFrameSkipEnabled: true,
+  cacheSizeLimitMB: 1024,
+  frameSkipRatio: 0
 };
 
 const PRO_PRODUCT_TITLE = "WeTube Pro";
@@ -55,35 +102,22 @@ export const checkProOwnership = async (userId: string): Promise<boolean> => {
 
 /**
  * منطق الـ Frame Skipping
- * يقوم بتحديد ما إذا كان يجب عرض الفريم الحالي أم لا لتوفير الباقة
+ * Ratio: 0 = No skipping, 0.5 = Skip half, 0.75 = Skip 3/4
  */
-export const shouldRenderFrame = (frameIndex: number, ratio: ProSettings['frameSkipRatio']): boolean => {
-  if (ratio === 'none') return true;
+export const shouldRenderFrame = (frameIndex: number, ratio: number): boolean => {
+  if (ratio <= 0) return true;
+  if (ratio >= 1) return frameIndex === 0;
   
-  if (ratio === '1/2') {
-    // يرسل فريم ويترك فريم (50%)
-    return frameIndex % 2 === 0;
-  }
-  
-  if (ratio === '3/4') {
-    // يرسل 3 فريمات ويترك واحد (75%)
-    return frameIndex % 4 !== 0;
-  }
-  
-  if (ratio === '4/5') {
-    // يرسل 4 فريمات ويترك واحد (80%)
-    return frameIndex % 5 !== 0;
-  }
-  
-  return true;
+  const skipInterval = Math.round(1 / ratio);
+  return frameIndex % skipInterval !== 0;
 };
 
 /**
  * إدارة التخزين الذكي (IndexedDB)
- * سيتم استخدامه داخل مكون المشغل لتخزين واسترجاع أجزاء الفيديو
  */
 export const initProCache = async () => {
   return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') return resolve(null);
     const request = indexedDB.open('wetube-pro-cache', 1);
     
     request.onupgradeneeded = (e: any) => {
