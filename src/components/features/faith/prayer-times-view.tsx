@@ -15,12 +15,18 @@ import { cn } from "@/lib/utils";
  */
 export function PrayerTimesView() {
   const { 
-    timings, nextPrayer, isLoading, method, asrSchool, lastUpdated,
-    fetchTimings, calculateNextPrayer, setMethod, setAsrSchool 
+    timings, nextPrayer, isLoading, method, asrSchool, lastUpdated, reminderMinutes,
+    fetchTimings, calculateNextPrayer, setMethod, setAsrSchool, setReminderMinutes 
   } = usePrayerStore();
 
   useEffect(() => {
     fetchTimings();
+    
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
     const interval = setInterval(() => {
       calculateNextPrayer();
     }, 1000);
@@ -67,6 +73,25 @@ export function PrayerTimesView() {
             <SelectContent className="bg-slate-950 border-white/10 text-white">
               <SelectItem value="0">شافعي / مالكي / حنبلي</SelectItem>
               <SelectItem value="1">حنفي</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="w-full md:w-56 space-y-2 text-right">
+          <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest px-1">التنبيه قبل الأذان</label>
+          <Select value={reminderMinutes.toString()} onValueChange={(v) => setReminderMinutes(parseInt(v))}>
+            <SelectTrigger className="bg-white/5 border-white/10 h-12 flex-row-reverse rounded-xl">
+              <div className="flex items-center gap-2 flex-row-reverse">
+                <BellRing className={cn("size-4", reminderMinutes > 0 ? "text-primary" : "text-muted-foreground")} />
+                <SelectValue />
+              </div>
+            </SelectTrigger>
+            <SelectContent className="bg-slate-950 border-white/10 text-white">
+              <SelectItem value="0">بدون تنبيه</SelectItem>
+              <SelectItem value="5">قبل بـ 5 دقائق</SelectItem>
+              <SelectItem value="10">قبل بـ 10 دقائق</SelectItem>
+              <SelectItem value="15">قبل بـ 15 دقائق</SelectItem>
+              <SelectItem value="20">قبل بـ 20 دقائق</SelectItem>
+              <SelectItem value="30">قبل بـ 30 دقيقة</SelectItem>
             </SelectContent>
           </Select>
         </div>

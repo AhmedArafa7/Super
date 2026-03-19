@@ -32,11 +32,14 @@ interface PrayerState {
   location: { city: string; country: string } | null;
   lastUpdated: string | null;
   isLoading: boolean;
+  reminderMinutes: number;
+  lastNotifiedPrayer: string | null;
   
   setMethod: (method: number) => void;
   setAsrSchool: (school: number) => void;
   fetchTimings: () => Promise<void>;
   calculateNextPrayer: () => void;
+  setReminderMinutes: (minutes: number) => void;
 }
 
 export const usePrayerStore = create<PrayerState>()(
@@ -49,6 +52,8 @@ export const usePrayerStore = create<PrayerState>()(
       location: null,
       lastUpdated: null,
       isLoading: false,
+      reminderMinutes: 0,
+      lastNotifiedPrayer: null,
 
       setMethod: (method) => {
         set({ method });
@@ -111,6 +116,8 @@ export const usePrayerStore = create<PrayerState>()(
         }
       },
 
+      setReminderMinutes: (reminderMinutes) => set({ reminderMinutes }),
+
       calculateNextPrayer: () => {
         const { timings } = get();
         if (!timings) return;
@@ -143,6 +150,31 @@ export const usePrayerStore = create<PrayerState>()(
           next = { name: "الفجر", time: timings.Fajr, remaining: "غداً" };
         }
 
+        // Logic for pre-adhan reminder
+        const { reminderMinutes, lastNotifiedPrayer } = get();
+        if (reminderMinutes > 0 && next.name !== "الفجر") { // Skip "غداً" case for now
+          const [h, m] = next.time.split(':');
+          const pTime = new Date();
+          pTime.setHours(parseInt(h), parseInt(m), 0);
+          const diffMin = (pTime.getTime() - now.getTime()) / 60000;
+          
+          if (diffMin <= reminderMinutes && diffMin > 0 && lastNotifiedPrayer !== next.name) {
+            // Trigger actual notification hook (will be caught by UI)
+            set({ lastNotifiedPrayer: next.name });
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification(`اقترب وقت ${next.name}`, {
+                body: `بقي ${Math.round(diffMin)} دقائق على رفع الأذان`,
+                icon: '/icons/faith-icon.png'
+              });
+            }
+          }
+        }
+        
+        // Reset notification lock if prayer passed
+        if (lastNotifiedPrayer && lastNotifiedPrayer !== next.name) {
+           set({ lastNotifiedPrayer: null });
+        }
+
         set({ nextPrayer: next });
       }
     }),
@@ -153,7 +185,8 @@ export const usePrayerStore = create<PrayerState>()(
         asrSchool: state.asrSchool,
         timings: state.timings,
         location: state.location,
-        lastUpdated: state.lastUpdated
+        lastUpdated: state.lastUpdated,
+        reminderMinutes: state.reminderMinutes
       }),
     }
   )
