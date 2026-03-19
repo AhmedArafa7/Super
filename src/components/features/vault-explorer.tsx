@@ -17,6 +17,7 @@ import { fetchDriveFolderFiles } from "@/lib/learning-store";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { VaultPreviewModal } from "./vault-preview-modal";
+import { VaultPreviewContent } from "./vault-preview-content";
 
 const VAULT_FOLDER_ID = "16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g";
 const DRIVE_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
@@ -49,6 +50,7 @@ export function VaultExplorer({
   const [currentFolderId, setCurrentFolderId] = useState<string | string[]>(folderId);
   const [folderStack, setFolderStack] = useState<{id: string | string[], name: string}[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<any | null>(null);
+  const [previewMode, setPreviewMode] = useState<'integrated' | 'floating'>('integrated');
 
   useEffect(() => {
     loadRealDriveData(currentFolderId);
@@ -207,93 +209,106 @@ export function VaultExplorer({
         )}
 
         <div className="flex-1 overflow-hidden flex flex-col p-8">
-          {!hideSidebar && (
-          <div className="flex items-center justify-between mb-8 flex-row-reverse">
-            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-              {title}
-              {icon}
-            </h2>
-            <Badge variant="outline" className="border-indigo-500/20 text-indigo-400 text-[10px] uppercase">
-              {isKeyMissing ? "Maintenance Mode" : `${filteredAssets.length} Physical Assets Synced`}
-            </Badge>
-          </div>
-          )}
+          {selectedAsset && previewMode === 'integrated' ? (
+            <VaultPreviewContent 
+              asset={selectedAsset} 
+              onClose={() => setSelectedAsset(null)} 
+              onRefresh={() => loadRealDriveData(currentFolderId)}
+              isFloating={false}
+              onToggleFloating={() => setPreviewMode('floating')}
+            />
+          ) : (
+            <>
+              {!hideSidebar && (
+              <div className="flex items-center justify-between mb-8 flex-row-reverse">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                  {title}
+                  {icon}
+                </h2>
+                <Badge variant="outline" className="border-indigo-500/20 text-indigo-400 text-[10px] uppercase">
+                  {isKeyMissing ? "Maintenance Mode" : `${filteredAssets.length} Physical Assets Synced`}
+                </Badge>
+              </div>
+              )}
 
-          <ScrollArea className="flex-1 h-full pr-4">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-32 gap-4">
-                <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">جاري استدعاء السجل السحابي...</p>
-              </div>
-            ) : (isKeyMissing || (assets.length === 0 && !isLoading)) ? (
-              <div className="flex flex-col items-center justify-center py-32 text-center space-y-6">
-                <div className="size-24 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20 shadow-2xl">
-                  <AlertTriangle className="size-12 text-amber-500" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-white">تعذر الاتصال التلقائي بـ Drive</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
-                    يبدو أن مفتاح API غير صالح أو غير موجود. يمكنك الوصول للملفات ورفعها يدوياً عبر الرابط المباشر للمجلد.
-                  </p>
-                </div>
-                <Button 
-                  className="bg-indigo-600 hover:bg-indigo-500 rounded-xl px-8 h-12 font-bold gap-2"
-                  onClick={() => window.open(DRIVE_SHARE_URL, '_blank')}
-                >
-                  <ExternalLink className="size-4" /> فتح المجلد يدوياً
-                </Button>
-              </div>
-            ) : (
-              <div className={cn(
-                "pb-20",
-                viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6" : "space-y-2"
-              )}>
-                 {filteredAssets.map(asset => (
-                  <Card 
-                    key={asset.id} 
-                    onClick={() => asset.mimeType.includes('folder') ? handleLevelDown(asset.id, asset.name) : setSelectedAsset(asset)}
-                    className={cn(
-                      "group glass border-white/5 hover:border-indigo-500/40 transition-all cursor-pointer relative",
-                      viewMode === 'grid' ? "aspect-[4/3] flex flex-col p-6 rounded-[2rem]" : "flex items-center p-4 rounded-xl flex-row-reverse"
-                    )}
-                  >
-                    {viewMode === 'grid' ? (
-                      <>
-                        <div className="flex justify-between items-start flex-row-reverse mb-auto">
-                          {getFileIcon(asset.mimeType)}
-                          <Badge className="bg-black/40 text-[8px]">{formatSize(asset.size, asset.mimeType)}</Badge>
-                        </div>
-                        <div className="mt-4 text-right">
-                          <p dir="auto" className="font-bold text-white text-sm truncate">{asset.name}</p>
-                          <p className="text-[9px] text-muted-foreground uppercase font-mono mt-1">Verified Cloud Asset</p>
-                        </div>
-                        <div className="flex gap-2 mt-6">
-                          <Button 
-                            className="flex-1 h-10 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-[10px] gap-2"
-                            onClick={(e) => { e.stopPropagation(); asset.mimeType.includes('folder') ? handleLevelDown(asset.id, asset.name) : setSelectedAsset(asset); }}
-                          >
-                            <Eye className="size-3" /> {asset.mimeType.includes('folder') ? 'فتح' : 'معاينة'}
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex items-center gap-4 flex-1 flex-row-reverse">
-                        <div className="size-10 bg-white/5 rounded-lg flex items-center justify-center shrink-0">{getFileIcon(asset.mimeType)}</div>
-                        <p dir="auto" className="font-bold text-white text-sm flex-1 truncate">{asset.name}</p>
-                        <p className="text-[10px] text-muted-foreground font-mono hidden md:block">{formatSize(asset.size, asset.mimeType)}</p>
-                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); asset.mimeType.includes('folder') ? handleLevelDown(asset.id, asset.name) : setSelectedAsset(asset); }}><ExternalLink className="size-4 text-indigo-400" /></Button>
-                      </div>
-                    )}
-                  </Card>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
+              <ScrollArea className="flex-1 h-full pr-4">
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center py-32 gap-4">
+                    <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">جاري استدعاء السجل السحابي...</p>
+                  </div>
+                ) : (isKeyMissing || (assets.length === 0 && !isLoading)) ? (
+                  <div className="flex flex-col items-center justify-center py-32 text-center space-y-6">
+                    <div className="size-24 bg-amber-500/10 rounded-full flex items-center justify-center border border-amber-500/20 shadow-2xl">
+                      <AlertTriangle className="size-12 text-amber-500" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-bold text-white">تعذر الاتصال التلقائي بـ Drive</h3>
+                      <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
+                        يبدو أن مفتاح API غير صالح أو غير موجود. يمكنك الوصول للملفات ورفعها يدوياً عبر الرابط المباشر للمجلد.
+                      </p>
+                    </div>
+                    <Button 
+                      className="bg-indigo-600 hover:bg-indigo-500 rounded-xl px-8 h-12 font-bold gap-2"
+                      onClick={() => window.open(DRIVE_SHARE_URL, '_blank')}
+                    >
+                      <ExternalLink className="size-4" /> فتح المجلد يدوياً
+                    </Button>
+                  </div>
+                ) : (
+                  <div className={cn(
+                    "pb-20",
+                    viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6" : "space-y-2"
+                  )}>
+                     {filteredAssets.map(asset => (
+                      <Card 
+                        key={asset.id} 
+                        onClick={() => asset.mimeType.includes('folder') ? handleLevelDown(asset.id, asset.name) : setSelectedAsset(asset)}
+                        className={cn(
+                          "group glass border-white/5 hover:border-indigo-500/40 transition-all cursor-pointer relative",
+                          viewMode === 'grid' ? "aspect-[4/3] flex flex-col p-6 rounded-[2rem]" : "flex items-center p-4 rounded-xl flex-row-reverse"
+                        )}
+                      >
+                        {viewMode === 'grid' ? (
+                          <>
+                            <div className="flex justify-between items-start flex-row-reverse mb-auto">
+                              {getFileIcon(asset.mimeType)}
+                              <Badge className="bg-black/40 text-[8px]">{formatSize(asset.size, asset.mimeType)}</Badge>
+                            </div>
+                            <div className="mt-4 text-right">
+                              <p dir="auto" className="font-bold text-white text-sm truncate">{asset.name}</p>
+                              <p className="text-[9px] text-muted-foreground uppercase font-mono mt-1">Verified Cloud Asset</p>
+                            </div>
+                            <div className="flex gap-2 mt-6">
+                              <Button 
+                                className="flex-1 h-10 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-[10px] gap-2"
+                                onClick={(e) => { e.stopPropagation(); asset.mimeType.includes('folder') ? handleLevelDown(asset.id, asset.name) : setSelectedAsset(asset); }}
+                              >
+                                <Eye className="size-3" /> {asset.mimeType.includes('folder') ? 'فتح' : 'معاينة'}
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-4 flex-1 flex-row-reverse">
+                            <div className="size-10 bg-white/5 rounded-lg flex items-center justify-center shrink-0">{getFileIcon(asset.mimeType)}</div>
+                            <p dir="auto" className="font-bold text-white text-sm flex-1 truncate">{asset.name}</p>
+                            <p className="text-[10px] text-muted-foreground font-mono hidden md:block">{formatSize(asset.size, asset.mimeType)}</p>
+                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); asset.mimeType.includes('folder') ? handleLevelDown(asset.id, asset.name) : setSelectedAsset(asset); }}><ExternalLink className="size-4 text-indigo-400" /></Button>
+                          </div>
+                        )}
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </>
+          )}
         </div>
         <VaultPreviewModal 
-          asset={selectedAsset} 
+          asset={previewMode === 'floating' ? selectedAsset : null} 
           onClose={() => setSelectedAsset(null)} 
           onRefresh={() => loadRealDriveData(currentFolderId)}
+          onToggleFloating={() => setPreviewMode('integrated')}
         />
       </main>
     </div>
