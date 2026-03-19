@@ -6,8 +6,22 @@ export interface SectionSettings {
   isBeta: boolean;
 }
 
+export interface VoiceSettings {
+  preferredVoice: string;
+  rate: number;
+  pitch: number;
+  isEmergencyOnly: boolean;
+}
+
+export interface GeneralSettings {
+  language: 'ar' | 'en';
+  theme: 'dark' | 'light' | 'neural';
+}
+
 export interface AppSettings {
   sections: Record<string, SectionSettings>;
+  voice: VoiceSettings;
+  general: GeneralSettings;
 }
 
 interface SettingsState {
@@ -15,10 +29,16 @@ interface SettingsState {
   isLoading: boolean;
   initSettingsListener: () => () => void;
   updateSectionBeta: (sectionId: string, isBeta: boolean) => Promise<void>;
+  updateVoiceSettings: (voice: Partial<VoiceSettings>) => Promise<void>;
+  updateGeneralSettings: (general: Partial<GeneralSettings>) => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
-  settings: { sections: {} },
+  settings: { 
+    sections: {}, 
+    voice: { preferredVoice: '', rate: 1, pitch: 1, isEmergencyOnly: false },
+    general: { language: 'ar', theme: 'dark' }
+  },
   isLoading: true,
 
   initSettingsListener: () => {
@@ -29,11 +49,24 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
     const unsubscribe = onSnapshot(settingsRef, (docSnap) => {
       if (docSnap.exists()) {
-        set({ settings: { sections: docSnap.data() as Record<string, SectionSettings> }, isLoading: false });
+        const data = docSnap.data();
+        set({ 
+          settings: { 
+            sections: data.sections || {},
+            voice: data.voice || { preferredVoice: '', rate: 1, pitch: 1, isEmergencyOnly: false },
+            general: data.general || { language: 'ar', theme: 'dark' }
+          }, 
+          isLoading: false 
+        });
       } else {
         // Initialize default empty document if not exists
-        setDoc(settingsRef, {});
-        set({ settings: { sections: {} }, isLoading: false });
+        const defaults = {
+           sections: {},
+           voice: { preferredVoice: '', rate: 1, pitch: 1, isEmergencyOnly: false },
+           general: { language: 'ar', theme: 'dark' }
+        };
+        setDoc(settingsRef, defaults);
+        set({ settings: defaults, isLoading: false });
       }
     }, (error) => {
       console.error("Error listening to settings:", error);
@@ -60,13 +93,45 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
     try {
       await setDoc(settingsRef, {
-        [sectionId]: { isBeta }
+        sections: { [sectionId]: { isBeta } }
       }, { merge: true });
     } catch (error) {
       console.error("Error updating section beta:", error);
       // Revert in case of failure
-      set({ settings: { sections: currentSections } });
+      set({ settings: { ...get().settings, sections: currentSections } });
       throw error;
+    }
+  },
+
+  updateVoiceSettings: async (voice) => {
+    const { firestore } = initializeFirebase();
+    const settingsRef = doc(firestore, 'app_settings', 'sections');
+    const current = get().settings;
+    const newVoice = { ...current.voice, ...voice };
+
+    set({ settings: { ...current, voice: newVoice } });
+
+    try {
+      await setDoc(settingsRef, { voice: newVoice }, { merge: true });
+    } catch (err) {
+      console.error("Update Voice Error", err);
+      set({ settings: current });
+    }
+  },
+
+  updateGeneralSettings: async (general) => {
+    const { firestore } = initializeFirebase();
+    const settingsRef = doc(firestore, 'app_settings', 'sections');
+    const current = get().settings;
+    const newGeneral = { ...current.general, ...general };
+
+    set({ settings: { ...current, general: newGeneral } });
+
+    try {
+      await setDoc(settingsRef, { general: newGeneral }, { merge: true });
+    } catch (err) {
+      console.error("Update General Error", err);
+      set({ settings: current });
     }
   }
 }));

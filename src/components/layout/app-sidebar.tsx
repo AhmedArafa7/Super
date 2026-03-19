@@ -7,7 +7,7 @@ import {
 import {
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat,
   BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, Library,
-  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown, Clock, Tag, HeartPulse, CircuitBoard
+  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown, Clock, Tag, HeartPulse, CircuitBoard, Settings
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { id: "hisn", label: "حصن المسلم", icon: BookOpen, restricted: false },
   { id: "features", label: "المميزات", icon: Zap, restricted: false },
   { id: "notifications", label: "التنبيهات", icon: Bell, restricted: false },
+  { id: "settings", label: "الإعدادات", icon: Settings, restricted: false },
   { id: "admin", label: "لوحة الإدارة", icon: ShieldCheck, restricted: true },
 ];
 

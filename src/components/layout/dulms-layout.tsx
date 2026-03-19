@@ -12,7 +12,7 @@ import {
     LayoutDashboard, Clock, MessageSquare, Cpu, HardDrive,
     MessageCircle, Video, ShoppingBag, Megaphone, DownloadCloud,
     Rocket, Wallet, GraduationCap, Microscope,
-    Users, BookOpen, Zap, Bell, Tag, CircuitBoard
+    Users, BookOpen, Zap, Bell, Tag, CircuitBoard, Settings
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { User } from "@/lib/auth/types";
@@ -48,6 +48,7 @@ import { DownloadCenter } from "@/components/features/download-center";
 import { TimeManagement } from "@/components/features/time-management";
 import { LocalDeals } from "@/components/features/local-deals";
 import { MicrocontrollerLab } from "@/components/features/microcontroller-lab";
+import { SettingsView } from "@/components/features/settings-view";
 
 const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g#list";
 
@@ -63,6 +64,7 @@ const NAV_GROUPS = [
             { id: "dashboard" as NavItemId, label: "لوحة التحكم", icon: LayoutDashboard },
             { id: "time" as NavItemId, label: "تنظيم الوقت", icon: Clock },
             { id: "notifications" as NavItemId, label: "التنبيهات", icon: Bell },
+            { id: "settings" as NavItemId, label: "الإعدادات", icon: Settings },
         ]
     },
     {
@@ -214,6 +216,7 @@ export function DulmsLayout({ user }: DulmsLayoutProps) {
             case "learning": return <KnowledgeHub />;
             case "hisn": return <HisnAlMuslim />;
             case "notifications": return <NotificationsView onSmartRoute={() => { }} />;
+            case "settings": return <SettingsView />;
             default: return <UserDashboard onNavigate={(tab) => handleTabChange(tab)} />;
         }
     };
