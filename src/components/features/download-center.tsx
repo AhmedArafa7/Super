@@ -45,6 +45,13 @@ export function DownloadCenter() {
     }
   };
 
+  const handleDownloadApk = () => {
+    toast({ 
+      title: "جاري المعالجة", 
+      description: "سيتم توفير رابط النسخة النهائية للتطبيق (APK) للتحميل قريباً بمجرد تصديرها من Android Studio." 
+    });
+  };
+
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700 font-sans text-right">
       <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 flex-row-reverse">
@@ -81,6 +88,7 @@ export function DownloadCenter() {
       {activeView === 'deployment' ? (
         <DeploymentOptions 
           onInstallPWA={handleInstallPWA} 
+          onDownloadApk={handleDownloadApk}
           deferredPrompt={deferredPrompt} 
         />
       ) : (

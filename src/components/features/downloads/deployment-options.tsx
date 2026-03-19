@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 interface DeploymentOptionsProps {
   onInstallPWA: () => void;
+  onDownloadApk: () => void;
   deferredPrompt: any;
 }
 
@@ -19,7 +20,7 @@ interface DeploymentOptionsProps {
  * [STABILITY_ANCHOR: DEPLOYMENT_OPTIONS_NODE_V1.0]
  * وحدة منصات التشغيل السيادية.
  */
-export function DeploymentOptions({ onInstallPWA, deferredPrompt }: DeploymentOptionsProps) {
+export function DeploymentOptions({ onInstallPWA, onDownloadApk, deferredPrompt }: DeploymentOptionsProps) {
   const OPTIONS = [
     {
       id: 'pwa',
@@ -37,10 +38,11 @@ export function DeploymentOptions({ onInstallPWA, deferredPrompt }: DeploymentOp
       title: 'تطبيق أندرويد (Native)',
       desc: 'نسخة APK مخصصة للهواتف الذكية مع دعم كامل للتنبيهات العميقة والوصول للمستشعرات.',
       icon: TabletSmartphone,
-      status: 'locked',
-      badge: 'قريباً جداً',
-      color: 'bg-slate-800',
-      actionLabel: 'قيد المعايرة'
+      status: 'active',
+      badge: 'متوفر الآن',
+      color: 'bg-emerald-600',
+      actionLabel: 'تحميل التطبيق (APK)',
+      onClick: onDownloadApk
     },
     {
       id: 'desktop',
