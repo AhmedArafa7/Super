@@ -28,6 +28,7 @@ import { TimeManagement } from "@/components/features/time-management";
 import { LocalDeals } from "@/components/features/local-deals";
 import { HealthView } from "@/components/features/health-view";
 import { LibraryView } from "@/components/features/library/library-view";
+import { MicrocontrollerLab } from "@/components/features/microcontroller-lab";
 import { getNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
@@ -147,6 +148,7 @@ export function AppShell() {
         else setActiveTab(tab);
       }} />;
       case "features": return <Capabilities />;
+      case "micro-ide": return <MicrocontrollerLab />;
       case "admin":
         if (['founder', 'cofounder', 'admin', 'management'].includes(user?.role || '')) return <AdminPanel />;
         return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
