@@ -7,7 +7,7 @@ import {
 import {
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat,
   BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, Library,
-  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown, Clock, Tag, HeartPulse
+  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown, Clock, Tag, HeartPulse, CircuitBoard
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { id: "wallet", label: "المحفظة الرقمية", icon: Wallet, restricted: false },
   { id: "offers", label: "صندوق العروض", icon: Repeat, restricted: false },
   { id: "learning", label: "المكتبة المعرفية", icon: GraduationCap, restricted: false },
+  { id: "micro-ide", label: "برمجة المتحكمات", icon: CircuitBoard, restricted: false },
   { id: "library", label: "المكتبة العامة", icon: Library, restricted: false },
   { id: "lab", label: "المختبر التجريبي", icon: Microscope, restricted: false },
   { id: "directory", label: "دليل المستخدمين", icon: Users, restricted: false },
@@ -98,6 +99,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
                   "size-5",
                   item.id === 'admin' && (user?.role === 'founder' ? "text-amber-400" : "text-indigo-400"),
                   item.id === 'time' && "text-primary",
+                  item.id === 'micro-ide' && "text-emerald-400",
                   item.id === 'health' && "text-red-400 font-bold",
                   item.id === 'vault' && "text-amber-400",
                   item.id === 'downloads' && "text-primary"

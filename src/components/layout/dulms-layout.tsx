@@ -12,7 +12,7 @@ import {
     LayoutDashboard, Clock, MessageSquare, Cpu, HardDrive,
     MessageCircle, Video, ShoppingBag, Megaphone, DownloadCloud,
     Rocket, Wallet, GraduationCap, Microscope,
-    Users, BookOpen, Zap, Bell, Tag
+    Users, BookOpen, Zap, Bell, Tag, CircuitBoard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { User } from "@/lib/auth/types";
@@ -47,6 +47,7 @@ import { VaultExplorer } from "@/components/features/vault-explorer";
 import { DownloadCenter } from "@/components/features/download-center";
 import { TimeManagement } from "@/components/features/time-management";
 import { LocalDeals } from "@/components/features/local-deals";
+import { MicrocontrollerLab } from "@/components/features/microcontroller-lab";
 
 const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g#list";
 
@@ -97,6 +98,7 @@ const NAV_GROUPS = [
         items: [
             { id: "learning" as NavItemId, label: "المكتبة المعرفية", icon: GraduationCap },
             { id: "hisn" as NavItemId, label: "حصن المسلم", icon: BookOpen },
+            { id: "micro-ide" as NavItemId, label: "برمجة المتحكمات", icon: CircuitBoard },
             { id: "features" as NavItemId, label: "المميزات", icon: Zap },
         ]
     },
@@ -205,6 +207,7 @@ export function DulmsLayout({ user }: DulmsLayoutProps) {
                 else handleTabChange(tab);
             }} />;
             case "features": return <Capabilities />;
+            case "micro-ide": return <MicrocontrollerLab />;
             case "admin":
                 if (hasAdminAccess) return <AdminPanel />;
                 return <UserDashboard onNavigate={(tab) => handleTabChange(tab)} />;
