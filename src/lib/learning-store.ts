@@ -91,6 +91,19 @@ export const fetchDriveFolderFiles = async (folderId: string | string[]) => {
   }
 };
 
+export const renameDriveFile = async (fileId: string, name: string) => {
+  try {
+    const res = await fetch('/api/drive/files', {
+      method: 'PATCH',
+      body: JSON.stringify({ fileId, name })
+    });
+    return await res.json();
+  } catch (err) {
+    console.error("Drive Rename Failed:", err);
+    return { error: true, message: "Rename request failed." };
+  }
+};
+
 export const getSubjects = async (userId?: string, isAdmin = false): Promise<Subject[]> => {
   const { firestore } = initializeFirebase();
   try {

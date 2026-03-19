@@ -87,3 +87,36 @@ export async function POST(req: Request) {
     }, { status: 500 });
   }
 }
+
+export async function PATCH(req: Request) {
+  try {
+    const { fileId, name } = await req.json();
+
+    if (!DRIVE_API_KEY) {
+      return NextResponse.json({ error: true, message: "DRIVE_API_KEY missing in project environment." }, { status: 500 });
+    }
+
+    if (!fileId || !name) {
+      return NextResponse.json({ error: true, message: "Missing fileId or new name." }, { status: 400 });
+    }
+
+    const targetUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?key=${DRIVE_API_KEY}`;
+    const res = await fetch(targetUrl, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name })
+    });
+
+    const data = await res.json();
+    if (data.error) return NextResponse.json({ error: true, message: data.error.message }, { status: 400 });
+
+    return NextResponse.json({ success: true, file: data });
+
+  } catch (err: any) {
+    return NextResponse.json({ error: true, message: err.message }, { status: 500 });
+  }
+}
+
+export async function GET(request: Request) { return NextResponse.json({ error: "Only POST and PATCH are allowed here." }, { status: 405 }); }

@@ -16,6 +16,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { fetchDriveFolderFiles } from "@/lib/learning-store";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { VaultPreviewModal } from "./vault-preview-modal";
 
 const VAULT_FOLDER_ID = "16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g";
 const DRIVE_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
@@ -47,6 +48,7 @@ export function VaultExplorer({
   const [isKeyMissing, setIsKeyMissing] = useState(false);
   const [currentFolderId, setCurrentFolderId] = useState<string | string[]>(folderId);
   const [folderStack, setFolderStack] = useState<{id: string | string[], name: string}[]>([]);
+  const [selectedAsset, setSelectedAsset] = useState<any | null>(null);
 
   useEffect(() => {
     loadRealDriveData(currentFolderId);
@@ -108,10 +110,6 @@ export function VaultExplorer({
     }
   };
 
-  const getPreviewUrl = (asset: any) => {
-    if (asset.mimeType.includes('folder')) return asset.webViewLink;
-    return `https://drive.google.com/file/d/${asset.id}/view?usp=sharing`;
-  };
 
   return (
     <div className={cn("flex h-full font-sans text-right", hideSidebar ? "bg-transparent rounded-3xl" : "bg-slate-950")}>
@@ -253,7 +251,7 @@ export function VaultExplorer({
                  {filteredAssets.map(asset => (
                   <Card 
                     key={asset.id} 
-                    onClick={() => asset.mimeType.includes('folder') ? handleLevelDown(asset.id, asset.name) : window.open(getPreviewUrl(asset), '_blank')}
+                    onClick={() => asset.mimeType.includes('folder') ? handleLevelDown(asset.id, asset.name) : setSelectedAsset(asset)}
                     className={cn(
                       "group glass border-white/5 hover:border-indigo-500/40 transition-all cursor-pointer relative",
                       viewMode === 'grid' ? "aspect-[4/3] flex flex-col p-6 rounded-[2rem]" : "flex items-center p-4 rounded-xl flex-row-reverse"
@@ -272,7 +270,7 @@ export function VaultExplorer({
                         <div className="flex gap-2 mt-6">
                           <Button 
                             className="flex-1 h-10 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-[10px] gap-2"
-                            onClick={(e) => { e.stopPropagation(); window.open(getPreviewUrl(asset), '_blank'); }}
+                            onClick={(e) => { e.stopPropagation(); asset.mimeType.includes('folder') ? handleLevelDown(asset.id, asset.name) : setSelectedAsset(asset); }}
                           >
                             <Eye className="size-3" /> {asset.mimeType.includes('folder') ? 'فتح' : 'معاينة'}
                           </Button>
@@ -283,7 +281,7 @@ export function VaultExplorer({
                         <div className="size-10 bg-white/5 rounded-lg flex items-center justify-center shrink-0">{getFileIcon(asset.mimeType)}</div>
                         <p dir="auto" className="font-bold text-white text-sm flex-1 truncate">{asset.name}</p>
                         <p className="text-[10px] text-muted-foreground font-mono hidden md:block">{formatSize(asset.size, asset.mimeType)}</p>
-                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); window.open(getPreviewUrl(asset), '_blank'); }}><ExternalLink className="size-4 text-indigo-400" /></Button>
+                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); asset.mimeType.includes('folder') ? handleLevelDown(asset.id, asset.name) : setSelectedAsset(asset); }}><ExternalLink className="size-4 text-indigo-400" /></Button>
                       </div>
                     )}
                   </Card>
@@ -292,6 +290,11 @@ export function VaultExplorer({
             )}
           </ScrollArea>
         </div>
+        <VaultPreviewModal 
+          asset={selectedAsset} 
+          onClose={() => setSelectedAsset(null)} 
+          onRefresh={() => loadRealDriveData(currentFolderId)}
+        />
       </main>
     </div>
   );
