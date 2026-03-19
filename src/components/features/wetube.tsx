@@ -46,6 +46,10 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const [searchResults, setSearchResults] = useState<FeedVideo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
+  const [shortsFeed, setShortsFeed] = useState<FeedVideo[]>([]);
+  const [isShortsLoading, setIsShortsLoading] = useState(false);
+  const [lastSeenNotifications, setLastSeenNotifications] = useState(0);
+
   const [activeTab, setActiveTab] = useState<'home' | 'shorts' | 'subs' | 'library' | 'notifications' | 'explore'>('home');
   const [activeCategory, setActiveCategory] = useState("الكل");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -89,6 +93,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       const data = await getStoredVideos();
       setVideos(data || []);
       loadTrending();
+      setLastSeenNotifications(Number(localStorage.getItem('nexus_last_notifications') || 0));
     };
     loadInitialData();
 
@@ -149,6 +154,34 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }
   }, [activeTab, feedVideos.length, subscriptions, isFeedLoading]);
 
+  // Load Real Shorts
+  useEffect(() => {
+    if (activeTab === 'shorts' && shortsFeed.length === 0) {
+       const loadShorts = async () => {
+          setIsShortsLoading(true);
+          try {
+             // Fetch real Shorts by searching "#shorts" with "Under 4 mins" filter
+             const results = await searchYouTube('#shorts', 'EgQQASAB');
+             setShortsFeed(results.map(v => ({...v, isShorts: true})));
+          } catch(e) {}
+          setIsShortsLoading(false);
+       };
+       loadShorts();
+    }
+  }, [activeTab, shortsFeed.length]);
+
+  // Mark Notifications as Read
+  useEffect(() => {
+     if (activeTab === 'notifications') {
+        const timeout = setTimeout(() => {
+            const now = Date.now();
+            setLastSeenNotifications(now);
+            localStorage.setItem('nexus_last_notifications', now.toString());
+        }, 3000);
+        return () => clearTimeout(timeout);
+     }
+  }, [activeTab]);
+
   const syncFeed = async (subs: YouTubeSubscription[]) => {
     if (subs.length === 0) {
       setFeedVideos([]);
@@ -157,9 +190,10 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     setIsFeedLoading(true);
     try {
       const feed = await fetchAllSubscriptionsFeed(subs.map(s => s.channelId));
+      const now = Date.now();
       const enrichedFeed = feed.map(v => {
         const sub = subs.find(s => s.channelId === v.authorId);
-        return { ...v, channelAvatar: sub?.avatarUrl };
+        return { ...v, channelAvatar: sub?.avatarUrl, fetchedAt: now };
       });
       setFeedVideos(enrichedFeed);
       runAutoSync(subs, enrichedFeed);
@@ -317,19 +351,16 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     let combined: any[] = [];
     
     if (activeTab === 'home') {
-      // Home is strictly what the user/admin uploaded + subscribers feed
-      // We EXCLUDE trending here to avoid "leaks"
       combined = [...platformVids, ...feedVids];
     } else if (activeTab === 'explore') {
-      // Explore is specifically for discovering new stuff (trending)
       combined = trendingVids;
     } else {
       combined = [...platformVids, ...feedVids, ...trendingVids];
     }
     
-    // Category Filter
+    // Category Filter -> Now purely handled by Search when clicked, except for local fallback and Trending
     if (activeCategory === "تريند") return trendingVids;
-    if (activeCategory !== "الكل") {
+    if (activeCategory !== "الكل" && searchResults.length === 0) {
       combined = combined.filter(v => v.title.toLowerCase().includes(activeCategory.toLowerCase()) || (v as any).category === activeCategory);
     }
 
@@ -398,8 +429,12 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         />
         <div className="flex flex-1 overflow-hidden mt-4 gap-4">
           <WeTubeSidebar isSidebarOpen={isSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} subscriptions={subscriptions} />
-          <div className="flex-1 glass rounded-3xl border border-white/5 overflow-hidden">
-            <WeTubeShortsView shorts={allHomeContent.filter((v: any) => v.isShorts || v.type === 'short')} />
+          <div className="flex-1 glass rounded-3xl border border-white/5 overflow-hidden relative">
+            {isShortsLoading ? (
+               <div className="flex items-center justify-center h-full"><Loader2 className="size-10 text-white animate-spin" /></div>
+            ) : (
+               <WeTubeShortsView shorts={shortsFeed.length > 0 ? shortsFeed : allHomeContent.filter((v: any) => v.isShorts || v.type === 'short')} />
+            )}
           </div>
         </div>
       </div>
@@ -430,7 +465,15 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
               {CATEGORIES.map(cat => (
                 <button
                   key={cat}
-                  onClick={() => setActiveCategory(cat)}
+                  onClick={() => {
+                    setActiveCategory(cat);
+                    if (cat === "الكل") {
+                       setSearchResults([]);
+                       setSearchQuery("");
+                    } else if (cat !== "تريند") {
+                       handleSearch(cat);
+                    }
+                  }}
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
                     activeCategory === cat
@@ -661,10 +704,10 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                                                 <img src={v.channelAvatar} className="size-full object-cover" />
                                             </div>
                                         )}
-                                        <span className="bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded">فيديو جديد</span>
+                                        {((v as any).fetchedAt || 0) > lastSeenNotifications && <span className="bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded">فيديو جديد</span>}
                                     </div>
                                 </div>
-                                <div className="size-2 rounded-full bg-blue-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                                {((v as any).fetchedAt || 0) > lastSeenNotifications && <div className="size-2 rounded-full bg-blue-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>}
                             </button>
                         ))}
                     </div>

@@ -254,7 +254,7 @@ export const fetchVideoDetails = async (videoId: string): Promise<VideoDetails |
 };
 
 /**
- * جلب تعليقات فيديو (تبسيط)
+ * جلب تعليقات فيديو (الحقيقية عبر Innertube API)
  */
 export const fetchVideoComments = async (videoId: string): Promise<YouTubeComment[]> => {
   const url = YOUTUBE_WATCH_URL + videoId;
@@ -267,29 +267,76 @@ export const fetchVideoComments = async (videoId: string): Promise<YouTubeCommen
 
     if (!data) return [];
 
-    const comments: YouTubeComment[] = [];
+    // 1. استخراج مفتاح API الداخلي
+    const apiKeyMatch = html.match(/"INNERTUBE_API_KEY":"([^"]+)"/);
+    const clientVersionMatch = html.match(/"clientVersion":"([^"]+)"/);
     
-    // محاول الوصول لمسار التعليقات في شجرة JSON يوتيوب
-    // ملاحظة: التعليقات غالباً لا تكون متوفرة في الطلب الأول وتحتاج لطلب continuation
-    // ولكننا سنحاول البحث عن أي تعليقات موجودة بالفعل
-    const findComments = (obj: any): any => {
+    const apiKey = apiKeyMatch ? apiKeyMatch[1] : null;
+    const clientVersion = clientVersionMatch ? clientVersionMatch[1] : '2.20230214.07.00';
+
+    if (!apiKey) return [];
+
+    // 2. البحث عن توكن التعليقات (Continuation Token)
+    let commentsToken: string | null = null;
+    const findCommentContinuation = (obj: any): string | null => {
       if (!obj || typeof obj !== 'object') return null;
-      if (obj.commentRenderer) return obj.commentRenderer;
-      
+      if (
+          (obj.targetId === "comments-section" || obj.sectionIdentifier === "comment-item-section") && 
+          obj.continuations?.[0]?.nextContinuationData?.continuation
+      ) {
+         return obj.continuations[0].nextContinuationData.continuation;
+      }
       for (const key in obj) {
-        const result = findComments(obj[key]);
-        if (result) return result;
+        const res = findCommentContinuation(obj[key]);
+        if (res) return res;
       }
       return null;
     };
 
-    // هذا مجرد بحث سطحي، يوتيوب الحديث نادراً ما يرسل التعليقات في التحميل الأول
-    // سنقوم الآن بإرجاع مصفوفة فارغة بشكل نظيف لتجنب الـ SyntaxError 
-    // وجعل الواجهة تعرض "لا توجد تعليقات حالياً" بدلاً من التوقف
+    commentsToken = findCommentContinuation(data);
+    if (!commentsToken) return []; // قد تكون التعليقات معطلة
+
+    // 3. جلب التعليقات عبر طلب POST للبروكسي
+    const nextUrl = `https://www.youtube.com/youtubei/v1/next?key=${apiKey}`;
+    const nextProxyUrl = `/api/proxy?url=${encodeURIComponent(nextUrl)}`;
     
-    return comments;
+    const commentsRes = await fetch(nextProxyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        context: {
+          client: {
+            clientName: 'WEB',
+            clientVersion: clientVersion
+          }
+        },
+        continuation: commentsToken
+      })
+    });
+
+    const rawComments = await commentsRes.json();
+    const parsedComments: YouTubeComment[] = [];
+    
+    // 4. استخراج التعليقات من الاستجابة المعقدة
+    const endpoints = rawComments.onResponseReceivedEndpoints || [];
+    const items = endpoints[endpoints.length - 1]?.appendContinuationItemsAction?.continuationItems || 
+                  endpoints[endpoints.length - 1]?.reloadContinuationItemsCommand?.continuationItems || [];
+
+    for (const item of items) {
+      if (item.commentThreadRenderer) {
+        const comment = item.commentThreadRenderer.comment.commentRenderer;
+        parsedComments.push({
+          author: comment.authorText?.simpleText || comment.authorText?.runs?.[0]?.text || "Unknown",
+          text: comment.contentText?.runs?.map((r: any) => r.text).join("") || comment.contentText?.simpleText || "",
+          authorThumb: comment.authorThumbnail?.thumbnails?.[0]?.url || "",
+          time: comment.publishedTimeText?.runs?.[0]?.text || comment.publishedTimeText?.simpleText || ""
+        });
+      }
+    }
+
+    return parsedComments;
   } catch (err) {
-    console.error("Comments Fetch Error", err);
+    console.error("Real Comments Fetch Error", err);
     return [];
   }
 };
