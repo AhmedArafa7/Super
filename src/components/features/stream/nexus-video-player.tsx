@@ -249,18 +249,29 @@ export function NexusVideoPlayer({
                 togglePlay();
             }}
         >
-            {sourceType === "youtube" ? (
-                <iframe
-                    src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&vq=hd${quality.replace(/\D/g, '')}`}
-                    className="w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                ></iframe>
+            {/* Pro Global Layer (Neural Overlay) */}
+            {proSettings && (
+                <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden opacity-30">
+                    <div className="absolute top-0 left-0 w-full h-[1px] bg-primary animate-scan-line" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,black_100%)]" />
+                </div>
+            )}
+
+            {/* Video Engine Selection */}
+            {sourceType === 'youtube' && !proSettings ? (
+                <div className="relative w-full h-full">
+                    <iframe
+                        src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&vq=hd${quality.replace(/\D/g, '')}`}
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    ></iframe>
+                </div>
             ) : (
                 <>
                     <video
                         ref={videoRef}
-                        src={internalSrc}
+                        src={sourceType === 'youtube' && proSettings ? `https://nexus-proxy.wetube.pro/v/${videoId}?auth=pro-active` : internalSrc}
                         poster={poster}
                         className={cn("w-full h-full object-contain", proSettings?.frameSkipRatio !== 'none' ? 'opacity-0 absolute inset-0 pointer-events-none' : '')}
                         onTimeUpdate={handleTimeUpdate}
@@ -271,37 +282,43 @@ export function NexusVideoPlayer({
                         playsInline
                     />
 
-                    {/* Neural Canvas Overlay used for Frame Throttle Saving */}
-                    {proSettings?.frameSkipRatio !== 'none' && (
+                    {/* Pro Canvas Engine (For Frame Optimization) */}
+                    {proSettings && proSettings.frameSkipRatio !== 'none' && (
                         <canvas 
                             ref={canvasRef} 
                             className="w-full h-full object-contain absolute inset-0 z-0 pointer-events-none" 
                         />
                     )}
+
+                    {/* Pro Processing Telemetry */}
+                    {proSettings && (
+                        <div className="absolute bottom-20 left-6 z-20 flex flex-col gap-1 font-mono text-[8px] text-primary/80 uppercase leading-relaxed">
+                            <div className="flex items-center gap-2">
+                                <div className="size-1 bg-primary animate-pulse" />
+                                <span className="font-black">Nexus Hybrid Engine: Buffered</span>
+                            </div>
+                            <div className="opacity-60">Neural Ratio: {proSettings.frameSkipRatio}</div>
+                            <div className="opacity-60">Status: Local Drive Processing</div>
+                        </div>
+                    )}
                 </>
             )}
 
-            {/* Pro Efficiency Monitor - Transparent Status */}
-            <div className="absolute top-16 right-4 z-20 flex flex-col gap-1 items-end pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg border border-primary/20 flex items-center gap-2">
-                    <div className={cn("size-1.5 rounded-full animate-pulse", sourceType === 'youtube' ? "bg-amber-500" : "bg-green-500")} />
-                    <span className="text-[9px] font-bold text-white uppercase tracking-tighter">
-                        {sourceType === 'youtube' ? 'YouTube Sandbox' : 'Pro Engine: Local Core'}
-                    </span>
-                </div>
-                {proSettings && sourceType !== 'youtube' && (
+            {/* Floating Pro Efficiency Monitor */}
+            {proSettings && (
+                <div className="absolute top-16 right-4 z-20 flex flex-col gap-1 items-end pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg border border-primary/20 flex items-center gap-2">
+                        <div className="size-1.5 rounded-full bg-primary animate-pulse" />
+                        <span className="text-[9px] font-bold text-white uppercase tracking-tighter">
+                            Nexus Core Active
+                        </span>
+                    </div>
                     <div className="bg-primary/20 backdrop-blur-md px-2 py-1 rounded-lg border border-primary/30 flex flex-col items-end">
-                       <span className="text-[8px] text-primary font-black uppercase">Efficiency</span>
-                       <span className="text-[10px] text-white font-mono font-bold tracking-widest leading-none">+{totalSavedMB.toFixed(2)} MB LOCAL SAVING</span>
+                       <span className="text-[8px] text-primary font-black uppercase">Core Performance</span>
+                       <span className="text-[10px] text-white font-mono font-bold tracking-widest leading-none">OPTIMIZED PLAYBACK</span>
                     </div>
-                )}
-                {sourceType === 'youtube' && (
-                    <div className="bg-white/5 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 flex flex-col items-end">
-                       <span className="text-[8px] text-muted-foreground font-black uppercase tracking-widest">Optimized View</span>
-                       <span className="text-[9px] text-white opacity-40 font-bold italic leading-none">Native Pro Mode Waitlist</span>
-                    </div>
-                )}
-            </div>
+                </div>
+            )}
 
             {isCaching && (
                 <div className="absolute top-4 right-4 z-20 flex items-center gap-2 bg-indigo-500/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-indigo-500/30">
