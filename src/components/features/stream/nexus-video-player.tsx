@@ -154,24 +154,8 @@ export function NexusVideoPlayer({
         }
     };
 
-    // Simulated Efficiency for Non-Native Streams (YouTube Proxy)
-    useEffect(() => {
-        if (sourceType === 'youtube' && proSettings) {
-            const interval = setInterval(() => {
-                // Simulate saving 100KB-300KB every 5 seconds via "Neural Proxy"
-                const saved = Math.floor(Math.random() * 200000) + 100000;
-                const consumed = saved * 4; // 20% saving ratio
-                addUsageRecord({
-                    videoId: videoId || 'youtube-stream',
-                    quality: quality || 'HD',
-                    bytesConsumed: consumed,
-                    bytesSaved: saved,
-                    method: 'cache' // Simulation of neural proxy cache
-                });
-            }, 5000);
-            return () => clearInterval(interval);
-        }
-    }, [sourceType, proSettings, videoId, quality, addUsageRecord]);
+    // Simulation logic removed to maintain transparency.
+    // YouTube streams are currently handled via optimized sandboxed iframe.
 
     const togglePlay = () => {
         if (videoRef.current) {
@@ -297,16 +281,24 @@ export function NexusVideoPlayer({
                 </>
             )}
 
-            {/* Pro Efficiency Monitor - Proof of Work */}
+            {/* Pro Efficiency Monitor - Transparent Status */}
             <div className="absolute top-16 right-4 z-20 flex flex-col gap-1 items-end pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg border border-primary/20 flex items-center gap-2">
-                    <div className="size-1.5 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-[9px] font-bold text-white uppercase tracking-tighter">Pro Engine: {sourceType === 'youtube' ? 'Neural Proxy' : 'Smart Core'}</span>
+                    <div className={cn("size-1.5 rounded-full animate-pulse", sourceType === 'youtube' ? "bg-amber-500" : "bg-green-500")} />
+                    <span className="text-[9px] font-bold text-white uppercase tracking-tighter">
+                        {sourceType === 'youtube' ? 'YouTube Sandbox' : 'Pro Engine: Local Core'}
+                    </span>
                 </div>
-                {proSettings && (
+                {proSettings && sourceType !== 'youtube' && (
                     <div className="bg-primary/20 backdrop-blur-md px-2 py-1 rounded-lg border border-primary/30 flex flex-col items-end">
-                       <span className="text-[8px] text-primary font-black uppercase">Data Efficiency</span>
-                       <span className="text-[10px] text-white font-mono font-bold tracking-widest leading-none">+{totalSavedMB.toFixed(2)} MB SAVED</span>
+                       <span className="text-[8px] text-primary font-black uppercase">Efficiency</span>
+                       <span className="text-[10px] text-white font-mono font-bold tracking-widest leading-none">+{totalSavedMB.toFixed(2)} MB LOCAL SAVING</span>
+                    </div>
+                )}
+                {sourceType === 'youtube' && (
+                    <div className="bg-white/5 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 flex flex-col items-end">
+                       <span className="text-[8px] text-muted-foreground font-black uppercase tracking-widest">Optimized View</span>
+                       <span className="text-[9px] text-white opacity-40 font-bold italic leading-none">Native Pro Mode Waitlist</span>
                     </div>
                 )}
             </div>
