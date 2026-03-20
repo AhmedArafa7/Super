@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { 
   Settings, Volume2, ShieldAlert, Cpu, 
   Trash2, Save, Play, Square, Download, 
-  Globe, Moon, Sparkles, Zap, Info
+  Globe, Moon, Sparkles, Zap, Info, Activity
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,8 +29,17 @@ import { toast } from "@/hooks/use-toast";
 export function SettingsView() {
   const { settings, updateVoiceSettings, updateGeneralSettings, downloadVoice, isLoading } = useSettingsStore();
   const { usageLog, totalSavedMB, clearLog } = useProStore();
+  const [isPro, setIsPro] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [downloadingIds, setDownloadingIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    const checkPro = async () => {
+      // Simulate/Check ownership
+      setIsPro(true); // Default to true for now since user says they have it
+    };
+    checkPro();
+  }, []);
   const [testText, setTestText] = useState("مرحباً بك في نظام نكسوس الذكي. هذا اختبار للصوت العصبي.");
   const [isSpeaking, setIsSpeaking] = useState(false);
   const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
@@ -118,6 +127,88 @@ export function SettingsView() {
         <p className="text-muted-foreground text-lg">تحكم في بروتوكولات النظام، الواجهة، والمحركات العصبية.</p>
       </header>
 
+      <div className="flex-1 space-y-8 pr-2 custom-scrollbar">
+          {/* لوحة التحكم في الاستهلاك (WeTube Pro Max Dashboard) */}
+          <Card className="glass p-8 rounded-[2.5rem] border-primary/20 bg-primary/5 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+            
+            <div className="flex flex-col md:flex-row-reverse justify-between gap-6 items-start">
+              <div className="text-right">
+                <div className="flex items-center gap-2 justify-end mb-1">
+                   {isPro && <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-black px-2 py-0.5 rounded-md font-black text-[8px] uppercase tracking-tighter shadow-lg shadow-orange-500/20">Pro Max Active</div>}
+                   <h2 className="text-3xl font-black text-white flex items-center gap-3">
+                     تقرير التوفير الذكي
+                     <Activity className="text-primary size-8" />
+                   </h2>
+                </div>
+                <p className="text-sm text-muted-foreground">مراقبة حية لاستهلاك البيانات وفعالية WeTube Pro.</p>
+              </div>
+
+              <div className="flex items-center gap-6 bg-black/20 p-4 rounded-3xl border border-white/5">
+                <div className="text-center px-4 border-l border-white/10">
+                   <span className="text-[10px] text-muted-foreground uppercase block">إجمالي التوفير</span>
+                   <span className="text-3xl font-black text-primary font-mono">{totalSavedMB.toFixed(2)}MB</span>
+                </div>
+                <div className="text-center px-4">
+                   <span className="text-[10px] text-muted-foreground uppercase block">جلسات نشطة</span>
+                   <span className="text-3xl font-black text-white font-mono">{usageLog.length}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 space-y-4">
+              <div className="flex items-center justify-between flex-row-reverse text-[10px] uppercase font-bold text-muted-foreground px-4">
+                <span>آخر النشاطات</span>
+                <button onClick={clearLog} className="hover:text-red-400 transition-colors">مسح السجل</button>
+              </div>
+              
+              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                {usageLog.length === 0 ? (
+                  <div className="text-center py-10 text-muted-foreground italic border-2 border-dashed border-white/5 rounded-3xl">
+                    لا يوجد بيانات استهلاك مسجلة حتى الآن. ابدأ بمشاهدة الفيديوهات.
+                  </div>
+                ) : (
+                  usageLog.map((log) => (
+                    <div key={log.id} className="bg-white/5 p-4 rounded-2xl flex items-center justify-between flex-row-reverse border border-white/5 hover:border-primary/20 transition-all">
+                      <div className="flex items-center gap-4 flex-row-reverse">
+                        <div className="size-10 bg-primary/20 rounded-xl flex items-center justify-center">
+                          <Play className="size-4 text-primary" fill="currentColor" />
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-bold text-white truncate max-w-[150px]">{log.videoId}</p>
+                          <span className="text-[9px] text-muted-foreground">{new Date(log.timestamp).toLocaleTimeString('ar-EG')}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-8 text-center">
+                        <div className="hidden sm:block">
+                           <span className="text-[8px] text-muted-foreground block">الجودة</span>
+                           <div className="border border-white/10 text-[10px] px-1.5 py-0.5 rounded-sm">{log.quality}</div>
+                        </div>
+                        <div>
+                           <span className="text-[8px] text-muted-foreground block">مستهلك</span>
+                           <span className="text-xs font-mono font-bold text-red-400">{(log.bytesConsumed / 1024 / 1024).toFixed(1)}MB</span>
+                        </div>
+                        <div>
+                           <span className="text-[8px] text-muted-foreground block">تم توفيره</span>
+                           <span className="text-xs font-mono font-bold text-green-400">{(log.bytesSaved / 1024 / 1024).toFixed(1)}MB</span>
+                        </div>
+                        <div className="hidden md:block">
+                           <span className="text-[8px] text-muted-foreground block">الأسلوب</span>
+                           <span className={cn(
+                             "text-[9px] font-bold uppercase py-0.5 px-2 rounded-md",
+                             log.method === 'cache' ? "bg-green-500/20 text-green-400" : "bg-blue-500/20 text-blue-400"
+                           )}>{log.method}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </Card>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* العمود الجانبي للإعدادات العامة */}
         <div className="lg:col-span-1 space-y-6">
@@ -173,14 +264,14 @@ export function SettingsView() {
             </div>
           </Card>
 
-          <Card className="glass border-red-500/20 bg-red-500/5 p-6 rounded-[2rem] space-y-4">
-             <div className="flex items-center justify-between flex-row-reverse">
-                <h3 className="text-sm font-bold text-red-400 flex items-center gap-2">
-                  منطقة الخطر
-                  <ShieldAlert className="size-4" />
-                </h3>
-                <Badge variant="outline" className="text-[8px] border-red-500/30 text-red-500">Destructive</Badge>
-             </div>
+              <Card className="glass border-red-500/20 bg-red-500/5 p-6 rounded-[2rem] space-y-4">
+                 <div className="flex items-center justify-between flex-row-reverse">
+                    <h3 className="text-sm font-bold text-red-400 flex items-center gap-2">
+                      منطقة الخطر
+                      <ShieldAlert className="size-4" />
+                    </h3>
+                    <div className="border border-red-500/30 text-red-500 text-[8px] px-1.5 py-0.5 rounded-sm">Destructive</div>
+                 </div>
              <p className="text-[10px] text-red-400/60 text-right">سيتم حذف جميع الإعدادات المحلية والمؤقتة المخزنة في المتصفح.</p>
              <Button variant="destructive" className="w-full rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 gap-2">
                 <Trash2 className="size-4" />

@@ -16,6 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useSettingsStore } from "@/lib/settings-store";
+import { useProStore } from "@/lib/wetube-pro-engine";
 
 export type NavItem = {
   id: string;
@@ -64,6 +65,8 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
   });
 
   const { settings } = useSettingsStore();
+  const { settings: proSettings } = useProStore();
+  const isPro = proSettings.frameSkipRatio !== undefined; // Heuristic for now or just check a flag
   const isBeta = (id: string) => settings?.sections?.[id]?.isBeta ?? false;
 
   const visibleItems = navItemsWithBadges.filter(item => {
@@ -107,10 +110,13 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
                 )} />
                 <span className="font-medium">{item.label}</span>
                 {isBeta(item.id) && (
-                  <Badge variant="outline" className="mr-auto text-[8px] px-1 h-4 border-amber-500/30 text-amber-500 font-black tracking-widest uppercase">BETA</Badge>
+                  <div className="mr-auto text-[8px] px-1.5 h-4 border border-amber-500/30 text-amber-500 font-black tracking-widest uppercase rounded-full flex items-center">BETA</div>
+                )}
+                {item.id === 'stream' && (
+                  <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-black px-1.5 py-0.5 rounded-md font-black text-[8px] uppercase tracking-tighter mr-auto">PRO</div>
                 )}
                 {item.badge !== undefined && item.badge > 0 && !isBeta(item.id) && (
-                  <Badge className="mr-auto bg-indigo-500 h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full">{item.badge}</Badge>
+                  <div className="mr-auto bg-indigo-500 text-white h-5 w-5 flex items-center justify-center text-[10px] rounded-full font-bold">{item.badge}</div>
                 )}
               </SidebarMenuButton>
             </SidebarMenuItem>
