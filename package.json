@@ -16,6 +16,7 @@
   "dependencies": {
     "@ai-sdk/google": "^3.0.52",
     "@ai-sdk/openai": "^3.0.47",
+    "@ai-sdk/react": "^3.0.136",
     "@capacitor/android": "^8.2.0",
     "@capacitor/core": "^8.2.0",
     "@genkit-ai/google-genai": "^1.20.0",
