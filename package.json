@@ -14,6 +14,8 @@
     "pages:preview": "npm run pages:build && npx wrangler pages dev .vercel/output/static"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.52",
+    "@ai-sdk/openai": "^3.0.47",
     "@capacitor/android": "^8.2.0",
     "@capacitor/core": "^8.2.0",
     "@genkit-ai/google-genai": "^1.20.0",
@@ -41,6 +43,7 @@
     "@radix-ui/react-toast": "^1.2.6",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@supabase/supabase-js": "^2.48.1",
+    "ai": "^6.0.134",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",

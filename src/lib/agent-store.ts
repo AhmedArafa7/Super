@@ -21,6 +21,8 @@ interface AgentAIState {
   activeFilePath: string | null;
   logs: AgentLog[];
   isProcessing: boolean;
+  preferredAI: 'gemini' | 'groq';
+  autoFallback: boolean;
   
   setFiles: (files: AgentFile[]) => void;
   updateFile: (path: string, content: string) => void;
@@ -28,6 +30,8 @@ interface AgentAIState {
   addLog: (text: string, type?: AgentLog['type']) => void;
   clearWorkspace: () => void;
   setIsProcessing: (val: boolean) => void;
+  setPreferredAI: (ai: 'gemini' | 'groq') => void;
+  setAutoFallback: (val: boolean) => void;
 }
 
 export const useAgentStore = create<AgentAIState>((set) => ({
@@ -35,6 +39,8 @@ export const useAgentStore = create<AgentAIState>((set) => ({
   activeFilePath: null,
   logs: [],
   isProcessing: false,
+  preferredAI: 'gemini',
+  autoFallback: false,
 
   setFiles: (files) => set({ files, activeFilePath: files[0]?.path || null }),
   
@@ -55,5 +61,9 @@ export const useAgentStore = create<AgentAIState>((set) => ({
 
   clearWorkspace: () => set({ files: [], activeFilePath: null, logs: [] }),
   
-  setIsProcessing: (isProcessing) => set({ isProcessing })
+  setIsProcessing: (isProcessing) => set({ isProcessing }),
+  
+  setPreferredAI: (preferredAI) => set({ preferredAI }),
+  
+  setAutoFallback: (autoFallback) => set({ autoFallback })
 }));
