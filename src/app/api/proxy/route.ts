@@ -124,12 +124,19 @@ async function handleProxyRequest(request: NextRequest) {
               }
             });
 
-            // 3. اختطاف مسجل الخدمة (حظر أي SW من المواقع المُحمّلة عبر البروكسي)
-            if ('serviceWorker' in navigator) {
+            // 3. اختطاف مسجل الخدمة (حظر أي SW من المواقع المُحمّلة عبر البروكسي لمنع السيطرة على النطاق)
+            if ('serviceWorker' in navigator && !navigator.serviceWorker.__NEXUS_GUARD__) {
+              const originalRegister = navigator.serviceWorker.register;
               navigator.serviceWorker.register = function(url, options) {
+                // السماح فقط بتسجيل الـ SW الخاص بنكسوس (المسار /sw.js على نفس النطاق)
+                const swUrl = url instanceof URL ? url : new URL(url, window.location.href);
+                if (swUrl.origin === window.location.origin && swUrl.pathname === '/sw.js') {
+                  return originalRegister.apply(this, arguments);
+                }
                 console.log('🛡️ Nexus Guard: Blocked proxied SW registration:', url);
                 return Promise.resolve({ scope: '/', active: null, installing: null, waiting: null });
               };
+              navigator.serviceWorker.__NEXUS_GUARD__ = true;
             }
 
             // 5. اختطاف الملاحة لضمان البقاء داخل نكسوس
