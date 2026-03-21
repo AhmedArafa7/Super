@@ -344,8 +344,8 @@ export function NexusVideoPlayer({
                 </button>
             )}
 
-            {/* Source Badge overlay */}
-            {sourceType && (
+            {/* Source Badge overlay (Only for Nexus Player) */}
+            {sourceType && (proSettings || sourceType !== 'youtube') && (
                 <div className="absolute top-4 left-4 z-10 transition-opacity duration-300 pointer-events-none"
                     style={{ opacity: showControls ? 1 : 0 }}>
                     <Badge className="bg-[#272727]/80 hover:bg-[#272727] text-white border-none shadow-md">
@@ -354,11 +354,11 @@ export function NexusVideoPlayer({
                 </div>
             )}
 
-            {/* Controls Overlay */}
+            {/* Controls Overlay (Only for Nexus Player) */}
             <div
                 className={cn(
                     "video-controls absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pb-2 pt-16 transition-opacity duration-300",
-                    showControls || !isPlaying ? "opacity-100" : "opacity-0 pointer-events-none"
+                    (showControls || !isPlaying) && (proSettings || sourceType !== 'youtube') ? "opacity-100" : "opacity-0 pointer-events-none"
                 )}
             >
                 {/* Progress Bar */}
