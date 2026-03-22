@@ -35,13 +35,17 @@ export function AgentChat() {
         setShowQuotaDialog(true);
       }
     },
-    onToolCall: ({ toolCall }) => {
-      if (toolCall.toolName === 'update_workspace_files') {
-        const payload = toolCall.args as any;
-        if (payload.files && payload.files.length > 0) {
-          setFiles(payload.files);
-          addLog(`قام المهندس بتحديث ${payload.files.length} ملفات: ${payload.explanation}`, 'success');
-        }
+    onFinish: (message) => {
+      if (message.toolInvocations) {
+        message.toolInvocations.forEach(toolCall => {
+          if (toolCall.toolName === 'update_workspace_files' && 'args' in toolCall) {
+            const payload = toolCall.args as any;
+            if (payload.files && payload.files.length > 0) {
+              setFiles(payload.files);
+              addLog(`قام المهندس بتحديث ${payload.files.length} ملفات: ${payload.explanation}`, 'success');
+            }
+          }
+        });
       }
     },
     onError: (err) => {
