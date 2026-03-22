@@ -27,7 +27,7 @@ export function AgentChat() {
   const [showQuotaDialog, setShowQuotaDialog] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, reload } = useChat({
+  const { messages, input, handleInputChange, setInput, append, isLoading, reload } = useChat({
     api: '/api/agent',
     body: { preferredAI, autoFallback },
     onResponse: (response) => {
@@ -55,6 +55,13 @@ export function AgentChat() {
       }
     }
   });
+
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+    append({ role: 'user', content: input });
+    setInput('');
+  };
 
   const handleSwitchToGroq = () => {
     setPreferredAI('groq');
@@ -146,13 +153,10 @@ export function AgentChat() {
       {/* Input Area */}
       <div className="p-6 border-t border-white/5">
         <form 
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSubmit(e);
-          }} 
+          onSubmit={handleSend}
           className="flex gap-4 items-center max-w-4xl mx-auto flex-row-reverse"
         >
-          <Button type="submit" disabled={isLoading} className="size-14 rounded-2xl bg-primary shadow-xl">
+          <Button type="submit" disabled={isLoading || !input.trim()} className="size-14 rounded-2xl bg-primary shadow-xl">
             {isLoading ? <Loader2 className="animate-spin" /> : <Wand2 />}
           </Button>
           <Input 
@@ -161,6 +165,7 @@ export function AgentChat() {
             placeholder="أمر البرمجة..."
             className="h-14 bg-white/5 border-white/10 rounded-2xl px-6 text-right text-white"
             dir="rtl"
+            disabled={isLoading}
           />
         </form>
       </div>
