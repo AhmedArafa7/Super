@@ -141,7 +141,13 @@ export function AgentChat() {
 
       {/* Input Area */}
       <div className="p-6 border-t border-white/5">
-        <form onSubmit={handleSubmit} className="flex gap-4 items-center max-w-4xl mx-auto flex-row-reverse">
+        <form 
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit(e);
+          }} 
+          className="flex gap-4 items-center max-w-4xl mx-auto flex-row-reverse"
+        >
           <Button type="submit" disabled={isLoading} className="size-14 rounded-2xl bg-primary shadow-xl">
             {isLoading ? <Loader2 className="animate-spin" /> : <Wand2 />}
           </Button>
