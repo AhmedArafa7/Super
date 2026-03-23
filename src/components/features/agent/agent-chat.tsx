@@ -44,6 +44,8 @@ export function AgentChat() {
 
   const chat = useChat({
     api: '/api/agent',
+    url: '/api/agent',
+    endpoint: '/api/agent',
     body: { preferredAI, autoFallback },
     onResponse: (response: any) => {
       if (response.status === 429) {
