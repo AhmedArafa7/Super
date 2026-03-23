@@ -34,9 +34,11 @@ export function PlaylistSelectorModal({ isOpen, onOpenChange, videoId }: Playlis
     }, [isOpen, youtubeToken]);
 
     const loadPlaylists = async () => {
+        const token = youtubeToken;
+        if (!token) return;
         setIsLoading(true);
         try {
-            const data = await listMyPlaylists(youtubeToken!);
+            const data = await listMyPlaylists(token);
             setPlaylists(data);
         } catch (err) {
             console.error(err);
@@ -47,10 +49,11 @@ export function PlaylistSelectorModal({ isOpen, onOpenChange, videoId }: Playlis
     };
 
     const handleAdd = async (playlistId: string) => {
-        if (!youtubeToken) return;
+        const token = youtubeToken;
+        if (!token) return;
         setAddingToId(playlistId);
         try {
-            await addToPlaylist(playlistId, videoId, youtubeToken);
+            await addToPlaylist(playlistId, videoId, token);
             toast({ title: "تمت الإضافة", description: "تمت إضافة الفيديو لقائمة التشغيل بنجاح." });
             onOpenChange(false);
         } catch (err) {
@@ -62,11 +65,12 @@ export function PlaylistSelectorModal({ isOpen, onOpenChange, videoId }: Playlis
     };
 
     const handleCreate = async () => {
-        if (!youtubeToken || !newPlaylistTitle.trim()) return;
+        const token = youtubeToken;
+        if (!token || !newPlaylistTitle?.trim()) return;
         setIsCreateLoading(true);
         try {
-            const playlistId = await createPlaylist(newPlaylistTitle, 'private', youtubeToken);
-            await addToPlaylist(playlistId, videoId, youtubeToken);
+            const playlistId = await createPlaylist(newPlaylistTitle, 'private', token);
+            await addToPlaylist(playlistId, videoId, token);
             toast({ title: "تم إنشاء القائمة والحفظ", description: "تم إنشاء قائمة التشغيل الجديدة وإضافة الفيديو إليها." });
             onOpenChange(false);
             setNewPlaylistTitle("");

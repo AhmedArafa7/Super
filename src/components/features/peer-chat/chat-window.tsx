@@ -45,7 +45,7 @@ export function ChatWindow({ currentUser, targetUser }: { currentUser: any, targ
   }, [messages, activeChatId, currentUser.id]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input?.trim()) return;
     const text = input;
     setInput("");
     await sendMessage(currentUser.id, targetUser.id, { text, type: 'text' });
@@ -218,7 +218,7 @@ export function ChatWindow({ currentUser, targetUser }: { currentUser: any, targ
             dir="auto"
           />
           
-          <Button onClick={handleSend} disabled={(!input.trim() && !isUploading) || isUploading} className="size-12 rounded-xl bg-primary shadow-lg shadow-primary/20 shrink-0">
+          <Button onClick={handleSend} disabled={(!input?.trim() && !isUploading) || isUploading} className="size-12 rounded-xl bg-primary shadow-lg shadow-primary/20 shrink-0">
             <Send className="size-5" />
           </Button>
         </div>

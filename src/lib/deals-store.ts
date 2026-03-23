@@ -143,10 +143,10 @@ export const searchDealsByProduct = async (productName: string): Promise<Deal[]>
   // Firestore doesn't support full-text search, so we fetch all and filter client-side
   const snap = await getDocs(collection(firestore, 'deals'));
   const allDeals = snap.docs.map(d => ({ id: d.id, ...d.data() } as Deal));
-  const searchTerms = productName.toLowerCase().trim().split(/\s+/);
+  const searchTerms = (productName?.toLowerCase()?.trim() ?? "").split(/\s+/);
   return allDeals
     .filter(deal => {
-      const name = deal.productName.toLowerCase();
+      const name = (deal.productName?.toLowerCase() ?? "");
       return searchTerms.every(term => name.includes(term));
     })
     .sort((a, b) => a.price - b.price); // ترتيب بالأرخص
@@ -155,8 +155,8 @@ export const searchDealsByProduct = async (productName: string): Promise<Deal[]>
 /** بحث عن محل بالاسم */
 export const searchStoresByName = async (name: string): Promise<Store[]> => {
   const stores = await getStores();
-  const searchTerm = name.toLowerCase().trim();
-  return stores.filter(s => s.name.toLowerCase().includes(searchTerm));
+  const searchTerm = name?.toLowerCase()?.trim() ?? "";
+  return stores.filter(s => (s.name?.toLowerCase() ?? "").includes(searchTerm));
 };
 
 // ─── Confirm / Report ────────────────────────────────────────────

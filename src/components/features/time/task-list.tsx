@@ -15,7 +15,7 @@ export function TaskList() {
   const { tasks, addTask, toggleTask, deleteTask } = useTimeStore();
 
   const handleAdd = () => {
-    if (!newTitle.trim()) return;
+    if (!newTitle?.trim()) return;
     addTask(newTitle, priority);
     setNewTitle("");
   };

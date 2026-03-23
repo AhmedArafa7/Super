@@ -21,6 +21,7 @@ export interface ProSettings {
   isFrameSkipEnabled: boolean;
   cacheSizeLimitMB: number;
   frameSkipRatio: number; // 0 to 1 (e.g. 0.5 for 1/2)
+  autoTrimOutro: boolean;
 }
 
 export interface ConsumptionRecord {
@@ -47,7 +48,8 @@ export const useProStore = create<ProState>((set) => ({
     isSmartCacheEnabled: true,
     isFrameSkipEnabled: true,
     cacheSizeLimitMB: 1024,
-    frameSkipRatio: 0
+    frameSkipRatio: 0,
+    autoTrimOutro: false
   },
   usageLog: [],
   totalSavedMB: 0,
@@ -72,7 +74,8 @@ export const DEFAULT_PRO_SETTINGS: ProSettings = {
   isSmartCacheEnabled: true,
   isFrameSkipEnabled: true,
   cacheSizeLimitMB: 1024,
-  frameSkipRatio: 0
+  frameSkipRatio: 0,
+  autoTrimOutro: false
 };
 
 const PRO_PRODUCT_TITLE = "WeTube Pro";

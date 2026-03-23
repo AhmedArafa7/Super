@@ -67,7 +67,7 @@ export function AIChat() {
   }, [messages, isAITyping]);
 
   const handleSend = async () => {
-    if ((!input.trim() && attachments.length === 0) || isAITyping || !user) return;
+    if ((!input?.trim() && attachments.length === 0) || isAITyping || !user) return;
 
     // بروتوكول حماية الخصوصية: إذا رفض المستخدم، يتم حظر المعالجة
     if (user.dataConsent === 'declined') {

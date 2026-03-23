@@ -35,14 +35,15 @@ function ShortItem({ short, isActive, isMuted, setIsMuted }: ShortItemProps) {
 
     const handleToggleLike = async (e: React.MouseEvent) => {
         e.stopPropagation();
+        const token = youtubeToken;
         const newStatus = !isLiked;
         setIsLiked(newStatus);
         setIsDisliked(false);
 
-        if (youtubeToken && short.source === 'youtube') {
+        if (token && short.source === 'youtube') {
             setIsSyncingLike(true);
             try {
-                await syncLike(short.id, newStatus ? 'like' : 'none', youtubeToken);
+                await syncLike(short.id, newStatus ? 'like' : 'none', token);
                 toast({ title: "تمت المزامنة", description: newStatus ? "تم تسجيل الإعجاب على يوتيوب." : "تمت إزالة الإعجاب." });
             } catch (err) {
                 console.error(err);
@@ -54,13 +55,14 @@ function ShortItem({ short, isActive, isMuted, setIsMuted }: ShortItemProps) {
 
     const handleToggleSub = async (e: React.MouseEvent) => {
         e.stopPropagation();
+        const token = youtubeToken;
         const newStatus = !isSubscribed;
         setIsSubscribed(newStatus);
 
-        if (youtubeToken && short.authorId && newStatus) {
+        if (token && short.authorId && newStatus) {
             setIsSyncingSub(true);
             try {
-                await syncSubscription(short.authorId, 'subscribe', youtubeToken);
+                await syncSubscription(short.authorId, 'subscribe', token);
                 toast({ title: "تم الاشتراك", description: `أنت الآن مشترك في ${short.author} على يوتيوب.` });
             } catch (err) {
                 console.error(err);

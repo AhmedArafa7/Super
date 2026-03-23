@@ -68,7 +68,8 @@ export function StreamUploadDialog({ onUpload, onOpenVault, user }: any) {
         const doc = new DOMParser().parseFromString(html, 'text/html');
         const title = doc.querySelector('title')?.textContent;
         if (title) {
-          setData(prev => ({ ...prev, title: title.replace(' - YouTube', '').trim() }));
+          const normalizedTitle = (title?.replace(/\.[^/.]+$/, "")?.trim() ?? "فيديو بدون عنوان");
+          setData(prev => ({ ...prev, title: normalizedTitle }));
         }
       }
     } catch (e) {

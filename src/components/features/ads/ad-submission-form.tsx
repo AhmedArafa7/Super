@@ -41,7 +41,7 @@ export function AdSubmissionForm({ user, onSuccess }: AdSubmissionFormProps) {
   });
 
   const handleUrlBlur = async () => {
-    const url = formData.linkUrl.trim();
+    const url = formData.linkUrl?.trim() ?? "";
     if (!url) return;
 
     // Strict URL Validation Check

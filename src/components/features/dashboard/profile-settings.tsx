@@ -27,7 +27,7 @@ export function ProfileSettings({ user }: any) {
 
 
   const handleUpdateProfile = async () => {
-    if (!user?.id || !displayName.trim()) return;
+    if (!user?.id || !displayName?.trim()) return;
     setIsUpdating(true);
     try {
       await updateUserProfile(user.id, { name: displayName });

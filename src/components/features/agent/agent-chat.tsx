@@ -18,6 +18,23 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+interface AgentMessage {
+  id: string;
+  role: string;
+  content: string;
+  toolInvocations?: any[];
+}
+
+interface AgentChatResult {
+  messages: AgentMessage[];
+  input: string;
+  handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  setInput: (value: string) => void;
+  append: (message: any) => Promise<any>;
+  isLoading: boolean;
+  reload: () => void;
+}
+
 export function AgentChat() {
   const { 
     setFiles, addLog, preferredAI, setPreferredAI, autoFallback, setAutoFallback 
@@ -30,14 +47,15 @@ export function AgentChat() {
   const { messages, input, handleInputChange, setInput, append, isLoading, reload } = useChat({
     api: '/api/agent',
     body: { preferredAI, autoFallback },
-    onResponse: (response) => {
+    onResponse: (response: any) => {
       if (response.status === 429) {
         setShowQuotaDialog(true);
       }
     },
-    onFinish: (message) => {
-      if (message.toolInvocations) {
-        message.toolInvocations.forEach(toolCall => {
+    onFinish: ({ message }: any) => {
+      const msg = message as AgentMessage;
+      if (msg.toolInvocations) {
+        msg.toolInvocations.forEach((toolCall: any) => {
           if (toolCall.toolName === 'update_workspace_files' && 'args' in toolCall) {
             const payload = toolCall.args as any;
             if (payload.files && payload.files.length > 0) {
@@ -48,17 +66,17 @@ export function AgentChat() {
         });
       }
     },
-    onError: (err) => {
+    onError: (err: any) => {
       if (!showQuotaDialog) {
         addLog("فشل في الاتصال بمحرك الذكاء الاصطناعي.", 'error');
         toast({ variant: "destructive", title: "خطأ في المعالجة" });
       }
     }
-  });
+  } as any) as unknown as AgentChatResult;
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input?.trim() || isLoading) return;
     append({ role: 'user', content: input });
     setInput('');
   };
@@ -133,13 +151,13 @@ export function AgentChat() {
           </div>
         )}
         
-        {messages.map((m) => (
+        {messages.map((m: AgentMessage) => (
           <div key={m.id} className={`flex gap-4 max-w-4xl mx-auto ${m.role === 'user' ? 'flex-row-reverse' : ''}`} dir="rtl">
             <div className={`shrink-0 size-10 rounded-full flex items-center justify-center ${m.role === 'user' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-primary/20 text-primary'}`}>
               {m.role === 'user' ? <User className="size-5" /> : <Bot className="size-5" />}
             </div>
             <div className="flex flex-col gap-1 max-w-[85%] items-start text-right">
-              <div dangerouslySetInnerHTML={{ __html: m.content.replace(/\n/g, '<br/>') }} className="text-white text-base leading-relaxed p-4 bg-white/5 rounded-2xl" />
+              <div dangerouslySetInnerHTML={{ __html: (m.content || '').replace(/\n/g, '<br/>') }} className="text-white text-base leading-relaxed p-4 bg-white/5 rounded-2xl" />
             </div>
           </div>
         ))}
@@ -156,7 +174,7 @@ export function AgentChat() {
           onSubmit={handleSend}
           className="flex gap-4 items-center max-w-4xl mx-auto flex-row-reverse"
         >
-          <Button type="submit" disabled={isLoading || !input.trim()} className="size-14 rounded-2xl bg-primary shadow-xl">
+          <Button type="submit" disabled={isLoading || !input?.trim()} className="size-14 rounded-2xl bg-primary shadow-xl">
             {isLoading ? <Loader2 className="animate-spin" /> : <Wand2 />}
           </Button>
           <Input 
@@ -172,7 +190,8 @@ export function AgentChat() {
 
       {/* Quota Consent Dialog */}
       <Dialog open={showQuotaDialog} onOpenChange={setShowQuotaDialog}>
-        <DialogContent className="glass border-white/10 text-white rounded-[2rem]" dir="rtl">
+        <DialogContent className="glass border-white/10 text-white rounded-[2rem]">
+          <div dir="rtl">
           <DialogHeader>
             <div className="flex items-center gap-3 text-amber-400 mb-2">
               <ShieldAlert className="size-6" />
@@ -192,6 +211,7 @@ export function AgentChat() {
               إلغاء والانتظار
             </Button>
           </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

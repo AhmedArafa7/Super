@@ -46,7 +46,9 @@ export function AddChannelModal({ isOpen, onOpenChange, userId }: AddChannelModa
       
       // Look for the canonical title first
       const titleMatch = html.match(/<title>(.*?)<\/title>/);
-      const extractedTitle = titleMatch ? titleMatch[1].replace(' - YouTube', '').trim() : "";
+      let title = titleMatch ? titleMatch[1] : 'قناة غير معروفة';
+      title = (title?.replace('- YouTube', '')?.trim() ?? 'قناة غير معروفة');
+      const extractedTitle = title;
       
       // If we hit the consent page, the title will be "Before you continue to YouTube" or similar
       if (extractedTitle && !extractedTitle.toLowerCase().includes('before you continue')) {

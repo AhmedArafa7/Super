@@ -63,7 +63,7 @@ export function ChatInput({ input, setInput, isAITyping, isEditing, onSend, onFi
         
         <Button 
           onClick={onSend} 
-          disabled={isAITyping || (!input.trim())} 
+          disabled={isAITyping || (!input?.trim())} 
           size="icon" 
           className={cn(
             "size-14 rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all",

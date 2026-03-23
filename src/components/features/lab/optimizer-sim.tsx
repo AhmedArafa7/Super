@@ -22,7 +22,7 @@ export function OptimizerSim() {
   const [isOptimizing, setIsOptimizing] = useState(false);
 
   const simulate = async () => {
-    if (!testPrompt.trim() || isOptimizing) return;
+    if (!testPrompt?.trim() || isOptimizing) return;
     setIsOptimizing(true);
     
     try {
@@ -86,7 +86,7 @@ export function OptimizerSim() {
             />
             <Button 
               onClick={simulate}
-              disabled={isOptimizing || !testPrompt.trim()}
+              disabled={isOptimizing || !testPrompt?.trim()}
               size="icon" 
               className={cn(
                 "absolute left-3 top-1/2 -translate-y-1/2 size-12 rounded-2xl transition-all",

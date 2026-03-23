@@ -58,9 +58,9 @@ export function ImportSubscriptionsModal({ isOpen, onOpenChange, userId }: Impor
             try {
                 const text = event.target?.result as string;
                 // Basic CSV splitting (Google Takeout subscriptions.csv usually has: Channel Id, Channel Url, Channel Title)
-                const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                const lines = text.split('\n').filter(l => l?.trim());
 
-                if (lines.length <= 1) {
+                if (lines.length <= 1) { // Original check for empty/invalid file
                     throw new Error("الملف فارغ أو لا يحتوي على بيانات صحيحة");
                 }
 

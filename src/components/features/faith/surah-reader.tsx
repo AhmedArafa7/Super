@@ -36,11 +36,13 @@ export function SurahReader({ surahId, surahName, englishName, ayahs, isLoading,
 
     return ayahs.map((ayah, index) => {
       let textToDisplay = ayah.text;
+      let displayText = textToDisplay; // Initialize displayText
 
       // بروتوكول عزل البسملة بَصرياً من متن الآية الأولى
       if (surahId !== 1 && surahId !== 9 && index === 0) {
         if (textToDisplay.startsWith(BISMILLAH_UTHMANI)) {
           textToDisplay = textToDisplay.substring(BISMILLAH_UTHMANI.length).trim();
+          displayText = textToDisplay;
         }
       }
 

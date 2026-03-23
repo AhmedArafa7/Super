@@ -34,7 +34,7 @@ export function LoginView() {
           setError('بيانات الدخول غير صحيحة. هل قمت بإنشاء حساب؟');
         }
       } else {
-        if (!name.trim()) {
+        if (!name?.trim()) {
           setError('يرجى إدخال اسمك الكامل.');
           setIsLoading(false);
           return;

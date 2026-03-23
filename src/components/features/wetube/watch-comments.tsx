@@ -20,7 +20,7 @@ export function WatchComments({ user }: WatchCommentsProps) {
     const [isPosting, setIsPosting] = React.useState(false);
 
     const handlePostComment = async () => {
-        if (!commentText.trim() || !youtubeToken) return;
+        if (!commentText?.trim() || isPosting || !youtubeToken) return;
         
         setIsPosting(true);
         try {
@@ -75,7 +75,7 @@ export function WatchComments({ user }: WatchCommentsProps) {
                     />
                     <button 
                         onClick={handlePostComment}
-                        disabled={!commentText.trim() || isPosting || !youtubeToken}
+                        disabled={!commentText?.trim() || isPosting || !youtubeToken}
                         className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-30"
                     >
                         {isPosting ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}

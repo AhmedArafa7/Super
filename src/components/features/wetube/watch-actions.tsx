@@ -111,12 +111,13 @@ export function WatchActions({
 
                     <button
                         onClick={async () => {
+                            const token = youtubeToken;
                             const newStatus = !isSubscribed;
                             setIsSubscribed(newStatus);
-                            if (youtubeToken && video.authorId && newStatus) {
+                            if (token && video.authorId && newStatus) {
                                 setIsSyncingSub(true);
                                 try {
-                                    await syncSubscription(video.authorId, 'subscribe', youtubeToken);
+                                    await syncSubscription(video.authorId, 'subscribe', token);
                                     toast({ title: "تم الاشتراك", description: `أنت الآن مشترك في ${video.author} على يوتيوب.` });
                                 } catch (e) {
                                     console.error(e);
@@ -179,13 +180,14 @@ export function WatchActions({
                     <div className="flex items-center bg-[#272727] rounded-full overflow-hidden shrink-0">
                         <button
                             onClick={async () => { 
+                                const token = youtubeToken;
                                 const newStatus = !isLiked;
                                 setIsLiked(newStatus); 
                                 setIsDisliked(false); 
-                                if (youtubeToken) {
+                                if (token) {
                                     setIsSyncingLike(true);
                                     try {
-                                        await syncLike(video.id, newStatus ? 'like' : 'none', youtubeToken);
+                                        await syncLike(video.id, newStatus ? 'like' : 'none', token);
                                         toast({ title: "تمت المزامنة", description: newStatus ? "تم تسجيل الإعجاب على يوتيوب." : "تمت إزالة الإعجاب." });
                                     } catch (e) {
                                         console.error(e);
@@ -205,13 +207,14 @@ export function WatchActions({
                         </button>
                         <button
                             onClick={async () => { 
+                                const token = youtubeToken;
                                 const newStatus = !isDisliked;
                                 setIsDisliked(newStatus); 
                                 setIsLiked(false); 
-                                if (youtubeToken) {
+                                if (token) {
                                     setIsSyncingLike(true);
                                     try {
-                                        await syncLike(video.id, newStatus ? 'dislike' : 'none', youtubeToken);
+                                        await syncLike(video.id, newStatus ? 'dislike' : 'none', token);
                                     } catch (e) {
                                         console.error(e);
                                     } finally {
@@ -299,17 +302,17 @@ export function WatchActions({
                                 <div className="space-y-3">
                                     <Label className="text-[10px] uppercase font-bold text-muted-foreground px-1">توفير الباقة (Frame Skip)</Label>
                                     <Select 
-                                        value={proSettings.frameSkipRatio} 
-                                        onValueChange={(v: any) => updateProSettings({ frameSkipRatio: v })}
+                                        value={proSettings.frameSkipRatio.toString()} 
+                                        onValueChange={(v: string) => updateProSettings({ frameSkipRatio: parseFloat(v) })}
                                     >
                                         <SelectTrigger className="bg-white/5 border-white/10 h-10 rounded-xl flex-row-reverse">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent className="bg-slate-900 border-white/10 text-white">
-                                            <SelectItem value="none">تعطيل (جودة كاملة)</SelectItem>
-                                            <SelectItem value="1/2">نسبة 1/2 (توفير 50%)</SelectItem>
-                                            <SelectItem value="3/4">نسبة 3/4 (توفير 25%)</SelectItem>
-                                            <SelectItem value="4/5">نسبة 4/5 (توفير 20%)</SelectItem>
+                                            <SelectItem value="0">تعطيل (جودة كاملة)</SelectItem>
+                                            <SelectItem value="0.5">نسبة 1/2 (توفير 50%)</SelectItem>
+                                            <SelectItem value="0.75">نسبة 3/4 (توفير 25%)</SelectItem>
+                                            <SelectItem value="0.8">نسبة 4/5 (توفير 20%)</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>

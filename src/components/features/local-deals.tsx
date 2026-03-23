@@ -67,12 +67,12 @@ export function LocalDeals() {
   };
 
   const handleSearch = async () => {
-    if (!searchQuery.trim()) { setViewMode('browse'); setActiveSearch(''); return; }
-    setLoading(true); setActiveSearch(searchQuery.trim());
+    if (!searchQuery?.trim()) { setViewMode('browse'); setActiveSearch(''); return; }
+    setLoading(true); setActiveSearch(searchQuery?.trim());
     try {
-      const matchingStores = await searchStoresByName(searchQuery.trim());
+      const matchingStores = await searchStoresByName(searchQuery?.trim());
       if (matchingStores.length === 1) { handleViewStore(matchingStores[0]); setLoading(false); return; }
-      const results = await searchDealsByProduct(searchQuery.trim());
+      const results = await searchDealsByProduct(searchQuery?.trim());
       setDeals(results); setViewMode('product-results');
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -129,19 +129,24 @@ export function LocalDeals() {
   };
 
   const handleAddDeal = async () => {
-    if (!user || !newProductName.trim() || !newPrice || !newStoreId) return;
+    if (!user || !newProductName?.trim() || !newPrice || !newStoreId) return;
     setAddingDeal(true);
     try {
       const store = stores.find(s => s.id === newStoreId);
       if (!store) return;
-      await addDeal({
-        storeId: newStoreId, storeName: store.name, productName: newProductName.trim(),
-        price: parseFloat(newPrice), originalPrice: newOriginalPrice ? parseFloat(newOriginalPrice) : undefined,
-        category: newCategory, unit: newUnit.trim() || undefined,
+      const dealData = {
+        storeId: newStoreId, 
+        storeName: store.name, 
+        productName: newProductName.trim(),
+        price: Number(newPrice),
+        originalPrice: newOriginalPrice ? Number(newOriginalPrice) : undefined,
+        category: newCategory, 
+        unit: newUnit?.trim() || undefined,
         addedBy: user.id, addedByName: user.name || user.username,
         createdAt: new Date().toISOString(),
         expiresAt: newExpiresInDays ? new Date(Date.now() + parseInt(newExpiresInDays) * 86400000).toISOString() : undefined,
-      });
+      };
+      await addDeal(dealData);
       toast({ title: '✅ تم الإضافة', description: `${newProductName} في ${store.name}` });
       setShowAddDeal(false); setNewProductName(''); setNewPrice(''); setNewOriginalPrice(''); setNewUnit(''); setNewStoreId(''); setNewExpiresInDays('');
       loadData();

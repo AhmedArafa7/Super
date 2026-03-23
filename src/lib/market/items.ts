@@ -34,8 +34,11 @@ export const getMarketItems = async (
     items = items.filter(i => i.subCategory === subCat);
   }
   if (search) {
-    const s = search.toLowerCase();
-    items = items.filter(i => i.title.toLowerCase().includes(s) || i.description.toLowerCase().includes(s));
+    const s = search?.toLowerCase() ?? "";
+    items = items.filter(i => 
+      (i.title?.toLowerCase() ?? "").includes(s) || 
+      (i.description?.toLowerCase() ?? "").includes(s)
+    );
   }
 
   items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
