@@ -31,6 +31,7 @@ interface AgentChatResult {
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setInput: (value: string) => void;
   append: (message: any) => Promise<any>;
+  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   isLoading: boolean;
   reload: () => void;
 }
@@ -44,7 +45,7 @@ export function AgentChat() {
   const [showQuotaDialog, setShowQuotaDialog] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  const { messages, input, handleInputChange, setInput, append, isLoading, reload } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, setInput, append, isLoading, reload } = useChat({
     api: '/api/agent',
     body: { preferredAI, autoFallback },
     onResponse: (response: any) => {
@@ -73,13 +74,6 @@ export function AgentChat() {
       }
     }
   } as any) as unknown as AgentChatResult;
-
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input?.trim() || isLoading) return;
-    append({ role: 'user', content: input });
-    setInput('');
-  };
 
   const handleSwitchToGroq = () => {
     setPreferredAI('groq');
@@ -171,7 +165,7 @@ export function AgentChat() {
       {/* Input Area */}
       <div className="p-6 border-t border-white/5">
         <form 
-          onSubmit={handleSend}
+          onSubmit={handleSubmit}
           className="flex gap-4 items-center max-w-4xl mx-auto flex-row-reverse"
         >
           <Button type="submit" disabled={isLoading || !input?.trim()} className="size-14 rounded-2xl bg-primary shadow-xl">
