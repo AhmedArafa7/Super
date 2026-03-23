@@ -13,7 +13,7 @@ interface StreamState {
   // إعدادات المستخدم
   backgroundPlayback: boolean;
   autoFloat: boolean;
-  
+
   setActiveVideo: (video: Video | null) => void;
   setIsPlaying: (playing: boolean) => void;
   setIsMinimized: (minimized: boolean) => void;
@@ -24,7 +24,7 @@ interface StreamState {
 }
 
 /**
- * @fileOverview المحرك العالمي المطور للبث - يدعم الخصوصية وتفضيلات التشغيل.
+ * @fileOverview المحرك العالمي المطور للفيديو - يدعم الخصوصية وتفضيلات التشغيل.
  */
 export const useStreamStore = create<StreamState>((set, get) => ({
   activeVideo: null,
@@ -32,21 +32,21 @@ export const useStreamStore = create<StreamState>((set, get) => ({
   isMinimized: false,
   currentTab: 'dashboard',
   quality: typeof window !== 'undefined' ? localStorage.getItem("nexus_stream_quality") || "240" : "240",
-  
+
   // تحميل الإعدادات من الذاكرة المحلية
   backgroundPlayback: typeof window !== 'undefined' ? localStorage.getItem("nexus_bg_playback") !== 'false' : true,
   autoFloat: typeof window !== 'undefined' ? localStorage.getItem("nexus_auto_float") === 'true' : false,
-  
-  setActiveVideo: (video) => set({ 
-    activeVideo: video, 
-    isPlaying: !!video, 
-    isMinimized: false 
+
+  setActiveVideo: (video) => set({
+    activeVideo: video,
+    isPlaying: !!video,
+    isMinimized: false
   }),
-  
+
   setIsPlaying: (playing) => set({ isPlaying: playing }),
-  
+
   setIsMinimized: (minimized) => set({ isMinimized: minimized }),
-  
+
   setQuality: (q) => {
     if (typeof window !== 'undefined') localStorage.setItem("nexus_stream_quality", q);
     set({ quality: q });

@@ -1,7 +1,7 @@
 {
     "name": "NexusAI — Neural Ecosystem",
     "short_name": "NexusAI",
-    "description": "المنصة العصبية الذكية — دردشة، بث، متجر، محفظة، وأدوات ذكاء اصطناعي متقدمة.",
+    "description": "المنصة العصبية الذكية — دردشة، فيديو، متجر، محفظة، وأدوات ذكاء اصطناعي متقدمة.",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#0a0b14",

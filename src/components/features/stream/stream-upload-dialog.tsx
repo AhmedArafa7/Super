@@ -15,14 +15,14 @@ import { VideoProductSelector } from "../wetube/video-product-selector";
 
 /**
  * [STABILITY_ANCHOR: STREAM_UPLOAD_V1.5]
- * واجهة رفع البث - تفعيل جلب عناوين الفيديوهات حقيقياً من يوتيوب.
+ * واجهة رفع الفيديو - تفعيل جلب عناوين الفيديوهات حقيقياً من يوتيوب.
  */
 export function StreamUploadDialog({ onUpload, onOpenVault, user }: any) {
   const [isOpen, setIsOpen] = useState(false);
   const [source, setSource] = useState<any>('drive');
-  const [data, setData] = useState({ 
-    title: "", 
-    externalUrl: "", 
+  const [data, setData] = useState({
+    title: "",
+    externalUrl: "",
     file: null as File | null,
     productIds: [] as string[],
     productDisplayMode: 'none' as 'none' | 'specific' | 'all'
@@ -113,13 +113,13 @@ export function StreamUploadDialog({ onUpload, onOpenVault, user }: any) {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button className="bg-primary text-white hover:bg-primary/90 rounded-2xl px-8 h-14 shadow-xl shadow-primary/20 font-bold text-base">
-          <Plus className="mr-2 size-6" /> بث جديد
+          <Plus className="mr-2 size-6" /> فيديو جديد
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[550px] bg-slate-950 border-white/10 rounded-[2.5rem] p-8">
         <DialogHeader>
           <DialogTitle className="text-3xl font-headline font-bold text-white text-right">إرسال عصبي جديد</DialogTitle>
-          <DialogDescription className="text-muted-foreground text-sm text-right">استخدم Nexus Vault للمساحات الكبيرة، أو يوتيوب للبث العام.</DialogDescription>
+          <DialogDescription className="text-muted-foreground text-sm text-right">استخدم Nexus Vault للمساحات الكبيرة، أو يوتيوب للفيديو العام.</DialogDescription>
         </DialogHeader>
 
         {activeTask ? (
@@ -160,9 +160,9 @@ export function StreamUploadDialog({ onUpload, onOpenVault, user }: any) {
               </Tabs>
 
               <div className="grid gap-2">
-                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">عنوان البث</Label>
+                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">عنوان الفيديو</Label>
                 <div className="relative">
-                  <Input dir="auto" placeholder="صف موضوع البث..." className="bg-white/5 border-white/10 rounded-xl h-12 text-right pr-4" value={data.title} onChange={(e) => setData({ ...data, title: e.target.value })} />
+                  <Input dir="auto" placeholder="صف موضوع الفيديو..." className="bg-white/5 border-white/10 rounded-xl h-12 text-right pr-4" value={data.title} onChange={(e) => setData({ ...data, title: e.target.value })} />
                   {isFetchingMetadata && <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin" />}
                 </div>
               </div>
@@ -194,8 +194,8 @@ export function StreamUploadDialog({ onUpload, onOpenVault, user }: any) {
 
               {/* رف المنتجات (Merchandise) - يظهر فقط في حالة الرفع المباشر أو من الخزنة */}
               {user && (source === 'local' || source === 'drive') && (
-                <VideoProductSelector 
-                  userId={user.id} 
+                <VideoProductSelector
+                  userId={user.id}
                   selectedProductIds={data.productIds}
                   displayMode={data.productDisplayMode}
                   onChange={(productData) => setData(prev => ({ ...prev, ...productData }))}

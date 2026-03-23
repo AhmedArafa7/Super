@@ -22,10 +22,10 @@ export function StreamSettings({ quality, setQuality, backgroundPlayback, setBac
       <PopoverContent className="w-80 bg-slate-900 border-white/10 p-6 rounded-[2rem] shadow-2xl">
         <div className="space-y-6">
           <div className="flex items-center justify-between flex-row-reverse">
-            <h4 className="font-bold text-sm text-white">تخصيص تجربة البث</h4>
+            <h4 className="font-bold text-sm text-white">تخصيص تجربة الفيديو</h4>
             <Settings2 className="size-4 text-indigo-400" />
           </div>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest block text-right">جودة الفيديو الافتراضية</Label>

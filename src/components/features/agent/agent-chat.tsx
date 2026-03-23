@@ -27,11 +27,7 @@ interface AgentMessage {
 
 interface AgentChatResult {
   messages: AgentMessage[];
-  input: string;
-  handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  setInput: (value: string) => void;
   append: (message: any) => Promise<any>;
-  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   isLoading: boolean;
   reload: () => void;
 }
@@ -44,8 +40,9 @@ export function AgentChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showQuotaDialog, setShowQuotaDialog] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [inputValue, setInputValue] = useState('');
 
-  const { messages, input, handleInputChange, handleSubmit, setInput, append, isLoading, reload } = useChat({
+  const { messages, append, isLoading, reload } = useChat({
     api: '/api/agent',
     body: { preferredAI, autoFallback },
     onResponse: (response: any) => {
@@ -74,6 +71,14 @@ export function AgentChat() {
       }
     }
   } as any) as unknown as AgentChatResult;
+
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputValue.trim() || isLoading) return;
+    
+    append({ role: 'user', content: inputValue });
+    setInputValue('');
+  };
 
   const handleSwitchToGroq = () => {
     setPreferredAI('groq');
@@ -165,15 +170,15 @@ export function AgentChat() {
       {/* Input Area */}
       <div className="p-6 border-t border-white/5">
         <form 
-          onSubmit={handleSubmit}
+          onSubmit={handleSend}
           className="flex gap-4 items-center max-w-4xl mx-auto flex-row-reverse"
         >
-          <Button type="submit" disabled={isLoading || !input?.trim()} className="size-14 rounded-2xl bg-primary shadow-xl">
+          <Button type="submit" disabled={isLoading || !inputValue.trim()} className="size-14 rounded-2xl bg-primary shadow-xl">
             {isLoading ? <Loader2 className="animate-spin" /> : <Wand2 />}
           </Button>
           <Input 
-            value={input} 
-            onChange={handleInputChange}
+            value={inputValue} 
+            onChange={(e) => setInputValue(e.target.value)}
             placeholder="أمر البرمجة..."
             className="h-14 bg-white/5 border-white/10 rounded-2xl px-6 text-right text-white"
             dir="rtl"

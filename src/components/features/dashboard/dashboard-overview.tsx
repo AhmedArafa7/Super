@@ -55,7 +55,7 @@ export function DashboardOverview({ user, wallet, usedSpace, storageLimitMB, sto
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <QuickActionCard icon={MessageSquare} title="الدردشة الذكية" desc="تواصل مع المحرك العصبي لحل مشاكلك التقنية." color="bg-blue-600" onClick={() => onNavigate?.("chat")} />
-        <QuickActionCard icon={Video} title="WeTube" desc="اكتشف أحدث البثوث وأدر اشتراكاتك الخاصة." color="bg-indigo-600" onClick={() => onNavigate?.("stream")} />
+        <QuickActionCard icon={Video} title="WeTube" desc="اكتشف أحدث الفيديووث وأدر اشتراكاتك الخاصة." color="bg-indigo-600" onClick={() => onNavigate?.("stream")} />
         <QuickActionCard icon={ShoppingBag} title="TechMarket" desc="استحوذ على أحدث الأدوات والحلول البرمجية." color="bg-amber-600" onClick={() => onNavigate?.("market")} />
         <QuickActionCard icon={BookOpen} title="حصن المسلم" desc="أذكار، تسبيح، ومعرفة روحية في مكان واحد." color="bg-emerald-600" onClick={() => onNavigate?.("hisn")} />
       </div>
