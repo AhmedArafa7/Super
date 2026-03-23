@@ -42,7 +42,7 @@ export function AgentChat() {
   const [showSettings, setShowSettings] = useState(false);
   const [inputValue, setInputValue] = useState('');
 
-  const { messages, append, isLoading, reload } = useChat({
+  const chat = useChat({
     api: '/api/agent',
     body: { preferredAI, autoFallback },
     onResponse: (response: any) => {
@@ -70,13 +70,33 @@ export function AgentChat() {
         toast({ variant: "destructive", title: "خطأ في المعالجة" });
       }
     }
-  } as any) as unknown as AgentChatResult;
+  } as any);
+
+  const { messages = [], isLoading = false, reload = () => {} } = chat as any;
 
   const handleSend = () => {
-    if (!inputValue.trim() || isLoading) return;
-    
-    append({ role: 'user', content: inputValue });
-    setInputValue('');
+    try {
+      if (!inputValue.trim() || isLoading) return;
+      
+      // Resilient search for the send/append function
+      const appendFn = (chat as any).append || (chat as any).sendMessage || (chat as any).submit;
+      
+      if (typeof appendFn !== 'function') {
+        const availableKeys = Object.keys(chat).join(', ');
+        throw new Error(`دالة الإرسال غير متوفرة (متوفر: ${availableKeys})`);
+      }
+      
+      appendFn({ role: 'user', content: inputValue });
+      setInputValue('');
+    } catch (err: any) {
+      console.error('Submission error:', err);
+      addLog(`خطأ فني في الإرسال: ${err.message}`, 'error');
+      toast({ 
+        variant: "destructive", 
+        title: "خطأ في معالجة الإرسال", 
+        description: err.message 
+      });
+    }
   };
 
   const handleSwitchToGroq = () => {
