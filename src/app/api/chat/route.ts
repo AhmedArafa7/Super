@@ -18,7 +18,6 @@ let blacklistedModels = new Set<string>();
 
 const googleProvider = createGoogleGenerativeAI({
   apiKey: GEMINI_API_KEY,
-  baseURL: 'https://generativelanguage.googleapis.com/v1',
 });
 
 const groq = createOpenAI({
@@ -55,11 +54,12 @@ export async function POST(req: Request) {
       })
     };
 
-    // قائمة الموديلات المقترحة للـ Gemini - تم تحديث الأولوية لـ 2.0 و v1
+    // قائمة الموديلات المقترحة للـ Gemini - تم استخدام الأولوية الأكثر استقراراً لـ v1beta
     const geminiModels = [
-      'gemini-2.0-flash',
       'gemini-1.5-flash-latest',
+      'gemini-2.0-flash',
       'gemini-1.5-flash',
+      'models/gemini-1.5-flash',
       'gemini-1.5-pro'
     ];
 
