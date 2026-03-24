@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Search, Plus, MessageCircleQuestion, Send, Clock, Edit, Trash, FileQuestion, HelpCircle, User } from "lucide-react";
+import { Search, Plus, MessageCircleQuestion, Send, Clock, Edit, Trash, FileQuestion, HelpCircle, User, AlertCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
 import { getRelativeTime } from "@/lib/date-utils";
@@ -34,6 +34,7 @@ export function QAView() {
   
   const [answerPost, setAnswerPost] = useState<QAPost | null>(null);
   const [answerText, setAnswerText] = useState("");
+  const [answerAlert, setAnswerAlert] = useState("");
 
   const isManagement = ['founder', 'cofounder', 'admin', 'management'].includes(user?.role || '');
 
@@ -88,9 +89,10 @@ export function QAView() {
   const handleAnswerPost = async () => {
     if (!answerPost || !answerText.trim() || !user) return;
     try {
-      await answerQAPost(answerPost.id, answerText, user.name || 'الإدارة');
+      await answerQAPost(answerPost.id, answerText, user.name || 'الإدارة', answerAlert);
       setAnswerPost(null);
       setAnswerText("");
+      setAnswerAlert("");
       toast({ title: "تم الرد", description: "تم إضافة الرد بنجاح." });
     } catch (error: any) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
@@ -278,6 +280,13 @@ export function QAView() {
                         <span className="text-muted-foreground text-[10px] mr-auto">{getRelativeTime(post.answeredAt || new Date().toISOString())}</span>
                       </div>
                       <p className="text-primary/90 text-sm leading-relaxed whitespace-pre-wrap">{post.answer}</p>
+                      
+                      {post.answerAlert && (
+                        <div className="mt-3 flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl animate-in slide-in-from-bottom-2 duration-300">
+                          <AlertCircle className="size-4 text-amber-500 shrink-0 mt-0.5" />
+                          <p className="text-amber-200/90 text-[11px] font-bold leading-relaxed">{post.answerAlert}</p>
+                        </div>
+                      )}
                     </div>
                   )}
                   
@@ -285,7 +294,11 @@ export function QAView() {
                   {isManagement && (
                     <div className="mt-4 border-t border-white/5 pt-4">
                       <Dialog open={answerPost?.id === post.id} onOpenChange={(open) => {
-                        if (open) { setAnswerPost(post); setAnswerText(post.answer || ""); }
+                        if (open) { 
+                          setAnswerPost(post); 
+                          setAnswerText(post.answer || ""); 
+                          setAnswerAlert(post.answerAlert || "");
+                        }
                         else setAnswerPost(null);
                       }}>
                         <DialogTrigger asChild>
@@ -302,8 +315,17 @@ export function QAView() {
                             value={answerText}
                             onChange={(e) => setAnswerText(e.target.value)}
                           />
+                          <div className="space-y-2 mt-4">
+                            <Label className="text-xs text-muted-foreground mr-1">تنبيه أو ملاحظة هامة (اختياري)</Label>
+                            <Input 
+                              placeholder="مثال: يرجى العلم أن هذه الميزة قيد الاختبار..."
+                              className="bg-slate-900 border-white/10 h-10 text-xs"
+                              value={answerAlert}
+                              onChange={(e) => setAnswerAlert(e.target.value)}
+                            />
+                          </div>
                           <DialogFooter className="mt-4">
-                            <Button onClick={handleAnswerPost} disabled={!answerText.trim() || answerText === post.answer}>حفظ الرد</Button>
+                            <Button onClick={handleAnswerPost} disabled={!answerText.trim() || (answerText === post.answer && answerAlert === post.answerAlert)}>حفظ الرد</Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>

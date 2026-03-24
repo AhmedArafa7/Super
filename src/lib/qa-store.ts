@@ -20,6 +20,7 @@ export interface QAPost {
   answer?: string;
   answeredAt?: string;
   answeredBy?: string;
+  answerAlert?: string;
 }
 
 export const subscribeToQAPosts = (callback: (posts: QAPost[]) => void): () => void => {
@@ -109,13 +110,15 @@ export const deleteQAPostUser = async (
 export const answerQAPost = async (
   postId: string,
   answer: string,
-  adminName: string
+  adminName: string,
+  answerAlert?: string
 ): Promise<void> => {
   const { firestore } = initializeFirebase();
   const postRef = doc(firestore, 'qa_posts', postId);
   
   await updateDoc(postRef, {
     answer,
+    answerAlert: answerAlert || null,
     answeredAt: new Date().toISOString(),
     answeredBy: adminName,
   });
