@@ -1,4 +1,4 @@
-import { google } from '@ai-sdk/google';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, tool, convertToModelMessages } from 'ai';
 import { z } from 'zod';
@@ -6,9 +6,19 @@ import { z } from 'zod';
 export const runtime = 'edge';
 export const maxDuration = 60;
 
+// Resilience for API keys
+const GEMINI_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY || 
+                        process.env.GOOGLE_GENAI_API_KEY || 
+                        process.env.GEMINI_API_KEY || 
+                        process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
+const googleProvider = createGoogleGenerativeAI({
+  apiKey: GEMINI_API_KEY
+});
+
 const groq = createOpenAI({
   baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY,
+  apiKey: process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY,
 });
 
 export async function POST(req: Request) {
@@ -43,7 +53,7 @@ export async function POST(req: Request) {
     // تحديد الموديل بناءً على رغبة المستخدم
     const model = preferredAI === 'groq' 
       ? groq('llama-3.3-70b-versatile') 
-      : google('gemini-1.5-flash');
+      : googleProvider('gemini-1.5-flash');
 
     try {
       // Normalize messages to ensure they have 'parts' for convertToModelMessages
