@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
-import { subscribeToQAPosts, addQAPost, updateQAPostUser, deleteQAPostUser, answerQAPost, QAPost, QACategory } from "@/lib/qa-store";
+import { subscribeToQAPosts, addQAPost, updateQAPostUser, deleteQAPostUser, answerQAPost, addFollowUp, answerFollowUp, QAPost, QACategory } from "@/lib/qa-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,6 +35,12 @@ export function QAView() {
   const [answerPost, setAnswerPost] = useState<QAPost | null>(null);
   const [answerText, setAnswerText] = useState("");
   const [answerAlert, setAnswerAlert] = useState("");
+  
+  const [followUpPost, setFollowUpPost] = useState<QAPost | null>(null);
+  const [followUpText, setFollowUpText] = useState("");
+  
+  const [followUpAnswerPost, setFollowUpAnswerPost] = useState<QAPost | null>(null);
+  const [followUpAnswerText, setFollowUpAnswerText] = useState("");
 
   const isManagement = ['founder', 'cofounder', 'admin', 'management'].includes(user?.role || '');
 
@@ -94,6 +100,30 @@ export function QAView() {
       setAnswerText("");
       setAnswerAlert("");
       toast({ title: "تم الرد", description: "تم إضافة الرد بنجاح." });
+    } catch (error: any) {
+      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleAddFollowUp = async () => {
+    if (!followUpPost || !followUpText.trim()) return;
+    try {
+      await addFollowUp(followUpPost.id, followUpText);
+      setFollowUpPost(null);
+      setFollowUpText("");
+      toast({ title: "تم إرسال الاستفسار", description: "تم إضافة استفسارك التكميلي بنجاح." });
+    } catch (error: any) {
+      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleAnswerFollowUp = async () => {
+    if (!followUpAnswerPost || !followUpAnswerText.trim() || !user) return;
+    try {
+      await answerFollowUp(followUpAnswerPost.id, followUpAnswerText, user.name || 'الإدارة');
+      setFollowUpAnswerPost(null);
+      setFollowUpAnswerText("");
+      toast({ title: "تم الرد على الاستفسار", description: "تم إضافة الرد على الاستفسار بنجاح." });
     } catch (error: any) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     }
@@ -285,6 +315,88 @@ export function QAView() {
                         <div className="mt-3 flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl animate-in slide-in-from-bottom-2 duration-300">
                           <AlertCircle className="size-4 text-amber-500 shrink-0 mt-0.5" />
                           <p className="text-amber-200/90 text-[11px] font-bold leading-relaxed">{post.answerAlert}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Follow-up Section */}
+                  {post.answer && (
+                    <div className="mt-4 space-y-4">
+                      {/* Existing Follow-up display */}
+                      {post.followUpText && (
+                        <div className="mr-6 p-4 bg-white/5 border border-white/5 rounded-2xl relative">
+                          <div className="flex items-center gap-2 mb-2">
+                            <HelpCircle className="size-4 text-muted-foreground" />
+                            <span className="text-white/70 font-bold text-xs">استفسار تكميلي</span>
+                            <span className="text-muted-foreground text-[10px] mr-auto">{getRelativeTime(post.followUpAt || new Date().toISOString())}</span>
+                          </div>
+                          <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">{post.followUpText}</p>
+                          
+                          {/* Follow-up Answer */}
+                          {post.followUpAnswer && (
+                            <div className="mt-4 p-4 bg-primary/5 border-r-2 border-primary/30 rounded-xl">
+                              <div className="flex items-center gap-2 mb-2">
+                                <User className="size-3.5 text-primary/70" />
+                                <span className="text-primary/70 font-bold text-[10px]">{post.followUpAnswerBy}</span>
+                                <span className="text-muted-foreground text-[10px] mr-auto">{getRelativeTime(post.followUpAnswerAt || new Date().toISOString())}</span>
+                              </div>
+                              <p className="text-primary/80 text-sm leading-relaxed whitespace-pre-wrap">{post.followUpAnswer}</p>
+                            </div>
+                          )}
+
+                          {/* Admin Reply to Follow-up Button */}
+                          {isManagement && !post.followUpAnswer && (
+                            <Dialog open={followUpAnswerPost?.id === post.id} onOpenChange={(open) => {
+                              if (open) { setFollowUpAnswerPost(post); setFollowUpAnswerText(""); }
+                              else setFollowUpAnswerPost(null);
+                            }}>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="mt-3 h-8 text-[10px] font-bold border-primary/20 hover:bg-primary/10">الرد على الاستفسار</Button>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-md bg-slate-950 border-white/10 text-right" dir="rtl">
+                                <DialogHeader><DialogTitle>الرد على الاستفسار التكميلي</DialogTitle></DialogHeader>
+                                <Textarea 
+                                  placeholder="اكتب ردك هنا..."
+                                  className="min-h-[100px] bg-slate-900 border-white/10 mt-4 resize-none"
+                                  value={followUpAnswerText}
+                                  onChange={(e) => setFollowUpAnswerText(e.target.value)}
+                                />
+                                <DialogFooter className="mt-4">
+                                  <Button onClick={handleAnswerFollowUp} disabled={!followUpAnswerText.trim()}>إرسال الرد</Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Add Follow-up Button for User */}
+                      {user?.id === post.authorId && !post.followUpText && (
+                        <div className="mr-6">
+                          <Dialog open={followUpPost?.id === post.id} onOpenChange={(open) => {
+                            if (open) { setFollowUpPost(post); setFollowUpText(""); }
+                            else setFollowUpPost(null);
+                          }}>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" className="text-primary/60 hover:text-primary text-xs gap-2 p-0 h-auto font-bold">
+                                <Plus className="size-3" />
+                                إضافة استفسار أو طلب تكميلي
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md bg-slate-950 border-white/10 text-right" dir="rtl">
+                              <DialogHeader><DialogTitle>إضافة استفسار أو طلب تكميلي</DialogTitle></DialogHeader>
+                              <Textarea 
+                                placeholder="هل لديك توضيح إضافي أو طلب مرتبط بهذا الرد؟"
+                                className="min-h-[120px] bg-slate-900 border-white/10 mt-4 resize-none"
+                                value={followUpText}
+                                onChange={(e) => setFollowUpText(e.target.value)}
+                              />
+                              <DialogFooter className="mt-4">
+                                <Button onClick={handleAddFollowUp} disabled={!followUpText.trim()}>إرسال الاستفسار</Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
                         </div>
                       )}
                     </div>

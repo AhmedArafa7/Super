@@ -21,6 +21,11 @@ export interface QAPost {
   answeredAt?: string;
   answeredBy?: string;
   answerAlert?: string;
+  followUpText?: string;
+  followUpAt?: string;
+  followUpAnswer?: string;
+  followUpAnswerAt?: string;
+  followUpAnswerBy?: string;
 }
 
 export const subscribeToQAPosts = (callback: (posts: QAPost[]) => void): () => void => {
@@ -121,6 +126,34 @@ export const answerQAPost = async (
     answerAlert: answerAlert || null,
     answeredAt: new Date().toISOString(),
     answeredBy: adminName,
+  });
+};
+
+export const addFollowUp = async (
+  postId: string,
+  text: string
+): Promise<void> => {
+  const { firestore } = initializeFirebase();
+  const postRef = doc(firestore, 'qa_posts', postId);
+  
+  await updateDoc(postRef, {
+    followUpText: text,
+    followUpAt: new Date().toISOString(),
+  });
+};
+
+export const answerFollowUp = async (
+  postId: string,
+  answer: string,
+  adminName: string
+): Promise<void> => {
+  const { firestore } = initializeFirebase();
+  const postRef = doc(firestore, 'qa_posts', postId);
+  
+  await updateDoc(postRef, {
+    followUpAnswer: answer,
+    followUpAnswerAt: new Date().toISOString(),
+    followUpAnswerBy: adminName,
   });
 };
 
