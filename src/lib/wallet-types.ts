@@ -65,9 +65,9 @@ export const selectTotalRealBalance = (wallet: Wallet | null): number => {
     .reduce((sum, code) => sum + (wallet.balances[code] || 0), 0);
 };
 
-/** Sum all fake coin balances */
-export const selectTotalFakeBalance = (wallet: Wallet | null): number => {
+/** Sum all save coin balances */
+export const selectTotalsaveBalance = (wallet: Wallet | null): number => {
   if (!wallet?.balances) return 0;
-  return (['EGC_FAKE', 'DLC_FAKE', 'MDC_FAKE', 'GMC_FAKE', 'BKC_FAKE'] as CurrencyCode[])
+  return (['EGC_save', 'DLC_save', 'MDC_save', 'GMC_save', 'BKC_save'] as CurrencyCode[])
     .reduce((sum, code) => sum + (wallet.balances[code] || 0), 0);
 };

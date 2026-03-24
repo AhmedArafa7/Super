@@ -2,9 +2,9 @@
 
 import React, { useMemo } from "react";
 import Image from "next/image";
-import { 
-  MoreVertical, CheckCircle2, Volume2, Gamepad2, Play, Video as VideoIcon, 
-  Download, Share2, Trash2, AlertCircle, ListEnd, Clock, ListPlus, Ban, UserX, Flag 
+import {
+  MoreVertical, CheckCircle2, Volume2, Gamepad2, Play, Video as VideoIcon,
+  Download, Share2, Trash2, AlertCircle, ListEnd, Clock, ListPlus, Ban, UserX, Flag
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -32,9 +32,9 @@ const getYoutubeId = (url?: string) => {
 export function VideoCard({ video, isActive, isCached, currentUser, onClick, onSync, onDelete, onChannelClick }: any) {
   const ytId = video.source === 'youtube' ? getYoutubeId(video.externalUrl) : null;
 
-  // Clean off the fake data fallback (netflix/picsum) that used to be here
-  const isFakeThumb = (url?: string) => !url || url.includes('photo-1611162617474-5b21e879e113') || url.includes('picsum.photos');
-  const validThumb = video.thumbnail && !isFakeThumb(video.thumbnail) ? video.thumbnail : null;
+  // Clean off the save data fallback (netflix/picsum) that used to be here
+  const issaveThumb = (url?: string) => !url || url.includes('photo-1611162617474-5b21e879e113') || url.includes('picsum.photos');
+  const validThumb = video.thumbnail && !issaveThumb(video.thumbnail) ? video.thumbnail : null;
 
   const thumbSrc = validThumb;
   const showYoutubeThumbnail = video.source === 'youtube' && ytId;
@@ -86,9 +86,9 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
       {/* Thumbnail Container */}
       <div className="relative aspect-video rounded-xl overflow-hidden bg-[#272727] flex items-center justify-center border border-white/5">
         {showYoutubeThumbnail ? (
-          <YoutubeThumbnail 
-            videoId={ytId!} 
-            alt={video.title} 
+          <YoutubeThumbnail
+            videoId={ytId!}
+            alt={video.title}
             className="w-full h-full object-cover"
           />
         ) : thumbSrc ? (
@@ -127,7 +127,7 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
       {/* Metadata Container */}
       <div className="flex gap-3 pr-2 flex-row-reverse">
         {/* Channel Avatar */}
-        <div 
+        <div
           className="mt-1 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={(e) => {
             e.stopPropagation();
@@ -149,7 +149,7 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
             {video.title}
           </h3>
           <div className="text-[14px] text-muted-foreground flex flex-col">
-            <span 
+            <span
               className="truncate hover:text-foreground transition-colors cursor-pointer w-fit"
               onClick={(e) => {
                 e.stopPropagation();
@@ -195,7 +195,7 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
 
               <DropdownMenuSeparator className="bg-white/5 mx-1 my-1" />
 
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => onSync?.(video)}
                 className="flex items-center gap-3 px-3 py-2.5 focus:bg-white/10 rounded-lg cursor-pointer transition-colors"
               >
@@ -203,7 +203,7 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
                 <span className="text-[14px] font-medium">{isCached ? "تحديث التنزيل" : "تنزيل"}</span>
               </DropdownMenuItem>
 
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="flex items-center gap-3 px-3 py-2.5 focus:bg-white/10 rounded-lg cursor-pointer transition-colors"
                 onClick={() => {
                   navigator.clipboard.writeText(video.externalUrl || window.location.href);
@@ -233,7 +233,7 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
               {(currentUser?.role === 'admin' || currentUser?.role === 'founder' || currentUser?.id === video.authorId) && onDelete && (
                 <>
                   <DropdownMenuSeparator className="bg-white/5 mx-1 my-1" />
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => onDelete(video.id)}
                     className="flex items-center gap-3 px-3 py-2.5 focus:bg-red-500/20 text-red-400 rounded-lg cursor-pointer transition-colors"
                   >

@@ -9,12 +9,12 @@ import {
 import { toast } from '@/hooks/use-toast';
 import {
   CurrencyCode, ALL_CURRENCY_CODES, createEmptyBalances,
-  getCurrencyDef, canConvertFakeToReal, FakeCurrencyCode
+  getCurrencyDef, canConvertsaveToReal, saveCurrencyCode
 } from './currency-store';
 
 // Re-export all types & selectors from wallet-types
 export type { TransactionType, Transaction, PendingTransaction, Wallet } from './wallet-types';
-export { selectTotalPendingDebt, selectCurrencyBalance, selectCurrencyFrozen, selectTotalRealBalance, selectTotalFakeBalance } from './wallet-types';
+export { selectTotalPendingDebt, selectCurrencyBalance, selectCurrencyFrozen, selectTotalRealBalance, selectTotalsaveBalance } from './wallet-types';
 
 import type { TransactionType, Transaction, PendingTransaction, Wallet } from './wallet-types';
 
@@ -175,11 +175,11 @@ export const useWalletStore = create<WalletState>()(
       const toDef = getCurrencyDef(toCurrency);
       if (!fromDef || !toDef) return false;
 
-      // فحص التحويل من Fake → Real: يحتاج فك تجميد
-      if (fromDef.isFake && !toDef.isFake) {
-        const { allowed, pendingConditions } = await canConvertFakeToReal(
+      // فحص التحويل من save → Real: يحتاج فك تجميد
+      if (fromDef.issave && !toDef.issave) {
+        const { allowed, pendingConditions } = await canConvertsaveToReal(
           userId,
-          fromCurrency as FakeCurrencyCode
+          fromCurrency as saveCurrencyCode
         );
         if (!allowed) {
           toast({
@@ -204,7 +204,7 @@ export const useWalletStore = create<WalletState>()(
           return false;
         }
 
-        // 1:1 conversion rate (same value between real/fake of same type)
+        // 1:1 conversion rate (same value between real/save of same type)
         const toAmount = amount;
 
         const updatedBalances = {

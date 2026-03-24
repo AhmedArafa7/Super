@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/auth/auth-provider';
-import { useWalletStore, selectTotalPendingDebt, PendingTransaction, selectTotalRealBalance, selectTotalFakeBalance } from '@/lib/wallet-store';
+import { useWalletStore, selectTotalPendingDebt, PendingTransaction, selectTotalRealBalance, selectTotalsaveBalance } from '@/lib/wallet-store';
 import {
   CURRENCIES, REAL_CURRENCIES, CurrencyCode,
   getCurrencyDef, getUserUnfreezeRules, UserUnfreezeRule
@@ -50,13 +50,13 @@ export function WalletView() {
   const pendingDebt = useWalletStore(selectTotalPendingDebt);
 
   const [isLoading, setIsLoading] = useState(true);
-  const [showFake, setShowFake] = useState(false);
+  const [showsave, setShowsave] = useState(false);
   const [filterCurrency, setFilterCurrency] = useState<string>('all');
   const [unfreezeRules, setUnfreezeRules] = useState<UserUnfreezeRule[]>([]);
 
   // Conversion state
   const [isConvertOpen, setIsConvertOpen] = useState(false);
-  const [convertFrom, setConvertFrom] = useState<CurrencyCode>('EGC_FAKE');
+  const [convertFrom, setConvertFrom] = useState<CurrencyCode>('EGC_save');
   const [convertTo, setConvertTo] = useState<CurrencyCode>('EGC');
   const [convertAmount, setConvertAmount] = useState('');
   const [isConverting, setIsConverting] = useState(false);
@@ -105,8 +105,8 @@ export function WalletView() {
   }
 
   const totalReal = selectTotalRealBalance(wallet);
-  const totalFake = selectTotalFakeBalance(wallet);
-  const displayCurrencies = showFake ? CURRENCIES : REAL_CURRENCIES;
+  const totalsave = selectTotalsaveBalance(wallet);
+  const displayCurrencies = showsave ? CURRENCIES : REAL_CURRENCIES;
   const failedAcquisitions = pendingTransactions.filter(t => t.status === 'failed_needs_action');
   const activeSyncing = pendingTransactions.filter(t => t.status === 'pending_sync');
 
@@ -128,9 +128,9 @@ export function WalletView() {
               -{(pendingDebt ?? 0).toLocaleString()} [Sync Pending]
             </Badge>
           )}
-          <Button variant="outline" className="rounded-xl border-white/10 hover:bg-white/5 gap-2" onClick={() => setShowFake(!showFake)}>
-            {showFake ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            {showFake ? 'إخفاء الداخلية' : 'عرض الداخلية'}
+          <Button variant="outline" className="rounded-xl border-white/10 hover:bg-white/5 gap-2" onClick={() => setShowsave(!showsave)}>
+            {showsave ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            {showsave ? 'إخفاء الداخلية' : 'عرض الداخلية'}
           </Button>
           <Button variant="outline" className="rounded-xl border-white/10 hover:bg-white/5" onClick={loadData}>
             <RefreshCcw className="size-4" />
@@ -152,7 +152,7 @@ export function WalletView() {
           <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2 justify-end">
             إجمالي العملات الداخلية <Coins className="size-3" />
           </p>
-          <span className="text-4xl font-bold text-indigo-400 tracking-tighter">{(totalFake ?? 0).toLocaleString()}</span>
+          <span className="text-4xl font-bold text-indigo-400 tracking-tighter">{(totalsave ?? 0).toLocaleString()}</span>
         </Card>
         <Card className="glass border-white/5 rounded-[2.5rem] p-8 flex items-center justify-center">
           <Dialog open={isConvertOpen} onOpenChange={setIsConvertOpen}>

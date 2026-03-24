@@ -18,7 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
-    FAKE_CURRENCIES, FakeCurrencyCode, getCurrencyDef,
+    save_CURRENCIES, saveCurrencyCode, getCurrencyDef,
     getConditionLibrary, addConditionTemplate, removeConditionTemplate,
     getUserUnfreezeRules, activateConditionForUser, updateUnfreezeRuleStatus, removeUserUnfreezeRule,
     getEscalationRequests, createEscalationRequest, resolveEscalationRequest,
@@ -49,7 +49,7 @@ export function CurrencyManagement({ users, currentUser, onRefresh }: CurrencyMa
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
     const [userRules, setUserRules] = useState<UserUnfreezeRule[]>([]);
     const [isLoadingRules, setIsLoadingRules] = useState(false);
-    const [activateCurrency, setActivateCurrency] = useState<FakeCurrencyCode>('EGC_FAKE');
+    const [activateCurrency, setActivateCurrency] = useState<saveCurrencyCode>('EGC_save');
     const [activateConditionId, setActivateConditionId] = useState('');
 
     // Escalation
@@ -244,7 +244,7 @@ export function CurrencyManagement({ users, currentUser, onRefresh }: CurrencyMa
                                             <Select value={activateCurrency} onValueChange={(v: any) => setActivateCurrency(v)}>
                                                 <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse"><SelectValue /></SelectTrigger>
                                                 <SelectContent className="bg-slate-900 border-white/10 text-white">
-                                                    {FAKE_CURRENCIES.map(c => (
+                                                    {save_CURRENCIES.map(c => (
                                                         <SelectItem key={c.code} value={c.code}>{c.icon} {c.nameAr}</SelectItem>
                                                     ))}
                                                 </SelectContent>

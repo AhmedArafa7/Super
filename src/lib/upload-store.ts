@@ -143,7 +143,7 @@ export const useUploadStore = create<UploadState>((set, get) => ({
           await addVideo({
             ...task.metadata,
             channelAvatar: task.metadata.channelAvatar || "",
-            thumbnail: "", // Empty string to ensure no fake thumbnail is assigned
+            thumbnail: "", // Empty string to ensure no save thumbnail is assigned
             source: 'telegram',
             externalUrl: JSON.stringify(chunksMeta) // Store as JSON string for the backend stream reader
           });

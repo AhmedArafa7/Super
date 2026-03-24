@@ -102,13 +102,13 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         setSubscriptions(subs);
         // Removed: syncFeed(subs); // Optimization: Fetch on demand instead of auto-sync
       });
-      
+
       const loadHistory = async () => {
         const data = await getHistory(user.id);
         setHistory(data);
       };
       loadHistory();
-      
+
       window.addEventListener('history-update', loadHistory);
       return () => {
         unsubscribeSubs();
@@ -120,7 +120,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   // Channel Content Effect - Prevents Race Conditions
   useEffect(() => {
     let isMounted = true;
-    
+
     if (activeChannel?.id) {
       const loadChannelContent = async () => {
         setIsChannelLoading(true);
@@ -157,29 +157,29 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   // Load Real Shorts
   useEffect(() => {
     if (activeTab === 'shorts' && shortsFeed.length === 0) {
-       const loadShorts = async () => {
-          setIsShortsLoading(true);
-          try {
-             // Fetch real Shorts by searching "#shorts" with "Under 4 mins" filter
-             const results = await searchYouTube('#shorts', 'EgQQASAB');
-             setShortsFeed(results.map(v => ({...v, isShorts: true})));
-          } catch(e) {}
-          setIsShortsLoading(false);
-       };
-       loadShorts();
+      const loadShorts = async () => {
+        setIsShortsLoading(true);
+        try {
+          // Fetch real Shorts by searching "#shorts" with "Under 4 mins" filter
+          const results = await searchYouTube('#shorts', 'EgQQASAB');
+          setShortsFeed(results.map(v => ({ ...v, isShorts: true })));
+        } catch (e) { }
+        setIsShortsLoading(false);
+      };
+      loadShorts();
     }
   }, [activeTab, shortsFeed.length]);
 
   // Mark Notifications as Read
   useEffect(() => {
-     if (activeTab === 'notifications') {
-        const timeout = setTimeout(() => {
-            const now = Date.now();
-            setLastSeenNotifications(now);
-            localStorage.setItem('nexus_last_notifications', now.toString());
-        }, 3000);
-        return () => clearTimeout(timeout);
-     }
+    if (activeTab === 'notifications') {
+      const timeout = setTimeout(() => {
+        const now = Date.now();
+        setLastSeenNotifications(now);
+        localStorage.setItem('nexus_last_notifications', now.toString());
+      }, 3000);
+      return () => clearTimeout(timeout);
+    }
   }, [activeTab]);
 
   const syncFeed = async (subs: YouTubeSubscription[]) => {
@@ -208,7 +208,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     try {
       const trending = await fetchTrending();
       setTrendingVideos(trending);
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const handleSearch = async (q: string, sp?: string) => {
@@ -265,10 +265,10 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       toast({ title: "تم إرسال الرابط للشبكة بنجاح", description: (user.role === 'admin' || user.role === 'founder') ? "تم النشر." : "في انتظار المراجعة." });
       return null;
     } else {
-      const taskId = addTask(uploadData.file, 'video', { 
-        title: uploadData.title, 
-        author: user.name, 
-        authorId: user.id, 
+      const taskId = addTask(uploadData.file, 'video', {
+        title: uploadData.title,
+        author: user.name,
+        authorId: user.id,
         channelAvatar: user.avatar_url,
         status: user.role === 'admin' ? 'published' : 'pending_review',
         productIds: uploadData.productIds,
@@ -304,11 +304,11 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       });
     }
 
-    const isFakeThumb = (url?: string) => !url || url.includes('photo-1611162617474-5b21e879e113') || url.includes('picsum.photos');
+    const issaveThumb = (url?: string) => !url || url.includes('photo-1611162617474-5b21e879e113') || url.includes('picsum.photos');
 
     const platformVids = videos.filter(v => v.status === 'published').map(v => {
       const sub = subscriptions.find(s => s.channelId === v.authorId);
-      
+
       // Fix: Extract real YouTube ID if source is youtube
       let vidId = v.id;
       if (v.source === 'youtube' && v.externalUrl) {
@@ -320,36 +320,36 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         ...v,
         id: vidId,
         source: v.source || 'platform',
-        thumbnail: isFakeThumb(v.thumbnail) ? null : v.thumbnail,
+        thumbnail: issaveThumb(v.thumbnail) ? null : v.thumbnail,
         channelAvatar: v.channelAvatar || sub?.avatarUrl || (v.authorId === user?.id ? user?.id === v.authorId ? user?.avatar_url : null : null)
       };
     });
 
     const feedVids = feedVideos.map(v => {
       const sub = subscriptions.find(s => s.channelId === v.authorId);
-      return { 
-        ...v, 
-        externalUrl: v.url, 
-        time: "حديثاً", 
+      return {
+        ...v,
+        externalUrl: v.url,
+        time: "حديثاً",
         source: 'youtube',
-        channelAvatar: v.channelAvatar || sub?.avatarUrl 
+        channelAvatar: v.channelAvatar || sub?.avatarUrl
       };
     });
 
     const trendingVids = trendingVideos.map(v => {
       const sub = subscriptions.find(s => s.channelId === v.authorId);
-      return { 
-        ...v, 
-        externalUrl: v.url, 
-        time: "رائج", 
+      return {
+        ...v,
+        externalUrl: v.url,
+        time: "رائج",
         source: 'youtube',
-        channelAvatar: v.channelAvatar || sub?.avatarUrl 
+        channelAvatar: v.channelAvatar || sub?.avatarUrl
       };
     });
 
     // logic for strict filtering or explore
     let combined: any[] = [];
-    
+
     if (activeTab === 'home') {
       combined = [...platformVids, ...feedVids];
     } else if (activeTab === 'explore') {
@@ -357,7 +357,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     } else {
       combined = [...platformVids, ...feedVids, ...trendingVids];
     }
-    
+
     // Category Filter -> Now purely handled by Search when clicked, except for local fallback and Trending
     if (activeCategory === "تريند") return trendingVids;
     if (activeCategory !== "الكل" && searchResults.length === 0) {
@@ -365,11 +365,11 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }
 
     // Shuffle and prioritize
-    combined = combined.sort(() => Math.random() - 0.5); 
+    combined = combined.sort(() => Math.random() - 0.5);
 
     combined.sort((a, b) => {
-      const aHasThumb = a.source === 'youtube' || (a.thumbnail && !isFakeThumb(a.thumbnail));
-      const bHasThumb = b.source === 'youtube' || (b.thumbnail && !isFakeThumb(b.thumbnail));
+      const aHasThumb = a.source === 'youtube' || (a.thumbnail && !issaveThumb(a.thumbnail));
+      const bHasThumb = b.source === 'youtube' || (b.thumbnail && !issaveThumb(b.thumbnail));
       if (aHasThumb && !bHasThumb) return -1;
       if (!aHasThumb && bHasThumb) return 1;
       return 0;
@@ -390,17 +390,17 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           onLogoClick={() => setActiveVideo(null)}
         />
         <div className="flex flex-1 overflow-hidden mt-4 gap-0 relative">
-          <WeTubeSidebar 
-            isSidebarOpen={isSidebarOpen} 
-            activeTab={activeTab} 
+          <WeTubeSidebar
+            isSidebarOpen={isSidebarOpen}
+            activeTab={activeTab}
             variant="overlay"
             setActiveTab={(tab) => {
               setActiveTab(tab);
               setActiveVideo(null);
-            }} 
-            subscriptions={subscriptions} 
+            }}
+            subscriptions={subscriptions}
           />
-          
+
           <div className="flex-1 overflow-y-auto w-full glass rounded-3xl border border-white/5 relative">
             <WeTubeWatchView
               video={activeVideo as any}
@@ -431,9 +431,9 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           <WeTubeSidebar isSidebarOpen={isSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} subscriptions={subscriptions} />
           <div className="flex-1 glass rounded-3xl border border-white/5 overflow-hidden relative">
             {isShortsLoading ? (
-               <div className="flex items-center justify-center h-full"><Loader2 className="size-10 text-white animate-spin" /></div>
+              <div className="flex items-center justify-center h-full"><Loader2 className="size-10 text-white animate-spin" /></div>
             ) : (
-               <WeTubeShortsView shorts={shortsFeed.length > 0 ? shortsFeed : allHomeContent.filter((v: any) => v.isShorts || v.type === 'short')} />
+              <WeTubeShortsView shorts={shortsFeed.length > 0 ? shortsFeed : allHomeContent.filter((v: any) => v.isShorts || v.type === 'short')} />
             )}
           </div>
         </div>
@@ -452,9 +452,9 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       />
 
       <div className="flex flex-1 overflow-hidden mt-4 gap-4 h-[calc(100vh-140px)]">
-        <WeTubeSidebar 
-          isSidebarOpen={isSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} 
-          subscriptions={subscriptions} onChannelClick={handleChannelClick} 
+        <WeTubeSidebar
+          isSidebarOpen={isSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab}
+          subscriptions={subscriptions} onChannelClick={handleChannelClick}
         />
 
         <main className="flex-1 overflow-y-auto w-full glass rounded-3xl border border-white/5 relative flex flex-col hide-scroll">
@@ -468,10 +468,10 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                   onClick={() => {
                     setActiveCategory(cat);
                     if (cat === "الكل") {
-                       setSearchResults([]);
-                       setSearchQuery("");
+                      setSearchResults([]);
+                      setSearchQuery("");
                     } else if (cat !== "تريند") {
-                       handleSearch(cat);
+                      handleSearch(cat);
                     }
                   }}
                   className={cn(
@@ -504,13 +504,13 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                   <button
                     key={f.label}
                     onClick={() => {
-                        setSearchSp(f.sp);
-                        handleSearch(searchQuery, f.sp);
+                      setSearchSp(f.sp);
+                      handleSearch(searchQuery, f.sp);
                     }}
                     className={cn(
                       "px-3 py-1.5 rounded-full text-xs font-medium transition-all border whitespace-nowrap",
-                      searchSp === f.sp 
-                        ? "bg-white text-black border-white shadow-lg" 
+                      searchSp === f.sp
+                        ? "bg-white text-black border-white shadow-lg"
                         : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
                     )}
                   >
@@ -564,7 +564,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                         <span>{channelVideos.length} فيديو</span>
                       </div>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setActiveChannel(null)}
                       className="mr-auto px-4 py-2 rounded-full border border-white/10 hover:bg-white/5 transition-colors text-sm"
                     >
@@ -627,32 +627,32 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
                     <h2 className="text-xl font-bold">سجل المشاهدة الأخير</h2>
                   </div>
                   {history.length === 0 ? (
-                      <p className="text-center py-20 opacity-50 bg-white/5 rounded-3xl">لا يوجد سجل مشاهدة حالياً</p>
+                    <p className="text-center py-20 opacity-50 bg-white/5 rounded-3xl">لا يوجد سجل مشاهدة حالياً</p>
                   ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-10">
-                       {history.map((h, i) => {
-                           const sub = subscriptions.find(s => s.channelId === h.channelId);
-                           const vid = { 
-                               id: h.videoId, 
-                               title: h.title, 
-                               thumbnail: h.thumbnail, 
-                               author: h.author, 
-                               channelAvatar: h.channelAvatar || sub?.avatarUrl, 
-                               source: 'youtube' as const, 
-                               time: "شوهد مؤخراً" 
-                           };
-                           return (
-                               <VideoCard
-                                   key={`hist-${h.id}-${i}`} 
-                                   video={vid as any}
-                                   isCached={cachedAssets.some(a => a.id === `video-${h.videoId}`)} 
-                                   onSync={handleToggleLocal}
-                                   onChannelClick={handleChannelClick}
-                                   onClick={() => setActiveVideo(vid as any)}
-                               />
-                           );
-                       })}
-                      </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-10">
+                      {history.map((h, i) => {
+                        const sub = subscriptions.find(s => s.channelId === h.channelId);
+                        const vid = {
+                          id: h.videoId,
+                          title: h.title,
+                          thumbnail: h.thumbnail,
+                          author: h.author,
+                          channelAvatar: h.channelAvatar || sub?.avatarUrl,
+                          source: 'youtube' as const,
+                          time: "شوهد مؤخراً"
+                        };
+                        return (
+                          <VideoCard
+                            key={`hist-${h.id}-${i}`}
+                            video={vid as any}
+                            isCached={cachedAssets.some(a => a.id === `video-${h.videoId}`)}
+                            onSync={handleToggleLocal}
+                            onChannelClick={handleChannelClick}
+                            onClick={() => setActiveVideo(vid as any)}
+                          />
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               </div>
@@ -662,55 +662,55 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
             {activeTab === 'notifications' && (
               <div className="space-y-6 rtl flex flex-col items-end text-right">
                 <div className="w-full flex items-center justify-between border-b border-white/10 pb-4 mb-6">
-                   <h2 className="text-xl font-bold">التنبيهات والمستجدات</h2>
-                   <Bell className="size-6 text-yellow-400" />
+                  <h2 className="text-xl font-bold">التنبيهات والمستجدات</h2>
+                  <Bell className="size-6 text-yellow-400" />
                 </div>
                 {feedVideos.length === 0 ? (
-                    <div className="w-full text-center py-20 opacity-50 bg-white/5 rounded-3xl">
-                        <Bell className="size-12 mx-auto mb-4 opacity-20" />
-                        <p>لا توجد تنبيهات جديدة من قنواتك</p>
-                    </div>
+                  <div className="w-full text-center py-20 opacity-50 bg-white/5 rounded-3xl">
+                    <Bell className="size-12 mx-auto mb-4 opacity-20" />
+                    <p>لا توجد تنبيهات جديدة من قنواتك</p>
+                  </div>
                 ) : (
-                    <div className="w-full space-y-4">
-                        {feedVideos.slice(0, 20).map((v, i) => (
-                            <button 
-                                key={`notif-${v.id}-${i}`}
-                                onClick={() => setActiveVideo({ ...v, externalUrl: v.url, source: 'youtube' } as any)}
-                                className="w-full flex items-start gap-4 p-4 rounded-2xl hover:bg-white/5 transition-all group border border-transparent hover:border-white/10"
+                  <div className="w-full space-y-4">
+                    {feedVideos.slice(0, 20).map((v, i) => (
+                      <button
+                        key={`notif-${v.id}-${i}`}
+                        onClick={() => setActiveVideo({ ...v, externalUrl: v.url, source: 'youtube' } as any)}
+                        className="w-full flex items-start gap-4 p-4 rounded-2xl hover:bg-white/5 transition-all group border border-transparent hover:border-white/10"
+                      >
+                        <div className="size-16 rounded-xl overflow-hidden shrink-0 shadow-lg border border-white/5">
+                          <img src={v.thumbnail} className="size-full object-cover" />
+                        </div>
+                        <div className="flex-1 text-right">
+                          <p className="font-bold text-sm line-clamp-2 mb-1 group-hover:text-indigo-400 transition-colors">{v.title}</p>
+                          <div className="flex items-center gap-2 justify-end text-[10px] text-muted-foreground">
+                            <span
+                              className="hover:text-white transition-colors cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleChannelClick(v.authorId, v.author, v.channelAvatar);
+                              }}
                             >
-                                <div className="size-16 rounded-xl overflow-hidden shrink-0 shadow-lg border border-white/5">
-                                    <img src={v.thumbnail} className="size-full object-cover" />
-                                </div>
-                                <div className="flex-1 text-right">
-                                    <p className="font-bold text-sm line-clamp-2 mb-1 group-hover:text-indigo-400 transition-colors">{v.title}</p>
-                                    <div className="flex items-center gap-2 justify-end text-[10px] text-muted-foreground">
-                                        <span 
-                                            className="hover:text-white transition-colors cursor-pointer"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleChannelClick(v.authorId, v.author, v.channelAvatar);
-                                            }}
-                                        >
-                                            • {v.author}
-                                        </span>
-                                        {v.channelAvatar && (
-                                            <div 
-                                                className="size-4 rounded-full overflow-hidden border border-white/10 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleChannelClick(v.authorId, v.author, v.channelAvatar);
-                                                }}
-                                            >
-                                                <img src={v.channelAvatar} className="size-full object-cover" />
-                                            </div>
-                                        )}
-                                        {((v as any).fetchedAt || 0) > lastSeenNotifications && <span className="bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded">فيديو جديد</span>}
-                                    </div>
-                                </div>
-                                {((v as any).fetchedAt || 0) > lastSeenNotifications && <div className="size-2 rounded-full bg-blue-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>}
-                            </button>
-                        ))}
-                    </div>
+                              • {v.author}
+                            </span>
+                            {v.channelAvatar && (
+                              <div
+                                className="size-4 rounded-full overflow-hidden border border-white/10 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleChannelClick(v.authorId, v.author, v.channelAvatar);
+                                }}
+                              >
+                                <img src={v.channelAvatar} className="size-full object-cover" />
+                              </div>
+                            )}
+                            {((v as any).fetchedAt || 0) > lastSeenNotifications && <span className="bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded">فيديو جديد</span>}
+                          </div>
+                        </div>
+                        {((v as any).fetchedAt || 0) > lastSeenNotifications && <div className="size-2 rounded-full bg-blue-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             )}

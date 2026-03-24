@@ -14,36 +14,36 @@ import {
 // --- Currency Definitions ---
 
 export type RealCurrencyCode = 'EGC' | 'DLC' | 'MDC' | 'GMC' | 'BKC';
-export type FakeCurrencyCode = 'EGC_FAKE' | 'DLC_FAKE' | 'MDC_FAKE' | 'GMC_FAKE' | 'BKC_FAKE';
-export type CurrencyCode = RealCurrencyCode | FakeCurrencyCode;
+export type saveCurrencyCode = 'EGC_save' | 'DLC_save' | 'MDC_save' | 'GMC_save' | 'BKC_save';
+export type CurrencyCode = RealCurrencyCode | saveCurrencyCode;
 
 export interface CurrencyDefinition {
     code: CurrencyCode;
     name: string;
     nameAr: string;
-    isFake: boolean;
-    realCounterpart?: RealCurrencyCode; // for fake coins: which real coin it maps to
+    issave: boolean;
+    realCounterpart?: RealCurrencyCode; // for save coins: which real coin it maps to
     color: string;
     icon: string; // emoji or icon key
 }
 
 export const CURRENCIES: CurrencyDefinition[] = [
     // Real Coins
-    { code: 'EGC', name: 'Egyptian Coin', nameAr: 'العملة المصرية', isFake: false, color: 'emerald', icon: '🇪🇬' },
-    { code: 'DLC', name: 'Dollar Coin', nameAr: 'عملة الدولار', isFake: false, color: 'green', icon: '💵' },
-    { code: 'MDC', name: 'Media Coin', nameAr: 'عملة الميديا', isFake: false, color: 'blue', icon: '🎬' },
-    { code: 'GMC', name: 'Game Coin', nameAr: 'عملة الألعاب', isFake: false, color: 'purple', icon: '🎮' },
-    { code: 'BKC', name: 'Back Coin', nameAr: 'عملة الباك', isFake: false, color: 'amber', icon: '🔙' },
-    // Fake (Internal) Coins
-    { code: 'EGC_FAKE', name: 'Egyptian Coin (Internal)', nameAr: 'المصرية (داخلي)', isFake: true, realCounterpart: 'EGC', color: 'emerald', icon: '🇪🇬' },
-    { code: 'DLC_FAKE', name: 'Dollar Coin (Internal)', nameAr: 'الدولار (داخلي)', isFake: true, realCounterpart: 'DLC', color: 'green', icon: '💵' },
-    { code: 'MDC_FAKE', name: 'Media Coin (Internal)', nameAr: 'الميديا (داخلي)', isFake: true, realCounterpart: 'MDC', color: 'blue', icon: '🎬' },
-    { code: 'GMC_FAKE', name: 'Game Coin (Internal)', nameAr: 'الألعاب (داخلي)', isFake: true, realCounterpart: 'GMC', color: 'purple', icon: '🎮' },
-    { code: 'BKC_FAKE', name: 'Back Coin (Internal)', nameAr: 'الباك (داخلي)', isFake: true, realCounterpart: 'BKC', color: 'amber', icon: '🔙' },
+    { code: 'EGC', name: 'Egyptian Coin', nameAr: 'العملة المصرية', issave: false, color: 'emerald', icon: '🇪🇬' },
+    { code: 'DLC', name: 'Dollar Coin', nameAr: 'عملة الدولار', issave: false, color: 'green', icon: '💵' },
+    { code: 'MDC', name: 'Media Coin', nameAr: 'عملة الميديا', issave: false, color: 'blue', icon: '🎬' },
+    { code: 'GMC', name: 'Game Coin', nameAr: 'عملة الألعاب', issave: false, color: 'purple', icon: '🎮' },
+    { code: 'BKC', name: 'Back Coin', nameAr: 'عملة الباك', issave: false, color: 'amber', icon: '🔙' },
+    // save (Internal) Coins
+    { code: 'EGC_save', name: 'Egyptian Coin (Internal)', nameAr: 'المصرية (داخلي)', issave: true, realCounterpart: 'EGC', color: 'emerald', icon: '🇪🇬' },
+    { code: 'DLC_save', name: 'Dollar Coin (Internal)', nameAr: 'الدولار (داخلي)', issave: true, realCounterpart: 'DLC', color: 'green', icon: '💵' },
+    { code: 'MDC_save', name: 'Media Coin (Internal)', nameAr: 'الميديا (داخلي)', issave: true, realCounterpart: 'MDC', color: 'blue', icon: '🎬' },
+    { code: 'GMC_save', name: 'Game Coin (Internal)', nameAr: 'الألعاب (داخلي)', issave: true, realCounterpart: 'GMC', color: 'purple', icon: '🎮' },
+    { code: 'BKC_save', name: 'Back Coin (Internal)', nameAr: 'الباك (داخلي)', issave: true, realCounterpart: 'BKC', color: 'amber', icon: '🔙' },
 ];
 
-export const REAL_CURRENCIES = CURRENCIES.filter(c => !c.isFake);
-export const FAKE_CURRENCIES = CURRENCIES.filter(c => c.isFake);
+export const REAL_CURRENCIES = CURRENCIES.filter(c => !c.issave);
+export const save_CURRENCIES = CURRENCIES.filter(c => c.issave);
 export const ALL_CURRENCY_CODES: CurrencyCode[] = CURRENCIES.map(c => c.code);
 
 export const getCurrencyDef = (code: CurrencyCode): CurrencyDefinition | undefined =>
@@ -68,7 +68,7 @@ export interface UnfreezeConditionTemplate {
 export interface UserUnfreezeRule {
     id: string;
     userId: string;
-    currencyCode: FakeCurrencyCode;
+    currencyCode: saveCurrencyCode;
     conditionId: string; // references UnfreezeConditionTemplate.id
     conditionLabel: string; // denormalized for display
     status: 'pending' | 'fulfilled' | 'waived';
@@ -147,7 +147,7 @@ export const getUserUnfreezeRules = async (userId: string): Promise<UserUnfreeze
  */
 export const activateConditionForUser = async (
     userId: string,
-    currencyCode: FakeCurrencyCode,
+    currencyCode: saveCurrencyCode,
     conditionId: string,
     conditionLabel: string,
     adminId: string
@@ -188,14 +188,14 @@ export const removeUserUnfreezeRule = async (userId: string, ruleId: string): Pr
 };
 
 /**
- * فحص هل التحويل من Fake → Real مسموح (كل الشروط fulfilled أو waived)
+ * فحص هل التحويل من save → Real مسموح (كل الشروط fulfilled أو waived)
  */
-export const canConvertFakeToReal = async (
+export const canConvertsaveToReal = async (
     userId: string,
-    fakeCurrencyCode: FakeCurrencyCode
+    saveCurrencyCode: saveCurrencyCode
 ): Promise<{ allowed: boolean; pendingConditions: UserUnfreezeRule[] }> => {
     const rules = await getUserUnfreezeRules(userId);
-    const relevantRules = rules.filter(r => r.currencyCode === fakeCurrencyCode);
+    const relevantRules = rules.filter(r => r.currencyCode === saveCurrencyCode);
 
     // لو مفيش شروط أصلاً، التحويل مقيد (يحتاج الأدمن يحدد الشروط أول)
     if (relevantRules.length === 0) {

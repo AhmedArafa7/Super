@@ -34,7 +34,7 @@ interface WalletCurrencyCardProps {
 export function WalletCurrencyCard({ currency, balance, frozen, unfreezeRules }: WalletCurrencyCardProps) {
   const colorClass = CURRENCY_COLORS[currency.color] || CURRENCY_COLORS.emerald;
   const textColor = CURRENCY_TEXT_COLORS[currency.color] || CURRENCY_TEXT_COLORS.emerald;
-  const pendingRules = currency.isFake
+  const pendingRules = currency.issave
     ? unfreezeRules.filter(r => r.currencyCode === currency.code && r.status === 'pending')
     : [];
 
@@ -47,7 +47,7 @@ export function WalletCurrencyCard({ currency, balance, frozen, unfreezeRules }:
       <CardContent className="p-6 relative">
         <div className="flex items-center justify-between flex-row-reverse mb-4">
           <span className="text-2xl">{currency.icon}</span>
-          {currency.isFake && (
+          {currency.issave && (
             <Badge className="bg-white/10 text-[8px] border-none text-white/60">داخلي</Badge>
           )}
         </div>
