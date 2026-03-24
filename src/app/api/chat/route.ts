@@ -65,7 +65,7 @@ export async function POST(req: Request) {
     // قائمة الموديلات المقترحة للـ Gemini - تم استخدام الأولوية الأكثر استقراراً لـ v1beta
     const geminiModels = [
       'gemini-2.5-flash-latest',
-      'gemini-2.0-flash',
+      'gemini-2.5-flash',
       'gemini-2.5-flash',
       'gemini-1.5-pro'
     ];

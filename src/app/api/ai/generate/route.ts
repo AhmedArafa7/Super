@@ -45,7 +45,7 @@ async function callGemini(model: string, prompt: string, history: any[] = [], im
     // [STABILITY] Fallback to 2.0-flash if 1.5 is missing or restricted
     if (err.message?.includes('not found') && model === 'gemini-2.5-flash') {
       console.warn("Gemini 2.5 Flash not found, falling back to 2.0 Flash.");
-      return await execute('gemini-2.0-flash');
+      return await execute('gemini-2.5-flash');
     }
     throw err;
   }
