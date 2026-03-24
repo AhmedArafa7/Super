@@ -66,10 +66,16 @@ export function AgentChat() {
         });
       }
     },
-    onError: (err: any) => {
+    onError: async (error: any) => {
       if (!showQuotaDialog) {
-        addLog("فشل في الاتصال بمحرك الذكاء الاصطناعي.", 'error');
-        toast({ variant: "destructive", title: "خطأ في المعالجة" });
+        let detail = error.message;
+        try {
+          const res = await error.response?.json();
+          if (res?.error) detail = res.error;
+        } catch (e) {}
+        
+        addLog(`خطأ معالج: ${detail}`, 'error');
+        toast({ variant: "destructive", title: "خطأ في المعالجة", description: detail });
       }
     }
   } as any);
@@ -88,10 +94,13 @@ export function AgentChat() {
         throw new Error(`دالة الإرسال غير متوفرة (متوفر: ${availableKeys})`);
       }
       
-      // FORCE the API endpoint in the call itself to bypass hook init issues
+      // FORCE the API endpoint and BODY in the call itself
       appendFn(
         { role: 'user', content: inputValue }, 
-        { api: '/api/chat' } as any
+        { 
+          api: '/api/chat',
+          body: { preferredAI, autoFallback }
+        } as any
       );
       setInputValue('');
     } catch (err: any) {
