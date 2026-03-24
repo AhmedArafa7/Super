@@ -42,9 +42,9 @@ async function callGemini(model: string, prompt: string, history: any[] = [], im
   try {
     return await execute(model);
   } catch (err: any) {
-    // [STABILITY] Fallback to 2.0-flash if 1.5 is missing or restricted
+    // [STABILITY] Fallback to 2.5-flash if 1.5 is missing or restricted
     if (err.message?.includes('not found') && model === 'gemini-2.5-flash') {
-      console.warn("Gemini 2.5 Flash not found, falling back to 2.0 Flash.");
+      console.warn("Gemini 2.5 Flash not found, falling back to 2.5 Flash.");
       return await execute('gemini-2.5-flash');
     }
     throw err;
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
 
     // تصحيح مسميات Gemini
     if (modelToUse.includes('gemini')) {
-      if (modelToUse.includes('1.5-flash')) modelToUse = 'gemini-2.5-flash';
+      if (modelToUse.includes('2.5-flash')) modelToUse = 'gemini-2.5-flash';
       else if (modelToUse.includes('1.5-pro')) modelToUse = 'gemini-1.5-pro';
       else if (modelToUse === 'flash-latest') modelToUse = 'gemini-2.5-flash';
     }
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
         responseText = await callGroq(modelToUse, promptToUse, history);
         engineName = "Groq Engine";
       } else {
-        // [STABILITY] محاولة استخدام Gemini مع Fallback داخلي لنسخة 2.0
+        // [STABILITY] محاولة استخدام Gemini مع Fallback داخلي لنسخة 2.5
         const geminiModel = modelToUse.includes('gemini') ? modelToUse : 'gemini-2.5-flash';
         responseText = await callGemini(geminiModel, promptToUse, history, imageDataUri);
         engineName = geminiModel.includes('pro') ? "Gemini Pro" : "Gemini Flash";
