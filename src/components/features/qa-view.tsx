@@ -30,6 +30,7 @@ export function QAView() {
 
   const [editPost, setEditPost] = useState<QAPost | null>(null);
   const [editText, setEditText] = useState("");
+  const [editAnonymous, setEditAnonymous] = useState(false);
   
   const [answerPost, setAnswerPost] = useState<QAPost | null>(null);
   const [answerText, setAnswerText] = useState("");
@@ -66,7 +67,7 @@ export function QAView() {
   const handleUpdatePost = async () => {
     if (!editPost || !editText.trim() || !user) return;
     try {
-      await updateQAPostUser(editPost.id, user.id, editText, editPost.category);
+      await updateQAPostUser(editPost.id, user.id, editText, editPost.category, editAnonymous);
       setEditPost(null);
       toast({ title: "تم التعديل", description: "تم تحديث مشاركتك بنجاح." });
     } catch (error: any) {
@@ -225,7 +226,11 @@ export function QAView() {
                     {user?.id === post.authorId && !post.answer && (
                       <div className="flex gap-2">
                         <Dialog open={editPost?.id === post.id} onOpenChange={(open) => {
-                          if (open) { setEditPost(post); setEditText(post.text); }
+                          if (open) { 
+                            setEditPost(post); 
+                            setEditText(post.text); 
+                            setEditAnonymous(post.isAnonymous || false);
+                          }
                           else setEditPost(null);
                         }}>
                           <DialogTrigger asChild>
@@ -240,8 +245,16 @@ export function QAView() {
                               value={editText}
                               onChange={(e) => setEditText(e.target.value)}
                             />
+                            <div className="flex items-center justify-between p-2 mt-4 bg-white/5 rounded-lg">
+                              <Label htmlFor="edit-anonymous-mode" className="text-sm text-white/70">إرسال بهوية مخفية (Anonymous)</Label>
+                              <Switch 
+                                id="edit-anonymous-mode" 
+                                checked={editAnonymous} 
+                                onCheckedChange={setEditAnonymous}
+                              />
+                            </div>
                             <DialogFooter className="mt-4">
-                              <Button onClick={handleUpdatePost} disabled={!editText.trim() || editText === post.text}>حفظ التعديلات</Button>
+                              <Button onClick={handleUpdatePost} disabled={!editText.trim() || (editText === post.text && editAnonymous === post.isAnonymous)}>حفظ التعديلات</Button>
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>

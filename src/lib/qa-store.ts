@@ -68,7 +68,8 @@ export const updateQAPostUser = async (
   postId: string,
   userId: string,
   newText: string,
-  newCategory: QACategory
+  newCategory: QACategory,
+  isAnonymous?: boolean
 ): Promise<void> => {
   const { firestore } = initializeFirebase();
   const postRef = doc(firestore, 'qa_posts', postId);
@@ -83,6 +84,7 @@ export const updateQAPostUser = async (
   await updateDoc(postRef, {
     text: newText,
     category: newCategory,
+    isAnonymous: isAnonymous ?? data.isAnonymous,
     updatedAt: new Date().toISOString(),
   });
 };
