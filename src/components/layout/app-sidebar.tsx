@@ -55,26 +55,31 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { id: "admin", label: "لوحة الإدارة", icon: ShieldCheck, restricted: true },
 ];
 
-export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, togglePin, uploadTasks, unreadCount, pendingOffersCount }: any) {
+export function getVisibleNavItems(user: any, settings: any, navItems: NavItem[]) {
   const managementRoles = ['founder', 'cofounder', 'admin', 'management'];
   const hasAdminAccess = user && managementRoles.includes(user.role);
+  
+  const isBeta = (id: string) => settings?.sections?.[id]?.isBeta ?? false;
 
-  const navItemsWithBadges = ALL_NAV_ITEMS.map(item => {
+  return navItems.filter(item => {
+    if (item.restricted && !hasAdminAccess) return false;
+    if (isBeta(item.id) && !hasAdminAccess) return false;
+    return true;
+  });
+}
+
+export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, togglePin, uploadTasks, unreadCount, pendingOffersCount }: any) {
+  const { settings } = useSettingsStore();
+  const { settings: proSettings } = useProStore();
+  const isPro = proSettings.frameSkipRatio !== undefined; // Heuristic for now or just check a flag
+  
+  const visibleItems = getVisibleNavItems(user, settings, ALL_NAV_ITEMS).map(item => {
     if (item.id === 'offers') return { ...item, badge: pendingOffersCount };
     if (item.id === 'notifications') return { ...item, badge: unreadCount };
     return item;
   });
 
-  const { settings } = useSettingsStore();
-  const { settings: proSettings } = useProStore();
-  const isPro = proSettings.frameSkipRatio !== undefined; // Heuristic for now or just check a flag
   const isBeta = (id: string) => settings?.sections?.[id]?.isBeta ?? false;
-
-  const visibleItems = navItemsWithBadges.filter(item => {
-    if (item.restricted && !hasAdminAccess) return false;
-    if (isBeta(item.id) && !hasAdminAccess) return false;
-    return true;
-  });
   const pinnedSidebarItems = visibleItems.filter(item => isPinned(item.id));
 
   return (

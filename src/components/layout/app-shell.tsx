@@ -39,7 +39,7 @@ import { getReceivedOffers } from "@/lib/market-store";
 import { useAuth } from "@/components/auth/auth-provider";
 import { LoginView } from "@/components/auth/login-view";
 import { toast } from "@/hooks/use-toast";
-import { AppSidebar } from "./app-sidebar";
+import { AppSidebar, getVisibleNavItems, ALL_NAV_ITEMS } from "./app-sidebar";
 import { AppHeader } from "./app-header";
 import { DulmsLayout } from "./dulms-layout";
 import { getThemeBySlug } from "@/lib/theme-store";
@@ -55,7 +55,24 @@ const VAULT_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbr
  */
 export function AppShell() {
   const { user, isAuthenticated, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<NavItemId>("dashboard");
+  const { settings } = useSettingsStore();
+  
+  // Dynamic Initial Tab Logic
+  const [activeTab, setActiveTab] = useState<NavItemId>("chat"); // Default safe fallback
+  const [hasInitializedTab, setHasInitializedTab] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && user && settings && !hasInitializedTab) {
+      const visible = getVisibleNavItems(user, settings, ALL_NAV_ITEMS);
+      // If "dashboard" is visible, use it, otherwise use the first visible item
+      const initial = visible.some(i => i.id === 'dashboard') 
+        ? "dashboard" 
+        : (visible[0]?.id as NavItemId || "chat");
+      setActiveTab(initial);
+      setHasInitializedTab(true);
+    }
+  }, [isAuthenticated, user, settings, hasInitializedTab]);
+
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingOffersCount, setPendingOffersCount] = useState(0);
 
@@ -124,6 +141,27 @@ export function AppShell() {
             </div>
           </header>
           <iframe src={launchedApp.url} className="flex-1 w-full border-none bg-white" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" title={launchedApp.title} />
+        </div>
+      );
+    }
+
+    const visibleItems = getVisibleNavItems(user, settings, ALL_NAV_ITEMS);
+    const isTabVisible = visibleItems.some(item => item.id === activeTab);
+
+    // Protection Layer: if tab is not visible/allowed, fallback to a safe component or "Access Denied"
+    if (!isTabVisible && activeTab !== 'notifications' && activeTab !== 'settings') {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center p-8 animate-in fade-in duration-500">
+          <div className="size-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-6 border border-red-500/20">
+            <X className="size-10" />
+          </div>
+          <h2 className="text-2xl font-black text-white mb-2">منطقة مقيدة</h2>
+          <p className="text-muted-foreground max-w-md">أنت لا تملك صلاحية الوصول لهذا القسم حالياً (نسخة Beta أو مقيد للإدارة).</p>
+          <Button 
+            variant="outline" 
+            className="mt-8 rounded-xl border-white/10"
+            onClick={() => setActiveTab(visibleItems[0]?.id as NavItemId || "qa")}
+          >العودة للأقسام المتاحة</Button>
         </div>
       );
     }
