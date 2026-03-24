@@ -6,11 +6,12 @@ import { z } from 'zod';
 export const runtime = 'edge';
 export const maxDuration = 60;
 
-// Resilience for API keys
-const GEMINI_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY || 
-                        process.env.GOOGLE_GENAI_API_KEY || 
-                        process.env.GEMINI_API_KEY || 
-                        process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+// Resilience for API keys (Matched with generate/route.ts)
+const GEMINI_API_KEY = process.env.GOOGLE_GENAI_API_KEY ||
+  process.env.GEMINI_API_KEY ||
+  process.env.NEXT_PUBLIC_DRIVE_API_KEY ||
+  process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
 // نظام الـ Neural Cache لتذكر الموديل المستقر وتجنب المحاولات الفاشلة المكررة
 let currentStableModel: string | null = null;
@@ -28,7 +29,14 @@ const groq = createOpenAI({
 export async function POST(req: Request) {
   try {
     const { messages, preferredAI, autoFallback } = await req.json();
-    
+
+    if (!GEMINI_API_KEY && preferredAI !== 'groq') {
+      return new Response(JSON.stringify({
+        error: 'Neural Key Missing',
+        diagnostics: 'مفتاح Gemini غير متوفر في إعدادات السيرفر.'
+      }), { status: 500 });
+    }
+
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: 'Messages array is required' }), { status: 400 });
     }
@@ -56,10 +64,9 @@ export async function POST(req: Request) {
 
     // قائمة الموديلات المقترحة للـ Gemini - تم استخدام الأولوية الأكثر استقراراً لـ v1beta
     const geminiModels = [
-      'gemini-1.5-flash-latest',
+      'gemini-2.5-flash-latest',
       'gemini-2.0-flash',
-      'gemini-1.5-flash',
-      'models/gemini-1.5-flash',
+      'gemini-2.5-flash',
       'gemini-1.5-pro'
     ];
 
@@ -95,28 +102,31 @@ export async function POST(req: Request) {
     for (const modelId of candidates) {
       try {
         console.log(`Neural Architect: Pre-flight check for ${modelId}`);
-        
-        // فحص استباقي لوجود الموديل قبل بدء الستريم لضمان عمل الـ try-catch
-        // هذا يمنع وصول أخطاء "Model not found" للمستخدم النهائي
-        const checkUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId.includes('/') ? modelId : 'models/'+modelId}?key=${GEMINI_API_KEY}`;
+
+        // فحص استباقي لوجود الموديل قبل بدء الستريم
+        // تصحيح: إزالة models/ من الاسم قبل وضعه في رابط الفحص لتجنب التكرار
+        const cleanModelId = modelId.replace('models/', '');
+        const checkUrl = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModelId}?key=${GEMINI_API_KEY}`;
         const checkRes = await fetch(checkUrl);
-        
+
         if (!checkRes.ok) {
           const errorData = await checkRes.json().catch(() => ({}));
           throw new Error(errorData.error?.message || 'not found');
         }
 
         const result = await getResult(googleProvider(modelId));
-        
+
         // إذا وصلنا لهنا، الموديل موجود ومستعد
         currentStableModel = modelId;
         return result.toUIMessageStreamResponse();
       } catch (error: any) {
         lastError = error;
-        const isModelError = error.message?.includes('not found') || error.message?.includes('not supported') || error.message?.includes('Method not allowed');
+        const isModelAvailabilityError = error.message?.toLowerCase().includes('not found') ||
+          error.message?.toLowerCase().includes('not supported') ||
+          error.message?.toLowerCase().includes('method not allowed');
         const isQuotaError = error.message?.includes('quota') || error.status === 429;
-        
-        if (isModelError) {
+
+        if (isModelAvailabilityError) {
           console.warn(`Neural Architect: ${modelId} is unavailable. Blacklisting and trying next...`);
           blacklistedModels.add(modelId);
           if (currentStableModel === modelId) currentStableModel = null;
@@ -128,7 +138,7 @@ export async function POST(req: Request) {
           const fallbackResult = await getResult(groq('llama-3.3-70b-versatile'));
           return fallbackResult.toUIMessageStreamResponse();
         }
-        
+
         throw error;
       }
     }
@@ -144,9 +154,9 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error('Agent API Error:', error);
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       error: error.message,
-      diagnostics: 'تأكد من إعداد مفاتيح الـ API بشكل صحيح في السيرفر.'
+      diagnostics: 'اضطراب في الشبكة العصبية. يرجى مراجعة مفاتيح الربط.'
     }), { status: 500 });
   }
 }

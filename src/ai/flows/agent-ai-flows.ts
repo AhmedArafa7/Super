@@ -32,9 +32,9 @@ export async function processAgentTask(input: z.infer<typeof AgentCodeInputSchem
     return { success: true, ...result };
   } catch (err: any) {
     console.error("Agent Engine Failure:", err);
-    return { 
-      success: false, 
-      error: true, 
+    return {
+      success: false,
+      error: true,
       message: err.message || "فشل المهندس العصبي في معالجة المهمة.",
       explanation: "حدث خطأ أثناء محاولة بناء العقد البرمجية.",
       steps: ["توقف مفاجئ في النخاع"],
@@ -45,7 +45,7 @@ export async function processAgentTask(input: z.infer<typeof AgentCodeInputSchem
 
 const agentPrompt = ai.definePrompt({
   name: 'agentCodePrompt',
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-2.5-flash',
   input: { schema: AgentCodeInputSchema },
   output: { schema: AgentCodeOutputSchema },
   prompt: `أنت "المهندس العصبي" (Neural Architect) في نظام NexusAI. 

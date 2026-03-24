@@ -13,7 +13,7 @@ export interface Attachment {
   id: string;
   type: 'image' | 'audio' | 'file';
   name: string;
-  url: string; 
+  url: string;
   size: string;
   mimeType: string;
 }
@@ -22,7 +22,7 @@ export interface WizardMessage {
   id: string;
   userId: string;
   userName: string;
-  text: string; 
+  text: string;
   originalText: string;
   optimizedText?: string;
   selectedModel?: string;
@@ -59,7 +59,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isConnected: true,
   isSending: false,
   autoMode: true,
-  selectedManualModel: 'googleai/gemini-1.5-flash',
+  selectedManualModel: 'googleai/gemini-2.5-flash',
 
   setConnected: (status) => set({ isConnected: status }),
   setAutoMode: (autoMode) => set({ autoMode }),
@@ -68,21 +68,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loadMessages: (userId) => {
     set({ isLoading: true });
     const { firestore } = initializeFirebase();
-    
+
     const messagesRef = collection(firestore, 'users', userId, 'messages');
     const q = query(messagesRef, orderBy('timestamp', 'asc'));
 
-    return onSnapshot(q, 
+    return onSnapshot(q,
       (snapshot) => {
         const messages = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as WizardMessage));
         set({ messages, isLoading: false, isConnected: true });
-      }, 
+      },
       async (serverError) => {
         const permissionError = new FirestorePermissionError({
           path: messagesRef.path,
           operation: 'list',
         } satisfies SecurityRuleContext);
-        
+
         errorEmitter.emit('permission-error', permissionError);
         set({ isLoading: false, isConnected: false });
       }
@@ -108,7 +108,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     };
 
     const messagesRef = collection(firestore, 'users', userId, 'messages');
-    
+
     try {
       const docRef = await addDoc(messagesRef, msgData);
       set({ isSending: false });
@@ -120,7 +120,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         operation: 'create',
         requestResourceData: msgData,
       } satisfies SecurityRuleContext);
-      
+
       errorEmitter.emit('permission-error', permissionError);
       set({ isSending: false });
       return null;
@@ -138,9 +138,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       originalText: newText,
       isAutoMode: autoMode,
       selectedModel: autoMode ? 'Auto Selecting...' : selectedManualModel,
-      response: null, 
-      optimizedText: null, 
-      status: 'sent', 
+      response: null,
+      optimizedText: null,
+      status: 'sent',
       timestamp: new Date().toISOString()
     };
 
@@ -152,7 +152,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           operation: 'update',
           requestResourceData: updates,
         } satisfies SecurityRuleContext);
-        
+
         errorEmitter.emit('permission-error', permissionError);
         set({ isSending: false });
       });
@@ -163,13 +163,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
   deleteMessage: async (id, userId) => {
     const { firestore } = initializeFirebase();
     const docRef = doc(firestore, 'users', userId, 'messages', id);
-    
+
     deleteDoc(docRef).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: docRef.path,
         operation: 'delete',
       } satisfies SecurityRuleContext);
-      
+
       errorEmitter.emit('permission-error', permissionError);
     });
   },
@@ -177,14 +177,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   updateMessageText: async (id, userId, newText) => {
     const { firestore } = initializeFirebase();
     const docRef = doc(firestore, 'users', userId, 'messages', id);
-    
+
     updateDoc(docRef, { text: newText }).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: docRef.path,
         operation: 'update',
         requestResourceData: { text: newText },
       } satisfies SecurityRuleContext);
-      
+
       errorEmitter.emit('permission-error', permissionError);
     });
   },
@@ -192,13 +192,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
   provideAIResponse: async (id, userId, data) => {
     const { firestore } = initializeFirebase();
     const docRef = doc(firestore, 'users', userId, 'messages', id);
-    
+
     const updates: any = {
       response: data.response || "عذراً، لم يتم توليد رد.",
       engine: data.engine || "System",
       optimizedText: data.optimizedText || null,
       selectedModel: data.selectedModel || null,
-      status: 'replied' 
+      status: 'replied'
     };
 
     updateDoc(docRef, updates).catch(async (serverError) => {
@@ -207,7 +207,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         operation: 'update',
         requestResourceData: updates,
       } satisfies SecurityRuleContext);
-      
+
       errorEmitter.emit('permission-error', permissionError);
     });
   }
@@ -216,7 +216,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 export const getStoredMessages = async (userId?: string, fetchAll = false): Promise<WizardMessage[]> => {
   const { firestore } = initializeFirebase();
   const allMessages: WizardMessage[] = [];
-  
+
   if (fetchAll) {
     try {
       const q = query(collectionGroup(firestore, 'messages'));
@@ -233,7 +233,7 @@ export const getStoredMessages = async (userId?: string, fetchAll = false): Prom
     const snap = await getDocs(q);
     snap.forEach(d => allMessages.push({ id: d.id, ...d.data(), userId } as WizardMessage));
   }
-  
+
   return allMessages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
@@ -245,14 +245,14 @@ export const approveMessage = async (id: string, userId: string, response: strin
     status: 'replied'
   };
   if (optimizedText) updates.optimizedText = optimizedText;
-  
+
   updateDoc(docRef, updates).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({
       path: docRef.path,
       operation: 'update',
       requestResourceData: updates,
     } satisfies SecurityRuleContext);
-    
+
     errorEmitter.emit('permission-error', permissionError);
   });
 };
@@ -266,7 +266,7 @@ export const rejectMessage = async (id: string, userId: string) => {
       operation: 'update',
       requestResourceData: { status: 'rejected' },
     } satisfies SecurityRuleContext);
-    
+
     errorEmitter.emit('permission-error', permissionError);
   });
 };

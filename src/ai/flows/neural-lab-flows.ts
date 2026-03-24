@@ -22,9 +22,9 @@ export async function labOptimizePrompt(input: z.infer<typeof LabOptimizeInputSc
     return { success: true, ...result };
   } catch (err: any) {
     console.error("Lab Engine Failure:", err);
-    return { 
-      success: false, 
-      error: true, 
+    return {
+      success: false,
+      error: true,
       message: err.message || "فشل في مزامنة المحاكي العصبى.",
       optimizedPrompt: input.prompt,
       analysis: "حدث خطأ تقني أثناء محاولة المحاكاة."
@@ -34,7 +34,7 @@ export async function labOptimizePrompt(input: z.infer<typeof LabOptimizeInputSc
 
 const labPrompt = ai.definePrompt({
   name: 'labPrompt',
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-2.5-flash',
   input: { schema: LabOptimizeInputSchema },
   output: { schema: LabOptimizeOutputSchema },
   prompt: `أنت خبير في هندسة الأوامر (Prompt Engineering) لنظام NexusAI.

@@ -43,7 +43,7 @@ async function callGemini(model: string, prompt: string, history: any[] = [], im
     return await execute(model);
   } catch (err: any) {
     // [STABILITY] Fallback to 2.0-flash if 1.5 is missing or restricted
-    if (err.message?.includes('not found') && model === 'gemini-1.5-flash') {
+    if (err.message?.includes('not found') && model === 'gemini-2.5-flash') {
       console.warn("Gemini 2.5 Flash not found, falling back to 2.0 Flash.");
       return await execute('gemini-2.0-flash');
     }
@@ -79,15 +79,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: true, message: "مطلوب رسالة." }, { status: 400 });
     }
 
-    let modelToUse = isAutoMode ? 'gemini-1.5-flash' : (manualModel || 'gemini-1.5-flash');
+    let modelToUse = isAutoMode ? 'gemini-2.5-flash' : (manualModel || 'gemini-2.5-flash');
     // تنظيف اسم الموديل من بادئة genkit إذا وجدت
     modelToUse = modelToUse.replace('googleai/', '').replace('groq/', '');
 
     // تصحيح مسميات Gemini
     if (modelToUse.includes('gemini')) {
-      if (modelToUse.includes('1.5-flash')) modelToUse = 'gemini-1.5-flash';
+      if (modelToUse.includes('1.5-flash')) modelToUse = 'gemini-2.5-flash';
       else if (modelToUse.includes('1.5-pro')) modelToUse = 'gemini-1.5-pro';
-      else if (modelToUse === 'flash-latest') modelToUse = 'gemini-1.5-flash';
+      else if (modelToUse === 'flash-latest') modelToUse = 'gemini-2.5-flash';
     }
 
     let responseText = "";
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
     if (isAutoMode) {
       try {
         const optimizationPrompt = `أنت مُحسن أوامر لنظام NexusAI. حول طلب المستخدم التالي إلى أمر دقيق بالعربية الفصحى وبدون مقدمات:\n\n${message}`;
-        optimizedText = await callGemini('gemini-1.5-flash', optimizationPrompt);
+        optimizedText = await callGemini('gemini-2.5-flash', optimizationPrompt);
         if (optimizedText) promptToUse = optimizedText;
       } catch (e) {
         console.warn("Optimization failed, using original prompt.");
@@ -112,7 +112,7 @@ export async function POST(req: Request) {
         engineName = "Groq Engine";
       } else {
         // [STABILITY] محاولة استخدام Gemini مع Fallback داخلي لنسخة 2.0
-        const geminiModel = modelToUse.includes('gemini') ? modelToUse : 'gemini-1.5-flash';
+        const geminiModel = modelToUse.includes('gemini') ? modelToUse : 'gemini-2.5-flash';
         responseText = await callGemini(geminiModel, promptToUse, history, imageDataUri);
         engineName = geminiModel.includes('pro') ? "Gemini Pro" : "Gemini Flash";
       }

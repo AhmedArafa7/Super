@@ -41,7 +41,7 @@ export function AIChat() {
 
   const availableModels = useMemo(() => {
     const models: any[] = [
-      { id: 'googleai/gemini-1.5-flash', label: 'NexusAI (Flash)', desc: 'المحرك العصبي الأساسي' },
+      { id: 'googleai/gemini-2.5-flash', label: 'NexusAI (Flash)', desc: 'المحرك العصبي الأساسي' },
       { id: 'groq/llama-3.3-70b-versatile', label: 'Groq Llama 3.3', desc: 'محرك فائق السرعة' }
     ];
     if (user?.classification === 'investor' || user?.classification === 'manager') {
@@ -119,7 +119,7 @@ export function AIChat() {
         });
 
         const res = await response.json();
-        
+
         if (!response.ok || res.error) {
           throw res; // Throw the error object to be caught by the catch block
         }
@@ -138,7 +138,7 @@ export function AIChat() {
     } catch (err: any) {
       const diag = err.diagnostics ? `\n\nDiagnostics: ${JSON.stringify(err.diagnostics, null, 2)}` : "";
       const errorMsg = (err.message || "تعذر الاتصال بالنخاع العصبي.") + (err.diagnostics ? " (انقر لنسخ بيانات التشخيص)" : "");
-      
+
       toast({
         variant: "destructive",
         title: "Neural Link Error",
