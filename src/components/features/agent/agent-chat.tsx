@@ -142,7 +142,7 @@ export function AgentChat() {
         </div>
         <div className="flex items-center gap-2">
           <span>المحرك الحالي:</span>
-          <span className="text-primary">{preferredAI === 'gemini' ? 'Gemini 1.5' : 'Groq (Llama)'}</span>
+          <span className="text-primary">{preferredAI === 'gemini' ? 'Gemini 2.5' : 'Groq (Llama)'}</span>
         </div>
       </div>
 
