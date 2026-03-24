@@ -12,6 +12,10 @@ const GEMINI_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
                         process.env.GEMINI_API_KEY || 
                         process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
+// نظام الـ Neural Cache لتذكر الموديل المستقر وتجنب المحاولات الفاشلة المكررة
+let currentStableModel: string | null = null;
+let blacklistedModels = new Set<string>();
+
 const googleProvider = createGoogleGenerativeAI({
   apiKey: GEMINI_API_KEY
 });
@@ -50,7 +54,7 @@ export async function POST(req: Request) {
       })
     };
 
-    // قائمة الموديلات المقترحة للـ Gemini لضمان الاستمرارية
+    // قائمة الموديلات المقترحة للـ Gemini
     const geminiModels = [
       'gemini-1.5-flash',
       'gemini-1.5-flash-latest',
@@ -79,12 +83,19 @@ export async function POST(req: Request) {
       return result.toUIMessageStreamResponse();
     }
 
+    // بناء قائمة المحاولات: نبدأ بالموديل الذي نجح آخر مرة، ثم الباقي (باستثناء القائمة السوداء)
+    const candidates = [
+      ...(currentStableModel && !blacklistedModels.has(currentStableModel) ? [currentStableModel] : []),
+      ...geminiModels.filter(m => m !== currentStableModel && !blacklistedModels.has(m))
+    ];
+
     // محاولة تشغيل Gemini مع نظام تعافي تلقائي
     let lastError = null;
-    for (const modelId of geminiModels) {
+    for (const modelId of candidates) {
       try {
-        console.log(`Neural Architect: Attempting connection with ${modelId}`);
         const result = await getResult(googleProvider(modelId));
+        // إذا نجح، نحدث الموديل المستقر
+        currentStableModel = modelId;
         return result.toUIMessageStreamResponse();
       } catch (error: any) {
         lastError = error;
@@ -92,7 +103,9 @@ export async function POST(req: Request) {
         const isQuotaError = error.message?.includes('quota') || error.status === 429;
         
         if (isModelError) {
-          console.warn(`Neural Architect: ${modelId} is unavailable, trying next model...`);
+          console.warn(`Neural Architect: ${modelId} is unavailable. Blacklisting and trying next...`);
+          blacklistedModels.add(modelId);
+          if (currentStableModel === modelId) currentStableModel = null;
           continue;
         }
 
@@ -102,7 +115,6 @@ export async function POST(req: Request) {
           return fallbackResult.toUIMessageStreamResponse();
         }
         
-        // إذا لم يكن خطأ موديل أو كوتة، ارمِ الخطأ
         throw error;
       }
     }
