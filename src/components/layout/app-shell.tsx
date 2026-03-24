@@ -44,6 +44,7 @@ import { AppHeader } from "./app-header";
 import { DulmsLayout } from "./dulms-layout";
 import { getThemeBySlug } from "@/lib/theme-store";
 import { useSettingsStore } from "@/lib/settings-store";
+import { QAView } from "@/components/features/qa-view";
 
 const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g#list";
 const VAULT_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
@@ -128,6 +129,7 @@ export function AppShell() {
     }
 
     switch (activeTab) {
+      case "qa": return <QAView />;
       case "dashboard": return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
       case "time": return <TimeManagement />;
       case "health": return <HealthView />;
