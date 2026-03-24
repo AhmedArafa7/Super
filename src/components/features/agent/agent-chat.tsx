@@ -88,7 +88,11 @@ export function AgentChat() {
         throw new Error(`دالة الإرسال غير متوفرة (متوفر: ${availableKeys})`);
       }
       
-      appendFn({ role: 'user', content: inputValue });
+      // FORCE the API endpoint in the call itself to bypass hook init issues
+      appendFn(
+        { role: 'user', content: inputValue }, 
+        { api: '/api/agent' } as any
+      );
       setInputValue('');
     } catch (err: any) {
       console.error('Submission error:', err);
