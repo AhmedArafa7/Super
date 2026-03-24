@@ -191,7 +191,9 @@ export function QAView() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-sm">{post.authorName}</span>
+                          <span className="font-bold text-white text-sm">
+                            {user?.id === post.authorId || isManagement ? post.authorName : "مشارك بالقسم"}
+                          </span>
                           <Badge variant="outline" className="text-[10px] h-5 border-white/10 bg-white/5 text-muted-foreground gap-1.5 flex items-center">
                             {post.category === 'question' ? 'سؤال' : 'طلب'}
                           </Badge>
