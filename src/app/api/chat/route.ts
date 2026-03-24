@@ -14,6 +14,10 @@ const groq = createOpenAI({
 export async function POST(req: Request) {
   try {
     const { messages, preferredAI, autoFallback } = await req.json();
+    
+    if (!messages || !Array.isArray(messages)) {
+      return new Response(JSON.stringify({ error: 'Messages array is required' }), { status: 400 });
+    }
 
     const systemPrompt = `أنت "المهندس العصبي" (Neural Architect) في نظام NexusAI. بيئة بناء سيادية.
 مهمتك مساعدة المستخدم في كتابة وتعديل الأكواد البرمجية. يجب عليك الرد باللغة العربية بأسلوب احترافي جداً وتقني.
@@ -42,9 +46,15 @@ export async function POST(req: Request) {
       : google('gemini-1.5-flash');
 
     try {
+      // Normalize messages to ensure they have 'parts' for convertToModelMessages
+      const normalizedMessages = messages.map((m: any) => ({
+        ...m,
+        parts: m.parts || [{ type: 'text', text: m.content || m.text || '' }]
+      }));
+
       const result = streamText({
         model,
-        messages: await convertToModelMessages(messages),
+        messages: await convertToModelMessages(normalizedMessages),
         system: systemPrompt,
         tools,
       });
@@ -56,9 +66,15 @@ export async function POST(req: Request) {
       
       if (isQuotaError && preferredAI === 'gemini' && autoFallback) {
         console.warn('Gemini quota hit, auto-falling back to Groq');
+        // Normalize messages for fallback as well
+        const normalizedFallbackMessages = messages.map((m: any) => ({
+          ...m,
+          parts: m.parts || [{ type: 'text', text: m.content || m.text || '' }]
+        }));
+
         const fallbackResult = streamText({
           model: groq('llama-3.3-70b-versatile'),
-          messages: await convertToModelMessages(messages),
+          messages: await convertToModelMessages(normalizedFallbackMessages),
           system: systemPrompt,
           tools,
         });

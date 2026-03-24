@@ -22,6 +22,8 @@ interface AgentMessage {
   id: string;
   role: string;
   content: string;
+  text?: string;
+  parts?: any[];
   toolInvocations?: any[];
 }
 
@@ -190,7 +192,12 @@ export function AgentChat() {
               {m.role === 'user' ? <User className="size-5" /> : <Bot className="size-5" />}
             </div>
             <div className="flex flex-col gap-1 max-w-[85%] items-start text-right">
-              <div dangerouslySetInnerHTML={{ __html: (m.content || '').replace(/\n/g, '<br/>') }} className="text-white text-base leading-relaxed p-4 bg-white/5 rounded-2xl" />
+              <div 
+                dangerouslySetInnerHTML={{ 
+                  __html: (m.content || (m.parts ? m.parts.map((p: any) => p.text || '').join('') : '') || m.text || '').replace(/\n/g, '<br/>') 
+                }} 
+                className="text-white text-base leading-relaxed p-4 bg-white/5 rounded-2xl" 
+              />
             </div>
           </div>
         ))}
