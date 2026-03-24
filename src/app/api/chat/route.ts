@@ -1,6 +1,6 @@
 import { google } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
+import { streamText, tool, convertToModelMessages } from 'ai';
 import { z } from 'zod';
 
 export const runtime = 'edge';
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     const tools = {
       update_workspace_files: tool({
         description: 'استخدم هذه الأداة لإنشاء أو تعديل أي ملف برمجي في بيئة عمل المستخدم.',
-        parameters: z.object({
+        inputSchema: z.object({
           files: z.array(z.object({
             path: z.string(),
             content: z.string(),
@@ -44,12 +44,12 @@ export async function POST(req: Request) {
     try {
       const result = streamText({
         model,
-        messages,
+        messages: await convertToModelMessages(messages),
         system: systemPrompt,
         tools,
       });
 
-      return result.toDataStreamResponse();
+      return result.toUIMessageStreamResponse();
     } catch (error: any) {
       // إذا كان الخطأ بسبب الحصة (Quota)
       const isQuotaError = error.message?.includes('quota') || error.status === 429;
@@ -58,11 +58,11 @@ export async function POST(req: Request) {
         console.warn('Gemini quota hit, auto-falling back to Groq');
         const fallbackResult = streamText({
           model: groq('llama-3.3-70b-versatile'),
-          messages,
+          messages: await convertToModelMessages(messages),
           system: systemPrompt,
           tools,
         });
-        return fallbackResult.toDataStreamResponse();
+        return fallbackResult.toUIMessageStreamResponse();
       }
 
       if (isQuotaError) {
