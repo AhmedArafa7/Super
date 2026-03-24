@@ -50,58 +50,77 @@ export async function POST(req: Request) {
       })
     };
 
-    // تحديد الموديل بناءً على رغبة المستخدم
-    const model = preferredAI === 'groq' 
-      ? groq('llama-3.3-70b-versatile') 
-      : googleProvider('gemini-1.5-flash');
+    // قائمة الموديلات المقترحة للـ Gemini لضمان الاستمرارية
+    const geminiModels = [
+      'gemini-1.5-flash',
+      'gemini-1.5-flash-latest',
+      'gemini-2.0-flash',
+      'gemini-1.5-pro'
+    ];
 
-    try {
-      // Normalize messages to ensure they have 'parts' for convertToModelMessages
+    async function getResult(modelToUse: any) {
+      // Normalize messages
       const normalizedMessages = messages.map((m: any) => ({
         ...m,
         parts: m.parts || [{ type: 'text', text: m.content || m.text || '' }]
       }));
 
-      const result = streamText({
-        model,
+      return streamText({
+        model: modelToUse,
         messages: await convertToModelMessages(normalizedMessages),
         system: systemPrompt,
         tools,
       });
-
-      return result.toUIMessageStreamResponse();
-    } catch (error: any) {
-      // إذا كان الخطأ بسبب الحصة (Quota)
-      const isQuotaError = error.message?.includes('quota') || error.status === 429;
-      
-      if (isQuotaError && preferredAI === 'gemini' && autoFallback) {
-        console.warn('Gemini quota hit, auto-falling back to Groq');
-        // Normalize messages for fallback as well
-        const normalizedFallbackMessages = messages.map((m: any) => ({
-          ...m,
-          parts: m.parts || [{ type: 'text', text: m.content || m.text || '' }]
-        }));
-
-        const fallbackResult = streamText({
-          model: groq('llama-3.3-70b-versatile'),
-          messages: await convertToModelMessages(normalizedFallbackMessages),
-          system: systemPrompt,
-          tools,
-        });
-        return fallbackResult.toUIMessageStreamResponse();
-      }
-
-      if (isQuotaError) {
-        return new Response(JSON.stringify({ 
-          error: 'QUOTA_EXHAUSTED', 
-          provider: preferredAI 
-        }), { status: 429 });
-      }
-
-      throw error;
     }
+
+    // التنفيذ باستخدام Neural Resilience
+    if (preferredAI === 'groq') {
+      const result = await getResult(groq('llama-3.3-70b-versatile'));
+      return result.toUIMessageStreamResponse();
+    }
+
+    // محاولة تشغيل Gemini مع نظام تعافي تلقائي
+    let lastError = null;
+    for (const modelId of geminiModels) {
+      try {
+        console.log(`Neural Architect: Attempting connection with ${modelId}`);
+        const result = await getResult(googleProvider(modelId));
+        return result.toUIMessageStreamResponse();
+      } catch (error: any) {
+        lastError = error;
+        const isModelError = error.message?.includes('not found') || error.message?.includes('not supported');
+        const isQuotaError = error.message?.includes('quota') || error.status === 429;
+        
+        if (isModelError) {
+          console.warn(`Neural Architect: ${modelId} is unavailable, trying next model...`);
+          continue;
+        }
+
+        if (isQuotaError && autoFallback) {
+          console.warn('Neural Architect: Gemini quota hit, auto-falling back to Groq');
+          const fallbackResult = await getResult(groq('llama-3.3-70b-versatile'));
+          return fallbackResult.toUIMessageStreamResponse();
+        }
+        
+        // إذا لم يكن خطأ موديل أو كوتة، ارمِ الخطأ
+        throw error;
+      }
+    }
+
+    // إذا وصلنا لهنا، فكل محاولات Gemini فشلت
+    if (autoFallback) {
+      console.warn('Neural Architect: All Gemini models failed, final fallback to Groq');
+      const finalResult = await getResult(groq('llama-3.3-70b-versatile'));
+      return finalResult.toUIMessageStreamResponse();
+    }
+
+    throw lastError || new Error('All AI engines are currently unavailable');
+
   } catch (error: any) {
     console.error('Agent API Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      diagnostics: 'تأكد من إعداد مفاتيح الـ API بشكل صحيح في السيرفر.'
+    }), { status: 500 });
   }
 }
