@@ -1,4 +1,3 @@
-
 {
   "project": "NexusAI Ecosystem",
   "last_sync": "2024-05-21T10:00:00Z",
@@ -26,7 +25,12 @@
   "technical_protocols": {
     "rendering": "NextJS 15.5.2 (Compatibility Mode)",
     "database": "Firebase Firestore + Path-based Security",
-    "ai_engines": ["Google Gemini 1.5 Flash", "Groq Llama 3.3 70B", "Imagen 4.0", "Neural TTS"],
+    "ai_engines": [
+      "Google Gemini 2.5 Flash",
+      "Groq Llama 3.3 70B",
+      "Imagen 4.0",
+      "Neural TTS"
+    ],
     "state": "Zustand + Local Persistence",
     "security": "Sovereign P2P Encryption + Role Isolation"
   }

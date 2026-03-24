@@ -44,7 +44,7 @@ async function callGemini(model: string, prompt: string, history: any[] = [], im
   } catch (err: any) {
     // [STABILITY] Fallback to 2.0-flash if 1.5 is missing or restricted
     if (err.message?.includes('not found') && model === 'gemini-1.5-flash') {
-      console.warn("Gemini 1.5 Flash not found, falling back to 2.0 Flash.");
+      console.warn("Gemini 2.5 Flash not found, falling back to 2.0 Flash.");
       return await execute('gemini-2.0-flash');
     }
     throw err;
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     let modelToUse = isAutoMode ? 'gemini-1.5-flash' : (manualModel || 'gemini-1.5-flash');
     // تنظيف اسم الموديل من بادئة genkit إذا وجدت
     modelToUse = modelToUse.replace('googleai/', '').replace('groq/', '');
-    
+
     // تصحيح مسميات Gemini
     if (modelToUse.includes('gemini')) {
       if (modelToUse.includes('1.5-flash')) modelToUse = 'gemini-1.5-flash';
@@ -118,7 +118,7 @@ export async function POST(req: Request) {
       }
     } catch (primaryErr: any) {
       console.error("Primary AI Engine Failed, attempting Global Fallback:", primaryErr.message);
-      
+
       // [NEURAL_RESILIENCE] التبديل لـ Groq إذا فشل Gemini (بسبب الكوتة أو غيره)
       if (GROQ_API_KEY && !modelToUse.includes('llama')) {
         try {

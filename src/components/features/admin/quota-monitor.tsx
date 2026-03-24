@@ -46,7 +46,7 @@ export function QuotaMonitor({ data }: { data: any }) {
       icon: Zap,
       consoleUrl: "https://aistudio.google.com/app/plan_usage",
       items: [
-        { label: "Google Gemini 1.5 Flash", used: 2, limit: 15, unit: "Req/Min", desc: "سرعة معالجة النبضات العصبية الأساسية", color: "text-blue-400" },
+        { label: "Google Gemini 2.5 Flash", used: 2, limit: 15, unit: "Req/Min", desc: "سرعة معالجة النبضات العصبية الأساسية", color: "text-blue-400" },
         { label: "Groq Llama 3.3 70B", used: 1, limit: 30, unit: "Req/Min", desc: "محرك الاستجابة الفائقة عبر Groq Console", color: "text-orange-400", extraLink: "https://console.groq.com/usage" },
         { label: "Imagen 4.0 (Daily)", used: 5, limit: 100, unit: "Images/Day", desc: "توليد الوسائط البصرية", color: "text-indigo-400", isDaily: true }
       ]
