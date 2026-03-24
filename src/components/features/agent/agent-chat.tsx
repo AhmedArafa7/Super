@@ -43,9 +43,9 @@ export function AgentChat() {
   const [inputValue, setInputValue] = useState('');
 
   const chat = useChat({
-    api: '/api/agent',
-    url: '/api/agent',
-    endpoint: '/api/agent',
+    api: '/api/chat',
+    url: '/api/chat',
+    endpoint: '/api/chat',
     body: { preferredAI, autoFallback },
     onResponse: (response: any) => {
       if (response.status === 429) {
@@ -91,7 +91,7 @@ export function AgentChat() {
       // FORCE the API endpoint in the call itself to bypass hook init issues
       appendFn(
         { role: 'user', content: inputValue }, 
-        { api: '/api/agent' } as any
+        { api: '/api/chat' } as any
       );
       setInputValue('');
     } catch (err: any) {
