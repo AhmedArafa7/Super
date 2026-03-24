@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Search, Plus, MessageCircleQuestion, Send, Clock, Edit, Trash, FileQuestion, HelpCircle, User } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,6 +26,7 @@ export function QAView() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newPostText, setNewPostText] = useState("");
   const [newPostCategory, setNewPostCategory] = useState<QACategory>('question');
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   const [editPost, setEditPost] = useState<QAPost | null>(null);
   const [editText, setEditText] = useState("");
@@ -48,9 +51,11 @@ export function QAView() {
         category: newPostCategory,
         text: newPostText,
         authorId: user.id || '',
-        authorName: user.name || 'مستخدم'
+        authorName: user.name || 'مستخدم',
+        isAnonymous: isAnonymous
       });
       setNewPostText("");
+      setIsAnonymous(false);
       setIsAddOpen(false);
       toast({ title: "تم الإرسال بنجاح", description: "تم إضافة مشاركتك إلى قسم الأسئلة والطلبات." });
     } catch (error: any) {
@@ -144,6 +149,14 @@ export function QAView() {
                   value={newPostText}
                   onChange={(e) => setNewPostText(e.target.value)}
                 />
+                <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                  <Label htmlFor="anonymous-mode" className="text-sm text-white/70">إرسال بهوية مخفية (Anonymous)</Label>
+                  <Switch 
+                    id="anonymous-mode" 
+                    checked={isAnonymous} 
+                    onCheckedChange={setIsAnonymous}
+                  />
+                </div>
               </div>
               <DialogFooter className="mt-4">
                 <Button onClick={handleAddPost} disabled={!newPostText.trim()}>إرسال</Button>
@@ -192,7 +205,10 @@ export function QAView() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-white text-sm">
-                            {user?.id === post.authorId || isManagement ? post.authorName : "مشارك بالقسم"}
+                            {post.isAnonymous 
+                              ? (user?.id === post.authorId || isManagement ? `${post.authorName} (مخفي)` : "مشارك بالقسم")
+                              : (user?.id === post.authorId || isManagement ? post.authorName : "مشارك بالقسم")
+                            }
                           </span>
                           <Badge variant="outline" className="text-[10px] h-5 border-white/10 bg-white/5 text-muted-foreground gap-1.5 flex items-center">
                             {post.category === 'question' ? 'سؤال' : 'طلب'}

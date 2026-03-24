@@ -3,7 +3,7 @@
 import { initializeFirebase } from '@/firebase';
 import {
   collection, addDoc, getDocs, doc, updateDoc, query,
-  orderBy, deleteDoc, getDoc, onSnapshot
+  orderBy, deleteDoc, getDoc, onSnapshot, where
 } from 'firebase/firestore';
 
 export type QACategory = 'question' | 'request';
@@ -14,6 +14,7 @@ export interface QAPost {
   text: string;
   authorId: string;
   authorName: string;
+  isAnonymous?: boolean;
   createdAt: string;
   updatedAt?: string;
   answer?: string;
@@ -40,6 +41,22 @@ export const addQAPost = async (
   postData: Omit<QAPost, 'id' | 'createdAt' | 'answer' | 'answeredAt' | 'answeredBy' | 'updatedAt'>
 ): Promise<string> => {
   const { firestore } = initializeFirebase();
+  
+  // منع التكرار للطلبات غير المجابة
+  const q = query(
+    collection(firestore, 'qa_posts'),
+    where('authorId', '==', postData.authorId),
+    where('text', '==', postData.text),
+    where('category', '==', postData.category)
+  );
+  
+  const existing = await getDocs(q);
+  const hasDuplicate = existing.docs.some(d => !d.data().answer);
+  
+  if (hasDuplicate) {
+    throw new Error("لقد قمت بإرسال هذا الطلب بالفعل وهو قيد المراجعة.");
+  }
+
   const ref = await addDoc(collection(firestore, 'qa_posts'), {
     ...postData,
     createdAt: new Date().toISOString(),
