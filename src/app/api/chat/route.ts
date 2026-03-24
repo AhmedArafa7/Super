@@ -94,13 +94,26 @@ export async function POST(req: Request) {
     let lastError = null;
     for (const modelId of candidates) {
       try {
+        console.log(`Neural Architect: Pre-flight check for ${modelId}`);
+        
+        // فحص استباقي لوجود الموديل قبل بدء الستريم لضمان عمل الـ try-catch
+        // هذا يمنع وصول أخطاء "Model not found" للمستخدم النهائي
+        const checkUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId.includes('/') ? modelId : 'models/'+modelId}?key=${GEMINI_API_KEY}`;
+        const checkRes = await fetch(checkUrl);
+        
+        if (!checkRes.ok) {
+          const errorData = await checkRes.json().catch(() => ({}));
+          throw new Error(errorData.error?.message || 'not found');
+        }
+
         const result = await getResult(googleProvider(modelId));
-        // إذا نجح، نحدث الموديل المستقر
+        
+        // إذا وصلنا لهنا، الموديل موجود ومستعد
         currentStableModel = modelId;
         return result.toUIMessageStreamResponse();
       } catch (error: any) {
         lastError = error;
-        const isModelError = error.message?.includes('not found') || error.message?.includes('not supported');
+        const isModelError = error.message?.includes('not found') || error.message?.includes('not supported') || error.message?.includes('Method not allowed');
         const isQuotaError = error.message?.includes('quota') || error.status === 429;
         
         if (isModelError) {
