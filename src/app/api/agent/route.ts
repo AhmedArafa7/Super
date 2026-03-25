@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     const provider = preferredAI === 'groq' ? groq : google;
     const modelName = preferredAI === 'groq' 
       ? 'llama-3.3-70b-versatile' 
-      : 'gemini-1.5-flash';
+      : 'gemini-2.5-flash';
 
     try {
       result = await generateText({
