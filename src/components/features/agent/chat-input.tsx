@@ -1,7 +1,7 @@
 'use client';
 
 import React from "react";
-import { Wand2, Loader2, Send } from "lucide-react";
+import { Wand2, Loader2, Send, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -10,9 +10,10 @@ interface ChatInputProps {
   onChange: (value: string) => void;
   onSend: () => void;
   isLoading: boolean;
+  onStop?: () => void;
 }
 
-export function ChatInput({ value, onChange, onSend, isLoading }: ChatInputProps) {
+export function ChatInput({ value, onChange, onSend, isLoading, onStop }: ChatInputProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -23,17 +24,25 @@ export function ChatInput({ value, onChange, onSend, isLoading }: ChatInputProps
   return (
     <div className="p-6 border-t border-white/5 bg-slate-900/20 backdrop-blur-sm">
       <div className="flex gap-4 items-center max-w-4xl mx-auto flex-row-reverse">
-        <Button 
-          onClick={onSend}
-          disabled={isLoading || !value.trim()} 
-          className="size-14 rounded-2xl bg-gradient-to-r from-primary to-blue-600 shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all active:scale-95 group"
-        >
+        <div className="flex flex-col gap-2">
           {isLoading ? (
-            <Loader2 className="animate-spin" />
+            <Button 
+              onClick={onStop}
+              variant="destructive"
+              className="size-14 rounded-2xl shadow-xl shadow-red-500/20 hover:shadow-red-500/40 transition-all active:scale-95"
+            >
+              <XCircle className="size-6" />
+            </Button>
           ) : (
-            <Send className="size-6 rotate-180 group-hover:translate-x-1 transition-transform" />
+            <Button 
+              onClick={onSend}
+              disabled={!value.trim()} 
+              className="size-14 rounded-2xl bg-gradient-to-r from-primary to-blue-600 shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all active:scale-95 group"
+            >
+              <Send className="size-6 rotate-180 group-hover:translate-x-1 transition-transform" />
+            </Button>
           )}
-        </Button>
+        </div>
         <div className="relative flex-1">
           <Input 
             value={value} 
@@ -50,7 +59,11 @@ export function ChatInput({ value, onChange, onSend, isLoading }: ChatInputProps
         </div>
       </div>
       <div className="mt-2 text-center">
-        <p className="text-[9px] uppercase tracking-widest font-black text-white/10">Neural Interface v2.5.0</p>
+        <p className="text-[10px] uppercase tracking-[0.3em] font-black text-white/20 flex items-center justify-center gap-2">
+          <span className="size-1 rounded-full bg-primary animate-pulse" />
+          Neural Interface v2.5.0
+          <span className="size-1 rounded-full bg-primary animate-pulse" />
+        </p>
       </div>
     </div>
   );

@@ -15,15 +15,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// New Modular Components
+// New Modular Components & Hooks
 import { ChatMessage } from "./chat-message";
 import { ChatInput } from "./chat-input";
 import { ChatSettings } from "./chat-settings";
+import { useAgentChat } from "@/hooks/use-agent-chat";
 
 export function AgentChat() {
-  const { 
-    setFiles, addLog, preferredAI, setPreferredAI, autoFallback, setAutoFallback 
-  } = useAgentStore();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -32,47 +30,18 @@ export function AgentChat() {
   const [showSettings, setShowSettings] = useState(false);
   const [inputValue, setInputValue] = useState('');
 
-  const chatHelpers = useChat({
-    api: '/api/chat',
-    body: { preferredAI, autoFallback },
-    onResponse: (response: any) => {
-      if (response.status === 429) {
-        setShowQuotaDialog(true);
-      }
-    },
-    onFinish: (completion: any) => {
-      // Process tool calls for workspace updates
-      const message = completion.message || completion;
-      if (message && message.toolInvocations) {
-        message.toolInvocations.forEach((toolCall: any) => {
-          if (toolCall.toolName === 'update_workspace_files' && toolCall.state === 'result') {
-            const payload = toolCall.args;
-            if (payload.files && payload.files.length > 0) {
-              setFiles(payload.files);
-              addLog(`تمت المزامنة العصبية: ${payload.explanation}`, 'success');
-              toast({ 
-                title: "تم تحديث الملفات", 
-                description: `قام المهندس بتحديث ${payload.files.length} ملفات في بيئة العمل.`,
-                className: "bg-primary text-white border-none shadow-xl"
-              });
-            }
-          }
-        });
-      }
-    },
-    onError: (error: any) => {
-      if (!showQuotaDialog) {
-        addLog(`اضطراب في الاتصال: ${error.message}`, 'error');
-        toast({ 
-          variant: "destructive", 
-          title: "خطأ في النخاع العصبي", 
-          description: "تعذر الاتصال بالمحرك حالياً." 
-        });
-      }
-    }
-  } as any);
-
-  const { messages, append, isLoading, reload } = chatHelpers as any;
+  // Neural Orchestration Hook
+  const {
+    messages,
+    isLoading,
+    handleSend: sendToNeuralEngine,
+    reload,
+    stop: stopGeneration,
+    preferredAI,
+    setPreferredAI,
+    autoFallback,
+    setAutoFallback
+  } = useAgentChat(() => setShowQuotaDialog(true));
 
   const handleSend = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -81,18 +50,9 @@ export function AgentChat() {
     setInputValue('');
     
     try {
-      await append({
-        role: 'user',
-        content: currentInput,
-      });
+      await sendToNeuralEngine(currentInput);
     } catch (err: any) {
       setInputValue(currentInput); // Restore on failure
-      console.error('Submission failed:', err);
-      toast({ 
-        variant: "destructive", 
-        title: "فشل الإرسال", 
-        description: "يرجى التحقق من اتصالك بالإنترنت." 
-      });
     }
   };
 
@@ -152,6 +112,7 @@ export function AgentChat() {
         onChange={setInputValue}
         onSend={handleSend}
         isLoading={isLoading}
+        onStop={stopGeneration}
       />
 
       {/* Advanced Quota Consent Dialog */}
