@@ -27,7 +27,7 @@ export function QAView() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newPostText, setNewPostText] = useState("");
   const [newPostCategory, setNewPostCategory] = useState<QACategory>('question');
-  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(true);
 
   const [editPost, setEditPost] = useState<QAPost | null>(null);
   const [editText, setEditText] = useState("");
@@ -64,7 +64,7 @@ export function QAView() {
         isAnonymous: isAnonymous
       });
       setNewPostText("");
-      setIsAnonymous(false);
+      setIsAnonymous(true);
       setIsAddOpen(false);
       toast({ title: "تم الإرسال بنجاح", description: "تم إضافة مشاركتك إلى قسم الأسئلة والطلبات." });
     } catch (error: any) {
@@ -183,12 +183,21 @@ export function QAView() {
                   value={newPostText}
                   onChange={(e) => setNewPostText(e.target.value)}
                 />
-                <div className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
-                  <Label htmlFor="anonymous-mode" className="text-sm text-white/70">إرسال بهوية مخفية (Anonymous)</Label>
+                <div className={cn(
+                  "flex items-center justify-between p-4 rounded-2xl border transition-all duration-300",
+                  isAnonymous 
+                    ? "bg-primary/10 border-primary/30 shadow-[0_0_15px_rgba(var(--primary),0.1)]" 
+                    : "bg-white/5 border-white/5"
+                )}>
+                  <div className="flex flex-col gap-1 text-right">
+                    <Label htmlFor="anonymous-mode" className="text-sm font-bold text-white tracking-wide">الوضع السيادي (هوية مخفية)</Label>
+                    <span className="text-[10px] text-muted-foreground font-medium">لن يظهر اسمك في القائمة العامة للمشاركات.</span>
+                  </div>
                   <Switch 
                     id="anonymous-mode" 
                     checked={isAnonymous} 
                     onCheckedChange={setIsAnonymous}
+                    className="data-[state=checked]:bg-primary"
                   />
                 </div>
               </div>
