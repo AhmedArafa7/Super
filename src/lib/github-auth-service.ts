@@ -23,13 +23,25 @@ export const connectGitHubAccount = async () => {
   try {
     let result;
     
-    if (currentUser) {
-      // [CASE: LINKING] - المستخدم مسجل دخوله (مثلاً بجوجل) ونريد ربط جيت هاب
-      console.log("[GitHub Auth] Linking account for current user:", currentUser.email);
-      result = await linkWithPopup(currentUser, provider);
+    const isGithubLinked = currentUser?.providerData.some(p => p.providerId === 'github.com');
+
+    if (currentUser && !isGithubLinked) {
+      // [CASE: LINKING] - المستخدم مسجل دخوله ونريد ربط جيت هاب لأول مرة
+      try {
+        console.log("[GitHub Auth] Attempting to link GitHub to current user:", currentUser.email);
+        result = await linkWithPopup(currentUser, provider);
+      } catch (linkError: any) {
+        if (linkError.code === 'auth/credential-already-in-use') {
+          console.warn("[GitHub Auth] Credential already in use, falling back to sign-in.");
+          // إذا كان الحساب مرتبطاً بـ UID آخر، نقوم بتسجيل الدخول به مباشرة
+          result = await signInWithPopup(auth, provider);
+        } else {
+          throw linkError;
+        }
+      }
     } else {
-      // [CASE: SIGNIN] - المستخدم غير مسجل دخول، نقوم بتسجيل دخول جديد
-      console.log("[GitHub Auth] New sign-in for GitHub");
+      // [CASE: SIGNIN / RE-AUTH] - المستخدم غير مسجل دخول أو الحساب مربوط بالفعل
+      console.log("[GitHub Auth] Standard sign-in or refreshing linked token");
       result = await signInWithPopup(auth, provider);
     }
 
