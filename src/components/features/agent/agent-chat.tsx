@@ -3,9 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Bot, Sparkles, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAgentStore } from "@/lib/agent-store";
 import { useToast } from "@/hooks/use-toast";
-import { useChat } from '@ai-sdk/react';
 import {
   Dialog,
   DialogContent,
@@ -19,7 +17,7 @@ import {
 import { ChatMessage } from "./chat-message";
 import { ChatInput } from "./chat-input";
 import { ChatSettings } from "./chat-settings";
-import { useAgentChat } from "@/hooks/use-agent-chat";
+import { useAgentChat, type AgentMessage } from "@/hooks/use-agent-chat";
 
 export function AgentChat() {
   const { toast } = useToast();
@@ -91,7 +89,7 @@ export function AgentChat() {
           </div>
         )}
         
-        {messages.map((m: any) => (
+        {messages.map((m: AgentMessage) => (
           <ChatMessage key={m.id} message={m} />
         ))}
         

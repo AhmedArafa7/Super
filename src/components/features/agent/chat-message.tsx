@@ -1,16 +1,12 @@
 'use client';
 
 import React from "react";
-import { Bot, User, Loader2, Sparkles } from "lucide-react";
+import { Bot, User, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { type AgentMessage } from "@/hooks/use-agent-chat";
 
 interface ChatMessageProps {
-  message: {
-    id: string;
-    role: string;
-    content: string;
-    toolInvocations?: any[];
-  };
+  message: AgentMessage;
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {
@@ -56,40 +52,29 @@ export function ChatMessage({ message }: ChatMessageProps) {
           </div>
         </div>
         
-        {/* Tool Invocations Rendering */}
-        {message.toolInvocations && message.toolInvocations.map((toolCall) => (
-          <div key={toolCall.toolCallId} className="w-full mt-1 animate-in zoom-in-95 duration-200">
-            <div className={cn(
-              "flex items-center gap-3 p-3 rounded-xl text-xs backdrop-blur-md border transition-all",
-              toolCall.state === 'call' 
-                ? "bg-amber-500/5 border-amber-500/20 text-amber-200" 
-                : "bg-emerald-500/5 border-emerald-500/20 text-emerald-200"
-            )}>
+        {/* Files Updated Indicator */}
+        {message.files && message.files.length > 0 && (
+          <div className="w-full mt-1 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 p-3 rounded-xl text-xs backdrop-blur-md border bg-emerald-500/5 border-emerald-500/20 text-emerald-200">
               <div className="shrink-0">
-                {toolCall.state === 'call' ? (
-                  <Loader2 className="size-3 animate-spin text-amber-400" />
-                ) : (
-                  <div className="bg-emerald-500/20 p-1 rounded-full">
-                    <Sparkles className="size-3 text-emerald-400" />
-                  </div>
-                )}
+                <div className="bg-emerald-500/20 p-1 rounded-full">
+                  <Sparkles className="size-3 text-emerald-400" />
+                </div>
               </div>
-              
               <div className="flex-1 flex flex-col gap-0.5">
-                <span className="font-bold opacity-90">
-                  {toolCall.toolName === 'update_workspace_files' 
-                    ? (toolCall.state === 'call' ? 'بروتوكول المعالجة العصبية' : 'تمت المزامنة العصبية')
-                    : `تنشيط الوحدة: ${toolCall.toolName}`}
-                </span>
+                <span className="font-bold opacity-90">تمت المزامنة العصبية</span>
                 <span className="opacity-60 text-[10px]">
-                  {toolCall.toolName === 'update_workspace_files' 
-                    ? (toolCall.state === 'call' ? 'جاري بناء العقد وتحديث الملفات...' : `تم تحديث ${toolCall.args.files.length} ملفات بنجاح.`)
-                    : 'جاري التنفيذ...'}
+                  تم تحديث {message.files.length} ملف في بيئة العمل بنجاح.
                 </span>
               </div>
             </div>
           </div>
-        ))}
+        )}
+
+        {/* Engine badge */}
+        {message.engine && (
+          <span className="text-[8px] opacity-20 font-mono tracking-tighter">{message.engine}</span>
+        )}
       </div>
     </div>
   );

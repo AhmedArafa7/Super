@@ -1,95 +1,143 @@
 'use client';
 
-import { useChat } from '@ai-sdk/react';
+import { useCallback, useRef, useState } from 'react';
 import { useAgentStore } from '@/lib/agent-store';
 import { useToast } from '@/hooks/use-toast';
-import { useCallback, useEffect } from 'react';
 
 /**
- * [STABILITY_ANCHOR: USE_AGENT_CHAT_V2.0]
- * Custom hook to manage the Agent Chat logic, tools, and workspace sync.
- * Decouples the UI orchestration from the AI SDK implementation.
+ * [STABILITY_ANCHOR: USE_AGENT_CHAT_V3.0]
+ * Custom hook for the Neural Architect Agent Chat.
+ * Uses direct fetch (not useChat SDK) for maximum stability, matching
+ * the proven pattern of /api/ai/generate used by ai-chat.tsx.
  */
+
+export interface AgentMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  files?: { path: string; content: string; language: string }[];
+  engine?: string;
+}
+
 export function useAgentChat(onQuotaExceeded?: () => void) {
-  const { 
-    setFiles, addLog, preferredAI, setPreferredAI, autoFallback, setAutoFallback 
-  } = useAgentStore();
+  const { setFiles, addLog, preferredAI, setPreferredAI, autoFallback, setAutoFallback } = useAgentStore();
   const { toast } = useToast();
 
-  const chatHelpers = useChat({
-    api: '/api/chat',
-    body: { preferredAI, autoFallback },
-    onResponse: (response: any) => {
-      if (response.status === 429 && onQuotaExceeded) {
-        onQuotaExceeded();
-      }
-    },
-    onError: (error: any) => {
-      addLog(`اضطراب في الاتصال: ${error.message}`, 'error');
-      toast({ 
-        variant: "destructive", 
-        title: "خطأ في النخاع العصبي", 
-        description: "تعذر الاتصال بالمحرك حالياً." 
-      });
-    }
-  } as any);
-
-  const { messages, append, isLoading, reload, stop } = chatHelpers as any;
-
-  // Resilient Tool Processing ( useEffect pattern for reliability )
-  useEffect(() => {
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage && lastMessage.role === 'assistant' && lastMessage.toolInvocations) {
-      lastMessage.toolInvocations.forEach((toolCall: any) => {
-        if (toolCall.toolName === 'update_workspace_files' && toolCall.state === 'result') {
-          const payload = toolCall.args;
-          const callId = `processed-${toolCall.toolCallId}`;
-          
-          if (!(window as any)[callId]) {
-            if (payload.files && payload.files.length > 0) {
-              setFiles(payload.files);
-              addLog(`تمت المزامنة العصبية: ${payload.explanation}`, 'success');
-              toast({ 
-                title: "تم تحديث الملفات", 
-                description: `قام المهندس بتحديث ${payload.files.length} ملفات في بيئة العمل.`,
-                className: "bg-primary text-white border-none shadow-xl"
-              });
-            }
-            (window as any)[callId] = true;
-          }
-        }
-      });
-    }
-  }, [messages, setFiles, addLog, toast]);
+  const [messages, setMessages] = useState<AgentMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleSend = useCallback(async (content: string) => {
     if (!content.trim() || isLoading) return;
-    
+
+    // بناء سجل المحادثة لإرساله مع الطلب
+    const userMessage: AgentMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content,
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+
+    // إنشاء AbortController للسماح بالإلغاء
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      await append({
-        role: 'user',
-        content,
+      const history = [...messages, userMessage].map(m => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+      const response = await fetch('/api/agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          messages: history,
+          preferredAI,
+          autoFallback,
+        }),
       });
+
+      if (response.status === 429) {
+        onQuotaExceeded?.();
+        throw new Error('quota_exceeded');
+      }
+
+      const res = await response.json();
+
+      if (!response.ok || !res.success) {
+        throw new Error(res.error || 'Neural connection failed');
+      }
+
+      const assistantMessage: AgentMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: res.explanation || 'تمت المعالجة.',
+        files: res.files,
+        engine: res.engine,
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+
+      // مزامنة الملفات مع بيئة العمل إذا وُجدت
+      if (res.files && res.files.length > 0) {
+        setFiles(res.files);
+        addLog(`تمت المزامنة العصبية: ${res.explanation}`, 'success');
+        toast({
+          title: '✅ تم تحديث الملفات',
+          description: `قام المهندس بتحديث ${res.files.length} ملف في بيئة العمل.`,
+          className: 'bg-primary text-white border-none shadow-xl',
+        });
+      }
+
     } catch (err: any) {
-      console.error('Neural Submission failed:', err);
-      toast({ 
-        variant: "destructive", 
-        title: "فشل الإرسال", 
-        description: "يرجى التحقق من اتصالك بالإنترنت." 
-      });
-      throw err; // Allow UI to handle restoration if needed
+      if (err.name === 'AbortError') {
+        addLog('تم إلغاء العملية من قبل المستخدم.', 'info');
+        return;
+      }
+      if (err.message !== 'quota_exceeded') {
+        addLog(`خطأ في الاتصال: ${err.message}`, 'error');
+        toast({
+          variant: 'destructive',
+          title: 'فشل الإرسال',
+          description: 'يرجى التحقق من اتصالك بالإنترنت.',
+        });
+        // إزالة رسالة المستخدم عند الفشل لإتاحة إعادة المحاولة
+        setMessages(prev => prev.filter(m => m.id !== userMessage.id));
+      }
+    } finally {
+      setIsLoading(false);
+      abortControllerRef.current = null;
     }
-  }, [append, isLoading, toast]);
+  }, [messages, isLoading, preferredAI, autoFallback, setFiles, addLog, toast, onQuotaExceeded]);
+
+  const stopGeneration = useCallback(() => {
+    abortControllerRef.current?.abort();
+    setIsLoading(false);
+    addLog('تم إيقاف التوليد.', 'info');
+  }, [addLog]);
+
+  const reload = useCallback(async () => {
+    // إعادة إرسال آخر رسالة من المستخدم
+    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+    if (lastUserMsg) {
+      setMessages(prev => prev.filter(m => m.id !== messages[messages.length - 1].id));
+      await handleSend(lastUserMsg.content);
+    }
+  }, [messages, handleSend]);
 
   return {
     messages,
     isLoading,
     handleSend,
+    stop: stopGeneration,
     reload,
-    stop,
     preferredAI,
     setPreferredAI,
     autoFallback,
-    setAutoFallback
+    setAutoFallback,
   };
 }
