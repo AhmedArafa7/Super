@@ -188,29 +188,41 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
 
       // --- [NEW]: Fetch requested files automatically ---
       if (res.requestedFiles && res.requestedFiles.length > 0 && githubToken && linkedRepo) {
-        addLog(`يطلب المهندس مراجعة ${res.requestedFiles.length} ملف، جاري الجلب عبر البوابة العصبية...`, 'info');
-        const [owner, name] = linkedRepo.full_name.split('/');
+        // --- Safety net: filter paths to only those verified in the repoTree ---
+        const repoTreePaths = new Set((repoTree || []).map((f: any) => f.path));
+        const validPaths = res.requestedFiles.filter((p: string) => repoTreePaths.has(p));
+        const invalidPaths = res.requestedFiles.filter((p: string) => !repoTreePaths.has(p));
         
-        let fetchedCount = 0;
-        for (const filePath of res.requestedFiles) {
-          if (!coreFileContents[filePath]) {
-            try {
-              const content = await getFileContent(githubToken, owner, name, filePath);
-              addCoreFileContent(filePath, content);
-              fetchedCount++;
-            } catch (e) {
-              console.error(`Failed to fetch requested file: ${filePath}`, e);
+        if (invalidPaths.length > 0) {
+          addLog(`⚠️ تجاهل ${invalidPaths.length} مسار غير صحيح لم يُعثر عليه في شجرة المستودع: ${invalidPaths.join(', ')}`, 'info');
+          console.warn('[Agent Guard] Ignored invalid file paths not in repoTree:', invalidPaths);
+        }
+
+        if (validPaths.length > 0) {
+          addLog(`يطلب المهندس مراجعة ${validPaths.length} ملف، جاري الجلب عبر البوابة العصبية...`, 'info');
+          const [owner, name] = linkedRepo.full_name.split('/');
+          
+          let fetchedCount = 0;
+          for (const filePath of validPaths) {
+            if (!coreFileContents[filePath]) {
+              try {
+                const content = await getFileContent(githubToken, owner, name, filePath);
+                addCoreFileContent(filePath, content);
+                fetchedCount++;
+              } catch (e) {
+                console.error(`Failed to fetch requested file: ${filePath}`, e);
+              }
             }
           }
-        }
-        
-        if (fetchedCount > 0) {
-          addLog(`تم جلب ${fetchedCount} ملف بنجاح في الذاكرة الفرعية.`, 'success');
-          toast({
-            title: 'تم تزويد المهندس بالبيانات',
-            description: `تم إحضار ${fetchedCount} ملف إضافي بناءً على طلب المهندس. أعد إرسال سؤالك وسيقوم بالإجابة بناءً عليها.`,
-            className: 'bg-indigo-600 text-white border-none shadow-lg',
-          });
+          
+          if (fetchedCount > 0) {
+            addLog(`تم جلب ${fetchedCount} ملف بنجاح في الذاكرة الفرعية.`, 'success');
+            toast({
+              title: 'تم تزويد المهندس بالبيانات',
+              description: `تم إحضار ${fetchedCount} ملف إضافي بناءً على طلب المهندس. أعد إرسال سؤالك وسيقوم بالإجابة بناءً عليها.`,
+              className: 'bg-indigo-600 text-white border-none shadow-lg',
+            });
+          }
         }
       }
 
