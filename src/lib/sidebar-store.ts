@@ -7,17 +7,27 @@ export type NavItemId = "chat" | "peer-chat" | "stream" | "market" | "features" 
 
 interface SidebarState {
   pinnedItems: NavItemId[];
+  isCollapsed: boolean;
+  isVisible: boolean;
+  
   togglePin: (id: NavItemId) => void;
   isPinned: (id: NavItemId) => boolean;
+  setCollapsed: (val: boolean) => void;
+  setVisible: (val: boolean) => void;
+  toggleCollapsed: () => void;
+  toggleVisible: () => void;
 }
 
 /**
- * @fileOverview محرك تخصيص القائمة الجانبية - تم إضافة قسم الوقت للقائمة الافتراضية.
+ * [STABILITY_ANCHOR: SIDEBAR_STORE_V3.0]
+ * محرك تخصيص القائمة الجانبية - يدعم الحالات الجديدة (أيقونات فقط / مخفية تماماً).
  */
 export const useSidebarStore = create<SidebarState>()(
   persist(
     (set, get) => ({
       pinnedItems: ["dashboard", "qa", "time", "health", "chat", "vault", "agent-ai", "deals", "peer-chat", "stream", "market", "launcher", "lab", "ads", "downloads", "wallet"],
+      isCollapsed: false,
+      isVisible: true,
 
       togglePin: (id) => {
         const { pinnedItems } = get();
@@ -29,7 +39,13 @@ export const useSidebarStore = create<SidebarState>()(
         }
       },
 
-      isPinned: (id) => get().pinnedItems.includes(id)
+      isPinned: (id) => get().pinnedItems.includes(id),
+
+      setCollapsed: (isCollapsed) => set({ isCollapsed }),
+      setVisible: (isVisible) => set({ isVisible }),
+      
+      toggleCollapsed: () => set((state) => ({ isCollapsed: !state.isCollapsed })),
+      toggleVisible: () => set((state) => ({ isVisible: !state.isVisible })),
     }),
     {
       name: 'nexus-sidebar-prefs',

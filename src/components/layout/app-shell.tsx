@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { X, ExternalLink } from "lucide-react";
+import { X, ExternalLink, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { AIChat } from "@/components/features/ai-chat";
 import { PeerChat } from "@/components/features/peer-chat";
 import { WeTube } from "@/components/features/wetube";
@@ -80,7 +81,7 @@ export function AppShell() {
   const [launchedApp, setLaunchedApp] = useState<{ url: string, title: string, isVault?: boolean } | null>(null);
 
   const setCurrentTab = useStreamStore(state => state.setCurrentTab);
-  const { isPinned, togglePin } = useSidebarStore();
+  const { isPinned, togglePin, isCollapsed, isVisible, setCollapsed } = useSidebarStore();
   const uploadTasks = useUploadStore(state => state.tasks);
   const initSettingsListener = useSettingsStore(state => state.initSettingsListener);
 
@@ -203,16 +204,34 @@ export function AppShell() {
   };
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="flex min-h-screen w-full bg-background hero-gradient overflow-hidden">
-        <AppSidebar
-          activeTab={activeTab} onTabChange={(id: any) => { setActiveTab(id); setLaunchedApp(null); setActiveRecipientId(undefined); }}
-          user={user} logout={logout} isPinned={isPinned} togglePin={togglePin}
-          uploadTasks={uploadTasks} unreadCount={unreadCount} pendingOffersCount={pendingOffersCount}
-        />
+    <SidebarProvider open={!isCollapsed} onOpenChange={setCollapsed}>
+      <div className="flex min-h-screen w-full bg-background hero-gradient overflow-hidden relative">
+        {isVisible && (
+          <AppSidebar
+            activeTab={activeTab} onTabChange={(id: any) => { setActiveTab(id); setLaunchedApp(null); setActiveRecipientId(undefined); }}
+            user={user} logout={logout} isPinned={isPinned} togglePin={togglePin}
+            uploadTasks={uploadTasks} unreadCount={unreadCount} pendingOffersCount={pendingOffersCount}
+          />
+        )}
+
+        {/* Floating Trigger when Sidebar is Hidden */}
+        {!isVisible && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="fixed top-4 left-4 z-50 size-10 rounded-2xl bg-slate-900/80 border border-white/10 text-primary shadow-2xl backdrop-blur-md hover:scale-110 transition-all animate-in zoom-in-50"
+            onClick={() => useSidebarStore.getState().setVisible(true)}
+          >
+            <Layers className="size-5" />
+          </Button>
+        )}
+
         <div className="flex-1 flex flex-col h-screen overflow-hidden">
           <AppHeader unreadCount={unreadCount} onTabChange={setActiveTab} onNavigateToWallet={() => setActiveTab("wallet")} />
-          <main className="flex-1 overflow-y-auto relative bg-slate-900/20">{renderContent()}</main>
+          <main className={cn(
+            "flex-1 overflow-y-auto relative transition-colors duration-500",
+            isVisible ? "bg-slate-900/20" : "bg-slate-900/40"
+          )}>{renderContent()}</main>
         </div>
       </div>
       <PersistentPlayer />

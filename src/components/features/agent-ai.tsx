@@ -13,21 +13,25 @@ import { TaskTerminal } from "./agent/task-terminal";
  */
 export function AgentAI() {
   return (
-    <div className="h-full flex flex-col p-4 md:p-8 animate-in fade-in duration-700 font-sans">
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-6 flex-row-reverse">
-        <div className="text-right">
-          <div className="inline-flex items-center gap-2 px-4 py-1 bg-primary/10 border border-primary/20 rounded-full mb-2">
-            <Rocket className="size-3 text-primary" />
-            <span className="text-[10px] uppercase font-bold text-primary tracking-widest">Neural Architect Mode</span>
+    <div className="h-full flex flex-col p-2 md:p-4 animate-in fade-in duration-700 font-sans">
+      <header className="flex items-center justify-between mb-3 gap-4 flex-row-reverse border-b border-white/5 pb-3">
+        <div className="flex items-center gap-4 flex-row-reverse">
+          <div className="flex items-center gap-3 flex-row-reverse">
+            <div className="size-8 bg-primary/20 rounded-lg flex items-center justify-center border border-primary/30">
+              <Cpu className="text-primary size-5" />
+            </div>
+            <h1 className="text-xl font-headline font-bold text-white tracking-tight">المهندس العصبي</h1>
           </div>
-          <h1 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
-            المهندس العصبي
-            <Cpu className="text-primary size-10" />
-          </h1>
-          <p className="text-muted-foreground mt-2 text-lg text-right max-w-2xl">
-            بيئة بناء سيادية تتيح لك التحدث مع "الوكيل" لتوليد الأكواد وتعديل ملفات المشروع لحظياً.
-          </p>
+          
+          <div className="hidden sm:inline-flex items-center gap-2 px-3 py-0.5 bg-primary/10 border border-primary/20 rounded-full">
+            <Rocket className="size-2.5 text-primary" />
+            <span className="text-[8px] uppercase font-bold text-primary tracking-widest leading-none">V2.5 Neural Core</span>
+          </div>
         </div>
+
+        <p className="text-muted-foreground text-[11px] text-right hidden lg:block max-w-sm leading-tight">
+          بيئة بناء سيادية تتيح لك التحدث مع "الوكيل" لتوليد الأكواد وتعديل ملفات المشروع لحظياً.
+        </p>
       </header>
 
       <main className="flex-1 flex flex-col gap-0 min-h-0 overflow-hidden glass border-white/5 rounded-[2.5rem]">

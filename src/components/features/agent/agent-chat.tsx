@@ -84,12 +84,12 @@ export function AgentChat() {
   }, [messages]);
 
   return (
-    <div className="flex h-[750px] bg-slate-900/40 border-t border-white/5 rounded-b-[3rem] overflow-hidden shadow-2xl backdrop-blur-md relative">
+    <div className="flex h-[650px] bg-slate-900/40 border-t border-white/5 rounded-b-[3rem] overflow-hidden shadow-2xl backdrop-blur-md relative mx-auto max-w-[1600px]">
       
       {/* GitHub Side Panel (Left) */}
       <div className={cn(
-        "h-full border-l border-white/5 transition-all duration-500 overflow-hidden",
-        showGitHub ? "w-[400px] opacity-100" : "w-0 opacity-0"
+        "h-full border-l border-white/5 transition-all duration-500 overflow-hidden bg-slate-950/20",
+        showGitHub ? "w-[320px] opacity-100" : "w-0 opacity-0"
       )}>
         <GitHubExplorer />
       </div>
@@ -126,18 +126,22 @@ export function AgentChat() {
         </div>
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-8 scroll-smooth scrollbar-hide">
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center opacity-40 animate-pulse-slow">
-            <Bot className="size-16 mb-6 text-primary drop-shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
-            <h2 className="text-2xl font-headline tracking-widest text-white mb-2">NEURAL ARCHITECT</h2>
-            <p className="text-sm font-medium text-slate-400 max-w-xs leading-relaxed">المهندس العصبي جاهز تماماً لمعالجة وبناء طلباتك البرمجية.</p>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth scrollbar-hide bg-slate-950/10">
+        {messages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center p-8 animate-in fade-in zoom-in-95 duration-1000">
+            <div className="size-16 bg-primary/10 rounded-[2rem] flex items-center justify-center mb-6 border border-primary/20 shadow-2xl shadow-primary/20">
+              <Bot className="size-8 text-primary shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
+            </div>
+            <h2 className="text-2xl font-black text-white mb-3 tracking-tight">NEURAL ARCHITECT</h2>
+            <p className="text-white/40 max-w-sm text-sm leading-relaxed">
+              المهندس العصبي جاهز تماماً لمعالجة طلباتك البرمجية وبناء مشاريعك بضغطة زر.
+            </p>
           </div>
+        ) : (
+          messages.map((message) => (
+            <ChatMessage key={message.id} message={message} />
+          ))
         )}
-        
-        {messages.map((m: AgentMessage) => (
-          <ChatMessage key={m.id} message={m} />
-        ))}
         
         {isLoading && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex gap-4 max-w-4xl mx-auto" dir="rtl">
