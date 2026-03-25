@@ -69,7 +69,11 @@ export async function POST(req: Request) {
         content: imageDataUri 
           ? [
               { type: 'text', text: lastMessage.content || "حلل هذه الصورة برمجياً" },
-              { type: 'image', image: imageDataUri }
+              { 
+                type: 'image', 
+                image: new Uint8Array(atob(imageDataUri.split(',')[1]).split('').map(c => c.charCodeAt(0))),
+                mimeType: imageDataUri.split(';')[0].split(':')[1]
+              }
             ]
           : lastMessage.content
       }
