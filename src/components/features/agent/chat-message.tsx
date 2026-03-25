@@ -42,9 +42,16 @@ export function ChatMessage({ message }: ChatMessageProps) {
             ? "bg-indigo-500/10 text-indigo-50 border border-indigo-500/20 rounded-tr-none" 
             : "bg-white/5 text-slate-100 border border-white/10 rounded-tl-none group-hover:bg-white/[0.07]"
         )}>
-          <div className="whitespace-pre-wrap break-words font-sans">
+          <div className="text-sm leading-relaxed whitespace-pre-wrap font-medium">
             {message.content}
           </div>
+
+          {/* User Image Display */}
+          {message.image && (
+            <div className="mt-3 rounded-2xl overflow-hidden border border-white/10 shadow-lg max-w-md animate-in zoom-in-95 duration-300">
+              <img src={message.image} alt="User Upload" className="w-full h-auto block" />
+            </div>
+          )}
           
           {/* Subtle Timestamp or ID (Optional) */}
           <div className="mt-2 text-[8px] opacity-20 font-mono tracking-tighter">

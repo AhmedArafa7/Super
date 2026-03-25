@@ -5,10 +5,9 @@ import { useAgentStore } from '@/lib/agent-store';
 import { useToast } from '@/hooks/use-toast';
 
 /**
- * [STABILITY_ANCHOR: USE_AGENT_CHAT_V3.0]
+ * [STABILITY_ANCHOR: USE_AGENT_CHAT_V4.0]
  * Custom hook for the Neural Architect Agent Chat.
- * Uses direct fetch (not useChat SDK) for maximum stability, matching
- * the proven pattern of /api/ai/generate used by ai-chat.tsx.
+ * Supports Multimodal interaction (Text + Images).
  */
 
 export interface AgentMessage {
@@ -17,6 +16,7 @@ export interface AgentMessage {
   content: string;
   files?: { path: string; content: string; language: string }[];
   engine?: string;
+  image?: string | null;
 }
 
 export function useAgentChat(onQuotaExceeded?: () => void) {
@@ -27,20 +27,20 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
   const [isLoading, setIsLoading] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const handleSend = useCallback(async (content: string) => {
-    if (!content.trim() || isLoading) return;
+  const handleSend = useCallback(async (content: string, imageDataUri?: string | null) => {
+    if ((!content.trim() && !imageDataUri) || isLoading) return;
 
-    // بناء سجل المحادثة لإرساله مع الطلب
+    // بناء رسالة المستخدم
     const userMessage: AgentMessage = {
       id: Date.now().toString(),
       role: 'user',
       content,
+      image: imageDataUri,
     };
 
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
-    // إنشاء AbortController للسماح بالإلغاء
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
@@ -58,6 +58,7 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
           messages: history,
           preferredAI,
           autoFallback,
+          imageDataUri, // إرسال الصورة للمهندس العصبي
         }),
       });
 
@@ -82,7 +83,6 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
 
       setMessages(prev => [...prev, assistantMessage]);
 
-      // مزامنة الملفات مع بيئة العمل إذا وُجدت
       if (res.files && res.files.length > 0) {
         setFiles(res.files);
         addLog(`تمت المزامنة العصبية: ${res.explanation}`, 'success');
@@ -94,18 +94,14 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
       }
 
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        addLog('تم إلغاء العملية من قبل المستخدم.', 'info');
-        return;
-      }
+      if (err.name === 'AbortError') return;
+      
       if (err.message !== 'quota_exceeded') {
-        addLog(`خطأ في الاتصال: ${err.message}`, 'error');
         toast({
           variant: 'destructive',
-          title: 'فشل الإرسال',
-          description: 'يرجى التحقق من اتصالك بالإنترنت.',
+          title: 'فشل الإرسال عصبياً',
+          description: err.message || 'يرجى التحقق من اتصالك بالإنترنت.',
         });
-        // إزالة رسالة المستخدم عند الفشل لإتاحة إعادة المحاولة
         setMessages(prev => prev.filter(m => m.id !== userMessage.id));
       }
     } finally {
@@ -117,15 +113,13 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
   const stopGeneration = useCallback(() => {
     abortControllerRef.current?.abort();
     setIsLoading(false);
-    addLog('تم إيقاف التوليد.', 'info');
-  }, [addLog]);
+  }, []);
 
   const reload = useCallback(async () => {
-    // إعادة إرسال آخر رسالة من المستخدم
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
     if (lastUserMsg) {
       setMessages(prev => prev.filter(m => m.id !== messages[messages.length - 1].id));
-      await handleSend(lastUserMsg.content);
+      await handleSend(lastUserMsg.content, lastUserMsg.image);
     }
   }, [messages, handleSend]);
 

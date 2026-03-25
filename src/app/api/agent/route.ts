@@ -41,7 +41,7 @@ const AGENT_SYSTEM_PROMPT = `أنت "المهندس العصبي" (Neural Archit
 
 export async function POST(req: Request) {
   try {
-    const { messages, preferredAI, autoFallback } = await req.json();
+    const { messages, preferredAI, autoFallback, imageDataUri } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: 'Messages array is required' }), { status: 400 });
@@ -55,14 +55,31 @@ export async function POST(req: Request) {
       ? 'llama-3.3-70b-versatile' 
       : 'gemini-2.5-flash';
 
+    const lastMessage = messages[messages.length - 1];
+    const previousMessages = messages.slice(0, -1).map(m => ({ 
+      role: m.role === 'assistant' ? 'assistant' : 'user' as any, 
+      content: m.content 
+    }));
+
+    // تشكيل الرسائل مع دعم الصورة للمهمة الأخيرة
+    const processedMessages = [
+      ...previousMessages,
+      {
+        role: 'user' as any,
+        content: imageDataUri 
+          ? [
+              { type: 'text', text: lastMessage.content || "حلل هذه الصورة برمجياً" },
+              { type: 'image', image: imageDataUri }
+            ]
+          : lastMessage.content
+      }
+    ];
+
     try {
       result = await generateText({
         model: provider(modelName),
         system: AGENT_SYSTEM_PROMPT,
-        messages: messages.map(m => ({ 
-          role: m.role === 'assistant' ? 'assistant' : 'user', 
-          content: m.content 
-        })),
+        messages: processedMessages,
         temperature: 0.3,
       });
       engine = preferredAI === 'groq' ? 'Groq' : 'Gemini';
@@ -73,10 +90,7 @@ export async function POST(req: Request) {
         result = await generateText({
           model: groq('llama-3.3-70b-versatile'),
           system: AGENT_SYSTEM_PROMPT,
-          messages: messages.map(m => ({ 
-            role: m.role === 'assistant' ? 'assistant' : 'user', 
-            content: m.content 
-          })),
+          messages: processedMessages,
         });
         engine = 'Groq (Auto-Fallback)';
       } else {

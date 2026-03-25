@@ -9,6 +9,16 @@ export interface AgentFile {
   language: string;
 }
 
+export interface GitHubRepo {
+  id: number;
+  name: string;
+  full_name: string;
+  private: boolean;
+  html_url: string;
+  description: string | null;
+  default_branch: string;
+}
+
 export interface AgentLog {
   id: string;
   text: string;
@@ -24,6 +34,10 @@ interface AgentAIState {
   preferredAI: 'gemini' | 'groq';
   autoFallback: boolean;
   
+  // GitHub Integration State
+  githubToken: string | null;
+  linkedRepo: GitHubRepo | null;
+  
   setFiles: (files: AgentFile[]) => void;
   updateFile: (path: string, content: string) => void;
   setActiveFile: (path: string | null) => void;
@@ -32,6 +46,8 @@ interface AgentAIState {
   setIsProcessing: (val: boolean) => void;
   setPreferredAI: (ai: 'gemini' | 'groq') => void;
   setAutoFallback: (val: boolean) => void;
+  setGithubToken: (token: string | null) => void;
+  setLinkedRepo: (repo: GitHubRepo | null) => void;
 }
 
 export const useAgentStore = create<AgentAIState>((set) => ({
@@ -41,6 +57,8 @@ export const useAgentStore = create<AgentAIState>((set) => ({
   isProcessing: false,
   preferredAI: 'gemini',
   autoFallback: false,
+  githubToken: null,
+  linkedRepo: null,
 
   setFiles: (files) => set({ files, activeFilePath: files[0]?.path || null }),
   
@@ -65,5 +83,9 @@ export const useAgentStore = create<AgentAIState>((set) => ({
   
   setPreferredAI: (preferredAI) => set({ preferredAI }),
   
-  setAutoFallback: (autoFallback) => set({ autoFallback })
+  setAutoFallback: (autoFallback) => set({ autoFallback }),
+
+  setGithubToken: (githubToken) => set({ githubToken }),
+
+  setLinkedRepo: (linkedRepo) => set({ linkedRepo })
 }));
