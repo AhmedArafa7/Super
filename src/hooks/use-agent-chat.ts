@@ -68,7 +68,12 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
       'google-services.json',
       '.firebaserc',
       'firebase.json',
-      'index.html'
+      'index.html',
+      'page.tsx',
+      'page.jsx',
+      'App.tsx',
+      'src/main.ts',
+      'main.js'
     ];
 
     const filesToFetch = repoTree
@@ -77,7 +82,7 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
         PRIORITY_PATTERNS.some(p => item.path.endsWith(p)) &&
         !coreFileContents[item.path]
       )
-      .slice(0, 15); // زيادة العدد ليشمل أهم ملفات المنصتين
+      .slice(0, 20); // زيادة القدرة الاستيعابية لملفات الكود الأساسية
 
     if (filesToFetch.length > 0) {
       addLog(`جاري تحليل هيكلة المشروع وجلب ملفات التكوين (${filesToFetch.length})...`, "info");
