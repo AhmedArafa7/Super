@@ -141,7 +141,19 @@ ${coreFilesPrompt}
     let requestedFiles: string[] = [];
 
     try {
-      const cleanJson = rawText.replace(/^```json\n?|^```\n?|\n?```$/gm, '').trim();
+      let cleanJson = rawText;
+      const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/);
+      
+      if (jsonMatch) {
+        cleanJson = jsonMatch[1].trim();
+      } else {
+        const firstBrace = cleanJson.indexOf('{');
+        const lastBrace = cleanJson.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
+        }
+      }
+      
       const parsed = JSON.parse(cleanJson);
       explanation = parsed.explanation || parsed.text || rawText;
       files = Array.isArray(parsed.files) ? parsed.files : [];

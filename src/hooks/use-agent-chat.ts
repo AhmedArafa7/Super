@@ -186,6 +186,34 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
 
       await saveAgentMessage(user.id, convId, assistantMessage);
 
+      // --- [NEW]: Fetch requested files automatically ---
+      if (res.requestedFiles && res.requestedFiles.length > 0 && githubToken && linkedRepo) {
+        addLog(`يطلب المهندس مراجعة ${res.requestedFiles.length} ملف، جاري الجلب عبر البوابة العصبية...`, 'info');
+        const [owner, name] = linkedRepo.full_name.split('/');
+        
+        let fetchedCount = 0;
+        for (const filePath of res.requestedFiles) {
+          if (!coreFileContents[filePath]) {
+            try {
+              const content = await getFileContent(githubToken, owner, name, filePath);
+              addCoreFileContent(filePath, content);
+              fetchedCount++;
+            } catch (e) {
+              console.error(`Failed to fetch requested file: ${filePath}`, e);
+            }
+          }
+        }
+        
+        if (fetchedCount > 0) {
+          addLog(`تم جلب ${fetchedCount} ملف بنجاح في الذاكرة الفرعية.`, 'success');
+          toast({
+            title: 'تم تزويد المهندس بالبيانات',
+            description: `تم إحضار ${fetchedCount} ملف إضافي بناءً على طلب المهندس. أعد إرسال سؤالك وسيقوم بالإجابة بناءً عليها.`,
+            className: 'bg-indigo-600 text-white border-none shadow-lg',
+          });
+        }
+      }
+
       if (res.files && res.files.length > 0) {
         setFiles(res.files);
         addLog(`تمت المزامنة العصبية: ${res.explanation}`, 'success');
