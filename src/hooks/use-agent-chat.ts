@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { useAgentStore } from '@/lib/agent-store';
 import { useToast } from '@/hooks/use-toast';
-import { getRepoTree } from '@/lib/github-sync-service';
+import { getRepoTree, getFileContent } from '@/lib/github-sync-service';
 import { saveAgentMessage, createAgentConversation, getAgentMessagesSnapshot } from '@/lib/agent-history-service';
 import { useAuth } from '@/components/auth/auth-provider';
 

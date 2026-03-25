@@ -97,17 +97,16 @@ ${repoContext}
 [ACTION_PROTOCOL]
 1. If the user provides a screenshot, analyze it deeply. If it shows code, a UI, or the NexusAI interface itself, provide specific feedback based on what you see combined with the [CONTEXT] above.
 2. If the user asks about their "linked project", refer specifically to its files and structure provided in the context.
-3. You must return only a valid JSON object.
-4. Your primary task is to build and modify code and files in the user's environment.
-5. Your response must always be a clean JSON object with the following fields:
-{
-  "explanation": "A technical explanation in Arabic of what you did",
-  "files": [
-    {"path": "path/to/file", "content": "file content", "language": "language"}
-  ]
-}
-6. If the request is only an inquiry, leave the 'files' array empty.
-7. Do not include any text outside the JSON.`;
+3. [DEEP_CODE_ACCESS]: If you need to analyze the actual source code within a file (e.g. for debugging, refactoring, or evaluation), include a "requestedFiles" array in your JSON response with the EXACT paths to the files you want to read. The system will provide their content in the next turn.
+4. You must return only a valid JSON object.
+5. Your primary task is to build and modify code and files in the user's environment.
+6. Your response must always be a clean JSON object with the following fields:
+   - explanation: your reasoning or response in Arabic.
+   - files: an array of [NEW], [MODIFY], or [DELETE] operations (only if you are making changes).
+   - requestedFiles: (Optional) Array of file paths you want to read to perform a deeper analysis.
+   - engine: "The Architect".
+7. If the request is only an inquiry, leave the 'files' array empty.
+8. Do not include any text outside the JSON.`;
 
     try {
       result = await generateText({

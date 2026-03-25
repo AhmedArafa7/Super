@@ -74,3 +74,21 @@ export const getRepoTree = async (token: string, owner: string, repo: string, br
   if (!res.ok) throw new Error('تعذر جلب شجرة المستودع.');
   return res.json();
 };
+
+export const getFileContent = async (token: string, owner: string, repo: string, path: string) => {
+  const res = await fetch(`${GITHUB_API_URL}/repos/${owner}/${repo}/contents/${path}`, {
+    headers: {
+      Authorization: `token ${token}`,
+      Accept: 'application/vnd.github.v3+json',
+    },
+  });
+
+  if (!res.ok) throw new Error(`تعذر جلب محتوى الملف: ${path}`);
+  const data = await res.json();
+  
+  if (data.content) {
+    // Decoding Base64 correctly for UTF-8 content
+    return decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+  }
+  return '';
+};
