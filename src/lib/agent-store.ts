@@ -9,6 +9,14 @@ export interface AgentFile {
   language: string;
 }
 
+export interface AgentConversation {
+  id: string;
+  title: string;
+  linkedRepo?: GitHubRepo | null;
+  updatedAt: string;
+  createdAt: string;
+}
+
 export interface GitHubRepo {
   id: number;
   name: string;
@@ -38,6 +46,10 @@ interface AgentAIState {
   githubToken: string | null;
   linkedRepo: GitHubRepo | null;
   repoTree: any[] | null;
+
+  // History State
+  conversations: AgentConversation[];
+  activeConversationId: string | null;
   
   setFiles: (files: AgentFile[]) => void;
   updateFile: (path: string, content: string) => void;
@@ -50,6 +62,10 @@ interface AgentAIState {
   setGithubToken: (token: string | null) => void;
   setLinkedRepo: (repo: GitHubRepo | null) => void;
   setRepoTree: (tree: any[] | null) => void;
+  
+  // History Setters
+  setConversations: (convs: AgentConversation[]) => void;
+  setActiveConversationId: (id: string | null) => void;
 }
 
 export const useAgentStore = create<AgentAIState>((set) => ({
@@ -62,6 +78,8 @@ export const useAgentStore = create<AgentAIState>((set) => ({
   githubToken: null,
   linkedRepo: null,
   repoTree: null,
+  conversations: [],
+  activeConversationId: null,
 
   setFiles: (files) => set({ files, activeFilePath: files[0]?.path || null }),
   
@@ -92,5 +110,9 @@ export const useAgentStore = create<AgentAIState>((set) => ({
 
   setLinkedRepo: (linkedRepo) => set({ linkedRepo, repoTree: null }),
 
-  setRepoTree: (repoTree) => set({ repoTree })
+  setRepoTree: (repoTree) => set({ repoTree }),
+
+  setConversations: (conversations) => set({ conversations }),
+
+  setActiveConversationId: (activeConversationId) => set({ activeConversationId })
 }));

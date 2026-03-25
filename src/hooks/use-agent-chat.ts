@@ -1,9 +1,11 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 import { useAgentStore } from '@/lib/agent-store';
 import { useToast } from '@/hooks/use-toast';
 import { getRepoTree } from '@/lib/github-sync-service';
+import { saveAgentMessage, createAgentConversation, getAgentMessagesSnapshot } from '@/lib/agent-history-service';
+import { useAuth } from '@/components/auth/auth-provider';
 
 /**
  * [STABILITY_ANCHOR: USE_AGENT_CHAT_V4.0]
@@ -21,10 +23,12 @@ export interface AgentMessage {
 }
 
 export function useAgentChat(onQuotaExceeded?: () => void) {
+  const { user } = useAuth();
   const { 
     setFiles, addLog, preferredAI, setPreferredAI, 
     autoFallback, setAutoFallback, linkedRepo, 
-    githubToken, repoTree, setRepoTree
+    githubToken, repoTree, setRepoTree,
+    activeConversationId, setActiveConversationId
   } = useAgentStore();
   const { toast } = useToast();
 
@@ -32,10 +36,37 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
   const [isLoading, setIsLoading] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const handleSend = useCallback(async (content: string, imageDataUri?: string | null) => {
-    if ((!content.trim() && !imageDataUri) || isLoading) return;
+  // مزامنة المحادثة مع Firestore
+  useEffect(() => {
+    if (user?.id && activeConversationId) {
+      const unsub = getAgentMessagesSnapshot(user.id, activeConversationId, (firestoreMessages) => {
+        setMessages(firestoreMessages as any);
+      });
+      return () => unsub();
+    } else if (!activeConversationId) {
+      setMessages([]); // Reset if no active conversation
+    }
+  }, [user?.id, activeConversationId]);
 
-    // بناء رسالة المستخدم
+  const handleSend = useCallback(async (content: string, imageDataUri?: string | null) => {
+    if ((!content.trim() && !imageDataUri) || isLoading || !user) return;
+
+    let convId = activeConversationId;
+
+    // إنشاء محادثة جديدة إذا لم تكن موجودة
+    if (!convId) {
+      try {
+        const newTitle = content.slice(0, 30) || "محادثة برمجية جديدة";
+        const newConv = await createAgentConversation(user.id, newTitle, linkedRepo);
+        convId = newConv.id;
+        setActiveConversationId(convId);
+      } catch (e) {
+        toast({ variant: 'destructive', title: 'فشل بدء المحادثة', description: 'تعذر إنشاء سجل في Firestore.' });
+        return;
+      }
+    }
+
+    // بناء رسالة المستخدم وحفظها محلياً مؤقتاً (للسرعة) وحفظها في Firestore
     const userMessage: AgentMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -43,7 +74,9 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
       image: imageDataUri,
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    // لا نحتاج لتحديث setMessages يدوياً لأن Snapshot سيتكفل بذلك
+    await saveAgentMessage(user.id, convId, userMessage);
+    
     setIsLoading(true);
 
     const controller = new AbortController();
@@ -100,7 +133,7 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
         engine: res.engine,
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      await saveAgentMessage(user.id, convId, assistantMessage);
 
       if (res.files && res.files.length > 0) {
         setFiles(res.files);
@@ -127,7 +160,7 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
       setIsLoading(false);
       abortControllerRef.current = null;
     }
-  }, [messages, isLoading, preferredAI, autoFallback, setFiles, addLog, toast, onQuotaExceeded]);
+  }, [messages, isLoading, preferredAI, autoFallback, setFiles, addLog, toast, onQuotaExceeded, user, activeConversationId, linkedRepo, githubToken, repoTree, setRepoTree, setActiveConversationId]);
 
   const stopGeneration = useCallback(() => {
     abortControllerRef.current?.abort();
