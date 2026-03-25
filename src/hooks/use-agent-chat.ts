@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useAgentStore } from '@/lib/agent-store';
 import { useToast } from '@/hooks/use-toast';
+import { getRepoTree } from '@/lib/github-sync-service';
 
 /**
  * [STABILITY_ANCHOR: USE_AGENT_CHAT_V4.0]
@@ -20,7 +21,11 @@ export interface AgentMessage {
 }
 
 export function useAgentChat(onQuotaExceeded?: () => void) {
-  const { setFiles, addLog, preferredAI, setPreferredAI, autoFallback, setAutoFallback } = useAgentStore();
+  const { 
+    setFiles, addLog, preferredAI, setPreferredAI, 
+    autoFallback, setAutoFallback, linkedRepo, 
+    githubToken, repoTree, setRepoTree
+  } = useAgentStore();
   const { toast } = useToast();
 
   const [messages, setMessages] = useState<AgentMessage[]>([]);
@@ -45,6 +50,18 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
     abortControllerRef.current = controller;
 
     try {
+      // جلب شجرة المستودع إذا لم تكن موجودة
+      let currentTree = repoTree;
+      if (linkedRepo && githubToken && !currentTree) {
+        try {
+          const treeData = await getRepoTree(githubToken, linkedRepo.full_name.split('/')[0], linkedRepo.name, linkedRepo.default_branch);
+          currentTree = treeData.tree;
+          setRepoTree(currentTree);
+        } catch (e) {
+          console.error("Failed to fetch repo tree", e);
+        }
+      }
+
       const history = [...messages, userMessage].map(m => ({
         role: m.role,
         content: m.content,
@@ -58,7 +75,9 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
           messages: history,
           preferredAI,
           autoFallback,
-          imageDataUri, // إرسال الصورة للمهندس العصبي
+          imageDataUri,
+          linkedRepo,
+          repoTree: currentTree?.slice(0, 100).map((f: any) => f.path), // إرسال أول 100 ملف كفهرس
         }),
       });
 

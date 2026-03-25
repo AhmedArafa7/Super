@@ -62,3 +62,15 @@ export const updateGitHubFile = async (
 
   return res.json();
 };
+
+export const getRepoTree = async (token: string, owner: string, repo: string, branch: string = 'main') => {
+  const res = await fetch(`${GITHUB_API_URL}/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`, {
+    headers: {
+      Authorization: `token ${token}`,
+      Accept: 'application/vnd.github.v3+json',
+    },
+  });
+
+  if (!res.ok) throw new Error('تعذر جلب شجرة المستودع.');
+  return res.json();
+};

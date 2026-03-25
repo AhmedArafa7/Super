@@ -41,8 +41,8 @@ const AGENT_SYSTEM_PROMPT = `أنت "المهندس العصبي" (Neural Archit
 
 export async function POST(req: Request) {
   try {
-    const { messages, preferredAI, autoFallback, imageDataUri } = await req.json();
-
+    const { messages, preferredAI, autoFallback, imageDataUri, linkedRepo, repoTree } = await req.json();
+    
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: 'Messages array is required' }), { status: 400 });
     }
@@ -79,10 +79,40 @@ export async function POST(req: Request) {
       }
     ];
 
+    // سياق المستودع المرتبط (إن وجد)
+    const repoContext = linkedRepo 
+      ? `\n\n[CONTEXT: GITHUB REPOSITORY LINKED]
+Repo: "${linkedRepo.full_name}"
+Description: ${linkedRepo.description || "No description provided"}
+Default Branch: ${linkedRepo.default_branch}
+Project Structure (Files): ${Array.isArray(repoTree) ? repoTree.join(', ') : 'Loading...'}
+You are now "inside" this repository. Use this structure to evaluate the project or answer questions about it.`
+      : '\n\n[CONTEXT: NO REPOSITORY LINKED]\nAdvise the user to use the GitHub Engine if they want you to work on their remote projects.';
+
+    const systemPrompt = `[STRICT_RESPONSE_FORMAT: JSON_ONLY]
+[NEURAL_IDENTITY: THE_ARCHITECT]
+You are the "Neural Architect", a high-end AI developer orchestrator.
+${repoContext}
+
+[ACTION_PROTOCOL]
+1. If the user provides a screenshot, analyze it deeply. If it shows code, a UI, or the NexusAI interface itself, provide specific feedback based on what you see combined with the [CONTEXT] above.
+2. If the user asks about their "linked project", refer specifically to its files and structure provided in the context.
+3. You must return only a valid JSON object.
+4. Your primary task is to build and modify code and files in the user's environment.
+5. Your response must always be a clean JSON object with the following fields:
+{
+  "explanation": "A technical explanation in Arabic of what you did",
+  "files": [
+    {"path": "path/to/file", "content": "file content", "language": "language"}
+  ]
+}
+6. If the request is only an inquiry, leave the 'files' array empty.
+7. Do not include any text outside the JSON.`;
+
     try {
       result = await generateText({
         model: provider(modelName),
-        system: AGENT_SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: processedMessages,
         temperature: 0.3,
       });
@@ -93,7 +123,7 @@ export async function POST(req: Request) {
       if (autoFallback && preferredAI !== 'groq' && process.env.GROQ_API_KEY) {
         result = await generateText({
           model: groq('llama-3.3-70b-versatile'),
-          system: AGENT_SYSTEM_PROMPT,
+          system: systemPrompt,
           messages: processedMessages,
         });
         engine = 'Groq (Auto-Fallback)';

@@ -37,6 +37,7 @@ interface AgentAIState {
   // GitHub Integration State
   githubToken: string | null;
   linkedRepo: GitHubRepo | null;
+  repoTree: any[] | null;
   
   setFiles: (files: AgentFile[]) => void;
   updateFile: (path: string, content: string) => void;
@@ -48,6 +49,7 @@ interface AgentAIState {
   setAutoFallback: (val: boolean) => void;
   setGithubToken: (token: string | null) => void;
   setLinkedRepo: (repo: GitHubRepo | null) => void;
+  setRepoTree: (tree: any[] | null) => void;
 }
 
 export const useAgentStore = create<AgentAIState>((set) => ({
@@ -59,6 +61,7 @@ export const useAgentStore = create<AgentAIState>((set) => ({
   autoFallback: false,
   githubToken: null,
   linkedRepo: null,
+  repoTree: null,
 
   setFiles: (files) => set({ files, activeFilePath: files[0]?.path || null }),
   
@@ -87,5 +90,7 @@ export const useAgentStore = create<AgentAIState>((set) => ({
 
   setGithubToken: (githubToken) => set({ githubToken }),
 
-  setLinkedRepo: (linkedRepo) => set({ linkedRepo })
+  setLinkedRepo: (linkedRepo) => set({ linkedRepo, repoTree: null }),
+
+  setRepoTree: (repoTree) => set({ repoTree })
 }));
