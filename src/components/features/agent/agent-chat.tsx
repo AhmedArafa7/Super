@@ -1,11 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from "react";
-import { Wand2, Loader2, Sparkles, Bot, User, Settings2, ShieldAlert } from "lucide-react";
+import { Bot, Sparkles, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { useAgentStore } from "@/lib/agent-store";
 import { useToast } from "@/hooks/use-toast";
 import { useChat } from '@ai-sdk/react';
@@ -18,21 +15,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-interface AgentMessage {
-  id: string;
-  role: string;
-  content: string;
-  text?: string;
-  parts?: any[];
-  toolInvocations?: any[];
-}
-
-interface AgentChatResult {
-  messages: AgentMessage[];
-  append: (message: any) => Promise<any>;
-  isLoading: boolean;
-  reload: () => void;
-}
+// New Modular Components
+import { ChatMessage } from "./chat-message";
+import { ChatInput } from "./chat-input";
+import { ChatSettings } from "./chat-settings";
 
 export function AgentChat() {
   const { 
@@ -40,78 +26,72 @@ export function AgentChat() {
   } = useAgentStore();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // UI State
   const [showQuotaDialog, setShowQuotaDialog] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [inputValue, setInputValue] = useState('');
 
-  const chat = useChat({
+  const chatHelpers = useChat({
     api: '/api/chat',
-    url: '/api/chat',
-    endpoint: '/api/chat',
     body: { preferredAI, autoFallback },
     onResponse: (response: any) => {
       if (response.status === 429) {
         setShowQuotaDialog(true);
       }
     },
-    onFinish: ({ message }: any) => {
-      const msg = message as AgentMessage;
-      if (msg.toolInvocations) {
-        msg.toolInvocations.forEach((toolCall: any) => {
-          if (toolCall.toolName === 'update_workspace_files' && 'args' in toolCall) {
-            const payload = toolCall.args as any;
+    onFinish: (completion: any) => {
+      // Process tool calls for workspace updates
+      const message = completion.message || completion;
+      if (message && message.toolInvocations) {
+        message.toolInvocations.forEach((toolCall: any) => {
+          if (toolCall.toolName === 'update_workspace_files' && toolCall.state === 'result') {
+            const payload = toolCall.args;
             if (payload.files && payload.files.length > 0) {
               setFiles(payload.files);
-              addLog(`قام المهندس بتحديث ${payload.files.length} ملفات: ${payload.explanation}`, 'success');
+              addLog(`تمت المزامنة العصبية: ${payload.explanation}`, 'success');
+              toast({ 
+                title: "تم تحديث الملفات", 
+                description: `قام المهندس بتحديث ${payload.files.length} ملفات في بيئة العمل.`,
+                className: "bg-primary text-white border-none shadow-xl"
+              });
             }
           }
         });
       }
     },
-    onError: async (error: any) => {
+    onError: (error: any) => {
       if (!showQuotaDialog) {
-        let detail = error.message;
-        try {
-          const res = await error.response?.json();
-          if (res?.error) detail = res.error;
-        } catch (e) {}
-        
-        addLog(`خطأ معالج: ${detail}`, 'error');
-        toast({ variant: "destructive", title: "خطأ في المعالجة", description: detail });
+        addLog(`اضطراب في الاتصال: ${error.message}`, 'error');
+        toast({ 
+          variant: "destructive", 
+          title: "خطأ في النخاع العصبي", 
+          description: "تعذر الاتصال بالمحرك حالياً." 
+        });
       }
     }
   } as any);
 
-  const { messages = [], isLoading = false, reload = () => {} } = chat as any;
+  const { messages, append, isLoading, reload } = chatHelpers as any;
 
-  const handleSend = () => {
+  const handleSend = async () => {
+    if (!inputValue.trim() || isLoading) return;
+    
+    const currentInput = inputValue;
+    setInputValue('');
+    
     try {
-      if (!inputValue.trim() || isLoading) return;
-      
-      // Resilient search for the send/append function
-      const appendFn = (chat as any).append || (chat as any).sendMessage || (chat as any).submit;
-      
-      if (typeof appendFn !== 'function') {
-        const availableKeys = Object.keys(chat).join(', ');
-        throw new Error(`دالة الإرسال غير متوفرة (متوفر: ${availableKeys})`);
-      }
-      
-      // FORCE the API endpoint and BODY in the call itself
-      appendFn(
-        { role: 'user', content: inputValue }, 
-        { 
-          api: '/api/chat',
-          body: { preferredAI, autoFallback }
-        } as any
-      );
-      setInputValue('');
+      await append({
+        role: 'user',
+        content: currentInput,
+      });
     } catch (err: any) {
-      console.error('Submission error:', err);
-      addLog(`خطأ فني في الإرسال: ${err.message}`, 'error');
+      setInputValue(currentInput); // Restore on failure
+      console.error('Submission failed:', err);
       toast({ 
         variant: "destructive", 
-        title: "خطأ في معالجة الإرسال", 
-        description: err.message 
+        title: "فشل الإرسال", 
+        description: "يرجى التحقق من اتصالك بالإنترنت." 
       });
     }
   };
@@ -119,140 +99,80 @@ export function AgentChat() {
   const handleSwitchToGroq = () => {
     setPreferredAI('groq');
     setShowQuotaDialog(false);
-    toast({ title: "تم التبديل إلى Groq", description: "جاري إعادة معالجة طلبك..." });
+    toast({ title: "تم التبديل إلى Groq", description: "جاري إعادة توجيه الطلب عصبياً..." });
     setTimeout(() => reload(), 100);
   };
 
+  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-[500px] bg-slate-900/40 border-t border-white/5 rounded-b-[2.5rem]">
-      {/* Settings Bar */}
-      <div className="px-6 py-2 border-b border-white/5 flex justify-between items-center text-[10px] uppercase tracking-wider font-bold text-white/40">
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setShowSettings(!showSettings)}
-            className={`flex items-center gap-1 transition-colors ${showSettings ? 'text-primary' : 'hover:text-white'}`}
-          >
-            <Settings2 className="size-3" />
-            إعدادات المحرك
-          </button>
-        </div>
-        <div className="flex items-center gap-2">
-          <span>المحرك الحالي:</span>
-          <span className="text-primary">{preferredAI === 'gemini' ? 'Gemini 2.5' : 'Groq (Llama)'}</span>
-        </div>
-      </div>
+    <div className="flex flex-col h-[600px] bg-slate-900/40 border-t border-white/5 rounded-b-[3rem] overflow-hidden shadow-2xl backdrop-blur-md">
+      
+      {/* Engine Settings Component */}
+      <ChatSettings 
+        showSettings={showSettings}
+        setShowSettings={setShowSettings}
+        preferredAI={preferredAI}
+        setPreferredAI={setPreferredAI}
+        autoFallback={autoFallback}
+        setAutoFallback={setAutoFallback}
+      />
 
-      {showSettings && (
-        <div className="px-8 py-4 bg-white/5 border-b border-white/5 animate-in slide-in-from-top duration-300">
-          <div className="flex flex-col gap-4 max-w-4xl mx-auto">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1">
-                <Label className="text-white">التبديل التلقائي (Auto-Fallback)</Label>
-                <p className="text-[11px] text-muted-foreground">التحويل لـ Groq تلقائياً عند نفاذ حصة Gemini دون سؤالك.</p>
-              </div>
-              <Switch checked={autoFallback} onCheckedChange={setAutoFallback} />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label className="text-white">المحرك المفضل</Label>
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  variant={preferredAI === 'gemini' ? 'default' : 'outline'}
-                  onClick={() => setPreferredAI('gemini')}
-                  className="h-8 text-[10px]"
-                >Gemini</Button>
-                <Button 
-                  size="sm"
-                  variant={preferredAI === 'groq' ? 'default' : 'outline'}
-                  onClick={() => setPreferredAI('groq')}
-                  className="h-8 text-[10px]"
-                >Groq</Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      {/* Messages Scroll Area */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-8 scroll-smooth scrollbar-hide">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
-            <Bot className="size-12 mb-4 text-primary" />
-            <p className="text-xl font-headline">المهندس العصبي جاهز بالكامل لطلباتك البرمجية.</p>
+          <div className="flex flex-col items-center justify-center h-full text-center opacity-40 animate-pulse-slow">
+            <Bot className="size-16 mb-6 text-primary drop-shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
+            <h2 className="text-2xl font-headline tracking-widest text-white mb-2">NEURAL ARCHITECT</h2>
+            <p className="text-sm font-medium text-slate-400 max-w-xs leading-relaxed">المهندس العصبي جاهز تماماً لمعالجة وبناء طلباتك البرمجية.</p>
           </div>
         )}
         
-        {messages.map((m: AgentMessage) => (
-          <div key={m.id} className={`flex gap-4 max-w-4xl mx-auto ${m.role === 'user' ? 'flex-row-reverse' : ''}`} dir="rtl">
-            <div className={`shrink-0 size-10 rounded-full flex items-center justify-center ${m.role === 'user' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-primary/20 text-primary'}`}>
-              {m.role === 'user' ? <User className="size-5" /> : <Bot className="size-5" />}
-            </div>
-            <div className="flex flex-col gap-1 max-w-[85%] items-start text-right">
-              <div 
-                dangerouslySetInnerHTML={{ 
-                  __html: (m.content || (m.parts ? m.parts.map((p: any) => p.text || '').join('') : '') || m.text || '').replace(/\n/g, '<br/>') 
-                }} 
-                className="text-white text-base leading-relaxed p-4 bg-white/5 rounded-2xl" 
-              />
+        {messages.map((m: any) => (
+          <ChatMessage key={m.id} message={m} />
+        ))}
+        
+        {isLoading && (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex gap-4 max-w-4xl mx-auto" dir="rtl">
+            <div className="size-10 rounded-2xl bg-white/5 animate-pulse" />
+            <div className="flex flex-col gap-2">
+              <div className="h-10 w-48 bg-white/5 rounded-2xl animate-pulse" />
             </div>
           </div>
-        ))}
-        {isLoading && <div className="animate-pulse flex gap-4 max-w-4xl mx-auto" dir="rtl">
-          <div className="size-10 rounded-full bg-white/5" />
-          <div className="h-12 w-32 bg-white/5 rounded-2xl" />
-        </div>}
-        <div ref={messagesEndRef} />
+        )}
+        <div ref={messagesEndRef} className="h-2" />
       </div>
 
-      {/* Input Area */}
-      <div className="p-6 border-t border-white/5">
-        <div className="flex gap-4 items-center max-w-4xl mx-auto flex-row-reverse">
-          <Button 
-            onClick={handleSend}
-            disabled={isLoading || !inputValue.trim()} 
-            className="size-14 rounded-2xl bg-primary shadow-xl"
-          >
-            {isLoading ? <Loader2 className="animate-spin" /> : <Wand2 />}
-          </Button>
-          <Input 
-            value={inputValue} 
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="أمر البرمجة..."
-            className="h-14 bg-white/5 border-white/10 rounded-2xl px-6 text-right text-white"
-            dir="rtl"
-            disabled={isLoading}
-          />
-        </div>
-      </div>
+      {/* Modern Chat Input Component */}
+      <ChatInput 
+        value={inputValue}
+        onChange={setInputValue}
+        onSend={handleSend}
+        isLoading={isLoading}
+      />
 
-      {/* Quota Consent Dialog */}
+      {/* Advanced Quota Consent Dialog */}
       <Dialog open={showQuotaDialog} onOpenChange={setShowQuotaDialog}>
-        <DialogContent className="glass border-white/10 text-white rounded-[2rem]">
+        <DialogContent className="glass border-white/10 text-white rounded-[2.5rem] p-8 max-w-md">
           <div dir="rtl">
-          <DialogHeader>
-            <div className="flex items-center gap-3 text-amber-400 mb-2">
-              <ShieldAlert className="size-6" />
-              <DialogTitle className="text-2xl font-headline">نفاد الحصة المجانية</DialogTitle>
-            </div>
-            <DialogDescription className="text-white/70 text-right leading-relaxed text-lg">
-              نأسف، لقد استهلكت الحصة المجانية المتاحة لـ **Gemini** حالياً. 
-              <br/>هل تود التبديل إلى محرك **Groq (Llama 3)** فوراً لإكمال المهمة؟ 
-              <br/><span className="text-[12px] opacity-60">أو يمكنك الانتظار حتى تتجدد الحصة لاحقاً.</span>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex-col sm:flex-row gap-3 mt-6">
-            <Button onClick={handleSwitchToGroq} className="flex-1 bg-primary text-lg h-12">
-              استخدام Groq فوراً
-            </Button>
-            <Button variant="outline" onClick={() => setShowQuotaDialog(false)} className="flex-1 h-12">
-              إلغاء والانتظار
-            </Button>
-          </DialogFooter>
+            <DialogHeader className="mb-6">
+              <ShieldAlert className="size-16 text-yellow-400 mx-auto mb-4 drop-shadow-[0_0_15px_rgba(252,211,77,0.5)]" />
+              <DialogTitle className="text-3xl font-bold text-center text-white">تجاوزت الحد الأقصى</DialogTitle>
+              <DialogDescription className="text-center text-white/70 mt-2 text-base leading-relaxed">
+                لقد تجاوزت الحد الأقصى لعدد الطلبات المجانية. يمكنك التبديل إلى Groq للاستمرار في استخدام المهندس العصبي.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex flex-col gap-3 mt-8">
+              <Button onClick={handleSwitchToGroq} className="w-full bg-gradient-to-r from-primary to-blue-600 text-white font-bold h-14 rounded-2xl text-lg shadow-xl shadow-primary/20">
+                تشغيل Groq الآن
+              </Button>
+              <Button variant="ghost" onClick={() => setShowQuotaDialog(false)} className="w-full h-14 rounded-2xl text-white/40 hover:text-white hover:bg-white/5">
+                إلغاء والانتظار
+              </Button>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>
