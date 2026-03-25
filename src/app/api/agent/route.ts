@@ -41,25 +41,19 @@ const AGENT_SYSTEM_PROMPT = `أنت "المهندس العصبي" (Neural Archit
 
 export async function POST(req: Request) {
   try {
-    const { messages, preferredAI, autoFallback, imageDataUri, linkedRepo, repoTree } = await req.json();
+    const { 
+      messages, preferredAI, autoFallback, imageDataUri, 
+      linkedRepo, repoTree, coreFileContents 
+    } = await req.json();
     
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: 'Messages array is required' }), { status: 400 });
     }
 
-    let result;
-    let engine = 'NexusAI';
-
-    const provider = preferredAI === 'groq' ? groq : google;
-    const modelName = preferredAI === 'groq' 
-      ? 'llama-3.3-70b-versatile' 
-      : 'gemini-2.5-flash';
-
     const lastMessage = messages[messages.length - 1];
-    const previousMessages = messages.slice(0, -1).map(m => ({ 
-      role: m.role === 'assistant' ? 'assistant' : 'user' as any, 
-      content: m.content 
-    }));
+    const previousMessages = messages.slice(0, -1);
+    const provider = preferredAI === 'groq' ? groq : google;
+    const modelName = preferredAI === 'groq' ? 'llama-3.3-70b-versatile' : 'gemini-2.5-flash';
 
     // تشكيل الرسائل مع دعم الصورة للمهمة الأخيرة
     const processedMessages = [
@@ -85,46 +79,55 @@ export async function POST(req: Request) {
 Repo: "${linkedRepo.full_name}"
 Description: ${linkedRepo.description || "No description provided"}
 Default Branch: ${linkedRepo.default_branch}
-Project Structure (Files): ${Array.isArray(repoTree) ? repoTree.join(', ') : 'Loading...'}
-You are now "inside" this repository. Use this structure to evaluate the project or answer questions about it.`
+Project Structure (Files): ${Array.isArray(repoTree) ? repoTree.join(', ') : 'Loading...'}`
       : '\n\n[CONTEXT: NO REPOSITORY LINKED]\nAdvise the user to use the GitHub Engine if they want you to work on their remote projects.';
+
+    const coreFilesPrompt = coreFileContents && Object.keys(coreFileContents).length > 0
+      ? `\n\n[CORE_PROJECT_FILES_CONTENT]\nYou have immediate access to these critical files:\n${Object.entries(coreFileContents).map(([p, c]) => `--- FILE: ${p} ---\n${c}`).join('\n\n')}`
+      : "";
 
     const systemPrompt = `[STRICT_RESPONSE_FORMAT: JSON_ONLY]
 [NEURAL_IDENTITY: THE_ARCHITECT]
 You are the "Neural Architect", a high-end AI developer orchestrator.
 ${repoContext}
+${coreFilesPrompt}
 
 [ACTION_PROTOCOL]
 1. If the user provides a screenshot, analyze it deeply. If it shows code, a UI, or the NexusAI interface itself, provide specific feedback based on what you see combined with the [CONTEXT] above.
 2. If the user asks about their "linked project", refer specifically to its files and structure provided in the context.
-3. [DEEP_CODE_ACCESS]: If you need to analyze the actual source code within a file (e.g. for debugging, refactoring, or evaluation), include a "requestedFiles" array in your JSON response with the EXACT paths to the files you want to read. The system will provide their content in the next turn.
+3. [DEEP_CODE_ACCESS]: If you need to analyze the actual source code within a file NOT listed in [CORE_PROJECT_FILES_CONTENT], include a "requestedFiles" array in your JSON response with the EXACT paths to the files you want to read. The system will provide their content in the next turn.
 4. You must return only a valid JSON object.
 5. Your primary task is to build and modify code and files in the user's environment.
 6. Your response must always be a clean JSON object with the following fields:
-   - explanation: your reasoning or response in Arabic.
-   - files: an array of [NEW], [MODIFY], or [DELETE] operations (only if you are making changes).
-   - requestedFiles: (Optional) Array of file paths you want to read to perform a deeper analysis.
-   - engine: "The Architect".
+   - "explanation": your reasoning or response in Arabic.
+   - "files": an array of [NEW], [MODIFY], or [DELETE] operations (only if you are making changes).
+   - "requestedFiles": (Optional) Array of file paths you want to read to perform a deeper analysis.
+   - "engine": "The Architect".
 7. If the request is only an inquiry, leave the 'files' array empty.
 8. Do not include any text outside the JSON.`;
 
+    let result;
+    let engine = 'NexusAI';
+
     try {
-      result = await generateText({
+      const response = await generateText({
         model: provider(modelName),
         system: systemPrompt,
         messages: processedMessages,
         temperature: 0.3,
       });
+      result = response;
       engine = preferredAI === 'groq' ? 'Groq' : 'Gemini';
     } catch (err: any) {
       console.warn('Primary model failed, checking fallback:', err.message);
       
       if (autoFallback && preferredAI !== 'groq' && process.env.GROQ_API_KEY) {
-        result = await generateText({
+        const response = await generateText({
           model: groq('llama-3.3-70b-versatile'),
           system: systemPrompt,
           messages: processedMessages,
         });
+        result = response;
         engine = 'Groq (Auto-Fallback)';
       } else {
         throw err;
@@ -135,12 +138,14 @@ ${repoContext}
     const rawText = result.text;
     let explanation = rawText;
     let files: any[] = [];
+    let requestedFiles: string[] = [];
 
     try {
       const cleanJson = rawText.replace(/^```json\n?|^```\n?|\n?```$/gm, '').trim();
       const parsed = JSON.parse(cleanJson);
       explanation = parsed.explanation || parsed.text || rawText;
       files = Array.isArray(parsed.files) ? parsed.files : [];
+      requestedFiles = Array.isArray(parsed.requestedFiles) ? parsed.requestedFiles : [];
     } catch {
       // إذا لم يلتزم بالـ JSON، نعامله كـ متن عادي
     }
@@ -149,6 +154,7 @@ ${repoContext}
       success: true, 
       explanation, 
       files, 
+      requestedFiles,
       engine 
     }), {
       headers: { 'Content-Type': 'application/json' },

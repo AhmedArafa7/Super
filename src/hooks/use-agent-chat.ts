@@ -28,7 +28,8 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
     setFiles, addLog, preferredAI, setPreferredAI, 
     autoFallback, setAutoFallback, linkedRepo, 
     githubToken, repoTree, setRepoTree,
-    activeConversationId, setActiveConversationId
+    activeConversationId, setActiveConversationId,
+    coreFileContents, addCoreFileContent
   } = useAgentStore();
   const { toast } = useToast();
 
@@ -47,6 +48,50 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
       setMessages([]); // Reset if no active conversation
     }
   }, [user?.id, activeConversationId]);
+
+  // [PROACTIVE_CONTEXT]: جلب الملفات الأساسية فور تحميل شجرة المجلدات
+  useEffect(() => {
+    if (!githubToken || !linkedRepo || !repoTree || repoTree.length === 0) return;
+
+    const [owner, name] = linkedRepo.full_name.split('/');
+    
+    // قائمة الملفات عالية الأهمية التي يحتاجها المهندس لفهم المشروع فوراً (Capacitor/Android/Firebase)
+    const PRIORITY_PATTERNS = [
+      'package.json',
+      'capacitor.config.json',
+      'capacitor.config.ts',
+      'capacitor.config.js',
+      'AndroidManifest.xml',
+      'MainActivity.java',
+      'MainActivity.kt',
+      'build.gradle',
+      'google-services.json',
+      '.firebaserc',
+      'firebase.json',
+      'index.html'
+    ];
+
+    const filesToFetch = repoTree
+      .filter(item => 
+        item.type === 'blob' && 
+        PRIORITY_PATTERNS.some(p => item.path.endsWith(p)) &&
+        !coreFileContents[item.path]
+      )
+      .slice(0, 15); // زيادة العدد ليشمل أهم ملفات المنصتين
+
+    if (filesToFetch.length > 0) {
+      addLog(`جاري تحليل هيكلة المشروع وجلب ملفات التكوين (${filesToFetch.length})...`, "info");
+      
+      filesToFetch.forEach(async (file) => {
+        try {
+          const content = await getFileContent(githubToken, owner, name, file.path);
+          addCoreFileContent(file.path, content);
+        } catch (e) {
+          console.error(`Failed to fetch proactive file: ${file.path}`, e);
+        }
+      });
+    }
+  }, [repoTree, githubToken, linkedRepo, coreFileContents, addCoreFileContent, addLog]);
 
   const handleSend = useCallback(async (content: string, imageDataUri?: string | null) => {
     if ((!content.trim() && !imageDataUri) || isLoading || !user) return;
@@ -110,7 +155,8 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
           autoFallback,
           imageDataUri,
           linkedRepo,
-          repoTree: currentTree?.slice(0, 100).map((f: any) => f.path), // إرسال أول 100 ملف كفهرس
+          repoTree: repoTree?.map(f => f.path),
+          coreFileContents, // إرسال محتويات الملفات الأساسية المحملة مسبقاً
         }),
       });
 
@@ -160,7 +206,7 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
       setIsLoading(false);
       abortControllerRef.current = null;
     }
-  }, [messages, isLoading, preferredAI, autoFallback, setFiles, addLog, toast, onQuotaExceeded, user, activeConversationId, linkedRepo, githubToken, repoTree, setRepoTree, setActiveConversationId]);
+  }, [messages, isLoading, preferredAI, autoFallback, setFiles, addLog, toast, onQuotaExceeded, user, activeConversationId, linkedRepo, githubToken, repoTree, setRepoTree, setActiveConversationId, coreFileContents, addCoreFileContent]);
 
   const stopGeneration = useCallback(() => {
     abortControllerRef.current?.abort();

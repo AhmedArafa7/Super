@@ -50,6 +50,9 @@ interface AgentAIState {
   // History State
   conversations: AgentConversation[];
   activeConversationId: string | null;
+
+  // Proactive Context (Entry Files)
+  coreFileContents: Record<string, string>;
   
   setFiles: (files: AgentFile[]) => void;
   updateFile: (path: string, content: string) => void;
@@ -66,6 +69,9 @@ interface AgentAIState {
   // History Setters
   setConversations: (convs: AgentConversation[]) => void;
   setActiveConversationId: (id: string | null) => void;
+
+  setCoreFileContents: (contents: Record<string, string>) => void;
+  addCoreFileContent: (path: string, content: string) => void;
 }
 
 export const useAgentStore = create<AgentAIState>((set) => ({
@@ -80,6 +86,7 @@ export const useAgentStore = create<AgentAIState>((set) => ({
   repoTree: null,
   conversations: [],
   activeConversationId: null,
+  coreFileContents: {},
 
   setFiles: (files) => set({ files, activeFilePath: files[0]?.path || null }),
   
@@ -114,5 +121,11 @@ export const useAgentStore = create<AgentAIState>((set) => ({
 
   setConversations: (conversations) => set({ conversations }),
 
-  setActiveConversationId: (activeConversationId) => set({ activeConversationId })
+  setActiveConversationId: (activeConversationId) => set({ activeConversationId }),
+
+  setCoreFileContents: (coreFileContents) => set({ coreFileContents }),
+
+  addCoreFileContent: (path, content) => set((state) => ({
+    coreFileContents: { ...state.coreFileContents, [path]: content }
+  }))
 }));
