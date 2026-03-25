@@ -190,7 +190,7 @@ export function QAView() {
                     : "bg-white/5 border-white/5"
                 )}>
                   <div className="flex flex-col gap-1 text-right">
-                    <Label htmlFor="anonymous-mode" className="text-sm font-bold text-white tracking-wide">الوضع السيادي (هوية مخفية)</Label>
+                    <Label htmlFor="anonymous-mode" className="text-sm font-bold text-white tracking-wide">الوضع الخفى (هوية مخفية)</Label>
                     <span className="text-[10px] text-muted-foreground font-medium">لن يظهر اسمك في القائمة العامة للمشاركات.</span>
                   </div>
                   <Switch 

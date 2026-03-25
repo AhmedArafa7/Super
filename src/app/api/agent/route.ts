@@ -1,12 +1,13 @@
-import { NextResponse } from 'next/server';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
 
 export const runtime = 'edge';
-export const maxDuration = 60;
 
 /**
- * [STABILITY_ANCHOR: NEURAL_ARCHITECT_API_V2.0]
- * محرك المهندس العصبي - نمط مستقر باستخدام fetch المباشر فقط (بدون SDK).
- * مطابق لأسلوب /api/ai/generate الذي أثبت استقراره في هذه البيئة.
+ * [STABILITY_ANCHOR: NEURAL_ARCHITECT_API_V4.0]
+ * المهندس العصبي - النسخة الاحترافية الكاملة باستخدام AI SDK.
+ * يستخدم generateText لضمان الاستقرار في بيئة Edge وتفادي مشاكل الـ Streaming.
  */
 
 const GEMINI_API_KEY = process.env.GOOGLE_GENAI_API_KEY ||
@@ -14,170 +15,107 @@ const GEMINI_API_KEY = process.env.GOOGLE_GENAI_API_KEY ||
   process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
   process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY;
+const google = createGoogleGenerativeAI({
+  apiKey: GEMINI_API_KEY,
+});
 
-const AGENT_SYSTEM_PROMPT = `أنت "المهندس العصبي" (Neural Architect) في نظام NexusAI.
-مهمتك الأساسية هي بناء وتعديل الأكواد البرمجية في بيئة عمل المستخدم.
+const groq = createOpenAI({
+  baseURL: 'https://api.groq.com/openai/v1',
+  apiKey: process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY,
+});
 
-عند طلب بناء أو تعديل أي كود، أعد ردك حصرياً بصيغة JSON التالية (بدون markdown):
+const AGENT_SYSTEM_PROMPT = `أنت "المهندس العصبي" (Neural Architect) في نظام NexusAI. بيئة بناء سيادية متطورة.
+مهمتك الأساسية هي بناء وتعديل الأكواد البرمجية والملفات في بيئة عمل المستخدم.
+
+قانون الرد الصارم:
+يجب أن يكون ردك دائماً بصيغة JSON نظيفة تحتوي على الحقول التالية:
 {
-  "explanation": "شرح عربي مختصر لما قمت به",
+  "explanation": "شرح عربي تقني لما قمت به",
   "files": [
-    {"path": "مسار/الملف", "content": "محتوى الملف كاملاً", "language": "نوع اللغة"}
+    {"path": "مسار/الملف", "content": "محتوى الملف", "language": "اللغة"}
   ]
 }
 
-إذا كان الطلب نقاشاً فقط (بدون كود)، أعد:
-{"explanation": "ردك هنا", "files": []}`;
-
-// قائمة نماذج Gemini بالأولوية
-const GEMINI_MODELS = [
-  'gemini-1.5-flash-latest',
-  'gemini-2.0-flash',
-  'gemini-1.5-pro-latest',
-  'gemini-1.5-flash',
-];
-
-// ذاكرة مؤقتة للنموذج المستقر (Server-side only)
-let stableModel: string | null = null;
-const blacklist = new Set<string>();
-
-async function callGemini(model: string, messages: any[]): Promise<string> {
-  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY_MISSING');
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-
-  const contents = messages.map(m => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) }],
-  }));
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents,
-      systemInstruction: { parts: [{ text: AGENT_SYSTEM_PROMPT }] },
-    }),
-  });
-
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message || 'Gemini Error');
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '{"explanation":"لم أتمكن من الرد.","files":[]}';
-}
-
-async function callGroq(messages: any[]): Promise<string> {
-  if (!GROQ_API_KEY) throw new Error('GROQ_API_KEY_MISSING');
-
-  const groqMessages = [
-    { role: 'system', content: AGENT_SYSTEM_PROMPT },
-    ...messages.map(m => ({
-      role: m.role === 'user' ? 'user' : 'assistant',
-      content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
-    })),
-  ];
-
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GROQ_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages: groqMessages,
-      temperature: 0.4,
-      response_format: { type: 'json_object' },
-    }),
-  });
-
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message || 'Groq Error');
-  return data.choices?.[0]?.message?.content || '{"explanation":"لم أتمكن من الرد.","files":[]}';
-}
-
-function parseAgentResponse(raw: string): { explanation: string; files: any[] } {
-  try {
-    const clean = raw.replace(/^```json\n?|^```\n?|\n?```$/gm, '').trim();
-    const parsed = JSON.parse(clean);
-    return {
-      explanation: parsed.explanation || parsed.text || raw,
-      files: Array.isArray(parsed.files) ? parsed.files : [],
-    };
-  } catch {
-    // رد نصي بدون JSON مقبول، نعامله كمحادثة
-    return { explanation: raw, files: [] };
-  }
-}
+إذا كان الطلب استفساراً فقط، اترك مصفوفة الملفات فارغة.
+لا تضع أي نصوص خارج الـ JSON.`;
 
 export async function POST(req: Request) {
   try {
     const { messages, preferredAI, autoFallback } = await req.json();
 
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return NextResponse.json({ error: 'Messages array is required' }, { status: 400 });
+    if (!messages || !Array.isArray(messages)) {
+      return new Response(JSON.stringify({ error: 'Messages array is required' }), { status: 400 });
     }
 
-    let rawResponse = '';
+    let result;
     let engine = 'NexusAI';
 
-    if (preferredAI === 'groq') {
-      rawResponse = await callGroq(messages);
-      engine = 'Groq Llama 3.3';
-    } else if (!GEMINI_API_KEY) {
-      rawResponse = await callGroq(messages);
-      engine = 'Groq Llama 3.3';
-    } else {
-      const candidates = [
-        ...(stableModel && !blacklist.has(stableModel) ? [stableModel] : []),
-        ...GEMINI_MODELS.filter(m => m !== stableModel && !blacklist.has(m)),
-      ];
+    const provider = preferredAI === 'groq' ? groq : google;
+    const modelName = preferredAI === 'groq' 
+      ? 'llama-3.3-70b-versatile' 
+      : 'gemini-1.5-flash';
 
-      let lastError: any = null;
-
-      for (const modelId of candidates) {
-        try {
-          rawResponse = await callGemini(modelId, messages);
-          stableModel = modelId;
-          engine = `Gemini (${modelId})`;
-          break;
-        } catch (err: any) {
-          lastError = err;
-          const isUnavailable = err.message?.toLowerCase().includes('not found') ||
-            err.message?.toLowerCase().includes('not supported');
-          if (isUnavailable) {
-            blacklist.add(modelId);
-            if (stableModel === modelId) stableModel = null;
-          } else {
-            // خطأ غير معروف (كوتة مثلاً) → fallback إذا مفعّل
-            if (autoFallback && GROQ_API_KEY) {
-              rawResponse = await callGroq(messages);
-              engine = 'Groq Llama 3.3 (Auto-Fallback)';
-              break;
-            }
-            throw err;
-          }
-        }
-      }
-
-      if (!rawResponse) {
-        if (autoFallback && GROQ_API_KEY) {
-          rawResponse = await callGroq(messages);
-          engine = 'Groq Llama 3.3 (Final Fallback)';
-        } else {
-          throw lastError || new Error('All Gemini models are unavailable');
-        }
+    try {
+      result = await generateText({
+        model: provider(modelName),
+        system: AGENT_SYSTEM_PROMPT,
+        messages: messages.map(m => ({ 
+          role: m.role === 'assistant' ? 'assistant' : 'user', 
+          content: m.content 
+        })),
+        temperature: 0.3,
+      });
+      engine = preferredAI === 'groq' ? 'Groq' : 'Gemini';
+    } catch (err: any) {
+      console.warn('Primary model failed, checking fallback:', err.message);
+      
+      if (autoFallback && preferredAI !== 'groq' && process.env.GROQ_API_KEY) {
+        result = await generateText({
+          model: groq('llama-3.3-70b-versatile'),
+          system: AGENT_SYSTEM_PROMPT,
+          messages: messages.map(m => ({ 
+            role: m.role === 'assistant' ? 'assistant' : 'user', 
+            content: m.content 
+          })),
+        });
+        engine = 'Groq (Auto-Fallback)';
+      } else {
+        throw err;
       }
     }
 
-    const { explanation, files } = parseAgentResponse(rawResponse);
-    return NextResponse.json({ success: true, explanation, files, engine });
+    // تنظيف وتحليل الرد
+    const rawText = result.text;
+    let explanation = rawText;
+    let files: any[] = [];
+
+    try {
+      const cleanJson = rawText.replace(/^```json\n?|^```\n?|\n?```$/gm, '').trim();
+      const parsed = JSON.parse(cleanJson);
+      explanation = parsed.explanation || parsed.text || rawText;
+      files = Array.isArray(parsed.files) ? parsed.files : [];
+    } catch {
+      // إذا لم يلتزم بالـ JSON، نعامله كـ متن عادي
+    }
+
+    return new Response(JSON.stringify({ 
+      success: true, 
+      explanation, 
+      files, 
+      engine 
+    }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
 
   } catch (err: any) {
-    console.error('[Neural Architect API Error]', err.message);
-    return NextResponse.json({
+    console.error('[Neural Architect API Error]', err);
+    return new Response(JSON.stringify({
       success: false,
-      error: err.message || 'Neural connection failed',
-    }, { status: 500 });
+      error: err.message || 'Neural Architect construction failed',
+      diagnostics: err.stack
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
