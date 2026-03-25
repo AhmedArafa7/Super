@@ -15,6 +15,7 @@ import { Search, Plus, MessageCircleQuestion, Send, Clock, Edit, Trash, FileQues
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
 import { getRelativeTime } from "@/lib/date-utils";
+import { cn } from "@/lib/utils";
 
 export function QAView() {
   const { user } = useAuth();
@@ -154,8 +155,8 @@ export function QAView() {
           
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
-              <Button className="h-12 px-6 rounded-xl font-bold gap-2 text-base flex-row-reverse" size="lg">
-                <Plus className="size-5" />
+              <Button className="h-12 px-8 rounded-xl font-bold gap-3 text-lg flex-row-reverse bg-gradient-to-r from-primary to-blue-600 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all active:scale-95" size="lg">
+                <Plus className="size-6" />
                 إضافة جديد
               </Button>
             </DialogTrigger>
@@ -191,8 +192,15 @@ export function QAView() {
                   />
                 </div>
               </div>
-              <DialogFooter className="mt-4">
-                <Button onClick={handleAddPost} disabled={!newPostText.trim()}>إرسال</Button>
+              <DialogFooter className="mt-6">
+                <Button 
+                  onClick={handleAddPost} 
+                  disabled={!newPostText.trim()} 
+                  className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-blue-600 font-bold text-lg shadow-lg shadow-primary/20 gap-2"
+                >
+                  <Send className="size-4 rotate-180" />
+                  إرسال الطلب الآن
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -285,8 +293,12 @@ export function QAView() {
                                 onCheckedChange={setEditAnonymous}
                               />
                             </div>
-                            <DialogFooter className="mt-4">
-                              <Button onClick={handleUpdatePost} disabled={!editText.trim() || (editText === post.text && editAnonymous === post.isAnonymous)}>حفظ التعديلات</Button>
+                            <DialogFooter className="mt-6">
+                              <Button 
+                                onClick={handleUpdatePost} 
+                                disabled={!editText.trim() || (editText === post.text && editAnonymous === post.isAnonymous)}
+                                className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-blue-600 font-bold shadow-lg shadow-primary/20"
+                              >حفظ التعديلات العصبية</Button>
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
@@ -414,9 +426,16 @@ export function QAView() {
                         else setAnswerPost(null);
                       }}>
                         <DialogTrigger asChild>
-                          <Button variant={post.answer ? "outline" : "default"} size="sm" className="rounded-lg h-9 font-bold text-xs gap-2">
+                          <Button 
+                            variant={post.answer ? "outline" : "default"} 
+                            size="sm" 
+                            className={cn(
+                              "rounded-xl h-10 font-bold text-xs gap-2 px-6 transition-all",
+                              !post.answer && "bg-gradient-to-r from-primary to-emerald-600 shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20"
+                            )}
+                          >
                             {post.answer ? <Edit className="size-3" /> : <Send className="size-3" />}
-                            {post.answer ? 'تعديل الرد' : 'الرد على المشاركة'}
+                            {post.answer ? 'تعديل الرد الإداري' : 'عرض الرد على المشاركة'}
                           </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-md bg-slate-950 border-white/10 text-right" dir="rtl">
@@ -436,8 +455,12 @@ export function QAView() {
                               onChange={(e) => setAnswerAlert(e.target.value)}
                             />
                           </div>
-                          <DialogFooter className="mt-4">
-                            <Button onClick={handleAnswerPost} disabled={!answerText.trim() || (answerText === post.answer && answerAlert === post.answerAlert)}>حفظ الرد</Button>
+                          <DialogFooter className="mt-6">
+                            <Button 
+                              onClick={handleAnswerPost} 
+                              disabled={!answerText.trim() || (answerText === post.answer && answerAlert === post.answerAlert)}
+                              className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-emerald-600 font-bold shadow-lg shadow-emerald-500/20"
+                            >اعتماد الرد الإداري</Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>
