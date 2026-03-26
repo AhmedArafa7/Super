@@ -32,7 +32,6 @@ export const useSidebarStore = create<SidebarState>()(
       togglePin: (id) => {
         const { pinnedItems } = get();
         if (pinnedItems.includes(id)) {
-          if (id === 'dashboard') return;
           set({ pinnedItems: pinnedItems.filter(item => item !== id) });
         } else {
           set({ pinnedItems: [...pinnedItems, id] });

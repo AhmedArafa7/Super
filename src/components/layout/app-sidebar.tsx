@@ -25,12 +25,13 @@ export type NavItem = {
   label: string;
   icon: React.ElementType;
   restricted: boolean;
+  isPermanent?: boolean;
   badge?: number;
 };
 
 export const ALL_NAV_ITEMS: NavItem[] = [
-  { id: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard, restricted: false },
-  { id: "qa", label: "الأسئلة والطلبات", icon: MessageCircleQuestion, restricted: false },
+  { id: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard, restricted: false, isPermanent: true },
+  { id: "qa", label: "الأسئلة والطلبات", icon: MessageCircleQuestion, restricted: false, isPermanent: true },
   { id: "time", label: "تنظيم الوقت", icon: Clock, restricted: false },
   { id: "health", label: "الصحة والرياضة", icon: HeartPulse, restricted: false },
   { id: "chat", label: "الدردشة الذكية", icon: MessageSquare, restricted: false },
@@ -83,7 +84,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
   });
 
   const isBeta = (id: string) => settings?.sections?.[id]?.isBeta ?? false;
-  const pinnedSidebarItems = visibleItems.filter(item => isPinned(item.id));
+  const pinnedSidebarItems = visibleItems.filter(item => item.isPermanent || isPinned(item.id));
 
   return (
     <Sidebar collapsible="icon" className="border-r border-white/10 bg-slate-900/50 backdrop-blur-xl transition-all duration-300">
@@ -174,7 +175,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
                 </DialogHeader>
                 <ScrollArea className="max-h-[400px] mt-4">
                   <div className="grid grid-cols-1 gap-2 pr-4">
-                    {visibleItems.filter(i => i.id !== 'dashboard').map((item) => (
+                    {visibleItems.filter(i => !i.isPermanent).map((item) => (
                       <div key={item.id} className="flex items-center justify-between p-4 glass border-white/5 rounded-2xl hover:bg-white/5 transition-all flex-row-reverse">
                         <div className="flex items-center gap-3 flex-row-reverse">
                           <div className="size-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><item.icon className="size-5" /></div>
