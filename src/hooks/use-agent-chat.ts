@@ -186,42 +186,70 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
 
       await saveAgentMessage(user.id, convId, assistantMessage);
 
-      // --- [NEW]: Fetch requested files automatically ---
+      // --- [NEW]: Fetch requested files and auto-retry ---
       if (res.requestedFiles && res.requestedFiles.length > 0 && githubToken && linkedRepo) {
-        // --- Safety net: filter paths to only those verified in the repoTree ---
+        // Safety net: filter paths to only those verified in the repoTree
         const repoTreePaths = new Set((repoTree || []).map((f: any) => f.path));
         const validPaths = res.requestedFiles.filter((p: string) => repoTreePaths.has(p));
         const invalidPaths = res.requestedFiles.filter((p: string) => !repoTreePaths.has(p));
         
         if (invalidPaths.length > 0) {
-          addLog(`⚠️ تجاهل ${invalidPaths.length} مسار غير صحيح لم يُعثر عليه في شجرة المستودع: ${invalidPaths.join(', ')}`, 'info');
+          addLog(`⚠️ مسارات غير صحيحة تجاهلها النظام: ${invalidPaths.join(', ')}`, 'info');
           console.warn('[Agent Guard] Ignored invalid file paths not in repoTree:', invalidPaths);
         }
 
         if (validPaths.length > 0) {
-          addLog(`يطلب المهندس مراجعة ${validPaths.length} ملف، جاري الجلب عبر البوابة العصبية...`, 'info');
-          const [owner, name] = linkedRepo.full_name.split('/');
+          addLog(`يطلب المهندس ${validPaths.length} ملف، جاري الجلب التلقائي...`, 'info');
+          const [owner, repoName] = linkedRepo.full_name.split('/');
           
-          let fetchedCount = 0;
+          const newlyFetched: Record<string, string> = {};
           for (const filePath of validPaths) {
             if (!coreFileContents[filePath]) {
               try {
-                const content = await getFileContent(githubToken, owner, name, filePath);
-                addCoreFileContent(filePath, content);
-                fetchedCount++;
+                const fileContent = await getFileContent(githubToken, owner, repoName, filePath);
+                addCoreFileContent(filePath, fileContent);
+                newlyFetched[filePath] = fileContent;
               } catch (e) {
                 console.error(`Failed to fetch requested file: ${filePath}`, e);
               }
             }
           }
           
-          if (fetchedCount > 0) {
-            addLog(`تم جلب ${fetchedCount} ملف بنجاح في الذاكرة الفرعية.`, 'success');
-            toast({
-              title: 'تم تزويد المهندس بالبيانات',
-              description: `تم إحضار ${fetchedCount} ملف إضافي بناءً على طلب المهندس. أعد إرسال سؤالك وسيقوم بالإجابة بناءً عليها.`,
-              className: 'bg-indigo-600 text-white border-none shadow-lg',
+          if (Object.keys(newlyFetched).length > 0) {
+            addLog(`تم جلب ${Object.keys(newlyFetched).length} ملف. جاري إعادة الإرسال تلقائياً...`, 'success');
+            // --- AUTO-RETRY: Re-send the same user message now that files are available ---
+            const enrichedCoreFiles = { ...coreFileContents, ...newlyFetched };
+            const retryResponse = await fetch('/api/agent', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                messages: history,
+                preferredAI,
+                autoFallback,
+                imageDataUri,
+                linkedRepo,
+                repoTree: repoTree?.map(f => f.path),
+                coreFileContents: enrichedCoreFiles,
+              }),
             });
+
+            if (retryResponse.ok) {
+              const retryRes = await retryResponse.json();
+              if (retryRes.success) {
+                const retryMsg: AgentMessage = {
+                  id: (Date.now() + 2).toString(),
+                  role: 'assistant',
+                  content: retryRes.explanation || 'تمت المعالجة.',
+                  files: retryRes.files,
+                  engine: retryRes.engine,
+                };
+                await saveAgentMessage(user.id, convId!, retryMsg);
+                if (retryRes.files?.length > 0) {
+                  setFiles(retryRes.files);
+                }
+                addLog('✅ أجاب المهندس بعد قراءة الملفات المطلوبة.', 'success');
+              }
+            }
           }
         }
       }
