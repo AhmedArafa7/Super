@@ -171,6 +171,7 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
       }
 
       const res = await response.json();
+      console.log('--- Agent Raw Response ---', res);
 
       if (!response.ok || !res.success) {
         throw new Error(res.error || 'Neural connection failed');
@@ -235,6 +236,7 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
 
             if (retryResponse.ok) {
               const retryRes = await retryResponse.json();
+              console.log('--- Agent Retry Response ---', retryRes);
               if (retryRes.success) {
                 const retryMsg: AgentMessage = {
                   id: (Date.now() + 2).toString(),

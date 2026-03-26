@@ -145,25 +145,50 @@ ${coreFilesPrompt}
     let requestedFiles: string[] = [];
 
     try {
-      let cleanJson = rawText;
-      const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/);
-      
+      let cleanJson = rawText.trim();
+
+      // 1. Try markdown code block first
+      const jsonMatch = cleanJson.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (jsonMatch) {
         cleanJson = jsonMatch[1].trim();
       } else {
+        // 2. Find the outermost { } using bracket counter to avoid cutting off early
         const firstBrace = cleanJson.indexOf('{');
-        const lastBrace = cleanJson.lastIndexOf('}');
-        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-          cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
+        if (firstBrace !== -1) {
+          let depth = 0;
+          let inString = false;
+          let escape = false;
+          let lastClose = -1;
+          for (let i = firstBrace; i < cleanJson.length; i++) {
+            const ch = cleanJson[i];
+            if (escape) { escape = false; continue; }
+            if (ch === '\\' && inString) { escape = true; continue; }
+            if (ch === '"') { inString = !inString; continue; }
+            if (!inString) {
+              if (ch === '{') depth++;
+              else if (ch === '}') { depth--; if (depth === 0) { lastClose = i; break; } }
+            }
+          }
+          if (lastClose !== -1) {
+            cleanJson = cleanJson.substring(firstBrace, lastClose + 1);
+          }
         }
       }
-      
+
+      // 3. Sanitize unescaped control chars that break JSON.parse
+      // Replace raw newlines ONLY inside string values
+      cleanJson = cleanJson.replace(
+        /"((?:[^"\\]|\\.)*)"/g,
+        (_, inner) => `"${inner.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t')}"`
+      );
+
       const parsed = JSON.parse(cleanJson);
       explanation = parsed.explanation || parsed.text || rawText;
       files = Array.isArray(parsed.files) ? parsed.files : [];
       requestedFiles = Array.isArray(parsed.requestedFiles) ? parsed.requestedFiles : [];
-    } catch {
+    } catch (e) {
       // إذا لم يلتزم بالـ JSON، نعامله كـ متن عادي
+      console.warn('[Agent Parser] JSON parse failed, using rawText as explanation:', e);
     }
 
     return new Response(JSON.stringify({ 
