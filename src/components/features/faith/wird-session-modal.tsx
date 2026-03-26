@@ -22,12 +22,13 @@ const formatTime = (seconds: number) => {
 
 const cleanText = (text: string) => {
   return text
-    .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, "") // Remove all diacritics and signs
-    .replace(/[أإآآى]/g, "ا") // Normalize Alef variants
-    .replace(/ة/g, "ه") // Normalize Teh Marbuta
-    .replace(/[يئ]/g, "ي") // Normalize Yeh
-    .replace(/[﴾﴿0-9]/g, "") // Remove verse marks
-    .replace(/\s+/g, " ") // Normalize spaces
+    .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g, "") // Diacritics and Kashida
+    .replace(/[\u0671أإآآٱى]/g, "ا") // Alefs (including Alef Wasla and Maksura)
+    .replace(/[يئ]/g, "ي") // Yeh and Hamza on Yeh
+    .replace(/ؤ/g, "و") // Hamza on Waw
+    .replace(/ة/g, "ه") // Marbuta
+    .replace(/[﴾﴿0-9\u0660-\u0669]/g, "") // Verse marks and all numerals
+    .replace(/\s+/g, " ") // Spaces
     .trim();
 };
 
