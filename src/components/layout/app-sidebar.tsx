@@ -7,7 +7,8 @@ import {
 import {
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat,
   BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, Library,
-  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown, Clock, Tag, HeartPulse, CircuitBoard, Settings, MessageCircleQuestion
+  ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown, Clock, Tag, HeartPulse, CircuitBoard, Settings, MessageCircleQuestion,
+  Search, Play, Pause, Heart, Loader2, Music, Edit3, Headphones, CheckCircle2, ShoppingCart, LibraryBig
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,9 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { id: "deals", label: "عروض المحلات", icon: Tag, restricted: false },
   { id: "peer-chat", label: "التواصل المباشر", icon: MessageCircle, restricted: false },
   { id: "stream", label: "WeTube", icon: Video, restricted: false },
-  { id: "market", label: "المتجر التقني", icon: ShoppingBag, restricted: false },
+  { id: "market", label: "المتجر التقني", icon: ShoppingCart, restricted: false },
+  { id: "study-ai", label: "المساعد الدراسي", icon: GraduationCap, restricted: false },
+  { id: "knowledge", label: "المكتبة المعرفية", icon: LibraryBig, restricted: false },
   { id: "ads", label: "مركز الإعلانات", icon: Megaphone, restricted: false },
   { id: "downloads", label: "التحميلات", icon: DownloadCloud, restricted: false },
   { id: "launcher", label: "مشغل المواقع", icon: Rocket, restricted: false },

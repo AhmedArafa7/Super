@@ -19,6 +19,7 @@ import { OffersInbox } from "@/components/features/offers-inbox";
 import { HisnAlMuslim } from "@/components/features/hisn-al-muslim";
 import { PersistentPlayer } from "@/components/features/persistent-player";
 import { AppLauncher } from "@/components/features/app-launcher";
+import { StudyQuizView } from "@/components/features/study-ai/study-quiz-view";
 import { NeuralLab } from "@/components/features/neural-lab";
 import { NodeDirectory } from "@/components/features/node-directory";
 import { AgentAI } from "@/components/features/agent-ai";
@@ -180,6 +181,7 @@ export function AppShell() {
       case "peer-chat": return <PeerChat initialTargetId={activeRecipientId} />;
       case "stream": return <WeTube onOpenVault={() => setLaunchedApp({ url: VAULT_EMBED_URL, title: "Nexus Central Vault", isVault: true })} />;
       case "market": return <TechMarket onLaunchApp={(url, title) => setLaunchedApp({ url, title })} />;
+      case "study-ai": return <StudyQuizView />;
       case "launcher": return <AppLauncher />;
       case "wallet": return <WalletView />;
       case "offers": return <OffersInbox />;
