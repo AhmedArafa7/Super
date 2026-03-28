@@ -86,13 +86,13 @@ export function CensorshipCard({ video, onPreview, onRefresh }: CensorshipCardPr
                 className="flex-1 bg-emerald-600 hover:bg-emerald-500 h-11 rounded-[0.5rem] px-1 text-[10px] font-bold shadow-lg shadow-emerald-600/20" 
                 onClick={() => handleStatusChange('published', false)}
               >
-                اعتماد (بدون معازف)
+                اعتماد
               </Button>
               <Button 
                 className="flex-1 bg-amber-600 hover:bg-amber-500 h-11 rounded-[0.5rem] px-1 text-[10px] font-bold shadow-lg shadow-amber-600/20" 
                 onClick={() => handleStatusChange('published', true)}
               >
-                اعتماد (بمعازف)
+                اعتماد لكن (به معازف)
               </Button>
             </>
           ) : (
