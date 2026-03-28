@@ -27,8 +27,8 @@ export function CensorshipCard({ video, onPreview, onRefresh }: CensorshipCardPr
     ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` 
     : video.thumbnail;
 
-  const handleStatusChange = async (status: any) => {
-    await updateVideoStatus(video.id, status);
+  const handleStatusChange = async (status: any, hasMusic?: boolean) => {
+    await updateVideoStatus(video.id, status, undefined, hasMusic);
     onRefresh();
   };
 
@@ -81,12 +81,20 @@ export function CensorshipCard({ video, onPreview, onRefresh }: CensorshipCardPr
 
         <div className="flex gap-3 flex-row-reverse">
           {video.status !== 'published' ? (
-            <Button 
-              className="flex-1 bg-emerald-600 hover:bg-emerald-500 h-11 rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/20" 
-              onClick={() => handleStatusChange('published')}
-            >
-              <CheckCircle2 className="mr-2 size-4" /> اعتماد النشر
-            </Button>
+            <>
+              <Button 
+                className="flex-1 bg-emerald-600 hover:bg-emerald-500 h-11 rounded-[0.5rem] px-1 text-[10px] font-bold shadow-lg shadow-emerald-600/20" 
+                onClick={() => handleStatusChange('published', false)}
+              >
+                اعتماد (بدون معازف)
+              </Button>
+              <Button 
+                className="flex-1 bg-amber-600 hover:bg-amber-500 h-11 rounded-[0.5rem] px-1 text-[10px] font-bold shadow-lg shadow-amber-600/20" 
+                onClick={() => handleStatusChange('published', true)}
+              >
+                اعتماد (بمعازف)
+              </Button>
+            </>
           ) : (
             <Button 
               className="flex-1 bg-amber-600 hover:bg-amber-500 h-11 rounded-xl text-xs font-bold shadow-lg shadow-amber-600/20" 

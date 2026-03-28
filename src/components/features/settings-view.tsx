@@ -261,6 +261,17 @@ export function SettingsView() {
                   </Button>
                 </div>
               </div>
+
+              <div className="space-y-2 pt-4 border-t border-white/10">
+                <div className="flex justify-between items-center flex-row-reverse">
+                  <Label className="text-[10px] uppercase font-black text-muted-foreground text-right">فلتر المحتوى</Label>
+                  <Switch 
+                    checked={settings.general.hideMusic ?? true} 
+                    onCheckedChange={(v: boolean) => updateGeneralSettings({ hideMusic: v })} 
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground text-right">إخفاء الفيديوهات التي تم الإبلاغ عن احتوائها على معازف وموسيقى</p>
+              </div>
             </div>
           </Card>
 

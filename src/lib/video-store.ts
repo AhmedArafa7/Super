@@ -28,6 +28,7 @@ export interface Video {
   externalUrl?: string;
   productIds?: string[];
   productDisplayMode?: 'none' | 'specific' | 'all';
+  hasMusic?: boolean;
 }
 
 export const getStoredVideos = async (): Promise<Video[]> => {
@@ -63,7 +64,7 @@ export const addVideo = async (video: Omit<Video, 'id' | 'createdAt' | 'views'>)
   return docRef.id;
 };
 
-export const updateVideoStatus = async (id: string, status: VideoStatus, feedback?: string) => {
+export const updateVideoStatus = async (id: string, status: VideoStatus, feedback?: string, hasMusic?: boolean) => {
   const { firestore } = initializeFirebase();
   const videoRef = doc(firestore, 'videos', id);
 
@@ -73,6 +74,10 @@ export const updateVideoStatus = async (id: string, status: VideoStatus, feedbac
     updates.adminFeedback = feedback;
   } else {
     updates.adminFeedback = ""; // القيمة الافتراضية بدلاً من undefined
+  }
+  
+  if (hasMusic !== undefined) {
+    updates.hasMusic = hasMusic;
   }
 
   await updateDoc(videoRef, updates);

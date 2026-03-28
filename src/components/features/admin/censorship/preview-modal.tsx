@@ -26,8 +26,8 @@ export function PreviewModal({ video, onClose, onRefresh }: PreviewModalProps) {
     return url;
   };
 
-  const handleStatusChange = async (status: any) => {
-    await updateVideoStatus(video.id, status);
+  const handleStatusChange = async (status: any, hasMusic?: boolean) => {
+    await updateVideoStatus(video.id, status, undefined, hasMusic);
     onRefresh();
     onClose();
   };
@@ -49,12 +49,20 @@ export function PreviewModal({ video, onClose, onRefresh }: PreviewModalProps) {
         </div>
         <div className="p-6 bg-slate-900/80 border-t border-white/5 flex gap-4 flex-row-reverse">
            {video.status !== 'published' ? (
-             <Button 
-               className="bg-emerald-600 hover:bg-emerald-500 rounded-xl px-8 h-12 font-bold shadow-lg shadow-emerald-600/20"
-               onClick={() => handleStatusChange('published')}
-             >
-               اعتماد ونشر فوراً
-             </Button>
+             <div className="flex gap-2">
+               <Button 
+                 className="bg-emerald-600 hover:bg-emerald-500 rounded-[0.5rem] px-4 h-12 font-bold shadow-lg shadow-emerald-600/20 text-xs"
+                 onClick={() => handleStatusChange('published', false)}
+               >
+                 بدون معازف
+               </Button>
+               <Button 
+                 className="bg-amber-600 hover:bg-amber-500 rounded-[0.5rem] px-4 h-12 font-bold shadow-lg shadow-amber-600/20 text-xs"
+                 onClick={() => handleStatusChange('published', true)}
+               >
+                 يحتوي بمعازف
+               </Button>
+             </div>
            ) : (
              <Button 
                className="bg-amber-600 hover:bg-amber-500 rounded-xl px-8 h-12 font-bold shadow-lg shadow-amber-600/20"

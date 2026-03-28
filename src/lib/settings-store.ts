@@ -35,6 +35,7 @@ export const PREMIUM_VOICES: VoiceCatalogItem[] = [
 export interface GeneralSettings {
   language: 'ar' | 'en';
   theme: 'dark' | 'light' | 'neural';
+  hideMusic?: boolean;
 }
 
 export interface AppSettings {
@@ -57,7 +58,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: { 
     sections: {}, 
     voice: { preferredVoice: '', rate: 1, pitch: 1, isEmergencyOnly: false, downloadedVoices: [] },
-    general: { language: 'ar', theme: 'dark' }
+    general: { language: 'ar', theme: 'dark', hideMusic: true }
   },
   isLoading: true,
 
@@ -74,7 +75,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           settings: { 
             sections: data.sections || {},
             voice: data.voice || { preferredVoice: '', rate: 1, pitch: 1, isEmergencyOnly: false },
-            general: data.general || { language: 'ar', theme: 'dark' }
+            general: { language: 'ar', theme: 'dark', hideMusic: true, ...data.general }
           }, 
           isLoading: false 
         });
@@ -82,8 +83,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         // Initialize default empty document if not exists
         const defaults = {
            sections: {},
-           voice: { preferredVoice: '', rate: 1, pitch: 1, isEmergencyOnly: false },
-           general: { language: 'ar', theme: 'dark' }
+           voice: { preferredVoice: '', rate: 1, pitch: 1, isEmergencyOnly: false, downloadedVoices: [] },
+           general: { language: 'ar' as const, theme: 'dark' as const, hideMusic: true }
         };
         setDoc(settingsRef, defaults);
         set({ settings: defaults, isLoading: false });
@@ -104,6 +105,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const currentSections = get().settings.sections;
     set({
       settings: {
+        ...get().settings,
         sections: {
           ...currentSections,
           [sectionId]: { isBeta }

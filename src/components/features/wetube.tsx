@@ -10,6 +10,7 @@ import { searchYouTube, fetchTrending } from "@/lib/youtube-discovery-store";
 import { useStreamStore } from "@/lib/stream-store";
 import { useGlobalStorage } from "@/lib/global-storage-store";
 import { useUploadStore } from "@/lib/upload-store";
+import { useSettingsStore } from "@/lib/settings-store";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { getHistory, HistoryItem } from "@/lib/history-store";
@@ -359,15 +360,23 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }
 
     // Category Filter -> Now purely handled by Search when clicked, except for local fallback and Trending
-    if (activeCategory === "تريند") return trendingVids;
-    if (activeCategory !== "الكل" && searchResults.length === 0) {
-      combined = combined.filter(v => v.title.toLowerCase().includes(activeCategory.toLowerCase()) || (v as any).category === activeCategory);
+    let finalCombined = combined;
+    if (activeCategory === "تريند") {
+      finalCombined = trendingVids;
+    } else if (activeCategory !== "الكل" && searchResults.length === 0) {
+      finalCombined = combined.filter(v => v.title.toLowerCase().includes(activeCategory.toLowerCase()) || (v as any).category === activeCategory);
+    }
+    
+    // Hide Music Filter
+    const systemSettings = useSettingsStore.getState().settings;
+    if (systemSettings.general.hideMusic !== false) {
+      finalCombined = finalCombined.filter(v => !(v as any).hasMusic);
     }
 
     // Shuffle and prioritize
-    combined = combined.sort(() => Math.random() - 0.5);
+    finalCombined = finalCombined.sort(() => Math.random() - 0.5);
 
-    combined.sort((a, b) => {
+    finalCombined.sort((a, b) => {
       const aHasThumb = a.source === 'youtube' || (a.thumbnail && !issaveThumb(a.thumbnail));
       const bHasThumb = b.source === 'youtube' || (b.thumbnail && !issaveThumb(b.thumbnail));
       if (aHasThumb && !bHasThumb) return -1;
@@ -375,7 +384,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
       return 0;
     });
 
-    return combined;
+    return finalCombined;
   }, [videos, feedVideos, trendingVideos, searchResults, searchQuery, activeCategory]);
 
   // If a video is playing, replace the entire layout with Watch View
