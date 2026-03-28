@@ -8,6 +8,7 @@ import {
     ListPlus
 } from "lucide-react";
 import { PlaylistSelectorModal } from "./playlist-selector-modal";
+import { ClipModal } from "./clip-modal";
 import {
     Select,
     SelectContent,
@@ -65,6 +66,7 @@ export function WatchActions({
     const [isSyncingLike, setIsSyncingLike] = React.useState(false);
     const [isSyncingSub, setIsSyncingSub] = React.useState(false);
     const [isPlaylistModalOpen, setIsPlaylistModalOpen] = React.useState(false);
+    const [isClipModalOpen, setIsClipModalOpen] = React.useState(false);
 
     const handleShare = () => {
         const url = video.externalUrl || `https://www.youtube.com/watch?v=${video.id}`;
@@ -255,7 +257,7 @@ export function WatchActions({
 
                     {/* Clip */}
                     <button 
-                        onClick={() => handleActionFeedback("قص مقطع", "ميزة اقتطاع المقاطع ستتوفر قريباً في التحديث القادم.")}
+                        onClick={() => setIsClipModalOpen(true)}
                         className="hidden md:flex items-center gap-2 px-4 py-2 bg-[#272727] hover:bg-[#3f3f3f] rounded-full transition-colors shrink-0"
                     >
                         <Scissors className="size-5" />
@@ -349,7 +351,10 @@ export function WatchActions({
                             </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-64 bg-[#282828] border-white/10 text-white rounded-xl shadow-2xl p-1.5">
-                            <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+                            <DropdownMenuItem 
+                                onClick={() => setIsClipModalOpen(true)}
+                                className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors"
+                            >
                                 <ScissorsIcon className="size-4" />
                                 <span className="text-sm">اقتطاع كليب</span>
                             </DropdownMenuItem>
@@ -396,6 +401,12 @@ export function WatchActions({
                 isOpen={isPlaylistModalOpen} 
                 onOpenChange={setIsPlaylistModalOpen} 
                 videoId={video.id} 
+            />
+            
+            <ClipModal 
+                isOpen={isClipModalOpen}
+                onOpenChange={setIsClipModalOpen}
+                video={video}
             />
         </div>
     );
