@@ -55,4 +55,5 @@ export interface User {
   };
   githubToken?: string;
   linkedRepo?: GitHubRepo | null;
+  repoTree?: any[] | null;
 }

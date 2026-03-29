@@ -49,6 +49,24 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
     }
   }, [user?.id, activeConversationId]);
 
+  // [PROACTIVE_INDEXING]: جلب شجرة المستودع فوراً عند الربط لضمان جاهزية المهندس
+  useEffect(() => {
+    const fetchTree = async () => {
+        if (linkedRepo && githubToken && (!repoTree || repoTree.length === 0)) {
+            try {
+                addLog(`جاري فهرسة بنية المشروع عصبياً: ${linkedRepo.name}...`, "info");
+                const [owner, name] = linkedRepo.full_name.split('/');
+                const treeData = await getRepoTree(githubToken, owner, name, linkedRepo.default_branch);
+                setRepoTree(treeData.tree);
+                addLog(`تمت فهرسة ${treeData.tree.length} عقدة برمجية بنجاح.`, "success");
+            } catch (e) {
+                console.error("Failed proactive tree fetch", e);
+            }
+        }
+    };
+    fetchTree();
+  }, [linkedRepo, githubToken, repoTree, setRepoTree, addLog]);
+
   // [PROACTIVE_CONTEXT]: جلب الملفات الأساسية فور تحميل شجرة المجلدات
   useEffect(() => {
     if (!githubToken || !linkedRepo || !repoTree || repoTree.length === 0) return;

@@ -78,7 +78,7 @@ export const useAgentStore = create<AgentAIState>((set) => ({
   autoFallback: false,
   githubToken: initialSession?.githubToken || null,
   linkedRepo: initialSession?.linkedRepo || null,
-  repoTree: null,
+  repoTree: initialSession?.repoTree || null,
   conversations: [],
   activeConversationId: null,
   coreFileContents: {},
@@ -124,7 +124,13 @@ export const useAgentStore = create<AgentAIState>((set) => ({
     }
   },
 
-  setRepoTree: (repoTree) => set({ repoTree }),
+  setRepoTree: (repoTree) => {
+    set({ repoTree });
+    const session = getSession();
+    if (session?.id) {
+       updateUserProfile(session.id, { repoTree: repoTree || null });
+    }
+  },
 
   setConversations: (conversations) => set({ conversations }),
 

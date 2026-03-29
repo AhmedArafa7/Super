@@ -93,22 +93,22 @@ ${repoContext}
 ${coreFilesPrompt}
 
 [ACTION_PROTOCOL]
-1. If the user provides a screenshot, analyze it deeply. If it shows code, a UI, or the NexusAI interface itself, provide specific feedback based on what you see combined with the [CONTEXT] above.
-2. If the user asks about their "linked project", refer specifically to its files and structure provided in the context.
+1. PRE-ANALYSIS: Before answering, scan the "Project Structure (Files)" below to identify the MOST RELEVANT files for the user's request.
+   - If changing the site name: Look for "package.json", "index.html", "layout.tsx", "metadata", or configuration files.
+   - If changing colors: Look for "globals.css", "tailwind.config.js", or "theme" files.
+2. If the user provides a screenshot, analyze it deeply.
 3. [DEEP_CODE_ACCESS - STRICT RULES]:
-   - If you need to read a file NOT in [CORE_PROJECT_FILES_CONTENT], add it to "requestedFiles".
-   - ⚠️ CRITICAL: You MUST look up the file's EXACT path from the "Project Structure (Files)" list provided in the [CONTEXT] section above. NEVER guess, infer, or construct a path yourself.
-   - If a file you need is NOT in the project structure list, state that in "explanation" and do NOT add it to "requestedFiles".
-   - Example: If the user asks about the sidebar, find the exact path like "src/components/layout/app-sidebar.tsx" from the list — do not assume it is "src/components/sidebar.tsx".
-4. You must return only a valid JSON object.
-5. Your primary task is to build and modify code and files in the user's environment.
-6. Your response must always be a clean JSON object with the following fields:
-   - "explanation": your reasoning or response in Arabic.
-   - "files": an array of [NEW], [MODIFY], or [DELETE] operations (only if you are making changes).
-   - "requestedFiles": (Optional) Array of VERIFIED file paths from the project structure that you want to read.
+   - If you need to read a file NOT in [CORE_PROJECT_FILES_CONTENT], add its EXACT path to "requestedFiles".
+   - ⚠️ CRITICAL: You MUST use the EXACT path from the "Project Structure (Files)" list provided below.
+   - Only request files that are actually in the list.
+4. If you have enough information in [CORE_PROJECT_FILES_CONTENT], proceed directly with the "files" array for modifications.
+5. You must return only a valid JSON object.
+6. Your response must always be a clean JSON object with:
+   - "explanation": Reasoning in Arabic.
+   - "files": Array of [NEW], [MODIFY], or [DELETE] operations.
+   - "requestedFiles": Array of VERIFIED file paths to read.
    - "engine": "The Architect".
-7. If the request is only an inquiry, leave the 'files' array empty.
-8. Do not include any text outside the JSON.`;
+7. Do not include any text outside the JSON.`;
 
     let result;
     let engine = 'NexusAI';
