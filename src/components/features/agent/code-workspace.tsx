@@ -1,5 +1,4 @@
-
-'use client';
+"use client";
 
 import React from "react";
 import { FileCode, Layers, Save, Database, Info } from "lucide-react";
@@ -8,10 +7,71 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAgentStore } from "@/lib/agent-store";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function CodeWorkspace() {
+  const [activeTab, setActiveTab] = React.useState<"code" | "preview">("code");
   const { files, activeFilePath, setActiveFile, updateFile } = useAgentStore();
   const activeFile = files.find(f => f.path === activeFilePath);
+
+  // Generate an HTML string that loads React, Babel, and Tailwind, and mounts the activeFile code.
+  const getPreviewHtml = () => {
+    if (!activeFile) return "";
+    
+    // If it's pure HTML, just wrap with Tailwind
+    if (activeFile.language === "html" || activeFile.language === "htm") {
+        return `
+            <!DOCTYPE html>
+            <html dir="rtl">
+            <head>
+                <script src="https://cdn.tailwindcss.com"></script>
+                <style>body { font-family: sans-serif; }</style>
+            </head>
+            <body>
+                ${activeFile.content}
+            </body>
+            </html>
+        `;
+    }
+
+    // Default to React/JSX evaluation
+    const rawCode = activeFile.content
+        .replace(/import .* from .*/g, "")
+        .replace(/export default function\s+(\w+)/, "function App")
+        .replace(/export function\s+(\w+)/, "function App");
+
+    return `
+      <!DOCTYPE html>
+      <html dir="rtl">
+      <head>
+        <meta charset="utf-8">
+        <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+        <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+        <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            body { font-family: sans-serif; background: transparent; padding: 10px; }
+            ::-webkit-scrollbar { width: 8px; }
+            ::-webkit-scrollbar-track { background: transparent; }
+            ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+        </style>
+      </head>
+      <body>
+        <div id="root"></div>
+        <script type="text/babel">
+          try {
+            const React = window.React;
+            ${rawCode}
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+          } catch(err) {
+            document.getElementById('root').innerHTML = '<div style="color:red; padding:20px; font-family:monospace; direction:ltr; text-align:left;"><b>Preview Error:</b><br/>' + err.message + '</div>';
+          }
+        </script>
+      </body>
+      </html>
+    `;
+  };
 
   return (
     <div className="flex-1 flex overflow-hidden bg-black/20 rounded-l-[2.5rem] border-r border-white/5 shadow-2xl">
@@ -55,21 +115,40 @@ export function CodeWorkspace() {
             <header className="h-12 border-b border-white/5 bg-white/5 flex items-center justify-between px-6 flex-row-reverse">
               <div className="flex items-center gap-3 flex-row-reverse">
                 <Badge variant="outline" className="text-[8px] border-indigo-500/30 text-indigo-400 uppercase">{activeFile.language}</Badge>
-                <span className="text-[10px] font-mono text-slate-400 truncate">{activeFile.path}</span>
+                <span className="text-[10px] font-mono text-slate-400 truncate max-w-[150px]">{activeFile.path}</span>
               </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-white">
-                  <Save className="size-4" />
-                </Button>
+              <div className="flex gap-2 bg-black/40 p-1 rounded-xl">
+                <button
+                    onClick={() => setActiveTab("code")}
+                    className={cn("px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all", activeTab === "code" ? "bg-indigo-600 text-white" : "text-muted-foreground hover:text-white")}
+                >
+                    الكود
+                </button>
+                <button
+                    onClick={() => setActiveTab("preview")}
+                    className={cn("px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all", activeTab === "preview" ? "bg-indigo-600 text-white" : "text-muted-foreground hover:text-white")}
+                >
+                    معاينة حية
+                </button>
               </div>
             </header>
-            <div className="flex-1 overflow-hidden p-6">
-              <textarea
-                value={activeFile.content}
-                onChange={(e) => updateFile(activeFile.path, e.target.value)}
-                className="size-full bg-transparent border-none focus:ring-0 font-mono text-sm text-indigo-100/80 resize-none leading-relaxed text-left"
-                spellCheck={false}
-              />
+            <div className="flex-1 overflow-hidden relative">
+              {activeTab === "code" ? (
+                <textarea
+                  value={activeFile.content}
+                  onChange={(e) => updateFile(activeFile.path, e.target.value)}
+                  className="size-full p-6 bg-transparent border-none focus:ring-0 font-mono text-sm text-indigo-100/80 resize-none leading-relaxed text-left"
+                  spellCheck={false}
+                />
+              ) : (
+                <div className="size-full bg-white/5 rounded-br-[2rem] p-2">
+                    <iframe 
+                        srcDoc={getPreviewHtml()} 
+                        className="size-full rounded-2xl bg-white border border-white/10" 
+                        sandbox="allow-scripts" 
+                    />
+                </div>
+              )}
             </div>
           </>
         ) : (
