@@ -4,6 +4,7 @@ import React from "react";
 import { Bot, User, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type AgentMessage } from "@/hooks/use-agent-chat";
+import { useAgentStore } from "@/lib/agent-store";
 
 interface ChatMessageProps {
   message: AgentMessage;
@@ -11,6 +12,13 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
+  const { setActiveFile } = useAgentStore();
+
+  const handleIndicatorClick = () => {
+    if (message.files && message.files.length > 0) {
+      setActiveFile(message.files[0].path);
+    }
+  };
 
   return (
     <div 
@@ -61,8 +69,12 @@ export function ChatMessage({ message }: ChatMessageProps) {
         
         {/* Files Updated Indicator */}
         {message.files && message.files.length > 0 && (
-          <div className="w-full mt-1 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-3 p-3 rounded-xl text-xs backdrop-blur-md border bg-emerald-500/5 border-emerald-500/20 text-emerald-200">
+          <div 
+            className="w-full mt-1 animate-in zoom-in-95 duration-200 cursor-pointer active:scale-95 transition-transform"
+            onClick={handleIndicatorClick}
+            title="فتح الملف في المحرر"
+          >
+            <div className="flex items-center gap-3 p-3 rounded-xl text-xs backdrop-blur-md border bg-emerald-500/5 border-emerald-500/20 text-emerald-200 hover:bg-emerald-500/10 transition-colors">
               <div className="shrink-0">
                 <div className="bg-emerald-500/20 p-1 rounded-full">
                   <Sparkles className="size-3 text-emerald-400" />

@@ -20,7 +20,10 @@ import { useAgentStore } from "@/lib/agent-store";
 export function AgentAI() {
   const [showHistory, setShowHistory] = React.useState(true);
   const { user } = useAuth();
-  const { setGithubToken, setLinkedRepo, githubToken, linkedRepo } = useAgentStore();
+  const { 
+    setGithubToken, setLinkedRepo, githubToken, linkedRepo,
+    files, activeFilePath, setActiveFile 
+  } = useAgentStore();
 
   // مزامنة حالة GitHub من الهوية (Auth) إلى مساحة العمل (Agent Store) عصبياً
   React.useEffect(() => {
@@ -31,6 +34,13 @@ export function AgentAI() {
       setLinkedRepo(user.linkedRepo);
     }
   }, [user, githubToken, linkedRepo]);
+
+  // [WORKSPACE_AUTOFOCUS]: فتح أول ملف تلقائياً عند ظهور نتائج من المهندس
+  React.useEffect(() => {
+    if (files.length > 0 && !activeFilePath) {
+      setActiveFile(files[0].path);
+    }
+  }, [files, activeFilePath, setActiveFile]);
 
   return (
     <div className="h-full flex flex-col p-2 md:p-4 animate-in fade-in duration-700 font-sans">

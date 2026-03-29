@@ -69,76 +69,102 @@ interface AgentAIState {
 
 const initialSession = getSession();
 
-export const useAgentStore = create<AgentAIState>((set) => ({
-  files: [],
-  activeFilePath: null,
-  logs: [],
-  isProcessing: false,
-  preferredAI: 'gemini',
-  autoFallback: false,
-  githubToken: initialSession?.githubToken || null,
-  linkedRepo: initialSession?.linkedRepo || null,
-  repoTree: initialSession?.repoTree || null,
-  conversations: [],
-  activeConversationId: null,
-  coreFileContents: {},
+const AGENT_WORKSPACE_KEY = 'agent_neural_workspace';
 
-  setFiles: (files) => set({ files, activeFilePath: files[0]?.path || null }),
+export const useAgentStore = create<AgentAIState>((set) => {
+  // استرجاع مساحة العمل المخزنة محلياً (Neural Persistence) عصبياً
+  const getStoredWorkspace = () => {
+    if (typeof window === 'undefined') return { files: [], activeFilePath: null };
+    const stored = localStorage.getItem(AGENT_WORKSPACE_KEY);
+    return stored ? JSON.parse(stored) : { files: [], activeFilePath: null };
+  };
+
+  const initialWorkspace = getStoredWorkspace();
+  const initialSession = getSession();
+
+  return {
+    files: initialWorkspace.files || [],
+    activeFilePath: initialWorkspace.activeFilePath || null,
+    logs: [],
+    isProcessing: false,
+    preferredAI: 'gemini',
+    autoFallback: false,
+    githubToken: initialSession?.githubToken || null,
+    linkedRepo: initialSession?.linkedRepo || null,
+    repoTree: initialSession?.repoTree || null,
+    conversations: [],
+    activeConversationId: null,
+    coreFileContents: {},
+
+    setFiles: (files) => {
+      const activeFilePath = files[0]?.path || null;
+      set({ files, activeFilePath });
+      localStorage.setItem(AGENT_WORKSPACE_KEY, JSON.stringify({ files, activeFilePath }));
+    },
+    
+    updateFile: (path, content) => set((state) => {
+      const newFiles = state.files.map(f => f.path === path ? { ...f, content } : f);
+      localStorage.setItem(AGENT_WORKSPACE_KEY, JSON.stringify({ files: newFiles, activeFilePath: state.activeFilePath }));
+      return { files: newFiles };
+    }),
+
+    setActiveFile: (activeFilePath) => set((state) => {
+       localStorage.setItem(AGENT_WORKSPACE_KEY, JSON.stringify({ files: state.files, activeFilePath }));
+       return { activeFilePath };
+    }),
+
+    addLog: (text, type = 'info') => set((state) => ({
+      logs: [...state.logs, {
+        id: Math.random().toString(36).substring(7),
+        text,
+        type,
+        timestamp: new Date().toLocaleTimeString()
+      }].slice(-50)
+    })),
+
+    clearWorkspace: () => {
+      set({ files: [], activeFilePath: null, logs: [] });
+      localStorage.removeItem(AGENT_WORKSPACE_KEY);
+    },
   
-  updateFile: (path, content) => set((state) => ({
-    files: state.files.map(f => f.path === path ? { ...f, content } : f)
-  })),
+    setIsProcessing: (isProcessing) => set({ isProcessing }),
+    
+    setPreferredAI: (preferredAI) => set({ preferredAI }),
+    
+    setAutoFallback: (autoFallback) => set({ autoFallback }),
 
-  setActiveFile: (activeFilePath) => set({ activeFilePath }),
+    setGithubToken: (githubToken) => {
+      set({ githubToken });
+      const session = getSession();
+      if (session?.id) {
+         updateUserProfile(session.id, { githubToken: githubToken || undefined });
+      }
+    },
 
-  addLog: (text, type = 'info') => set((state) => ({
-    logs: [...state.logs, {
-      id: Math.random().toString(36).substring(7),
-      text,
-      type,
-      timestamp: new Date().toLocaleTimeString()
-    }].slice(-50)
-  })),
+    setLinkedRepo: (linkedRepo) => {
+      set({ linkedRepo, repoTree: null });
+      const session = getSession();
+      if (session?.id) {
+         updateUserProfile(session.id, { linkedRepo: linkedRepo || null });
+      }
+    },
 
-  clearWorkspace: () => set({ files: [], activeFilePath: null, logs: [] }),
-  
-  setIsProcessing: (isProcessing) => set({ isProcessing }),
-  
-  setPreferredAI: (preferredAI) => set({ preferredAI }),
-  
-  setAutoFallback: (autoFallback) => set({ autoFallback }),
+    setRepoTree: (repoTree) => {
+      set({ repoTree });
+      const session = getSession();
+      if (session?.id) {
+         updateUserProfile(session.id, { repoTree: repoTree || null });
+      }
+    },
 
-  setGithubToken: (githubToken) => {
-    set({ githubToken });
-    const session = getSession();
-    if (session?.id) {
-       updateUserProfile(session.id, { githubToken: githubToken || undefined });
-    }
-  },
+    setConversations: (conversations) => set({ conversations }),
 
-  setLinkedRepo: (linkedRepo) => {
-    set({ linkedRepo, repoTree: null });
-    const session = getSession();
-    if (session?.id) {
-       updateUserProfile(session.id, { linkedRepo: linkedRepo || null });
-    }
-  },
+    setActiveConversationId: (activeConversationId) => set({ activeConversationId }),
 
-  setRepoTree: (repoTree) => {
-    set({ repoTree });
-    const session = getSession();
-    if (session?.id) {
-       updateUserProfile(session.id, { repoTree: repoTree || null });
-    }
-  },
+    setCoreFileContents: (coreFileContents) => set({ coreFileContents }),
 
-  setConversations: (conversations) => set({ conversations }),
-
-  setActiveConversationId: (activeConversationId) => set({ activeConversationId }),
-
-  setCoreFileContents: (coreFileContents) => set({ coreFileContents }),
-
-  addCoreFileContent: (path, content) => set((state) => ({
-    coreFileContents: { ...state.coreFileContents, [path]: content }
-  }))
-}));
+    addCoreFileContent: (path, content) => set((state) => ({
+      coreFileContents: { ...state.coreFileContents, [path]: content }
+    }))
+  };
+});
