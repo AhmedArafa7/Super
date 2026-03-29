@@ -10,6 +10,8 @@ import { HistorySidebar } from "./agent/history-sidebar";
 import { History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/auth/auth-provider";
+import { useAgentStore } from "@/lib/agent-store";
 
 /**
  * [STABILITY_ANCHOR: NEURAL_ARCHITECT_V1.0]
@@ -17,6 +19,18 @@ import { cn } from "@/lib/utils";
  */
 export function AgentAI() {
   const [showHistory, setShowHistory] = React.useState(true);
+  const { user } = useAuth();
+  const { setGithubToken, setLinkedRepo, githubToken, linkedRepo } = useAgentStore();
+
+  // مزامنة حالة GitHub من الهوية (Auth) إلى مساحة العمل (Agent Store) عصبياً
+  React.useEffect(() => {
+    if (user?.githubToken && !githubToken) {
+      setGithubToken(user.githubToken);
+    }
+    if (user?.linkedRepo && !linkedRepo) {
+      setLinkedRepo(user.linkedRepo);
+    }
+  }, [user, githubToken, linkedRepo]);
 
   return (
     <div className="h-full flex flex-col p-2 md:p-4 animate-in fade-in duration-700 font-sans">

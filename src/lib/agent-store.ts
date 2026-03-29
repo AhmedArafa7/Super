@@ -2,6 +2,9 @@
 'use client';
 
 import { create } from 'zustand';
+import { getSession } from './auth/session';
+import { GitHubRepo } from './auth/types';
+import { updateUserProfile } from './auth/service';
 
 export interface AgentFile {
   path: string;
@@ -15,16 +18,6 @@ export interface AgentConversation {
   linkedRepo?: GitHubRepo | null;
   updatedAt: string;
   createdAt: string;
-}
-
-export interface GitHubRepo {
-  id: number;
-  name: string;
-  full_name: string;
-  private: boolean;
-  html_url: string;
-  description: string | null;
-  default_branch: string;
 }
 
 export interface AgentLog {
@@ -74,6 +67,8 @@ interface AgentAIState {
   addCoreFileContent: (path: string, content: string) => void;
 }
 
+const initialSession = getSession();
+
 export const useAgentStore = create<AgentAIState>((set) => ({
   files: [],
   activeFilePath: null,
@@ -81,8 +76,8 @@ export const useAgentStore = create<AgentAIState>((set) => ({
   isProcessing: false,
   preferredAI: 'gemini',
   autoFallback: false,
-  githubToken: null,
-  linkedRepo: null,
+  githubToken: initialSession?.githubToken || null,
+  linkedRepo: initialSession?.linkedRepo || null,
   repoTree: null,
   conversations: [],
   activeConversationId: null,
@@ -113,9 +108,21 @@ export const useAgentStore = create<AgentAIState>((set) => ({
   
   setAutoFallback: (autoFallback) => set({ autoFallback }),
 
-  setGithubToken: (githubToken) => set({ githubToken }),
+  setGithubToken: (githubToken) => {
+    set({ githubToken });
+    const session = getSession();
+    if (session?.id) {
+       updateUserProfile(session.id, { githubToken: githubToken || undefined });
+    }
+  },
 
-  setLinkedRepo: (linkedRepo) => set({ linkedRepo, repoTree: null }),
+  setLinkedRepo: (linkedRepo) => {
+    set({ linkedRepo, repoTree: null });
+    const session = getSession();
+    if (session?.id) {
+       updateUserProfile(session.id, { linkedRepo: linkedRepo || null });
+    }
+  },
 
   setRepoTree: (repoTree) => set({ repoTree }),
 

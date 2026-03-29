@@ -18,6 +18,16 @@ export type UserClassification = 'none' | 'freelancer' | 'investor' | 'manager';
 export type OnlineStatus = 'online' | 'offline' | 'away';
 export type ConsentStatus = 'none' | 'agreed' | 'declined';
 
+export interface GitHubRepo {
+  id: number;
+  name: string;
+  full_name: string;
+  private: boolean;
+  html_url: string;
+  description: string | null;
+  default_branch: string;
+}
+
 export interface User {
   id: string;
   username: string;
@@ -43,4 +53,6 @@ export interface User {
     customUrl?: string;
     linkedAt: string;
   };
+  githubToken?: string;
+  linkedRepo?: GitHubRepo | null;
 }
