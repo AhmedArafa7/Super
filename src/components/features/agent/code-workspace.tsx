@@ -1,13 +1,12 @@
 "use client";
 
 import React from "react";
-import { FileCode, Layers, Save, Database, Info } from "lucide-react";
+import { FileCode, Layers, Database } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useAgentStore } from "@/lib/agent-store";
 import { cn } from "@/lib/utils";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 export function CodeWorkspace() {
   const [activeTab, setActiveTab] = React.useState<"code" | "preview">("code");
