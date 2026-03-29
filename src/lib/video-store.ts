@@ -29,6 +29,7 @@ export interface Video {
   productIds?: string[];
   productDisplayMode?: 'none' | 'specific' | 'all';
   hasMusic?: boolean;
+  relatedSurah?: number;
 }
 
 export const getStoredVideos = async (): Promise<Video[]> => {

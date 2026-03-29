@@ -16,6 +16,7 @@ import { useGlobalStorage } from "@/lib/global-storage-store";
 import { useWirdStore, WirdType, WirdAmountType } from "@/lib/wird-store";
 import { SurahReader } from "./surah-reader";
 import { WirdSessionModal } from "./wird-session-modal";
+import { SurahVideoManager } from "./surah-video-manager";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -369,6 +370,7 @@ export function QuranView() {
                         onClose={() => setReadingSurah(null)}
                       />
                     </Dialog>
+                    <SurahVideoManager surahId={s.id} surahName={s.name} />
                   </div>
                   <div className="text-right">
                     <span className="text-[9px] font-mono text-muted-foreground block uppercase font-bold">{s.sizeMB} MB</span>

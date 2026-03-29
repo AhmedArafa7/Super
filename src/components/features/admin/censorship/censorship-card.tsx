@@ -63,6 +63,11 @@ export function CensorshipCard({ video, onPreview, onRefresh }: CensorshipCardPr
           <Badge className="bg-black/60 backdrop-blur-md border-white/10 p-1">
             {video.source === 'youtube' ? <Youtube className="size-3 text-red-500" /> : video.source === 'drive' ? <HardDrive className="size-3 text-emerald-400" /> : <Radio className="size-3 text-indigo-400" />}
           </Badge>
+          {video.relatedSurah && (
+            <Badge className="bg-emerald-500/80 text-[8px] font-black uppercase tracking-widest px-3 py-1 ml-2">
+              سورة {video.relatedSurah}
+            </Badge>
+          )}
         </div>
       </div>
       
