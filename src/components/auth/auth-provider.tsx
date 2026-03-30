@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   User, setSession, getSession, addUser, getStoredUsers, 
   ensureUserProfile, logoutFromFirebase, signInWithGoogle, signInWithGithub,
-  signInWithCredentials, signUpWithCredentials
+  signInWithCredentials, signUpWithCredentials, sanitizeUsername
 } from '@/lib/auth-store';
 import { initializeFirebase } from '@/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 2. إنشاء الملف الشخصي المرتبط بالـ UID الصحيح
       const newUser: User = {
         id: firebaseUser.uid,
-        username,
+        username: sanitizeUsername(username),
         name,
         role: 'free',
         avatar_url: `https://picsum.photos/seed/${username}/100/100`,

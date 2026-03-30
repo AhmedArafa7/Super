@@ -18,6 +18,18 @@ import { setSession } from './session';
 
 const VIRTUAL_DOMAIN = "@nexusai.local";
 
+/**
+ * [UTILITY: SANITIZE_USERNAME]
+ * Transforms usernames to a format compatible with Firebase emails (no spaces, lowercase).
+ */
+export const sanitizeUsername = (username: string) => {
+  return username
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, '');
+};
+
 export const signInWithGoogle = async () => {
   const { auth } = initializeFirebase();
   const provider = new GoogleAuthProvider();
@@ -44,13 +56,15 @@ export const signInWithGithub = async () => {
 
 export const signInWithCredentials = async (username: string, securityCode: string) => {
   const { auth } = initializeFirebase();
-  const email = `${username}${VIRTUAL_DOMAIN}`;
+  const cleanUsername = sanitizeUsername(username);
+  const email = `${cleanUsername}${VIRTUAL_DOMAIN}`;
   return signInWithEmailAndPassword(auth, email, securityCode);
 };
 
 export const signUpWithCredentials = async (username: string, securityCode: string) => {
   const { auth } = initializeFirebase();
-  const email = `${username}${VIRTUAL_DOMAIN}`;
+  const cleanUsername = sanitizeUsername(username);
+  const email = `${cleanUsername}${VIRTUAL_DOMAIN}`;
   return createUserWithEmailAndPassword(auth, email, securityCode);
 };
 
