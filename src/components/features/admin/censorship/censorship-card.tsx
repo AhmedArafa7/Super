@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { updateVideoStatus, deleteVideo, Video } from "@/lib/video-store";
 import { cn } from "@/lib/utils";
+import { Bot, Loader2, AlertTriangle, ShieldAlert, BadgeCheck } from "lucide-react";
 
 interface CensorshipCardProps {
   video: Video;
@@ -38,6 +39,47 @@ export function CensorshipCard({ video, onPreview, onRefresh }: CensorshipCardPr
       onRefresh();
     }
   };
+
+  const [isAnalyzing, setIsAnalyzing] = React.useState(false);
+
+  React.useEffect(() => {
+    if (video.status === 'published' && !video.aiReview && video.source === 'youtube' && !isAnalyzing) {
+       const runAnalysis = async () => {
+         setIsAnalyzing(true);
+         try {
+           const ytid = getYoutubeId(video.externalUrl);
+           if (!ytid) return;
+           const res = await fetch('/api/video/review', {
+             method: 'POST', body: JSON.stringify({ videoId: ytid })
+           });
+           const data = await res.json();
+           
+           if (!data.error) {
+              const { initializeFirebase } = await import('@/firebase');
+              const { doc, updateDoc } = await import('firebase/firestore');
+              const { firestore } = initializeFirebase();
+              await updateDoc(doc(firestore, 'videos', video.id), {
+                 aiReview: data
+              });
+              onRefresh();
+           } else if (data.needsFallback) {
+              const { initializeFirebase } = await import('@/firebase');
+              const { doc, updateDoc } = await import('firebase/firestore');
+              const { firestore } = initializeFirebase();
+              await updateDoc(doc(firestore, 'videos', video.id), {
+                 aiReview: { status: 'failed', advice: 'تحتاج معالجة متقدمة للصوت. لا تحتوي على نصوص جاهزة.' }
+              });
+              onRefresh();
+           }
+         } catch (e) {
+           console.error("AI Analysis failed:", e);
+         } finally {
+           setIsAnalyzing(false);
+         }
+       };
+       runAnalysis();
+    }
+  }, [video.status, video.aiReview, video.id]);
 
   return (
     <Card className="glass border-white/5 rounded-[2.5rem] overflow-hidden group hover:border-indigo-500/30 transition-all shadow-xl flex flex-col">
@@ -84,7 +126,51 @@ export function CensorshipCard({ video, onPreview, onRefresh }: CensorshipCardPr
           </div>
         </div>
 
-        <div className="flex gap-3 flex-row-reverse">
+        {video.status === 'published' && (
+           <div className="bg-slate-900/50 rounded-xl p-3 border border-indigo-500/20 text-right space-y-2 mt-2">
+             <div className="flex justify-between items-center mb-1">
+               <Bot className="size-4 text-indigo-400" />
+               <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider">تقييم المهندس العصبي</span>
+             </div>
+             
+             {isAnalyzing ? (
+               <div className="flex items-center justify-center py-2 space-x-2 space-x-reverse text-indigo-400">
+                  <Loader2 className="size-3 animate-spin" /><span className="text-[10px]">جاري تدقيق النص بالذكاء الاصطناعي...</span>
+               </div>
+             ) : video.aiReview ? (
+               <div className="text-[9px] text-slate-300 space-y-2 leading-relaxed">
+                 {video.aiReview.status === 'failed' ? (
+                   <div className="flex items-start gap-1.5 text-amber-400">
+                     <AlertTriangle className="size-3 mt-0.5 shrink-0" />
+                     <span>{video.aiReview.advice}</span>
+                   </div>
+                 ) : (
+                   <>
+                     <p className="opacity-90">{video.aiReview.summary}</p>
+                     {video.aiReview.flags && video.aiReview.flags.length > 0 ? (
+                       <div className="space-y-1">
+                         <div className="font-bold text-red-400 flex items-center justify-end gap-1 mb-1 mt-2">
+                            تحذيرات <ShieldAlert className="size-3" />
+                         </div>
+                         <ul className="list-disc pr-4 opacity-80 space-y-1 text-red-300">
+                           {video.aiReview.flags.map((f, i) => <li key={i}>{f}</li>)}
+                         </ul>
+                       </div>
+                     ) : (
+                       <div className="text-emerald-400 font-bold flex items-center gap-1 mt-1 justify-end">
+                          لم يتم رصد مغالطات واضحة <BadgeCheck className="size-3" />
+                       </div>
+                     )}
+                   </>
+                 )}
+               </div>
+             ) : (
+                <div className="text-[9px] text-slate-500 text-center">في انتظار بدء المراجعة...</div>
+             )}
+           </div>
+        )}
+
+        <div className="flex gap-3 flex-row-reverse mt-2">
           {video.status !== 'published' ? (
             <>
               <Button 

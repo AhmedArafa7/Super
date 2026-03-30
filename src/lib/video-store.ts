@@ -30,6 +30,14 @@ export interface Video {
   productDisplayMode?: 'none' | 'specific' | 'all';
   hasMusic?: boolean;
   relatedSurah?: number;
+  aiReview?: {
+    status: 'pending' | 'completed' | 'failed' | 'processing';
+    summary?: string;
+    flags?: string[];
+    advice?: string;
+    reviewedAt?: string;
+    fallbackUsed?: boolean;
+  };
 }
 
 export const getStoredVideos = async (): Promise<Video[]> => {
