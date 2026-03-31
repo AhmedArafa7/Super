@@ -8,6 +8,7 @@ import {
   GraduationCap, CheckCircle2, XCircle, Rocket, Crown, Tag, MessageCircle, Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FeatureHeader } from "@/components/ui/feature-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -115,18 +116,14 @@ export function AdminPanel() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto flex flex-col min-h-screen gap-8 animate-in fade-in duration-700 font-sans">
-      <div className="flex justify-between items-center flex-row-reverse">
-        <div className="text-right">
-          <h2 className="text-4xl font-headline font-bold text-white flex items-center gap-4 justify-end">
-            لوحة القيادة 
-            <Crown className="text-amber-400 size-10" />
-          </h2>
-          <p className="text-muted-foreground mt-1">إدارة العقد، المتجر الشامل، واقتراحات التصنيفات.</p>
-        </div>
-        <Button variant="outline" size="icon" onClick={loadAllData} disabled={isLoading} className="size-12 rounded-xl border-white/5 bg-white/5">
-          <RefreshCcw className={cn("size-5 text-indigo-400", isLoading && "animate-spin")} />
-        </Button>
-      </div>
+      <FeatureHeader 
+        title="لوحة القيادة"
+        description="إدارة العقد، المتجر الشامل، واقتراحات التصنيفات."
+        Icon={Crown}
+        iconClassName="text-amber-400"
+        onRefresh={loadAllData}
+        isRefreshing={isLoading}
+      />
 
       <Tabs defaultValue="products" className="flex-1">
         <TabsList className="bg-white/5 border border-white/10 rounded-2xl p-1 mb-8 w-fit flex-wrap flex-row-reverse self-end h-auto gap-1">

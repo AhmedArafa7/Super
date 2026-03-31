@@ -1,15 +1,15 @@
-
 "use client";
 
 import React, { useState } from "react";
 import { Users, Plus, DollarSign, ShieldCheck, Crown, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FeatureHeader } from "@/components/ui/feature-header";
+import { GlassCard } from "@/components/ui/glass-card";
 import { useToast } from "@/hooks/use-toast";
 import { addUser, updateUserProfile, UserRole } from "@/lib/auth-store";
 import { adjustFunds } from "@/lib/wallet-store";
@@ -32,7 +32,6 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
   const [creditCurrency, setCreditCurrency] = useState<CurrencyCode>('EGC');
   const [isAddingCredits, setIsAddingCredits] = useState(false);
 
-  // تعريف الرتب للعرض في القائمة
   const ROLE_OPTIONS: { id: UserRole, label: string, color: string }[] = [
     { id: 'founder', label: 'Founder (المؤسس)', color: 'text-amber-400' },
     { id: 'cofounder', label: 'Co-Founder (شريك مؤسس)', color: 'text-amber-200' },
@@ -115,37 +114,43 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center flex-row-reverse">
-        <h3 className="text-xl font-bold text-white flex items-center gap-3 flex-row-reverse">
-          <ShieldAlert className="text-amber-400" /> إدارة العقد
-        </h3>
-        <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-indigo-600 rounded-xl px-6 font-bold h-11"><Plus className="mr-2 size-4" /> إضافة مستخدم</Button>
-          </DialogTrigger>
-          <DialogContent className="bg-slate-950 border-white/10 rounded-[2rem] text-right">
-            <DialogHeader><DialogTitle className="text-right">تسجيل عقدة جديدة</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-4">
-              <Input dir="auto" className="bg-white/5 border-white/10 text-right" placeholder="الاسم الكامل" value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })} />
-              <Input dir="auto" className="bg-white/5 border-white/10 text-right" placeholder="معرف الدخول" value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })} />
-              <div className="space-y-2">
-                <Label className="text-right block">الرتبة الممنوحة</Label>
-                <Select value={newUser.role} onValueChange={(v: any) => setNewUser({ ...newUser, role: v })}>
-                  <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-slate-950 text-white">
-                    {ROLE_OPTIONS.map(opt => <SelectItem key={opt.id} value={opt.id}>{opt.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+      <FeatureHeader 
+        title="إدارة العقد"
+        Icon={ShieldAlert}
+        iconClassName="text-amber-400"
+        titleClassName="text-xl"
+        className="mb-6"
+        action={
+          <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-indigo-600 rounded-xl px-4 md:px-6 font-bold h-11"><Plus className="mr-2 size-4" /> إضافة مستخدم</Button>
+            </DialogTrigger>
+            <DialogContent className="bg-slate-950 border-white/10 rounded-[2rem] text-right">
+              <DialogHeader><DialogTitle className="text-right">تسجيل عقدة جديدة</DialogTitle></DialogHeader>
+              <div className="space-y-4 py-4">
+                <Input dir="auto" className="bg-white/5 border-white/10 text-right" placeholder="الاسم الكامل" value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })} />
+                <Input dir="auto" className="bg-white/5 border-white/10 text-right" placeholder="معرف الدخول" value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })} />
+                <div className="space-y-2">
+                  <Label className="text-right block">الرتبة الممنوحة</Label>
+                  <Select value={newUser.role} onValueChange={(v: any) => setNewUser({ ...newUser, role: v })}>
+                    <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-950 text-white border-white/10">
+                      {ROLE_OPTIONS.map(opt => <SelectItem key={opt.id} value={opt.id}>{opt.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
-            <DialogFooter><Button onClick={handleCreateUser} className="w-full bg-indigo-600 rounded-xl">تفعيل العقدة</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+              <DialogFooter><Button onClick={handleCreateUser} className="w-full bg-indigo-600 rounded-xl py-6 font-bold" disabled={isCreatingUser}>تفعيل العقدة</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {users.map((u) => (
-          <Card key={u.id} className="p-6 glass border-white/5 rounded-[2rem] flex flex-col gap-4 group hover:border-indigo-500/30 transition-all">
+          <GlassCard key={u.id} variant="hover" className="p-6 flex flex-col gap-4">
             <div className="flex items-center justify-between flex-row-reverse">
               <div className="flex items-center gap-4 flex-row-reverse text-right">
                 <div className="size-12 rounded-xl bg-indigo-500/10 flex items-center justify-center text-lg font-black text-indigo-400 border border-indigo-500/10 overflow-hidden">
@@ -187,14 +192,16 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
               <div className="space-y-1">
                 <Label className="text-[9px] uppercase font-bold text-muted-foreground">رتبة العقدة</Label>
                 <Select defaultValue={u.role} onValueChange={(v: any) => handleUpdateUserRole(u.id, v)}>
-                  <SelectTrigger className="bg-white/5 border-white/10 h-10 flex-row-reverse"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="bg-white/5 border-white/10 h-10 flex-row-reverse">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent className="bg-slate-950 border-white/10 text-white">
                     {ROLE_OPTIONS.map(opt => <SelectItem key={opt.id} value={opt.id} className={opt.color}>{opt.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-          </Card>
+          </GlassCard>
         ))}
       </div>
 
@@ -204,7 +211,9 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
           <div className="py-6 space-y-4">
             <Label className="px-1 text-[10px] font-bold text-muted-foreground uppercase">العملة المستهدفة لـ @{creditTarget?.username}</Label>
             <Select value={creditCurrency} onValueChange={(v: any) => setCreditCurrency(v)}>
-              <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-12 rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-12 rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent className="bg-slate-900 border-white/10 text-white">
                 {CURRENCIES.map(c => (
                   <SelectItem key={c.code} value={c.code}>{c.icon} {c.nameAr} ({c.code})</SelectItem>

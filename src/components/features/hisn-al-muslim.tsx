@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -6,6 +5,7 @@ import { Sparkles, HardDrive } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { FeatureHeader } from "@/components/ui/feature-header";
 import { useQuranStore } from "@/lib/quran-store";
 import { useGlobalStorage } from "@/lib/global-storage-store";
 import { QuranView } from "./faith/quran-view";
@@ -81,14 +81,12 @@ export function HisnAlMuslim() {
   return (
     <div className="p-8 max-w-7xl mx-auto flex flex-col min-h-screen animate-in fade-in duration-700 font-sans">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 gap-6 flex-row-reverse">
-        <div className="text-right">
-          <Badge className="bg-primary/20 text-primary border-primary/30 mb-4 px-4 py-1 uppercase font-bold text-[10px] tracking-widest">Neural Faith Hub</Badge>
-          <h2 className="text-5xl font-headline font-bold text-white tracking-tight flex items-center gap-4 justify-end">
-            حصن المسلم
-            <Sparkles className="text-primary size-10" />
-          </h2>
-          <p className="text-muted-foreground mt-2 text-xl max-w-2xl text-right">تواصل روحي عميق عبر بروتوكولات المزامنة والـ API .</p>
-        </div>
+        <FeatureHeader 
+          title="حصن المسلم"
+          description="تواصل روحي عميق عبر بروتوكولات المزامنة والـ API ."
+          Icon={Sparkles}
+          iconClassName="text-primary"
+        />
 
         <div className="glass border-white/10 p-6 rounded-[2.5rem] flex flex-col gap-4 min-w-[280px]">
           <div className="flex items-center justify-between flex-row-reverse">
