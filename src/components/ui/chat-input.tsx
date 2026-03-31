@@ -115,7 +115,7 @@ export const SharedChatInput = React.forwardRef<HTMLTextAreaElement, ChatInputPr
           placeholder={placeholder}
           disabled={disabled || isLoading}
           className={cn(
-            "w-full bg-white/[0.03] border border-white/10 rounded-[2rem] px-8 py-5 pr-32 min-h-[70px] max-h-[300px] text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all resize-none font-medium text-base group-hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed",
+            "w-full bg-white/[0.03] border border-white/10 rounded-[2rem] px-8 py-5 min-h-[70px] max-h-[300px] text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all resize-none font-medium text-base group-hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed",
             inputClassName
           )}
           rows={1}

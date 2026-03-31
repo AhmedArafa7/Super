@@ -195,7 +195,7 @@ export function ChatWindow({ currentUser, targetUser }: { currentUser: any, targ
           disabled={isUploading}
           placeholder="اكتب رسالتك الاجتماعية..."
           wrapperClassName="max-w-4xl mx-auto"
-          inputClassName="bg-white/5 border-white/10"
+          inputClassName="bg-white/5 border-white/10 pl-40 pr-8"
           sendButtonClassName="bg-primary shadow-lg shadow-primary/20"
           leftAttachments={
             <>

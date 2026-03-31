@@ -101,6 +101,7 @@ export function ChatInput({
         topContent={TopContent}
         leftAttachments={LeftAttachments}
         bottomContent={BottomContent}
+        inputClassName="pl-32 pr-8 pb-10"
       />
     </div>
   );
