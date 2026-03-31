@@ -118,7 +118,7 @@ export function AdminPanel() {
       <div className="flex justify-between items-center flex-row-reverse">
         <div className="text-right">
           <h2 className="text-4xl font-headline font-bold text-white flex items-center gap-4 justify-end">
-            لوحة القيادة السيادية
+            لوحة القيادة 
             <Crown className="text-amber-400 size-10" />
           </h2>
           <p className="text-muted-foreground mt-1">إدارة العقد، المتجر الشامل، واقتراحات التصنيفات.</p>

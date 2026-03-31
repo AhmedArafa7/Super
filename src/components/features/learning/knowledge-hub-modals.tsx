@@ -130,7 +130,7 @@ export function DriveModal({ isOpen, onOpenChange }: DriveModalProps) {
 
         <DialogFooter className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between w-full">
           <div className="flex items-center gap-2 text-xs text-emerald-400/80 font-bold bg-emerald-500/10 px-3 py-1.5 rounded-lg flex-row-reverse">
-            <ShieldCheck className="size-4" /> التشفير السيادي نشط
+            <ShieldCheck className="size-4" /> التشفير نشط
           </div>
           <Button onClick={() => onOpenChange(false)} className="bg-white/10 hover:bg-white/20 text-white h-11 rounded-xl px-8 font-bold">
             إغلاق وتوجه للربط

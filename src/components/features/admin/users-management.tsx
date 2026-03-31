@@ -117,7 +117,7 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
     <div className="space-y-8">
       <div className="flex justify-between items-center flex-row-reverse">
         <h3 className="text-xl font-bold text-white flex items-center gap-3 flex-row-reverse">
-          <ShieldAlert className="text-amber-400" /> إدارة العقد والسيادة
+          <ShieldAlert className="text-amber-400" /> إدارة العقد
         </h3>
         <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
           <DialogTrigger asChild>
@@ -185,7 +185,7 @@ export function UsersManagement({ users, currentUser, onRefresh }: UsersManageme
               )}
 
               <div className="space-y-1">
-                <Label className="text-[9px] uppercase font-bold text-muted-foreground">رتبة العقدة السيادية</Label>
+                <Label className="text-[9px] uppercase font-bold text-muted-foreground">رتبة العقدة</Label>
                 <Select defaultValue={u.role} onValueChange={(v: any) => handleUpdateUserRole(u.id, v)}>
                   <SelectTrigger className="bg-white/5 border-white/10 h-10 flex-row-reverse"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-slate-950 border-white/10 text-white">

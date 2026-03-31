@@ -1,0 +1,17 @@
+# User Preferences & Coding Standards
+
+1. **Component-Driven Architecture (DRY - Don't Repeat Yourself):**
+   - NEVER duplicate complex UI elements across different pages or features.
+   - If a UI piece (such as a chat input area, message bubble, or complex form) is used in multiple places (e.g., in the Chatbot, Peer-to-Peer Chat, AI Agent, etc.), you MUST extract it into a reusable component under a centralized folder like `src/components/shared` or `src/components/ui`.
+   - Pages should act ONLY as thin containers that assemble and pass props down to these reusable components.
+   - Always prioritize passing functional props instead of duplicating logic.
+
+2. **Professional Component Design (Robustness & Flexibility):**
+   - Any shared component MUST be written with "peak professionalism" to avoid constant modifications.
+   - **Prop Drilling & Spreading:** Always extend standard HTML attributes (e.g., `interface Props extends React.HTMLAttributes<HTMLDivElement>`) and spread them (`...props`) so the component can accept custom styles, ARIA tags, and event listeners natively.
+   - **Style Merging:** Always use `cn()` (Tailwind merge/clsx) to allow pages to override or append specific classes without breaking the component's base layout.
+   - **State Management:** Design components to be "Controlled" (receiving `value` and `onChange` props) or use smart internal state fallbacks, making them predictable and bug-free in any context.
+   - **Loading/Disabled States:** Always build in `isLoading` or `disabled` props so the component gracefully degrades when the app is processing data.
+
+3. **Language Preferences:**
+   - Arabic language support is a priority for user-facing texts. Keep RTL styling in mind.

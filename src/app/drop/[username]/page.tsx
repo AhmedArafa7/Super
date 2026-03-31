@@ -104,7 +104,7 @@ export default function DropPage() {
                         <br />سيقوم بمراجعته والتحكم في ظهوره.
                     </p>
                     <div className="flex items-center justify-center gap-2 text-xs text-emerald-400/60 font-bold">
-                        <ShieldCheck className="size-4" /> التشفير السيادي نشط
+                        <ShieldCheck className="size-4" /> التشفير نشط
                     </div>
                 </div>
             </div>

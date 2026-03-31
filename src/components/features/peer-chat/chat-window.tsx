@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, User, Loader2, ShieldCheck, ImageIcon, Paperclip, MoreHorizontal, Check, CheckCheck, FileText, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SharedChatInput } from '@/components/ui/chat-input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePeerChatStore } from '@/lib/peer-chat-store';
 import { cn } from '@/lib/utils';
@@ -185,43 +186,41 @@ export function ChatWindow({ currentUser, targetUser }: { currentUser: any, targ
         </div>
       )}
 
-      <div className="p-6 bg-white/5 border-t border-white/5">
-        <div className="flex gap-3 items-center">
-          <div className="flex items-center gap-1">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => imageInputRef.current?.click()}
-              className="size-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-indigo-400"
-            >
-              <ImageIcon className="size-5" />
-            </Button>
-            <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-            
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => fileInputRef.current?.click()}
-              className="size-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-muted-foreground flex"
-            >
-              <Paperclip className="size-5" />
-            </Button>
-            <input type="file" ref={fileInputRef} className="hidden" onChange={handleGenericFileUpload} />
-          </div>
-
-          <Input 
-            value={input} 
-            onChange={e => setInput(e.target.value)} 
-            onKeyDown={e => e.key === 'Enter' && handleSend()}
-            placeholder="اكتب رسالتك الاجتماعية..." 
-            className="flex-1 h-12 bg-white/5 border-white/10 rounded-xl text-right focus-visible:ring-indigo-500"
-            dir="auto"
-          />
-          
-          <Button onClick={handleSend} disabled={(!input?.trim() && !isUploading) || isUploading} className="size-12 rounded-xl bg-primary shadow-lg shadow-primary/20 shrink-0">
-            <Send className="size-5" />
-          </Button>
-        </div>
+      <div className="px-8 pb-8 pt-4 bg-white/5 border-t border-white/5 w-full">
+        <SharedChatInput 
+          value={input}
+          onChange={setInput}
+          onSubmit={handleSend}
+          isLoading={isUploading}
+          disabled={isUploading}
+          placeholder="اكتب رسالتك الاجتماعية..."
+          wrapperClassName="max-w-4xl mx-auto"
+          inputClassName="bg-white/5 border-white/10"
+          sendButtonClassName="bg-primary shadow-lg shadow-primary/20"
+          leftAttachments={
+            <>
+              <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => imageInputRef.current?.click()}
+                className="size-11 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-indigo-400 shrink-0"
+              >
+                <ImageIcon className="size-5" />
+              </Button>
+              
+              <input type="file" ref={fileInputRef} className="hidden" onChange={handleGenericFileUpload} />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => fileInputRef.current?.click()}
+                className="size-11 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-muted-foreground shrink-0"
+              >
+                <Paperclip className="size-5" />
+              </Button>
+            </>
+          }
+        />
       </div>
     </div>
   );

@@ -119,7 +119,7 @@ export function PrivacyConsentModal() {
                 disabled={isUpdating || (pendingChoice === 'agreed' ? verificationText !== requiredAgreeText : verificationText !== requiredDeclineText)}
                 className="flex-1 h-12 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold"
               >
-                {isUpdating ? "جاري المزامنة..." : "تأكيد الخيار السيادي"}
+                {isUpdating ? "جاري المزامنة..." : "تأكيد الخيار"}
               </Button>
               <Button 
                 variant="ghost" 

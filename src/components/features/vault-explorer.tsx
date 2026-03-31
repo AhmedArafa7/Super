@@ -155,7 +155,7 @@ export function VaultExplorer({
           <p className="text-[9px] text-muted-foreground text-center leading-relaxed">
             {isKeyMissing 
               ? "تعذر الاتصال بالسيرفر. يرجى التأكد من تهيئة Google API Keys في إعدادات المشروع." 
-              : "تعمل الخزنة الآن بنظام المزامنة السيادية (Core Sync). البيانات محمية ومشفرة عبر السيرفر."}
+              : "تعمل الخزنة الآن بنظام المزامنة (Core Sync). البيانات محمية ومشفرة عبر السيرفر."}
           </p>
         </div>
       </aside>

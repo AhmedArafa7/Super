@@ -87,7 +87,7 @@ export function HisnAlMuslim() {
             حصن المسلم
             <Sparkles className="text-primary size-10" />
           </h2>
-          <p className="text-muted-foreground mt-2 text-xl max-w-2xl text-right">تواصل روحي عميق عبر بروتوكولات المزامنة والـ API السيادية.</p>
+          <p className="text-muted-foreground mt-2 text-xl max-w-2xl text-right">تواصل روحي عميق عبر بروتوكولات المزامنة والـ API .</p>
         </div>
 
         <div className="glass border-white/10 p-6 rounded-[2.5rem] flex flex-col gap-4 min-w-[280px]">
