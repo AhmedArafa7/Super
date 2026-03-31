@@ -35,7 +35,15 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
   const snap = await getDoc(userRef);
 
   if (snap.exists()) {
-    return { id: snap.id, ...snap.data() } as User;
+    const data = snap.data() as User;
+    // [ADMIN_OVERRIDE: ENG_MO_V1.0]
+    // Grant admin role to "Eng mo" automatically
+    if (data.name === 'Eng mo' && data.role !== 'admin') {
+      const updatedUser = { ...data, role: 'admin' as UserRole };
+      await updateDoc(userRef, { role: 'admin' });
+      return { ...updatedUser, id: snap.id } as User;
+    }
+    return { ...data, id: snap.id } as User;
   }
 
   let detectedUsername = "user_" + firebaseUser.uid.substring(0, 5);
@@ -44,12 +52,14 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
   }
 
   // كافة المستخدمين الجدد يبدأون برتبة free. المالك يرفع رتبته يدوياً من قاعدة البيانات.
+  // [ADMIN_OVERRIDE: ENG_MO_V1.0]
+  const isEngMo = (firebaseUser.displayName === 'Eng mo');
   const newUser: User = {
     id: firebaseUser.uid,
     username: detectedUsername,
     name: firebaseUser.displayName || "عضو جديد",
     email: firebaseUser.email || "",
-    role: 'free',
+    role: isEngMo ? 'admin' : 'free',
     classification: 'none',
     proResponsesRemaining: 10,
     proTTSRemaining: 5,
