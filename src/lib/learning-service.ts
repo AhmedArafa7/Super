@@ -5,6 +5,11 @@ import {
   updateDoc, 
   onSnapshot 
 } from 'firebase/firestore';
+import { 
+  ref, 
+  uploadBytesResumable, 
+  getDownloadURL 
+} from 'firebase/storage';
 import { initializeFirebase } from '@/firebase';
 import type { SubjectId, SubjectData, SectionType, SectionItem } from '@/components/features/learning-hub/learning-hub-store';
 
@@ -70,6 +75,31 @@ export const learningService = {
     
     await updateDoc(docRef, {
       [`${subjectId}.${section}`]: arr
+    });
+  },
+
+  /**
+   * رفع ملف إلى Firebase Storage
+   */
+  async uploadFile(file: File, onProgress?: (progress: number) => void): Promise<string> {
+    const { storage } = initializeFirebase();
+    const storageRef = ref(storage, `${SHARED_DOC_PATH}/assets/${Date.now()}_${file.name}`);
+    
+    return new Promise((resolve, reject) => {
+      const uploadTask = uploadBytesResumable(storageRef, file);
+      
+      uploadTask.on('state_changed', 
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          if (onProgress) onProgress(progress);
+        }, 
+        (error) => reject(error), 
+        () => {
+          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+            resolve(downloadURL);
+          });
+        }
+      );
     });
   },
 
