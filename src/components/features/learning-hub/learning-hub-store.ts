@@ -276,10 +276,14 @@ export const useLearningHubStore = create<LearningHubState>()(
       isLoading: false,
 
       initCloudSync: () => {
+        // منع إعادة الاشتراك إذا كان التحميل جارياً
+        if (get().isLoading) return;
         set({ isLoading: true });
-        learningService.subscribeToHub((data) => {
+        const unsubscribe = learningService.subscribeToHub((data) => {
           set({ cloudSubjects: data, isLoading: false });
         });
+        // تخزين دالة إلغاء الاشتراك للتنظيف لاحقاً (اختياري)
+        return unsubscribe;
       },
 
       setStorageMode: (mode) => set({ storageMode: mode }),
