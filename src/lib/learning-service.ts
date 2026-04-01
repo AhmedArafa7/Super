@@ -6,7 +6,7 @@ import {
   onSnapshot 
 } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
-import { SubjectId, SubjectData, SectionType, SectionItem } from '@/components/features/learning-hub/learning-hub-store';
+import type { SubjectId, SubjectData, SectionType, SectionItem } from '@/components/features/learning-hub/learning-hub-store';
 
 const SHARED_DOC_PATH = 'learning_hub/shared';
 
