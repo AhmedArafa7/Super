@@ -90,7 +90,7 @@ export function QuickActionFab({ onAddNote, onAddTask }: QuickActionFabProps) {
               </div>
             </motion.button>
             
-            <div className="opacity-40 text-[9px] font-mono tracking-widest text-primary mb-2 flex items-center gap-1 animate-pulse">
+            <div className="opacity-40 text-[9px] font-mono tracking-widest text-primary mb-2 flex items-center gap-1">
                <Sparkles className="size-3" /> ACTION_NODES_READY
             </div>
           </>

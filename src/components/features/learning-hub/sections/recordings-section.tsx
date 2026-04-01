@@ -182,7 +182,7 @@ export function RecordingsSection({ subjectId }: RecordingsSectionProps) {
                             <TooltipTrigger asChild>
                               <Button
                                 size="icon" variant="ghost"
-                                className="size-9 rounded-xl text-primary hover:bg-primary/20 transition-all border border-primary/20 animate-pulse"
+                                className="size-9 rounded-xl text-primary hover:bg-primary/20 transition-all border border-primary/20 hover:scale-110"
                                 onClick={() => uploadToCloud(subjectId, 'recordings', item)}
                               >
                                 <CloudUpload className="size-4" />

@@ -71,7 +71,7 @@ export default function LearningHub() {
                         storageMode === 'cloud' ? "text-primary border-primary/20" : "text-amber-400 border-amber-400/20"
                       )}
                     >
-                      {storageMode === 'cloud' ? <Cloud className="size-4 animate-pulse" /> : <Database className="size-4" />}
+                      {storageMode === 'cloud' ? <Cloud className="size-4" /> : <Database className="size-4" />}
                       <span className="text-xs uppercase tracking-widest">
                         {storageMode === 'cloud' ? "الوضع السحابي المشترك" : "وضع التخزين المحلي"}
                       </span>

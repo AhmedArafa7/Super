@@ -66,13 +66,13 @@ export function DeadlineWidget() {
         : 'bg-white/[0.03] border-white/5'
     )} dir="rtl">
       {isUrgent && (
-         <div className="absolute top-0 right-0 size-20 bg-red-500/10 blur-[30px] -mr-10 -mt-10 animate-pulse" />
+         <div className="absolute top-0 right-0 size-20 bg-red-500/10 blur-[30px] -mr-10 -mt-10" />
       )}
       
       <div className="flex items-center justify-between mb-4 relative z-10">
         <div className="flex items-center gap-2">
           {isUrgent ? (
-            <AlertTriangle className="size-4 text-red-400 animate-bounce duration-[2000ms]" />
+            <AlertTriangle className="size-4 text-red-400" />
           ) : (
             <Clock className="size-4 text-primary" />
           )}
