@@ -231,8 +231,8 @@ interface LearningHubState {
   searchQuery: string;
 
   // CRUD
-  addItem: (subjectId: SubjectId, section: SectionType, item: any) => void;
-  editItem: (subjectId: SubjectId, section: SectionType, itemId: string, updates: Partial<any>) => void;
+  addItem: (subjectId: SubjectId, section: SectionType, item: Omit<SectionItem, 'id' | 'createdAt'>) => void;
+  editItem: (subjectId: SubjectId, section: SectionType, itemId: string, updates: Partial<SectionItem>) => void;
   deleteItem: (subjectId: SubjectId, section: SectionType, itemId: string) => void;
 
   // Assignment status
@@ -263,9 +263,9 @@ export const useLearningHubStore = create<LearningHubState>()(
       addItem: (subjectId, section, item) => {
         set((state) => {
           const subj = { ...state.subjects[subjectId] };
-          const arr = [...(subj[section] as any[])];
-          arr.push({ ...item, id: uid(), createdAt: new Date().toISOString() });
-          subj[section] = arr as any;
+          const arr = [...(subj[section] as SectionItem[])];
+          arr.push({ ...(item as any), id: uid(), createdAt: new Date().toISOString() });
+          (subj as any)[section] = arr;
           return { subjects: { ...state.subjects, [subjectId]: subj } };
         });
       },
@@ -273,10 +273,10 @@ export const useLearningHubStore = create<LearningHubState>()(
       editItem: (subjectId, section, itemId, updates) => {
         set((state) => {
           const subj = { ...state.subjects[subjectId] };
-          const arr = (subj[section] as any[]).map((item: any) =>
-            item.id === itemId ? { ...item, ...updates } : item
+          const arr = (subj[section] as SectionItem[]).map((item) =>
+            item.id === itemId ? { ...item, ...updates } as SectionItem : item
           );
-          subj[section] = arr as any;
+          (subj as any)[section] = arr;
           return { subjects: { ...state.subjects, [subjectId]: subj } };
         });
       },
@@ -284,8 +284,8 @@ export const useLearningHubStore = create<LearningHubState>()(
       deleteItem: (subjectId, section, itemId) => {
         set((state) => {
           const subj = { ...state.subjects[subjectId] };
-          const arr = (subj[section] as any[]).filter((item: any) => item.id !== itemId);
-          subj[section] = arr as any;
+          const arr = (subj[section] as SectionItem[]).filter((item) => item.id !== itemId);
+          (subj as any)[section] = arr;
           return { subjects: { ...state.subjects, [subjectId]: subj } };
         });
       },

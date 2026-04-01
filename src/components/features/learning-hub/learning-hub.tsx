@@ -2,19 +2,23 @@
 
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { SubjectId } from './learning-hub-store';
+import { SubjectId, SectionItem, useLearningHubStore } from './learning-hub-store';
 import { LearningSidebar } from './learning-sidebar';
 import { SubjectDashboard } from './subject-dashboard';
 import { ScheduleView } from './schedule-view';
 import { QuickActionFab } from './quick-action-fab';
 import { ItemModal } from './item-modal';
-import { useLearningHubStore } from './learning-hub-store';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
-import { Menu, GraduationCap } from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { FeatureHeader } from '@/components/ui/feature-header';
+import { GlassCard } from '@/components/ui/glass-card';
 
+/**
+ * [STABILITY_ANCHOR: LEARNING_HUB_V2.0_MERGED]
+ * واجهة التعلم الذكية المطورة — Nexus V2
+ */
 export function LearningHub() {
   const [activeSubject, setActiveSubject] = useState<SubjectId>('data-center');
   const [activeView, setActiveView] = useState<'subject' | 'schedule'>('subject');
@@ -45,8 +49,9 @@ export function LearningHub() {
     setQuickModalOpen(true);
   };
 
-  const handleQuickSave = (data: any) => {
+  const handleQuickSave = (data: Omit<SectionItem, 'id' | 'createdAt'>) => {
     addItem(activeSubject, quickModalType, data);
+    setQuickModalOpen(false);
   };
 
   const sidebarContent = (
@@ -59,18 +64,18 @@ export function LearningHub() {
   );
 
   return (
-    <div className="flex h-full w-full bg-background overflow-hidden animate-in fade-in duration-500">
-      {/* Desktop Sidebar */}
+    <div className="flex h-full w-full bg-slate-950 overflow-hidden animate-in fade-in duration-700 font-sans">
+      {/* Desktop Sidebar (V2 Style) */}
       {!isMobile && (
         <div className="hidden md:flex h-full">
-          {sidebarContent}
+           {sidebarContent}
         </div>
       )}
 
       {/* Mobile Sidebar Sheet */}
       {isMobile && (
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetContent side="right" className="p-0 w-72 bg-slate-950 border-white/10">
+          <SheetContent side="right" className="p-0 w-80 bg-slate-950 border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
             <SheetTitle className="sr-only">قائمة التعلم</SheetTitle>
             <SheetDescription className="sr-only">التنقل بين المواد الدراسية</SheetDescription>
             {sidebarContent}
@@ -78,36 +83,35 @@ export function LearningHub() {
         </Sheet>
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        {/* Mobile Header */}
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden p-4 md:p-6 gap-6">
+        {/* Unified V2 Header for Mobile */}
         {isMobile && (
-          <div className="flex items-center gap-3 p-4 border-b border-white/10 bg-slate-900/40 md:hidden" dir="rtl">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-9 rounded-xl text-white"
-              onClick={() => setMobileMenuOpen(true)}
-            >
-              <Menu className="size-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <GraduationCap className="size-5 text-primary" />
-              <span className="text-sm font-black text-white">التعلم</span>
-            </div>
-          </div>
+          <FeatureHeader 
+            title="مركز التعلم"
+            description="إدارة المواد والجداول الدراسية"
+            Icon={GraduationCap}
+            iconClassName="text-primary"
+            onMenuToggle={() => setMobileMenuOpen(true)}
+          />
         )}
 
-        {/* Scrollable Content Area */}
-        <ScrollArea className="flex-1">
-          {activeView === 'subject' ? (
-            <SubjectDashboard subjectId={activeSubject} />
-          ) : (
-            <div className="p-6">
-              <ScheduleView />
-            </div>
-          )}
-        </ScrollArea>
+        {/* Dashboard Container */}
+        <GlassCard 
+          variant="borderless" 
+          noPadding 
+          className="flex-1 overflow-hidden bg-slate-900/20 backdrop-blur-3xl border border-white/5 shadow-2xl relative"
+        >
+          <ScrollArea className="h-full">
+            {activeView === 'subject' ? (
+              <SubjectDashboard subjectId={activeSubject} />
+            ) : (
+              <div className="p-8">
+                <ScheduleView />
+              </div>
+            )}
+          </ScrollArea>
+        </GlassCard>
       </div>
 
       {/* Quick Action FAB */}
