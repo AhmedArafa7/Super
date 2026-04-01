@@ -1,0 +1,101 @@
+name: 🤖 NexusAI — Mobile Build (Android APK)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allow manual trigger from the GitHub Actions tab
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # Required to create/update GitHub Releases
+
+    steps:
+      # ═══════════════════════════════════════════
+      # STAGE 1: ENVIRONMENT SETUP
+      # ═══════════════════════════════════════════
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up Java 17 (Required for Android SDK & Gradle)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 📦 Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # ═══════════════════════════════════════════
+      # STAGE 2: INSTALL DEPENDENCIES
+      # ═══════════════════════════════════════════
+      - name: 🔧 Install Node dependencies
+        run: npm ci
+
+      # ═══════════════════════════════════════════
+      # STAGE 3: BUILD WEB APP (Next.js → Static)
+      # ═══════════════════════════════════════════
+      - name: 🏗️ Build Next.js static export
+        run: |
+          npx next build
+        env:
+          NEXT_PUBLIC_BUILD_MODE: production
+
+      # ═══════════════════════════════════════════
+      # STAGE 4: SYNC CAPACITOR (Web → Android)
+      # ═══════════════════════════════════════════
+      - name: 🔄 Sync Capacitor to Android
+        run: npx cap sync android
+
+      # ═══════════════════════════════════════════
+      # STAGE 5: SET UP ANDROID SDK
+      # ═══════════════════════════════════════════
+      - name: 🤖 Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 🔑 Grant Gradle wrapper execute permission
+        run: chmod +x android/gradlew
+
+      # ═══════════════════════════════════════════
+      # STAGE 6: BUILD APK
+      # ═══════════════════════════════════════════
+      - name: 📱 Build Android APK (Release Unsigned)
+        run: ./gradlew assembleRelease --no-daemon
+        working-directory: android
+
+      # ═══════════════════════════════════════════
+      # STAGE 7: RENAME & PUBLISH
+      # ═══════════════════════════════════════════
+      - name: 🏷️ Rename APK to standard name
+        run: |
+          find android/app/build/outputs/apk/release -name "*.apk" -exec cp {} nexusai-latest.apk \;
+
+      - name: 🚀 Publish APK as GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mobile-latest
+          name: "NexusAI Mobile — Latest Build"
+          body: |
+            ## 📱 NexusAI Android APK
+            هذا إصدار تلقائي تم بناؤه من أحدث إصدار لكود المشروع.
+            
+            ### كيفية التثبيت:
+            1. قم بتحميل ملف `nexusai-latest.apk`.
+            2. افتح الملف على هاتفك الأندرويد.
+            3. في حال ظهرت رسالة "تثبيت من مصادر غير معروفة"، قم بتفعيل هذا الخيار من الإعدادات.
+            
+            ---
+            **Build commit:** `${{ github.sha }}`
+            **Build date:** `${{ github.event.head_commit.timestamp }}`
+          files: nexusai-latest.apk
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
