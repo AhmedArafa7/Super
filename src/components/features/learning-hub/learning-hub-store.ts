@@ -1,232 +1,36 @@
 'use client';
 
+// ─────────────────────────────────────────────────────────────
+// learning-hub-store.ts  (refactored — clean & minimal)
+// يحتوي فقط على منطق الـ Zustand Store
+// ─────────────────────────────────────────────────────────────
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { learningService } from '@/lib/learning-service';
 
-// ───── Types ─────
+// Re-export everything from sub-modules so existing imports still work
+export type {
+  SubjectId, SectionType, AssignmentStatus, QuizFormStatus,
+  BaseItem, MaterialItem, RecordingItem, AssignmentItem,
+  QuizItem, QuizFormItem, QuestionBankItem, SectionItem,
+  SubjectData, ScheduleEvent, SubjectMeta,
+} from './learning-hub-types';
+export { SUBJECTS, SECTION_LABELS, DAYS } from './learning-hub-types';
 
-export type SubjectId = 'data-center' | 'wireless-sensors' | 'software-architecture' | 'deep-learning' | 'embedded-rtos';
+import type {
+  SubjectId, SectionType, AssignmentStatus,
+  SectionItem, SubjectData, ScheduleEvent,
+  AssignmentItem, QuizItem,
+} from './learning-hub-types';
+import { makeEmptySubject, makeDemoData, makeDemoSchedule } from './learning-hub-demo';
 
-export type SectionType = 'materials' | 'recordings' | 'assignments' | 'quizzes' | 'quizForms' | 'questionBanks';
-
-export type AssignmentStatus = 'pending' | 'submitted' | 'graded';
-export type QuizFormStatus = 'not-taken' | 'completed';
-
-export interface BaseItem {
-  id: string;
-  title: string;
-  createdAt: string;
-  source?: 'local' | 'cloud';
-}
-
-export interface MaterialItem extends BaseItem {
-  type: 'pdf' | 'slide' | 'link';
-  url: string;
-  description?: string;
-}
-
-export interface RecordingItem extends BaseItem {
-  url: string;
-  duration?: string;
-  thumbnail?: string;
-}
-
-export interface AssignmentItem extends BaseItem {
-  status: AssignmentStatus;
-  deadline: string;
-  description?: string;
-  fileName?: string;
-  grade?: number;
-}
-
-export interface QuizItem extends BaseItem {
-  date: string;
-  score?: number;
-  maxScore: number;
-  completed: boolean;
-}
-
-export interface QuizFormItem extends BaseItem {
-  url: string;
-  status: QuizFormStatus;
-  provider: 'google-forms' | 'internal' | 'external';
-}
-
-export interface QuestionBankItem extends BaseItem {
-  url: string;
-  category: string;
-  pages?: number;
-}
-
-export type SectionItem = MaterialItem | RecordingItem | AssignmentItem | QuizItem | QuizFormItem | QuestionBankItem;
-
-export interface SubjectData {
-  materials: MaterialItem[];
-  recordings: RecordingItem[];
-  assignments: AssignmentItem[];
-  quizzes: QuizItem[];
-  quizForms: QuizFormItem[];
-  questionBanks: QuestionBankItem[];
-}
-
-export interface ScheduleEvent {
-  id: string;
-  subjectId: SubjectId;
-  day: number; // 0=Sat, 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu
-  startHour: number;
-  endHour: number;
-  title: string;
-  location?: string;
-}
-
-export interface SubjectMeta {
-  id: SubjectId;
-  name: string;
-  nameEn: string;
-  color: string;
-  bgColor: string;
-  icon: string;
-}
-
-export const SUBJECTS: SubjectMeta[] = [
-  { id: 'data-center', name: 'مركز البيانات', nameEn: 'Data Center', color: 'text-blue-400', bgColor: 'bg-blue-500/10', icon: '🖥️' },
-  { id: 'wireless-sensors', name: 'المستشعرات اللاسلكية', nameEn: 'Wireless Sensors', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10', icon: '📡' },
-  { id: 'software-architecture', name: 'هندسة البرمجيات', nameEn: 'Software Architecture', color: 'text-violet-400', bgColor: 'bg-violet-500/10', icon: '🏗️' },
-  { id: 'deep-learning', name: 'التعلم العميق', nameEn: 'Deep Learning', color: 'text-orange-400', bgColor: 'bg-orange-500/10', icon: '🧠' },
-  { id: 'embedded-rtos', name: 'الأنظمة المدمجة و RTOS', nameEn: 'Embedded & RTOS', color: 'text-cyan-400', bgColor: 'bg-cyan-500/10', icon: '⚙️' },
-];
-
-export const SECTION_LABELS: Record<SectionType, { label: string; labelEn: string }> = {
-  materials: { label: 'المواد', labelEn: 'Materials' },
-  recordings: { label: 'التسجيلات', labelEn: 'Recordings' },
-  assignments: { label: 'الواجبات', labelEn: 'Assignments' },
-  quizzes: { label: 'الاختبارات', labelEn: 'Quizzes' },
-  quizForms: { label: 'نماذج الاختبار', labelEn: 'Quiz Forms' },
-  questionBanks: { label: 'بنك الأسئلة', labelEn: 'Question Banks' },
-};
-
-export const DAYS = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
-
-// ───── Helper ─────
-
+// ── uid helper ──
 function uid(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-function makeEmptySubject(): SubjectData {
-  return { materials: [], recordings: [], assignments: [], quizzes: [], quizForms: [], questionBanks: [] };
-}
-
-// ───── Demo Data ─────
-
-function makeDemoData(): Record<SubjectId, SubjectData> {
-  return {
-    'data-center': {
-      materials: [
-        { id: uid(), title: 'مقدمة في مراكز البيانات', type: 'pdf', url: '#', createdAt: new Date().toISOString(), description: 'ملف PDF شامل عن أساسيات مراكز البيانات' },
-        { id: uid(), title: 'تصميم البنية التحتية', type: 'slide', url: '#', createdAt: new Date().toISOString(), description: 'عرض تقديمي عن تصميم البنية التحتية' },
-      ],
-      recordings: [
-        { id: uid(), title: 'المحاضرة 1 - أساسيات الشبكات', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', createdAt: new Date().toISOString(), duration: '1:30:00' },
-        { id: uid(), title: 'المحاضرة 2 - أنظمة التبريد', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', createdAt: new Date().toISOString(), duration: '45:00' },
-      ],
-      assignments: [
-        { id: uid(), title: 'تقرير عن تصميم مركز بيانات', status: 'pending', deadline: '2026-04-15T23:59:00', createdAt: new Date().toISOString(), description: 'تصميم مركز بيانات صغير مع رسم توضيحي' },
-        { id: uid(), title: 'تحليل أنظمة التبريد', status: 'submitted', deadline: '2026-04-05T23:59:00', createdAt: new Date().toISOString() },
-      ],
-      quizzes: [
-        { id: uid(), title: 'اختبار الفصل الأول', date: '2026-04-10T10:00:00', score: 85, maxScore: 100, completed: true, createdAt: new Date().toISOString() },
-        { id: uid(), title: 'اختبار منتصف الفصل', date: '2026-04-20T10:00:00', maxScore: 100, completed: false, createdAt: new Date().toISOString() },
-      ],
-      quizForms: [
-        { id: uid(), title: 'نموذج اختبار الشبكات', url: 'https://forms.google.com', status: 'completed', provider: 'google-forms', createdAt: new Date().toISOString() },
-      ],
-      questionBanks: [
-        { id: uid(), title: 'بنك أسئلة الفصل الأول', url: '#', category: 'الفصل الأول', pages: 25, createdAt: new Date().toISOString() },
-      ],
-    },
-    'wireless-sensors': {
-      materials: [
-        { id: uid(), title: 'مقدمة في المستشعرات اللاسلكية', type: 'pdf', url: '#', createdAt: new Date().toISOString() },
-      ],
-      recordings: [
-        { id: uid(), title: 'المحاضرة 1 - بروتوكولات الاتصال', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', createdAt: new Date().toISOString(), duration: '1:15:00' },
-      ],
-      assignments: [
-        { id: uid(), title: 'مشروع شبكة مستشعرات', status: 'pending', deadline: '2026-04-18T23:59:00', createdAt: new Date().toISOString() },
-      ],
-      quizzes: [
-        { id: uid(), title: 'كويز أسبوعي 1', date: '2026-04-08T09:00:00', score: 90, maxScore: 100, completed: true, createdAt: new Date().toISOString() },
-      ],
-      quizForms: [],
-      questionBanks: [
-        { id: uid(), title: 'بنك الأسئلة الشامل', url: '#', category: 'شامل', pages: 40, createdAt: new Date().toISOString() },
-      ],
-    },
-    'software-architecture': {
-      materials: [
-        { id: uid(), title: 'أنماط التصميم البرمجي', type: 'pdf', url: '#', createdAt: new Date().toISOString() },
-        { id: uid(), title: 'Clean Architecture', type: 'slide', url: '#', createdAt: new Date().toISOString() },
-      ],
-      recordings: [],
-      assignments: [
-        { id: uid(), title: 'تطبيق SOLID Principles', status: 'graded', deadline: '2026-03-30T23:59:00', createdAt: new Date().toISOString(), grade: 95 },
-      ],
-      quizzes: [],
-      quizForms: [
-        { id: uid(), title: 'اختبار Design Patterns', url: 'https://forms.google.com', status: 'not-taken', provider: 'google-forms', createdAt: new Date().toISOString() },
-      ],
-      questionBanks: [],
-    },
-    'deep-learning': {
-      materials: [
-        { id: uid(), title: 'مقدمة في الشبكات العصبية', type: 'pdf', url: '#', createdAt: new Date().toISOString() },
-      ],
-      recordings: [
-        { id: uid(), title: 'Neural Networks Basics', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', createdAt: new Date().toISOString(), duration: '2:00:00' },
-      ],
-      assignments: [
-        { id: uid(), title: 'تدريب نموذج CNN', status: 'pending', deadline: '2026-04-12T23:59:00', createdAt: new Date().toISOString() },
-      ],
-      quizzes: [
-        { id: uid(), title: 'Quiz - Backpropagation', date: '2026-04-14T10:00:00', maxScore: 50, completed: false, createdAt: new Date().toISOString() },
-      ],
-      quizForms: [],
-      questionBanks: [],
-    },
-    'embedded-rtos': {
-      materials: [
-        { id: uid(), title: 'FreeRTOS Fundamentals', type: 'pdf', url: '#', createdAt: new Date().toISOString() },
-      ],
-      recordings: [],
-      assignments: [
-        { id: uid(), title: 'مشروع FreeRTOS على STM32', status: 'pending', deadline: '2026-04-22T23:59:00', createdAt: new Date().toISOString() },
-      ],
-      quizzes: [],
-      quizForms: [],
-      questionBanks: [
-        { id: uid(), title: 'أسئلة RTOS الشاملة', url: '#', category: 'RTOS', pages: 30, createdAt: new Date().toISOString() },
-      ],
-    },
-  };
-}
-
-function makeDemoSchedule(): ScheduleEvent[] {
-  return [
-    { id: uid(), subjectId: 'data-center', day: 0, startHour: 8, endHour: 10, title: 'محاضرة مراكز البيانات', location: 'قاعة 301' },
-    { id: uid(), subjectId: 'wireless-sensors', day: 0, startHour: 12, endHour: 14, title: 'معمل المستشعرات', location: 'المعمل 5' },
-    { id: uid(), subjectId: 'software-architecture', day: 1, startHour: 10, endHour: 12, title: 'هندسة البرمجيات', location: 'قاعة 205' },
-    { id: uid(), subjectId: 'deep-learning', day: 2, startHour: 8, endHour: 10, title: 'التعلم العميق', location: 'قاعة 102' },
-    { id: uid(), subjectId: 'embedded-rtos', day: 2, startHour: 14, endHour: 16, title: 'الأنظمة المدمجة', location: 'المعمل 3' },
-    { id: uid(), subjectId: 'data-center', day: 3, startHour: 10, endHour: 12, title: 'سكشن مراكز البيانات', location: 'قاعة 301' },
-    { id: uid(), subjectId: 'deep-learning', day: 4, startHour: 12, endHour: 14, title: 'معمل التعلم العميق', location: 'المعمل 7' },
-    { id: uid(), subjectId: 'embedded-rtos', day: 5, startHour: 8, endHour: 10, title: 'سكشن RTOS', location: 'المعمل 3' },
-  ];
-}
-
-// ───── Store Interface ─────
-
+// ── Store Interface ──
 interface LearningHubState {
   subjects: Record<SubjectId, SubjectData>;
   cloudSubjects: Record<SubjectId, SubjectData>;
@@ -240,68 +44,65 @@ interface LearningHubState {
   setStorageMode: (mode: 'cloud' | 'local') => void;
 
   // CRUD
-  addItem: (subjectId: SubjectId, section: SectionType, item: Omit<SectionItem, 'id' | 'createdAt'>) => Promise<void>;
-  editItem: (subjectId: SubjectId, section: SectionType, itemId: string, updates: Partial<SectionItem>) => Promise<void>;
-  deleteItem: (subjectId: SubjectId, section: SectionType, itemId: string) => Promise<void>;
-  uploadToCloud: (subjectId: SubjectId, section: SectionType, item: SectionItem) => Promise<void>;
+  addItem:      (subjectId: SubjectId, section: SectionType, item: Omit<SectionItem, 'id' | 'createdAt'>) => Promise<void>;
+  editItem:     (subjectId: SubjectId, section: SectionType, itemId: string, updates: Partial<SectionItem>) => Promise<void>;
+  deleteItem:   (subjectId: SubjectId, section: SectionType, itemId: string) => Promise<void>;
+  uploadToCloud:(subjectId: SubjectId, section: SectionType, item: SectionItem) => Promise<void>;
 
-  // Assignment status
+  // Assignment
   toggleAssignmentStatus: (subjectId: SubjectId, itemId: string) => void;
 
   // Schedule
-  addScheduleEvent: (event: Omit<ScheduleEvent, 'id'>) => void;
-  editScheduleEvent: (id: string, updates: Partial<ScheduleEvent>) => void;
+  addScheduleEvent:    (event: Omit<ScheduleEvent, 'id'>) => void;
+  editScheduleEvent:   (id: string, updates: Partial<ScheduleEvent>) => void;
   deleteScheduleEvent: (id: string) => void;
 
   // Search
   setSearchQuery: (q: string) => void;
 
-  // Selection
+  // Computed
   getMergedSubject: (subjectId: SubjectId) => SubjectData;
-  getProgress: (subjectId: SubjectId) => number;
-
-  // Deadline
-  getNextDeadline: () => { item: AssignmentItem | QuizItem; subjectId: SubjectId } | null;
+  getProgress:      (subjectId: SubjectId) => number;
+  getNextDeadline:  () => { item: AssignmentItem | QuizItem; subjectId: SubjectId } | null;
 }
 
-
+// ── Store ──
 export const useLearningHubStore = create<LearningHubState>()(
   persist(
     (set, get) => ({
-      subjects: makeDemoData(),
+      subjects:      makeDemoData(),
       cloudSubjects: {} as any,
-      schedule: makeDemoSchedule(),
-      searchQuery: '',
-      storageMode: 'local',
-      isLoading: false,
+      schedule:      makeDemoSchedule(),
+      searchQuery:   '',
+      storageMode:   'local',
+      isLoading:     false,
 
+      // ── Cloud Sync ──
       initCloudSync: () => {
-        // منع إعادة الاشتراك إذا كان التحميل جارياً
-        if (get().isLoading) return;
+        if (get().isLoading) return; // منع الاشتراك المزدوج
         set({ isLoading: true });
         const unsubscribe = learningService.subscribeToHub((data) => {
           set({ cloudSubjects: data, isLoading: false });
         });
-        // تخزين دالة إلغاء الاشتراك للتنظيف لاحقاً (اختياري)
         return unsubscribe;
       },
 
       setStorageMode: (mode) => set({ storageMode: mode }),
 
+      // ── CRUD ──
       addItem: async (subjectId, section, item) => {
-        const newItem: SectionItem = { 
-          ...(item as any), 
-          id: uid(), 
+        const newItem: SectionItem = {
+          ...(item as any),
+          id: uid(),
           createdAt: new Date().toISOString(),
-          source: get().storageMode 
+          source: get().storageMode,
         };
-
         if (get().storageMode === 'cloud') {
           await learningService.syncItem(subjectId, section, newItem);
         } else {
           set((state) => {
             const subj = { ...state.subjects[subjectId] };
-            const arr = [...(subj[section] as SectionItem[])];
+            const arr  = [...(subj[section] as SectionItem[])];
             arr.push(newItem);
             (subj as any)[section] = arr;
             return { subjects: { ...state.subjects, [subjectId]: subj } };
@@ -311,20 +112,17 @@ export const useLearningHubStore = create<LearningHubState>()(
 
       editItem: async (subjectId, section, itemId, updates) => {
         const merged = get().getMergedSubject(subjectId);
-        const item = (merged[section] as SectionItem[]).find(i => i.id === itemId);
+        const item   = (merged[section] as SectionItem[]).find(i => i.id === itemId);
         if (!item) return;
-
         const updatedItem = { ...item, ...updates } as any;
-
         if (item.source === 'cloud') {
           await learningService.syncItem(subjectId, section, updatedItem);
         } else {
           set((state) => {
             const subj = { ...state.subjects[subjectId] };
-            const arr = (subj[section] as SectionItem[]).map((i) =>
+            (subj as any)[section] = (subj[section] as SectionItem[]).map(i =>
               i.id === itemId ? updatedItem : i
             );
-            (subj as any)[section] = arr;
             return { subjects: { ...state.subjects, [subjectId]: subj } };
           });
         }
@@ -332,66 +130,51 @@ export const useLearningHubStore = create<LearningHubState>()(
 
       deleteItem: async (subjectId, section, itemId) => {
         const merged = get().getMergedSubject(subjectId);
-        const item = (merged[section] as SectionItem[]).find(i => i.id === itemId);
+        const item   = (merged[section] as SectionItem[]).find(i => i.id === itemId);
         if (!item) return;
-
         if (item.source === 'cloud') {
           await learningService.deleteItem(subjectId, section, itemId);
         } else {
           set((state) => {
             const subj = { ...state.subjects[subjectId] };
-            const arr = (subj[section] as SectionItem[]).filter((i) => i.id !== itemId);
-            (subj as any)[section] = arr;
+            (subj as any)[section] = (subj[section] as SectionItem[]).filter(i => i.id !== itemId);
             return { subjects: { ...state.subjects, [subjectId]: subj } };
           });
         }
       },
 
       uploadToCloud: async (subjectId, section, item) => {
-        // 1. Sync to cloud
         await learningService.syncItem(subjectId, section, { ...item, source: 'cloud' });
-        // 2. Remove from local
         set((state) => {
           const subj = { ...state.subjects[subjectId] };
-          const arr = (subj[section] as SectionItem[]).filter((i) => i.id !== item.id);
-          (subj as any)[section] = arr;
+          (subj as any)[section] = (subj[section] as SectionItem[]).filter(i => i.id !== item.id);
           return { subjects: { ...state.subjects, [subjectId]: subj } };
         });
       },
 
+      // ── Assignment ──
       toggleAssignmentStatus: (subjectId, itemId) => {
-        const merged = get().getMergedSubject(subjectId);
+        const merged     = get().getMergedSubject(subjectId);
         const assignment = merged.assignments.find(a => a.id === itemId);
         if (!assignment) return;
-
-        const nextStatus: AssignmentStatus = assignment.status === 'pending' ? 'submitted' : assignment.status === 'submitted' ? 'graded' : 'pending';
+        const nextStatus: AssignmentStatus =
+          assignment.status === 'pending'   ? 'submitted' :
+          assignment.status === 'submitted' ? 'graded'    : 'pending';
         get().editItem(subjectId, 'assignments', itemId, { status: nextStatus });
       },
 
-      addScheduleEvent: (event) => {
-        set((state) => ({
-          schedule: [...state.schedule, { ...event, id: uid() }],
-        }));
-      },
+      // ── Schedule ──
+      addScheduleEvent:    (event)         => set(s => ({ schedule: [...s.schedule, { ...event, id: uid() }] })),
+      editScheduleEvent:   (id, updates)   => set(s => ({ schedule: s.schedule.map(e => e.id === id ? { ...e, ...updates } : e) })),
+      deleteScheduleEvent: (id)            => set(s => ({ schedule: s.schedule.filter(e => e.id !== id) })),
 
-      editScheduleEvent: (id, updates) => {
-        set((state) => ({
-          schedule: state.schedule.map((e) => (e.id === id ? { ...e, ...updates } : e)),
-        }));
-      },
-
-      deleteScheduleEvent: (id) => {
-        set((state) => ({
-          schedule: state.schedule.filter((e) => e.id !== id),
-        }));
-      },
-
+      // ── Search ──
       setSearchQuery: (q) => set({ searchQuery: q }),
 
+      // ── Computed ──
       getMergedSubject: (subjectId) => {
-        const local = get().subjects[subjectId] || makeEmptySubject();
+        const local = get().subjects[subjectId]      || makeEmptySubject();
         const cloud = get().cloudSubjects[subjectId] || makeEmptySubject();
-
         return {
           materials:     [...(local.materials     || []), ...(cloud.materials     || [])],
           recordings:    [...(local.recordings    || []), ...(cloud.recordings    || [])],
@@ -404,11 +187,9 @@ export const useLearningHubStore = create<LearningHubState>()(
 
       getProgress: (subjectId) => {
         const subj = get().getMergedSubject(subjectId);
-        const totalAssignments = subj.assignments.length;
-        const completedAssignments = subj.assignments.filter((a) => a.status === 'submitted' || a.status === 'graded').length;
-        const totalQuizzes = subj.quizzes.length;
-        const completedQuizzes = subj.quizzes.filter((q) => q.completed).length;
-        const total = totalAssignments + totalQuizzes;
+        const completedAssignments = subj.assignments.filter(a => a.status === 'submitted' || a.status === 'graded').length;
+        const completedQuizzes     = subj.quizzes.filter(q => q.completed).length;
+        const total = subj.assignments.length + subj.quizzes.length;
         if (total === 0) return 0;
         return Math.round(((completedAssignments + completedQuizzes) / total) * 100);
       },
@@ -417,23 +198,18 @@ export const useLearningHubStore = create<LearningHubState>()(
         const { subjects, getMergedSubject } = get();
         const now = new Date();
         let nearest: { item: AssignmentItem | QuizItem; subjectId: SubjectId; date: Date } | null = null;
-
         for (const [sid] of Object.entries(subjects)) {
           const subj = getMergedSubject(sid as SubjectId);
           for (const a of subj.assignments) {
             if (a.status === 'pending') {
               const d = new Date(a.deadline);
-              if (d > now && (!nearest || d < nearest.date)) {
-                nearest = { item: a, subjectId: sid as SubjectId, date: d };
-              }
+              if (d > now && (!nearest || d < nearest.date)) nearest = { item: a, subjectId: sid as SubjectId, date: d };
             }
           }
           for (const q of subj.quizzes) {
             if (!q.completed) {
               const d = new Date(q.date);
-              if (d > now && (!nearest || d < nearest.date)) {
-                nearest = { item: q, subjectId: sid as SubjectId, date: d };
-              }
+              if (d > now && (!nearest || d < nearest.date)) nearest = { item: q, subjectId: sid as SubjectId, date: d };
             }
           }
         }
@@ -442,10 +218,10 @@ export const useLearningHubStore = create<LearningHubState>()(
     }),
     {
       name: 'nexus-learning-hub-v2',
-      partialize: (state) => ({ 
-        subjects: state.subjects, 
-        schedule: state.schedule, 
-        storageMode: state.storageMode 
+      partialize: (state) => ({
+        subjects:     state.subjects,
+        schedule:     state.schedule,
+        storageMode:  state.storageMode,
       }),
     }
   )
