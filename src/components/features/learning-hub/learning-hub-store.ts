@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { learningService } from '@/lib/learning-service';
 
 // ───── Types ─────
 
@@ -263,7 +264,6 @@ interface LearningHubState {
   getNextDeadline: () => { item: AssignmentItem | QuizItem; subjectId: SubjectId } | null;
 }
 
-import { learningService } from '@/lib/learning-service';
 
 export const useLearningHubStore = create<LearningHubState>()(
   persist(
