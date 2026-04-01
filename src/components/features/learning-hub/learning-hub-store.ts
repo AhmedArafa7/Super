@@ -393,12 +393,12 @@ export const useLearningHubStore = create<LearningHubState>()(
         const cloud = get().cloudSubjects[subjectId] || makeEmptySubject();
 
         return {
-          materials: [...local.materials, ...cloud.materials],
-          recordings: [...local.recordings, ...cloud.recordings],
-          assignments: [...local.assignments, ...cloud.assignments],
-          quizzes: [...local.quizzes, ...cloud.quizzes],
-          quizForms: [...local.quizForms, ...cloud.quizForms],
-          questionBanks: [...local.questionBanks, ...cloud.questionBanks],
+          materials:     [...(local.materials     || []), ...(cloud.materials     || [])],
+          recordings:    [...(local.recordings    || []), ...(cloud.recordings    || [])],
+          assignments:   [...(local.assignments   || []), ...(cloud.assignments   || [])],
+          quizzes:       [...(local.quizzes       || []), ...(cloud.quizzes       || [])],
+          quizForms:     [...(local.quizForms     || []), ...(cloud.quizForms     || [])],
+          questionBanks: [...(local.questionBanks || []), ...(cloud.questionBanks || [])],
         };
       },
 
