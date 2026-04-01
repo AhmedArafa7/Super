@@ -6,23 +6,30 @@ import { useLearningHubStore, SubjectId, QuizItem } from '../learning-hub-store'
 import { ItemModal } from '../item-modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { BookCheck, Plus, Edit3, Trash2, Trophy, Calendar } from 'lucide-react';
+import { BookCheck, Plus, Edit3, Trash2, Trophy, Calendar, CloudUpload, Cloud, Database } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { GlassCard } from '@/components/ui/glass-card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface QuizzesSectionProps {
   subjectId: SubjectId;
 }
 
+/**
+ * [STABILITY_ANCHOR: QUIZZES_SECTION_V3.0_HYBRID_SYNC]
+ * قسم الاختبارات المطور — Nexus V2 مع دعم التخزين الهجين وعرض النتائج المتقدم
+ */
 export function QuizzesSection({ subjectId }: QuizzesSectionProps) {
-  const { subjects, addItem, editItem, deleteItem, searchQuery } = useLearningHubStore();
+  const { getMergedSubject, addItem, editItem, deleteItem, uploadToCloud, searchQuery } = useLearningHubStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<QuizItem | null>(null);
 
-  const quizzes = subjects[subjectId].quizzes.filter((q) =>
+  const subjectData = getMergedSubject(subjectId);
+  const quizzes = subjectData.quizzes.filter((q) =>
     !searchQuery || q.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -37,113 +44,180 @@ export function QuizzesSection({ subjectId }: QuizzesSectionProps) {
 
   const getScoreColor = (score: number, max: number) => {
     const pct = (score / max) * 100;
-    if (pct >= 80) return 'text-emerald-400';
-    if (pct >= 60) return 'text-amber-400';
+    if (pct >= 85) return 'text-emerald-400';
+    if (pct >= 70) return 'text-primary';
+    if (pct >= 50) return 'text-amber-400';
     return 'text-red-400';
   };
 
   return (
-    <div className="space-y-4" dir="rtl">
+    <div className="space-y-8 animate-in fade-in duration-700" dir="rtl">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <BookCheck className="size-4 text-primary" />
-          الاختبارات
-          <span className="text-[10px] text-muted-foreground font-normal">({quizzes.length})</span>
-        </h3>
+        <div className="space-y-1">
+          <h3 className="text-xl font-black text-white flex items-center gap-3">
+             <div className="size-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <BookCheck className="size-5 text-primary" />
+             </div>
+             سجل الاختبارات والتقييمات
+             <span className="text-[10px] font-mono text-muted-foreground bg-white/5 px-3 py-1 rounded-full border border-white/5 opacity-50 uppercase tracking-widest">
+               {quizzes.length} NODES
+             </span>
+          </h3>
+          <p className="text-xs text-muted-foreground mr-12 opacity-60">متابعة نتائج الاختبارات الدورية والتقييمات الأكاديمية المستمرة.</p>
+        </div>
         <Button
-          size="sm"
           onClick={() => { setEditingItem(null); setModalOpen(true); }}
-          className="h-8 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold gap-1.5"
+          className="h-12 px-8 rounded-2xl bg-white text-slate-950 hover:bg-slate-100 shadow-2xl font-black gap-2 transition-transform active:scale-95"
         >
-          <Plus className="size-3.5" />
-          إضافة اختبار
+          <Plus className="size-5" />
+          إضافة نتيجة اختبار
         </Button>
       </div>
 
       {quizzes.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <BookCheck className="size-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">لا توجد اختبارات بعد</p>
-        </div>
+        <GlassCard variant="flat" className="py-24 text-center border-white/5 bg-slate-900/40">
+          <div className="size-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
+             <Trophy className="size-10 text-muted-foreground/20" />
+          </div>
+          <p className="text-sm font-bold text-muted-foreground/60">لم يتم تسجيل أي نتائج اختبارات حتى الآن</p>
+        </GlassCard>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {quizzes.map((item) => (
-            <div
-              key={item.id}
-              className="group p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.07] transition-all"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-white truncate">{item.title}</p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <Calendar className="size-3 text-muted-foreground" />
-                    <span className="text-[10px] text-muted-foreground">
-                      {new Date(item.date).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {quizzes.map((item) => {
+            const isLocal = item.source === 'local';
+            const pct = item.score !== undefined ? (item.score / item.maxScore) * 100 : 0;
+            
+            return (
+              <GlassCard
+                key={item.id}
+                variant="hover"
+                className="group p-8 border-white/5 bg-slate-900/40 relative overflow-hidden"
+              >
+                {/* Header Information */}
+                <div className="flex items-start justify-between mb-6">
+                  <div className="space-y-2 flex-1">
+                    <h4 className="text-lg font-black text-white leading-tight group-hover:text-primary transition-colors">{item.title}</h4>
+                    <div className="flex items-center gap-3">
+                       <div className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-xl border border-white/5 text-[10px] font-black text-muted-foreground tabular-nums">
+                          <Calendar className="size-3.5 opacity-40 text-primary" />
+                          {new Date(item.date).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', year: 'numeric' })}
+                       </div>
+                       
+                       {/* Source Indicator */}
+                       <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={cn('flex items-center gap-1.5 px-3 py-1 rounded-xl border text-[9px] font-black uppercase tracking-widest', isLocal ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-primary/10 border-primary/20 text-primary')}>
+                              {isLocal ? <Database className="size-3" /> : <Cloud className="size-3" />}
+                              {isLocal ? 'LOCAL' : 'CLOUD'}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-slate-950 border-white/10 text-[10px] font-bold">
+                            {isLocal ? 'مخزن محلياً' : 'مخزن سحابياً لتعاون الزملاء'}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
+                  
+                  <div className={cn(
+                    'px-4 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest',
+                    item.completed ? 'border-emerald-500/20 text-emerald-400 bg-emerald-500/10' : 'border-amber-500/20 text-amber-400 bg-amber-500/10'
+                  )}>
+                    {item.completed ? 'COMPLETED' : 'UPCOMING'}
                   </div>
                 </div>
-                <Badge variant="outline" className={cn(
-                  'text-[9px] h-5 rounded-lg border',
-                  item.completed ? 'border-emerald-500/20 text-emerald-400 bg-emerald-500/10' : 'border-amber-500/20 text-amber-400 bg-amber-500/10'
-                )}>
-                  {item.completed ? 'مكتمل' : 'قادم'}
-                </Badge>
-              </div>
 
-              {/* Score Display */}
-              <div className="flex items-center justify-center py-4">
-                {item.completed && item.score !== undefined ? (
-                  <div className="text-center">
-                    <div className="relative size-20 mx-auto mb-2">
-                      <svg className="size-20 -rotate-90" viewBox="0 0 80 80">
-                        <circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" strokeWidth="6" className="text-white/5" />
-                        <circle
-                          cx="40" cy="40" r="34" fill="none" stroke="currentColor" strokeWidth="6"
-                          className={getScoreColor(item.score, item.maxScore)}
-                          strokeDasharray={`${(item.score / item.maxScore) * 213.6} 213.6`}
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className={cn('text-lg font-black tabular-nums', getScoreColor(item.score, item.maxScore))}>
-                          {item.score}
-                        </span>
+                {/* Score Visualization Unit */}
+                <div className="flex items-center justify-between bg-black/20 p-6 rounded-[2rem] border border-white/5 shadow-inner">
+                  {item.completed && item.score !== undefined ? (
+                    <>
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-40">Performance Score</p>
+                        <div className="flex items-baseline gap-2">
+                           <span className={cn('text-4xl font-black tabular-nums tracking-tighter', getScoreColor(item.score, item.maxScore))}>
+                              {item.score}
+                           </span>
+                           <span className="text-sm font-bold text-muted-foreground">/ {item.maxScore}</span>
+                        </div>
+                        <p className={cn('text-[9px] font-black uppercase tracking-widest', getScoreColor(item.score, item.maxScore))}>
+                           {pct >= 85 ? 'DISTINGUISHED' : pct >= 70 ? 'SUCCESSFUL' : pct >= 50 ? 'AVERAGE' : 'NEEDS_REVISION'}
+                        </p>
                       </div>
+                      
+                      <div className="relative size-24">
+                        <svg className="size-24 -rotate-90 drop-shadow-2xl" viewBox="0 0 100 100">
+                          <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" strokeWidth="8" className="text-white/5" />
+                          <circle
+                            cx="50" cy="50" r="44" fill="none" stroke="currentColor" strokeWidth="8"
+                            className={cn('transition-all duration-1000', getScoreColor(item.score, item.maxScore))}
+                            strokeDasharray={`${(item.score / item.maxScore) * 276.4} 276.4`}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className={cn('size-12 rounded-full border-2 flex items-center justify-center bg-white/5', getScoreColor(item.score, item.maxScore).replace('text-', 'border-').replace('text-', 'text-'))}>
+                             <Trophy className="size-6" />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-full flex flex-col items-center py-4 gap-4 opacity-30">
+                       <Trophy className="size-16" />
+                       <div className="text-[10px] font-black uppercase tracking-widest">Awaiting Evaluation Result</div>
                     </div>
-                    <p className="text-[10px] text-muted-foreground">من {item.maxScore}</p>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <Trophy className="size-10 text-muted-foreground/20 mx-auto mb-1" />
-                    <p className="text-[10px] text-muted-foreground">لم يتم التقييم بعد</p>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              <div className="flex items-center gap-1.5 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button size="sm" variant="ghost" className="h-7 text-[10px] text-amber-400 hover:bg-amber-500/10 gap-1 rounded-lg flex-1" onClick={() => { setEditingItem(item); setModalOpen(true); }}>
-                  <Edit3 className="size-3" /> تعديل
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="ghost" className="h-7 text-[10px] text-red-400 hover:bg-red-500/10 gap-1 rounded-lg flex-1">
-                      <Trash2 className="size-3" /> حذف
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent className="bg-slate-950 border-white/10 rounded-2xl" dir="rtl">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>حذف الاختبار</AlertDialogTitle>
-                      <AlertDialogDescription>هل أنت متأكد من حذف &quot;{item.title}&quot;؟</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="flex-row-reverse gap-2">
-                      <AlertDialogAction onClick={() => deleteItem(subjectId, 'quizzes', item.id)} className="bg-red-600 hover:bg-red-700 rounded-xl">حذف</AlertDialogAction>
-                      <AlertDialogCancel className="rounded-xl border-white/10">إلغاء</AlertDialogCancel>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-          ))}
+                {/* Bottom Action Rail */}
+                <div className="flex items-center gap-2 mt-8 pt-6 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0">
+                  <Button size="sm" variant="ghost" className="h-10 rounded-xl text-amber-400 hover:bg-amber-500/10 gap-2 px-4 font-black text-xs" onClick={() => { setEditingItem(item); setModalOpen(true); }}>
+                    <Edit3 className="size-4" /> تحديث البيانات
+                  </Button>
+                  
+                   {isLocal && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon" variant="ghost"
+                                className="size-10 rounded-xl text-primary hover:bg-primary/20 transition-all border border-primary/20 animate-pulse ml-auto"
+                                onClick={() => uploadToCloud(subjectId, 'quizzes', item)}
+                              >
+                                <CloudUpload className="size-5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-slate-950 border-white/10 text-[10px] font-bold">
+                              مزامنة النتيجة مع الزملاء سحابياً
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="icon" variant="ghost" className={cn("size-10 rounded-xl text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all", !isLocal && "ml-auto")}>
+                        <Trash2 className="size-5" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-slate-950 border-white/10 rounded-[2rem] p-10 text-right shadow-2xl" dir="rtl">
+                      <AlertDialogHeader className="mb-6">
+                        <AlertDialogTitle className="text-2xl font-black text-white">حذف نتيجة الاختبار</AlertDialogTitle>
+                        <AlertDialogDescription className="text-muted-foreground mt-2 leading-relaxed">
+                          هل أنت متأكد من حذف نتيجة &quot;{item.title}&quot;؟ سيتم مسح هذا السجل بالكامل ولن يدخل ضمن حسابات التقدم الأكاديمي.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter className="flex-row-reverse gap-3">
+                        <AlertDialogAction onClick={() => deleteItem(subjectId, 'quizzes', item.id)} className="bg-red-600 hover:bg-red-700 h-14 px-8 rounded-2xl font-black">حذف النتيجة</AlertDialogAction>
+                        <AlertDialogCancel className="h-14 px-8 rounded-2xl border-white/10 bg-white/5 font-black">إلغاء</AlertDialogCancel>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </GlassCard>
+            );
+          })}
         </div>
       )}
 

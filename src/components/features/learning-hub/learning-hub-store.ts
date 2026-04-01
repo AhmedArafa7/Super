@@ -16,6 +16,7 @@ export interface BaseItem {
   id: string;
   title: string;
   createdAt: string;
+  source?: 'local' | 'cloud';
 }
 
 export interface MaterialItem extends BaseItem {
@@ -227,13 +228,21 @@ function makeDemoSchedule(): ScheduleEvent[] {
 
 interface LearningHubState {
   subjects: Record<SubjectId, SubjectData>;
+  cloudSubjects: Record<SubjectId, SubjectData>;
   schedule: ScheduleEvent[];
   searchQuery: string;
+  storageMode: 'cloud' | 'local';
+  isLoading: boolean;
+
+  // Sync
+  initCloudSync: () => void;
+  setStorageMode: (mode: 'cloud' | 'local') => void;
 
   // CRUD
-  addItem: (subjectId: SubjectId, section: SectionType, item: Omit<SectionItem, 'id' | 'createdAt'>) => void;
-  editItem: (subjectId: SubjectId, section: SectionType, itemId: string, updates: Partial<SectionItem>) => void;
-  deleteItem: (subjectId: SubjectId, section: SectionType, itemId: string) => void;
+  addItem: (subjectId: SubjectId, section: SectionType, item: Omit<SectionItem, 'id' | 'createdAt'>) => Promise<void>;
+  editItem: (subjectId: SubjectId, section: SectionType, itemId: string, updates: Partial<SectionItem>) => Promise<void>;
+  deleteItem: (subjectId: SubjectId, section: SectionType, itemId: string) => Promise<void>;
+  uploadToCloud: (subjectId: SubjectId, section: SectionType, item: SectionItem) => Promise<void>;
 
   // Assignment status
   toggleAssignmentStatus: (subjectId: SubjectId, itemId: string) => void;
@@ -246,60 +255,113 @@ interface LearningHubState {
   // Search
   setSearchQuery: (q: string) => void;
 
-  // Progress
+  // Selection
+  getMergedSubject: (subjectId: SubjectId) => SubjectData;
   getProgress: (subjectId: SubjectId) => number;
 
   // Deadline
   getNextDeadline: () => { item: AssignmentItem | QuizItem; subjectId: SubjectId } | null;
 }
 
+import { learningService } from '@/lib/learning-service';
+
 export const useLearningHubStore = create<LearningHubState>()(
   persist(
     (set, get) => ({
       subjects: makeDemoData(),
+      cloudSubjects: {} as any,
       schedule: makeDemoSchedule(),
       searchQuery: '',
+      storageMode: 'local',
+      isLoading: false,
 
-      addItem: (subjectId, section, item) => {
-        set((state) => {
-          const subj = { ...state.subjects[subjectId] };
-          const arr = [...(subj[section] as SectionItem[])];
-          arr.push({ ...(item as any), id: uid(), createdAt: new Date().toISOString() });
-          (subj as any)[section] = arr;
-          return { subjects: { ...state.subjects, [subjectId]: subj } };
+      initCloudSync: () => {
+        set({ isLoading: true });
+        learningService.subscribeToHub((data) => {
+          set({ cloudSubjects: data, isLoading: false });
         });
       },
 
-      editItem: (subjectId, section, itemId, updates) => {
-        set((state) => {
-          const subj = { ...state.subjects[subjectId] };
-          const arr = (subj[section] as SectionItem[]).map((item) =>
-            item.id === itemId ? { ...item, ...updates } as SectionItem : item
-          );
-          (subj as any)[section] = arr;
-          return { subjects: { ...state.subjects, [subjectId]: subj } };
-        });
+      setStorageMode: (mode) => set({ storageMode: mode }),
+
+      addItem: async (subjectId, section, item) => {
+        const newItem: SectionItem = { 
+          ...(item as any), 
+          id: uid(), 
+          createdAt: new Date().toISOString(),
+          source: get().storageMode 
+        };
+
+        if (get().storageMode === 'cloud') {
+          await learningService.syncItem(subjectId, section, newItem);
+        } else {
+          set((state) => {
+            const subj = { ...state.subjects[subjectId] };
+            const arr = [...(subj[section] as SectionItem[])];
+            arr.push(newItem);
+            (subj as any)[section] = arr;
+            return { subjects: { ...state.subjects, [subjectId]: subj } };
+          });
+        }
       },
 
-      deleteItem: (subjectId, section, itemId) => {
+      editItem: async (subjectId, section, itemId, updates) => {
+        const merged = get().getMergedSubject(subjectId);
+        const item = (merged[section] as SectionItem[]).find(i => i.id === itemId);
+        if (!item) return;
+
+        const updatedItem = { ...item, ...updates } as any;
+
+        if (item.source === 'cloud') {
+          await learningService.syncItem(subjectId, section, updatedItem);
+        } else {
+          set((state) => {
+            const subj = { ...state.subjects[subjectId] };
+            const arr = (subj[section] as SectionItem[]).map((i) =>
+              i.id === itemId ? updatedItem : i
+            );
+            (subj as any)[section] = arr;
+            return { subjects: { ...state.subjects, [subjectId]: subj } };
+          });
+        }
+      },
+
+      deleteItem: async (subjectId, section, itemId) => {
+        const merged = get().getMergedSubject(subjectId);
+        const item = (merged[section] as SectionItem[]).find(i => i.id === itemId);
+        if (!item) return;
+
+        if (item.source === 'cloud') {
+          await learningService.deleteItem(subjectId, section, itemId);
+        } else {
+          set((state) => {
+            const subj = { ...state.subjects[subjectId] };
+            const arr = (subj[section] as SectionItem[]).filter((i) => i.id !== itemId);
+            (subj as any)[section] = arr;
+            return { subjects: { ...state.subjects, [subjectId]: subj } };
+          });
+        }
+      },
+
+      uploadToCloud: async (subjectId, section, item) => {
+        // 1. Sync to cloud
+        await learningService.syncItem(subjectId, section, { ...item, source: 'cloud' });
+        // 2. Remove from local
         set((state) => {
           const subj = { ...state.subjects[subjectId] };
-          const arr = (subj[section] as SectionItem[]).filter((item) => item.id !== itemId);
+          const arr = (subj[section] as SectionItem[]).filter((i) => i.id !== item.id);
           (subj as any)[section] = arr;
           return { subjects: { ...state.subjects, [subjectId]: subj } };
         });
       },
 
       toggleAssignmentStatus: (subjectId, itemId) => {
-        set((state) => {
-          const subj = { ...state.subjects[subjectId] };
-          subj.assignments = subj.assignments.map((a) => {
-            if (a.id !== itemId) return a;
-            const nextStatus: AssignmentStatus = a.status === 'pending' ? 'submitted' : a.status === 'submitted' ? 'graded' : 'pending';
-            return { ...a, status: nextStatus };
-          });
-          return { subjects: { ...state.subjects, [subjectId]: subj } };
-        });
+        const merged = get().getMergedSubject(subjectId);
+        const assignment = merged.assignments.find(a => a.id === itemId);
+        if (!assignment) return;
+
+        const nextStatus: AssignmentStatus = assignment.status === 'pending' ? 'submitted' : assignment.status === 'submitted' ? 'graded' : 'pending';
+        get().editItem(subjectId, 'assignments', itemId, { status: nextStatus });
       },
 
       addScheduleEvent: (event) => {
@@ -322,8 +384,22 @@ export const useLearningHubStore = create<LearningHubState>()(
 
       setSearchQuery: (q) => set({ searchQuery: q }),
 
+      getMergedSubject: (subjectId) => {
+        const local = get().subjects[subjectId] || makeEmptySubject();
+        const cloud = get().cloudSubjects[subjectId] || makeEmptySubject();
+
+        return {
+          materials: [...local.materials, ...cloud.materials],
+          recordings: [...local.recordings, ...cloud.recordings],
+          assignments: [...local.assignments, ...cloud.assignments],
+          quizzes: [...local.quizzes, ...cloud.quizzes],
+          quizForms: [...local.quizForms, ...cloud.quizForms],
+          questionBanks: [...local.questionBanks, ...cloud.questionBanks],
+        };
+      },
+
       getProgress: (subjectId) => {
-        const subj = get().subjects[subjectId];
+        const subj = get().getMergedSubject(subjectId);
         const totalAssignments = subj.assignments.length;
         const completedAssignments = subj.assignments.filter((a) => a.status === 'submitted' || a.status === 'graded').length;
         const totalQuizzes = subj.quizzes.length;
@@ -334,11 +410,12 @@ export const useLearningHubStore = create<LearningHubState>()(
       },
 
       getNextDeadline: () => {
-        const { subjects } = get();
+        const { subjects, getMergedSubject } = get();
         const now = new Date();
         let nearest: { item: AssignmentItem | QuizItem; subjectId: SubjectId; date: Date } | null = null;
 
-        for (const [sid, subj] of Object.entries(subjects)) {
+        for (const [sid] of Object.entries(subjects)) {
+          const subj = getMergedSubject(sid as SubjectId);
           for (const a of subj.assignments) {
             if (a.status === 'pending') {
               const d = new Date(a.deadline);
@@ -360,7 +437,12 @@ export const useLearningHubStore = create<LearningHubState>()(
       },
     }),
     {
-      name: 'nexus-learning-hub',
+      name: 'nexus-learning-hub-v2',
+      partialize: (state) => ({ 
+        subjects: state.subjects, 
+        schedule: state.schedule, 
+        storageMode: state.storageMode 
+      }),
     }
   )
 );
