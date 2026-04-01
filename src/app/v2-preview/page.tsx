@@ -10,13 +10,19 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { FeatureHeader } from "@/components/ui/feature-header";
 import { cn } from "@/lib/utils";
 
-// V2 Components
+// V1 Components (Original)
+import { VaultExplorer } from "@/components/features/vault-explorer";
+import { WeTube } from "@/components/features/wetube";
+import { WalletView } from "@/components/features/wallet-view";
+
+// V2 Components (Perfected)
 import { VaultExplorerV2 } from "@/components/features/v2/vault-explorer-v2";
 import { WeTubeV2 } from "@/components/features/v2/wetube-v2";
 import { WalletViewV2 } from "@/components/features/v2/wallet-view-v2";
 
 export default function V2PreviewPage() {
   const [activePreview, setActivePreview] = useState<'vault' | 'wetube' | 'wallet' | 'intro'>('intro');
+  const [version, setVersion] = useState<'v1' | 'v2' | 'compare'>('v2');
 
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans p-6 md:p-12 overflow-hidden flex flex-col relative">
@@ -28,11 +34,34 @@ export default function V2PreviewPage() {
         Icon={Sparkles}
         iconClassName="text-amber-400"
         action={
-          <div className="flex gap-2">
+          <div className="flex items-center gap-4">
             {activePreview !== 'intro' && (
-              <Button variant="ghost" onClick={() => setActivePreview('intro')} className="rounded-xl gap-2 text-white/60 hover:text-white hover:bg-white/5">
-                <Layout className="size-4" /> العودة للدليل
-              </Button>
+              <>
+                <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+                  <button 
+                    onClick={() => setVersion('v1')}
+                    className={cn("px-4 py-1.5 rounded-lg text-xs font-bold transition-all", version === 'v1' ? "bg-white text-slate-950" : "text-white/40 hover:text-white")}
+                  >
+                    V1 (القديمة)
+                  </button>
+                  <button 
+                    onClick={() => setVersion('v2')}
+                    className={cn("px-4 py-1.5 rounded-lg text-xs font-bold transition-all", version === 'v2' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-white/40 hover:text-white")}
+                  >
+                    V2 (المطورة)
+                  </button>
+                  <button 
+                    onClick={() => setVersion('compare')}
+                    className={cn("px-4 py-1.5 rounded-lg text-xs font-bold transition-all", version === 'compare' ? "bg-amber-500 text-white shadow-lg shadow-amber-500/20" : "text-white/40 hover:text-white")}
+                  >
+                    مقارنة
+                  </button>
+                </div>
+                <div className="w-px h-6 bg-white/10 mx-2" />
+                <Button variant="ghost" onClick={() => setActivePreview('intro')} className="rounded-xl gap-2 text-white/60 hover:text-white hover:bg-white/5">
+                  <Layout className="size-4" /> العودة للدليل
+                </Button>
+              </>
             )}
           </div>
         }
@@ -96,9 +125,34 @@ export default function V2PreviewPage() {
              </div>
              
              <div className="h-full overflow-y-auto custom-scrollbar">
-                {activePreview === 'vault' && <VaultExplorerV2 hideSidebar={false} />}
-                {activePreview === 'wetube' && <WeTubeV2 />}
-                {activePreview === 'wallet' && <WalletViewV2 />}
+                {version === 'compare' ? (
+                  <div className="flex h-full divide-x divide-white/5 flex-row-reverse">
+                    <div className="flex-1 overflow-y-auto relative animate-in slide-in-from-right-4 duration-500">
+                       <div className="sticky top-0 z-50 bg-primary/20 backdrop-blur-md px-4 py-1 text-[10px] font-black uppercase text-center border-b border-primary/20">Nexus V2 (التصميم الجديد)</div>
+                       {activePreview === 'vault' && <VaultExplorerV2 hideSidebar={true} />}
+                       {activePreview === 'wetube' && <WeTubeV2 />}
+                       {activePreview === 'wallet' && <WalletViewV2 />}
+                    </div>
+                    <div className="flex-1 overflow-y-auto relative grayscale-[0.5] opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-700">
+                       <div className="sticky top-0 z-50 bg-white/10 backdrop-blur-md px-4 py-1 text-[10px] font-black uppercase text-center border-b border-white/10">Original V1 (النسخة الحالية)</div>
+                       {activePreview === 'vault' && <VaultExplorer hideSidebar={true} />}
+                       {activePreview === 'wetube' && <WeTube />}
+                       {activePreview === 'wallet' && <WalletView />}
+                    </div>
+                  </div>
+                ) : version === 'v2' ? (
+                  <div className="h-full animate-in fade-in duration-500">
+                    {activePreview === 'vault' && <VaultExplorerV2 hideSidebar={false} />}
+                    {activePreview === 'wetube' && <WeTubeV2 />}
+                    {activePreview === 'wallet' && <WalletViewV2 />}
+                  </div>
+                ) : (
+                  <div className="h-full animate-in fade-in duration-500 grayscale">
+                    {activePreview === 'vault' && <VaultExplorer hideSidebar={false} />}
+                    {activePreview === 'wetube' && <WeTube />}
+                    {activePreview === 'wallet' && <WalletView />}
+                  </div>
+                )}
              </div>
           </div>
         )}
