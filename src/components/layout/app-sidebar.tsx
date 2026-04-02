@@ -135,15 +135,19 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
                   activeTab === item.id ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
                 )}
               >
-                <item.icon className={cn(
-                  "size-5 shrink-0",
-                  item.id === 'admin' && (user?.role === 'founder' ? "text-amber-400" : "text-indigo-400"),
-                  item.id === 'time' && "text-primary",
-                  item.id === 'micro-ide' && "text-emerald-400",
-                  item.id === 'health' && "text-red-400 font-bold",
-                  item.id === 'vault' && "text-amber-400",
-                  item.id === 'downloads' && "text-primary"
-                )} />
+                {item.icon && (typeof item.icon === 'function' || (typeof item.icon === 'object' && item.icon !== null)) ? (
+                  <item.icon className={cn(
+                    "size-5 shrink-0",
+                    item.id === 'admin' && (user?.role === 'founder' ? "text-amber-400" : "text-indigo-400"),
+                    item.id === 'time' && "text-primary",
+                    item.id === 'micro-ide' && "text-emerald-400",
+                    item.id === 'health' && "text-red-400 font-bold",
+                    item.id === 'vault' && "text-amber-400",
+                    item.id === 'downloads' && "text-primary"
+                  )} />
+                ) : (
+                  <Layers className="size-5 shrink-0 opacity-50" />
+                )}
                 {!isCollapsed && (
                   <>
                     <span className="font-medium animate-in fade-in slide-in-from-right-1">{item.label}</span>
@@ -181,7 +185,13 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
                     {visibleItems.filter(i => !i.isPermanent).map((item) => (
                       <div key={item.id} className="flex items-center justify-between p-4 glass border-white/5 rounded-2xl hover:bg-white/5 transition-all flex-row-reverse">
                         <div className="flex items-center gap-3 flex-row-reverse">
-                          <div className="size-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><item.icon className="size-5" /></div>
+                          <div className="size-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                            {item.icon && (typeof item.icon === 'function' || (typeof item.icon === 'object' && item.icon !== null)) ? (
+                              <item.icon className="size-5" />
+                            ) : (
+                              <Layers className="size-5 opacity-50" />
+                            )}
+                          </div>
                           <span className="font-bold text-sm text-white">{item.label}</span>
                         </div>
                         <Button size="sm" variant={isPinned(item.id) ? "default" : "outline"} className={cn("rounded-lg h-8 px-4", isPinned(item.id) ? "bg-primary" : "border-white/10")} onClick={() => togglePin(item.id)}>

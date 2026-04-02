@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LucideIcon } from 'lucide-react';
+import { LucideIcon, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EmptyStateProps {
@@ -24,7 +24,11 @@ export function EmptyState({
       className
     )}>
       <div className="size-20 bg-primary/10 rounded-3xl flex items-center justify-center border border-primary/20 mb-6 shadow-xl">
-        <Icon className="size-10 text-primary" />
+        {Icon && (typeof Icon === 'function' || (typeof Icon === 'object' && Icon !== null)) ? (
+          <Icon className="size-10 text-primary" />
+        ) : (
+          <Layers className="size-10 text-primary opacity-50" />
+        )}
       </div>
       <h3 className="text-xl font-bold text-white mb-2 tracking-tight">{title}</h3>
       <p className="text-muted-foreground text-sm max-w-xs leading-relaxed mb-8">

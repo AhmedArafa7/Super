@@ -94,7 +94,13 @@ export function DulmsSidebar({
                             : (isDark ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-slate-300 hover:text-white hover:bg-white/5")
                         )}
                       >
-                        <item.icon className="size-4 opacity-70" />
+                        <div className="size-4 shrink-0 opacity-70">
+                          {item.icon && (typeof item.icon === 'function' || (typeof item.icon === 'object' && item.icon !== null)) ? (
+                            <item.icon className="size-full" />
+                          ) : (
+                            <ShieldCheck className="size-full" />
+                          )}
+                        </div>
                         <span className="flex-1 text-right">{item.label}</span>
                         {badge !== undefined && (
                           <span className="size-5 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center shrink-0">

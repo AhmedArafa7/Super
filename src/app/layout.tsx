@@ -7,7 +7,9 @@ import { FirebaseClientProvider } from "@/firebase/client-provider";
 import { Footer } from "@/components/layout/footer";
 import { OnboardingModal } from "@/components/features/onboarding-modal";
 import { PrivacyConsentModal } from "@/components/features/privacy-consent-modal";
+import { GlobalErrorBoundary } from "@/components/ui/error-boundary";
 import { ServiceWorkerRegistration } from "@/components/pwa/sw-register";
+import { Layers } from "lucide-react";
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -41,13 +43,15 @@ export default function RootLayout({
       <body className="antialiased bg-background text-foreground flex flex-col min-h-screen">
         <FirebaseClientProvider>
           <AuthProvider>
-            <div className="flex-1 flex flex-col">
-              {children}
-              {/*<Footer />*/}
-            </div>
-            <OnboardingModal />
-            <PrivacyConsentModal />
-            <Toaster />
+            <GlobalErrorBoundary>
+              <div className="flex-1 flex flex-col">
+                {children}
+                {/*<Footer />*/}
+              </div>
+              <OnboardingModal />
+              <PrivacyConsentModal />
+              <Toaster />
+            </GlobalErrorBoundary>
           </AuthProvider>
         </FirebaseClientProvider>
         <ServiceWorkerRegistration />

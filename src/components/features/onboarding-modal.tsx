@@ -130,7 +130,11 @@ export function OnboardingModal() {
                       step.bg,
                       step.accent
                     )}>
-                      <step.icon className={cn("size-10", step.color)} />
+                      {step.icon && (typeof step.icon === 'function' || (typeof step.icon === 'object' && step.icon !== null)) ? (
+                        <step.icon className={cn("size-10", step.color)} />
+                      ) : (
+                        <Sparkles className={cn("size-10", step.color)} />
+                      )}
                     </div>
                     <div className="space-y-3">
                       <h3 className="text-3xl font-headline font-bold text-white tracking-tight">{step.title}</h3>

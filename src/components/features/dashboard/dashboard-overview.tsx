@@ -37,7 +37,11 @@ const QuickActionCard = ({ icon: Icon, title, desc, onClick, color }: QuickActio
   >
     <CardContent className="p-6">
       <div className={cn("size-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110", color)}>
-        <Icon className="size-6 text-white" />
+        {Icon && (typeof Icon === 'function' || (typeof Icon === 'object' && Icon !== null)) ? (
+          <Icon className="size-6 text-white" />
+        ) : (
+          <Sparkles className="size-6 text-white opacity-50" />
+        )}
       </div>
       <h3 dir="auto" className="text-lg font-bold text-white mb-1 text-right">{title}</h3>
       <p dir="auto" className="text-xs text-muted-foreground leading-relaxed text-right">{desc}</p>
@@ -65,7 +69,7 @@ export function DashboardOverview({ user, wallet, usedSpace, storageLimitMB, sto
           <div className="absolute top-0 right-0 size-64 bg-primary/5 blur-[80px] -mr-32 -mt-32" />
           <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3 justify-end">
             حالة المحفظة العصبية
-            <WalletIcon className="text-primary" />
+            {WalletIcon && typeof WalletIcon !== 'string' ? <WalletIcon className="text-primary" /> : <Sparkles className="text-primary" />}
           </h3>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-8 bg-white/5 p-8 rounded-[2rem] border border-white/5 flex-row-reverse">
             <div className="text-center sm:text-right">
@@ -88,7 +92,7 @@ export function DashboardOverview({ user, wallet, usedSpace, storageLimitMB, sto
         <Card className="glass border-white/5 rounded-[2.5rem] p-8 flex flex-col text-right">
           <div className="flex items-center justify-between mb-6 flex-row-reverse">
             <h3 className="text-xl font-bold text-white flex items-center gap-3 flex-row-reverse">
-              <HardDrive className="text-indigo-400" />
+              {HardDrive && typeof HardDrive !== 'string' ? <HardDrive className="text-indigo-400" /> : <Sparkles className="text-indigo-400" />}
               الذاكرة المحلية
             </h3>
             <Badge className="bg-indigo-500">{storagePercentage}%</Badge>
@@ -126,7 +130,7 @@ export function DashboardOverview({ user, wallet, usedSpace, storageLimitMB, sto
         <div className="absolute top-0 left-0 size-64 bg-emerald-500/5 blur-[80px] -ml-32 -mt-32" />
         <div className="flex items-center justify-between mb-8 flex-row-reverse">
             <h3 className="text-xl font-bold text-white flex items-center gap-3 flex-row-reverse">
-                <Zap className="text-emerald-400" />
+                {Zap && typeof Zap !== 'string' ? <Zap className="text-emerald-400" /> : <Sparkles className="text-emerald-400" />}
                 مركز استهلاك البيانات
             </h3>
             <div className="flex gap-2">
