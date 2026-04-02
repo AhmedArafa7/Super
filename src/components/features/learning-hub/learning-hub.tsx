@@ -8,6 +8,7 @@ import { SubjectDashboard } from './subject-dashboard';
 import { ScheduleView } from './schedule-view';
 import { FeatureHeader } from '@/components/ui/feature-header';
 import { GraduationCap, Cloud, Database, LayoutGrid, List, Search as SearchIcon, Sparkles } from 'lucide-react';
+import { IconSafe } from '@/components/ui/icon-safe';
 import { LearningSearchBar } from './search-bar';
 import { QuickActionFab } from './quick-action-fab';
 import { Button } from '@/components/ui/button';
@@ -71,7 +72,7 @@ export default function LearningHub() {
                         storageMode === 'cloud' ? "text-primary border-primary/20" : "text-amber-400 border-amber-400/20"
                       )}
                     >
-                      {storageMode === 'cloud' ? <Cloud className="size-4" /> : <Database className="size-4" />}
+                      <IconSafe icon={storageMode === 'cloud' ? Cloud : Database} className="size-4" />
                       <span className="text-xs uppercase tracking-widest">
                         {storageMode === 'cloud' ? "الوضع السحابي المشترك" : "وضع التخزين المحلي"}
                       </span>
@@ -86,7 +87,7 @@ export default function LearningHub() {
                       className="p-4 rounded-xl flex items-center gap-3 focus:bg-primary/10 cursor-pointer group"
                     >
                       <div className="size-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                        <Cloud className="size-4" />
+                        <IconSafe icon={Cloud} className="size-4" />
                       </div>
                       <div className="flex-1">
                         <p className="text-xs font-bold text-white">الوضع السحابي</p>
@@ -98,7 +99,7 @@ export default function LearningHub() {
                       className="p-4 rounded-xl flex items-center gap-3 focus:bg-amber-500/10 cursor-pointer group"
                     >
                       <div className="size-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
-                        <Database className="size-4" />
+                        <IconSafe icon={Database} className="size-4" />
                       </div>
                       <div className="flex-1">
                         <p className="text-xs font-bold text-white">الوضع المحلي</p>
@@ -131,7 +132,7 @@ export default function LearningHub() {
 
         {/* Global Context Indicator */}
         <div className="absolute bottom-10 right-10 flex items-center gap-2 pointer-events-none opacity-40">
-           <LayoutGrid className="size-3 text-primary" />
+           <IconSafe icon={LayoutGrid} className="size-3 text-primary" />
            <span className="text-[8px] font-mono tracking-[0.3em] uppercase">Academic Mesh Node Ready</span>
         </div>
 

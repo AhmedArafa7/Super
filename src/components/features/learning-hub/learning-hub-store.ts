@@ -249,6 +249,12 @@ interface LearningHubState {
 
   // Deadline
   getNextDeadline: () => { item: AssignmentItem | QuizItem; subjectId: SubjectId } | null;
+
+  // Hybrid Storage (Restored)
+  storageMode: 'local' | 'cloud';
+  isLoading: boolean;
+  setStorageMode: (mode: 'local' | 'cloud') => void;
+  initCloudSync: () => Promise<void>;
 }
 
 export const useLearningHubStore = create<LearningHubState>()(
@@ -355,6 +361,17 @@ export const useLearningHubStore = create<LearningHubState>()(
           }
         }
         return nearest ? { item: nearest.item, subjectId: nearest.subjectId } : null;
+      },
+
+      // Hybrid Storage Implementation (Restored)
+      storageMode: 'local',
+      isLoading: false,
+      setStorageMode: (mode) => set({ storageMode: mode }),
+      initCloudSync: async () => {
+        set({ isLoading: true });
+        // Simulate cloud sync initialization
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        set({ isLoading: false });
       },
     }),
     {

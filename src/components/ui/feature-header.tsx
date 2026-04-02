@@ -2,6 +2,7 @@
 
 import React from "react";
 import { LucideIcon, RefreshCcw } from "lucide-react";
+import { IconSafe } from "@/components/ui/icon-safe";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +41,7 @@ export function FeatureHeader({
             titleClassName
           )}>
             {title}
-            {Icon && <Icon className={cn("size-8 md:size-10 text-primary", iconClassName)} />}
+            <IconSafe icon={Icon} className={cn("size-8 md:size-10 text-primary", iconClassName)} />
           </h2>
           {description && (
             <p className="text-muted-foreground mt-1 text-sm md:text-base">{description}</p>
