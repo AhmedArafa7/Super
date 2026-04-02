@@ -11,7 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { SectionType, SECTION_LABELS } from './learning-hub-store';
-import { Save, X } from 'lucide-react';
+import { Save, X, FileUp, CheckCircle2, Loader2 } from 'lucide-react';
+import { learningService } from '@/lib/learning-service';
+import { toast } from '@/hooks/use-toast';
 
 interface ItemModalProps {
   open: boolean;
@@ -58,11 +60,17 @@ const sectionFields: Record<SectionType, { key: string; label: string; type: str
 
 export function ItemModal({ open, onClose, sectionType, initialData, onSave, mode }: ItemModalProps) {
   const [formData, setFormData] = useState<Record<string, any>>({});
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  
   const fields = sectionFields[sectionType];
 
   useEffect(() => {
     if (initialData) {
       setFormData({ ...initialData });
+      setSelectedFile(null);
+      setUploadProgress(0);
     } else {
       const defaults: Record<string, any> = {};
       fields.forEach((f) => {
@@ -71,42 +79,75 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
         else defaults[f.key] = '';
       });
       setFormData(defaults);
+      setSelectedFile(null);
+      setUploadProgress(0);
     }
-  }, [initialData, open]);
+  }, [initialData, open, sectionType]);
 
   const handleChange = (key: string, value: any) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleaned = { ...formData };
-    
-    // Fallback defaults for missing required fields
-    if (!cleaned.title) cleaned.title = 'عنصر جديد';
-    
-    // Auto-set url to '#' for sections that need it
-    const needsUrl = ['materials', 'recordings', 'quizForms', 'questionBanks'].includes(sectionType);
-    if (needsUrl && (!cleaned.url || cleaned.url.trim() === '')) {
-      cleaned.url = '#';
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      if (!formData.title || formData.title === 'عنصر جديد' || formData.title === '') {
+        const nameWithoutExt = file.name.split('.').slice(0, -1).join('.');
+        handleChange('title', nameWithoutExt);
+      }
     }
-    
-    if (sectionType === 'assignments' && !cleaned.deadline) cleaned.deadline = new Date().toISOString().slice(0, 16);
-    if (sectionType === 'quizzes' && !cleaned.date) cleaned.date = new Date().toISOString().slice(0, 16);
-    
-    if (cleaned.maxScore) cleaned.maxScore = Number(cleaned.maxScore);
-    else if (sectionType === 'quizzes') cleaned.maxScore = 100;
-    
-    if (cleaned.score) cleaned.score = Number(cleaned.score);
-    if (cleaned.pages) cleaned.pages = Number(cleaned.pages);
-    
-    if (sectionType === 'quizzes') {
-      cleaned.completed = !!cleaned.score && cleaned.score > 0;
-    }
-    
-    onSave(cleaned);
-    onClose();
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUploading(true);
+    
+    let finalData = { ...formData };
+    
+    try {
+      if (selectedFile) {
+        toast({ title: "جاري الرفع العصبي...", description: "نقوم بمزامنة ملفك مع السحابة." });
+        const downloadUrl = await learningService.uploadFile(selectedFile, (progress) => {
+          setUploadProgress(progress);
+        });
+        finalData.url = downloadUrl;
+      }
+
+      if (!finalData.title) finalData.title = 'عنصر جديد';
+      
+      const needsUrl = ['materials', 'recordings', 'quizForms', 'questionBanks'].includes(sectionType);
+      if (needsUrl && (!finalData.url || finalData.url.trim() === '')) {
+        finalData.url = '#';
+      }
+      
+      if (sectionType === 'assignments' && !finalData.deadline) finalData.deadline = new Date().toISOString().slice(0, 16);
+      if (sectionType === 'quizzes' && !finalData.date) finalData.date = new Date().toISOString().slice(0, 16);
+      
+      if (finalData.maxScore) finalData.maxScore = Number(finalData.maxScore);
+      else if (sectionType === 'quizzes') finalData.maxScore = 100;
+      
+      if (finalData.score) finalData.score = Number(finalData.score);
+      if (finalData.pages) finalData.pages = Number(finalData.pages);
+      
+      if (sectionType === 'quizzes') {
+        finalData.completed = !!finalData.score && finalData.score > 0;
+      }
+      
+      onSave(finalData);
+      onClose();
+    } catch (error: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "فشل الرفع", 
+        description: error.message || "حدث خطأ غير متوقع أثناء معالجة الملف." 
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const showFileDrop = ['materials', 'questionBanks', 'recordings'].includes(sectionType) && mode === 'add';
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -116,11 +157,64 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
             {mode === 'add' ? 'إضافة' : 'تعديل'} — {SECTION_LABELS[sectionType].label}
           </DialogTitle>
           <DialogDescription className="text-right text-muted-foreground text-sm">
-            {mode === 'add' ? 'أدخل تفاصيل العنصر الجديد' : 'عدّل البيانات ثم اضغط حفظ'}
+            {mode === 'add' ? 'أدخل تفاصيل موردك الجديد لبناء نكسوس الخاصة بك.' : 'عدّل البيانات ثم اضغط حفظ للتحديث.'}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          {showFileDrop && (
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">رفع المصدر الأصلي</Label>
+              <div 
+                className={cn(
+                  "relative h-32 border-2 border-dashed rounded-3xl transition-all flex flex-col items-center justify-center cursor-pointer overflow-hidden",
+                  selectedFile ? "border-primary bg-primary/5" : "border-white/10 bg-white/5 hover:bg-white/10"
+                )}
+              >
+                <input 
+                  type="file" 
+                  className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                  onChange={handleFileChange}
+                  accept={
+                    sectionType === 'recordings' 
+                      ? "video/*,audio/*" 
+                      : sectionType === 'materials' 
+                        ? ".pdf,.doc,.docx,.ppt,.pptx,image/*" 
+                        : ".pdf"
+                  }
+                  disabled={isUploading}
+                />
+                {selectedFile ? (
+                  <div className="flex flex-col items-center gap-2 p-4 text-center">
+                    <CheckCircle2 className="size-8 text-primary animate-in zoom-in duration-300" />
+                    <p className="text-xs font-bold text-white truncate max-w-full px-4">{selectedFile.name}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase">جاهز للمزامنة</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2">
+                    <FileUp className="size-8 text-white/20" />
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">اسحب الملف أو اضغط هنا</p>
+                  </div>
+                )}
+                
+                {isUploading && (
+                  <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 space-y-4">
+                    <Loader2 className="size-8 text-primary animate-spin" />
+                    <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary transition-all duration-300 ease-out" 
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] font-bold text-white tracking-widest uppercase animate-pulse">
+                      جاري الحقن بالسحابة... {Math.round(uploadProgress)}%
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {fields.map((field) => (
             <div key={field.key} className="space-y-1.5">
               <Label className="text-xs font-bold text-muted-foreground">
@@ -159,11 +253,15 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
           ))}
 
           <div className="flex gap-3 pt-4">
-            <Button type="submit" className="flex-1 h-12 rounded-xl bg-primary hover:bg-primary/90 font-bold gap-2 text-sm">
+            <Button 
+                type="submit" 
+                className="flex-1 h-12 rounded-xl bg-primary hover:bg-primary/90 font-bold gap-2 text-sm"
+                disabled={isUploading}
+            >
               <Save className="size-4" />
-              {mode === 'add' ? 'إضافة' : 'حفظ التعديلات'}
+              {mode === 'add' ? 'إضافة المورد' : 'حفظ التعديلات'}
             </Button>
-            <Button type="button" variant="outline" onClick={onClose} className="h-12 rounded-xl border-white/10 px-6">
+            <Button type="button" variant="outline" onClick={onClose} className="h-12 rounded-xl border-white/10 px-6" disabled={isUploading}>
               <X className="size-4" />
             </Button>
           </div>
