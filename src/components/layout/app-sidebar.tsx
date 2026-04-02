@@ -98,7 +98,11 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
         )}>
           {!isCollapsed && <h1 className="font-headline font-bold text-lg tracking-tight text-white animate-in slide-in-from-left-2 overflow-hidden whitespace-nowrap">NexusAI</h1>}
           <div className="size-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shrink-0">
-            <Layers className="text-white size-5" />
+            {Layers && typeof Layers !== 'string' ? (
+              <Layers className="text-white size-5" />
+            ) : (
+              <div className="size-5 bg-white/20 rounded-sm" />
+            )}
           </div>
         </div>
 
@@ -231,7 +235,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
         )}>
           <div className="size-9 rounded-xl bg-indigo-900/50 border border-white/10 overflow-hidden cursor-pointer relative shrink-0" onClick={() => onTabChange("dashboard")}>
             <img src={user?.avatar_url || `https://picsum.photos/seed/${user?.username}/40/40`} className="size-full object-cover" />
-            {user?.role === 'founder' && <Crown className="absolute bottom-0 right-0 size-2.5 text-amber-400 bg-black/80 rounded-full p-0.5" />}
+            {user?.role === 'founder' && (Crown && typeof Crown !== 'string' ? <Crown className="absolute bottom-0 right-0 size-2.5 text-amber-400 bg-black/80 rounded-full p-0.5" /> : null)}
           </div>
           {!isCollapsed && (
             <div className="flex-1 min-w-0 text-right animate-in fade-in slide-in-from-right-1">

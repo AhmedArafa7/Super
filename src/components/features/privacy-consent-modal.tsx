@@ -65,7 +65,11 @@ export function PrivacyConsentModal() {
         <DialogHeader>
           <div className="flex justify-center mb-6">
             <div className="size-16 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 shadow-2xl">
-              <ShieldCheck className="size-8 text-primary" />
+              {ShieldCheck && typeof ShieldCheck !== 'string' ? (
+                <ShieldCheck className="size-8 text-primary" />
+              ) : (
+                <CheckCircle2 className="size-8 text-primary" />
+              )}
             </div>
           </div>
           <DialogTitle className="text-3xl font-headline font-bold text-white text-center">بروتوكول خصوصية البيانات</DialogTitle>
