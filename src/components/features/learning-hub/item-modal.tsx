@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { SectionType, SECTION_LABELS } from './learning-hub-store';
 import { Save, X, FileUp, CheckCircle2, Loader2 } from 'lucide-react';
 import { learningService } from '@/lib/learning-service';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface ItemModalProps {
   open: boolean;
@@ -59,12 +59,14 @@ const sectionFields: Record<SectionType, { key: string; label: string; type: str
 };
 
 export function ItemModal({ open, onClose, sectionType, initialData, onSave, mode }: ItemModalProps) {
+  const { toast } = useToast();
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   
-  const fields = sectionFields[sectionType];
+  const fields = sectionFields[sectionType] || [];
+  const sectionLabel = SECTION_LABELS[sectionType]?.label || 'عنصر';
 
   useEffect(() => {
     if (initialData) {
@@ -82,7 +84,7 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
       setSelectedFile(null);
       setUploadProgress(0);
     }
-  }, [initialData, open, sectionType]);
+  }, [initialData, open, sectionType, fields]);
 
   const handleChange = (key: string, value: any) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -154,7 +156,7 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
       <DialogContent className="bg-slate-950 border-white/10 rounded-2xl w-[calc(100%-2rem)] max-w-lg mx-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle className="text-right text-lg font-bold">
-            {mode === 'add' ? 'إضافة' : 'تعديل'} — {SECTION_LABELS[sectionType].label}
+            {mode === 'add' ? 'إضافة' : 'تعديل'} — {sectionLabel}
           </DialogTitle>
           <DialogDescription className="text-right text-muted-foreground text-sm">
             {mode === 'add' ? 'أدخل تفاصيل موردك الجديد لبناء نكسوس الخاصة بك.' : 'عدّل البيانات ثم اضغط حفظ للتحديث.'}
