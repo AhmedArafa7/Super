@@ -20,6 +20,7 @@ import { useSettingsStore } from "@/lib/settings-store";
 import { useProStore } from "@/lib/wetube-pro-engine";
 import { useSidebarStore } from "@/lib/sidebar-store";
 import { ChevronRight, ChevronLeft, EyeOff } from "lucide-react";
+import { IconSafe } from "@/components/ui/icon-safe";
 
 export type NavItem = {
   id: string;
@@ -114,7 +115,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
             className="size-7 rounded-full bg-slate-800 border border-white/10 text-white/60 hover:text-white"
             onClick={() => setCollapsed(!isCollapsed)}
           >
-            {isCollapsed ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
+            {isCollapsed ? <IconSafe icon={ChevronLeft} className="size-4" /> : <IconSafe icon={ChevronRight} className="size-4" />}
           </Button>
           <Button 
             variant="ghost" 
@@ -122,7 +123,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
             className="size-7 rounded-full bg-slate-800 border border-white/10 text-white/60 hover:text-white"
             onClick={() => setVisible(false)}
           >
-            <EyeOff className="size-3" />
+            <IconSafe icon={EyeOff} className="size-3" />
           </Button>
         </div>
       </SidebarHeader>
@@ -139,8 +140,9 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
                   activeTab === item.id ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
                 )}
               >
-                {item.icon && (typeof item.icon === 'function' || (typeof item.icon === 'object' && item.icon !== null)) ? (
-                  <item.icon className={cn(
+                <IconSafe 
+                  icon={item.icon} 
+                  className={cn(
                     "size-5 shrink-0",
                     item.id === 'admin' && (user?.role === 'founder' ? "text-amber-400" : "text-indigo-400"),
                     item.id === 'time' && "text-primary",
@@ -148,10 +150,8 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
                     item.id === 'health' && "text-red-400 font-bold",
                     item.id === 'vault' && "text-amber-400",
                     item.id === 'downloads' && "text-primary"
-                  )} />
-                ) : (
-                  <Layers className="size-5 shrink-0 opacity-50" />
-                )}
+                  )} 
+                />
                 {!isCollapsed && (
                   <>
                     <span className="font-medium animate-in fade-in slide-in-from-right-1">{item.label}</span>
@@ -176,7 +176,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="ghost" className="w-full border border-dashed border-white/10 h-12 rounded-xl text-[10px] uppercase font-bold text-muted-foreground hover:bg-white/5 gap-3 flex-row-reverse">
-                  <MonitorSmartphone className="size-4 text-primary" /> تخصيص القائمة
+                  <IconSafe icon={MonitorSmartphone} className="size-4 text-primary" /> تخصيص القائمة
                 </Button>
               </DialogTrigger>
               <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] sm:max-w-md">
@@ -190,11 +190,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
                       <div key={item.id} className="flex items-center justify-between p-4 glass border-white/5 rounded-2xl hover:bg-white/5 transition-all flex-row-reverse">
                         <div className="flex items-center gap-3 flex-row-reverse">
                           <div className="size-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                            {item.icon && (typeof item.icon === 'function' || (typeof item.icon === 'object' && item.icon !== null)) ? (
-                              <item.icon className="size-5" />
-                            ) : (
-                              <Layers className="size-5 opacity-50" />
-                            )}
+                            <IconSafe icon={item.icon} className="size-5" />
                           </div>
                           <span className="font-bold text-sm text-white">{item.label}</span>
                         </div>
@@ -214,7 +210,7 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
           <div className="mt-8 px-4 space-y-4">
             <div className="flex items-center gap-2 mb-2 justify-end">
               <p className="text-[10px] uppercase font-bold text-indigo-400 tracking-[0.2em]">مراقب الرفع</p>
-              <Zap className="size-3 text-indigo-400 animate-pulse" />
+              <IconSafe icon={Zap} className="size-3 text-indigo-400 animate-pulse" />
             </div>
             {uploadTasks.map((task: any) => (
               <div key={task.id} className="p-3 bg-white/5 border border-white/10 rounded-2xl space-y-2">

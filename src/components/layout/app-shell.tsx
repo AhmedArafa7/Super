@@ -44,6 +44,8 @@ import { toast } from "@/hooks/use-toast";
 import { AppSidebar, getVisibleNavItems, ALL_NAV_ITEMS } from "./app-sidebar";
 import { AppHeader } from "./app-header";
 import { DulmsLayout } from "./dulms-layout";
+import { SafeComponentWrapper, SidebarFallback } from "./safe-component-wrapper";
+import { IconSafe } from "@/components/ui/icon-safe";
 import { getThemeBySlug } from "@/lib/theme-store";
 import { useSettingsStore } from "@/lib/settings-store";
 import { QAView } from "@/components/features/qa-view";
@@ -209,11 +211,13 @@ export function AppShell() {
     <SidebarProvider open={!isCollapsed} onOpenChange={setCollapsed}>
       <div className="flex min-h-screen w-full bg-background hero-gradient overflow-hidden relative">
         {isVisible && (
-          <AppSidebar
-            activeTab={activeTab} onTabChange={(id: any) => { setActiveTab(id); setLaunchedApp(null); setActiveRecipientId(undefined); }}
-            user={user} logout={logout} isPinned={isPinned} togglePin={togglePin}
-            uploadTasks={uploadTasks} unreadCount={unreadCount} pendingOffersCount={pendingOffersCount}
-          />
+          <SafeComponentWrapper name="AppSidebar" fallback={<SidebarFallback />}>
+            <AppSidebar
+              activeTab={activeTab} onTabChange={(id: any) => { setActiveTab(id); setLaunchedApp(null); setActiveRecipientId(undefined); }}
+              user={user} logout={logout} isPinned={isPinned} togglePin={togglePin}
+              uploadTasks={uploadTasks} unreadCount={unreadCount} pendingOffersCount={pendingOffersCount}
+            />
+          </SafeComponentWrapper>
         )}
 
         {/* Floating Trigger when Sidebar is Hidden */}
@@ -224,19 +228,27 @@ export function AppShell() {
             className="fixed top-4 left-4 z-50 size-10 rounded-2xl bg-slate-900/80 border border-white/10 text-primary shadow-2xl backdrop-blur-md hover:scale-110 transition-all animate-in zoom-in-50"
             onClick={() => useSidebarStore.getState().setVisible(true)}
           >
-            <Layers className="size-5" />
+            <IconSafe icon={Layers} className="size-5" />
           </Button>
         )}
 
         <div className="flex-1 flex flex-col h-screen overflow-hidden">
-          <AppHeader unreadCount={unreadCount} onTabChange={setActiveTab} onNavigateToWallet={() => setActiveTab("wallet")} />
+          <SafeComponentWrapper name="AppHeader">
+            <AppHeader unreadCount={unreadCount} onTabChange={setActiveTab} onNavigateToWallet={() => setActiveTab("wallet")} />
+          </SafeComponentWrapper>
           <main className={cn(
             "flex-1 overflow-y-auto relative transition-colors duration-500",
             isVisible ? "bg-slate-900/20" : "bg-slate-900/40"
-          )}>{renderContent()}</main>
+          )}>
+            <SafeComponentWrapper name={`ContentNode:${activeTab}`}>
+              {renderContent()}
+            </SafeComponentWrapper>
+          </main>
         </div>
       </div>
-      <PersistentPlayer />
+      <SafeComponentWrapper name="PersistentPlayer">
+        <PersistentPlayer />
+      </SafeComponentWrapper>
     </SidebarProvider>
   );
 }

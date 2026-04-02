@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Sparkles, ShieldAlert, Zap, Inbox } from "lucide-react";
+import { IconSafe } from "@/components/ui/icon-safe";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -68,7 +69,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
       <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-center gap-4 flex-row-reverse">
           <div className="size-16 rounded-[2rem] bg-primary/10 border border-primary/20 flex items-center justify-center shadow-2xl">
-            <Sparkles className="size-8 text-primary animate-pulse" />
+            <IconSafe icon={Sparkles} className="size-8 text-primary animate-pulse" />
           </div>
           <div className="text-right">
             <h2 dir="auto" className="text-4xl font-headline font-bold text-white tracking-tight">أهلاً بك، {user?.name}</h2>
@@ -78,11 +79,11 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
         <div className="flex gap-3">
           {['founder', 'cofounder', 'admin', 'management'].includes(user?.role || '') && (
             <button onClick={() => onNavigate?.("admin")} className="flex items-center gap-2 border border-indigo-500/30 text-indigo-400 rounded-xl font-bold px-4 py-2 hover:bg-indigo-500/10 transition-all">
-              <ShieldAlert className="size-4" /> Neural Console
+              <IconSafe icon={ShieldAlert} className="size-4" /> Neural Console
             </button>
           )}
           <Badge className="bg-green-500/20 text-green-400 border-green-500/30 px-4 py-2 rounded-xl text-xs font-bold">
-            <Zap className="size-3 mr-2 inline" /> Node Active
+            <IconSafe icon={Zap} className="size-3 mr-2 inline" /> Node Active
           </Badge>
         </div>
       </header>
@@ -97,7 +98,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
           </TabsTrigger>
           <TabsTrigger value="orders" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary flex-1 sm:flex-none">سجل العمليات</TabsTrigger>
           <TabsTrigger value="vault" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-indigo-600 flex-1 sm:flex-none gap-2">
-            <Inbox className="size-3.5" /> صندوق الوارد
+            <IconSafe icon={Inbox} className="size-3.5" /> صندوق الوارد
           </TabsTrigger>
         </TabsList>
 

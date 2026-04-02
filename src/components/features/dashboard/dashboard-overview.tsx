@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from "react";
@@ -6,6 +5,7 @@ import {
   MessageSquare, Video, ShoppingBag, BookOpen,
   ArrowRight, Wallet as WalletIcon, Sparkles, HardDrive, Zap
 } from "lucide-react";
+import { IconSafe } from "@/components/ui/icon-safe";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,11 +37,7 @@ const QuickActionCard = ({ icon: Icon, title, desc, onClick, color }: QuickActio
   >
     <CardContent className="p-6">
       <div className={cn("size-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110", color)}>
-        {Icon && (typeof Icon === 'function' || (typeof Icon === 'object' && Icon !== null)) ? (
-          <Icon className="size-6 text-white" />
-        ) : (
-          <Sparkles className="size-6 text-white opacity-50" />
-        )}
+        <IconSafe icon={Icon || Sparkles} className="size-6 text-white" />
       </div>
       <h3 dir="auto" className="text-lg font-bold text-white mb-1 text-right">{title}</h3>
       <p dir="auto" className="text-xs text-muted-foreground leading-relaxed text-right">{desc}</p>
@@ -69,7 +65,7 @@ export function DashboardOverview({ user, wallet, usedSpace, storageLimitMB, sto
           <div className="absolute top-0 right-0 size-64 bg-primary/5 blur-[80px] -mr-32 -mt-32" />
           <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3 justify-end">
             حالة المحفظة العصبية
-            {WalletIcon && typeof WalletIcon !== 'string' ? <WalletIcon className="text-primary" /> : <Sparkles className="text-primary" />}
+            <IconSafe icon={WalletIcon} className="text-primary" />
           </h3>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-8 bg-white/5 p-8 rounded-[2rem] border border-white/5 flex-row-reverse">
             <div className="text-center sm:text-right">
