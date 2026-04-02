@@ -15,6 +15,7 @@ interface FeatureHeaderProps {
   action?: React.ReactNode;
   className?: string;
   titleClassName?: string;
+  children?: React.ReactNode;
 }
 
 export function FeatureHeader({
@@ -26,21 +27,25 @@ export function FeatureHeader({
   isRefreshing = false,
   action,
   className,
-  titleClassName
+  titleClassName,
+  children
 }: FeatureHeaderProps) {
   return (
     <div className={cn("flex justify-between items-center flex-row-reverse mb-8", className)}>
-      <div className="text-right">
-        <h2 className={cn(
-          "text-3xl md:text-4xl font-headline font-bold text-white flex items-center gap-4 justify-end",
-          titleClassName
-        )}>
-          {title}
-          {Icon && <Icon className={cn("size-8 md:size-10 text-primary", iconClassName)} />}
-        </h2>
-        {description && (
-          <p className="text-muted-foreground mt-1 text-sm md:text-base">{description}</p>
-        )}
+      <div className="flex items-center gap-6 flex-row-reverse text-right">
+        {children}
+        <div>
+          <h2 className={cn(
+            "text-3xl md:text-4xl font-headline font-bold text-white flex items-center gap-4 justify-end",
+            titleClassName
+          )}>
+            {title}
+            {Icon && <Icon className={cn("size-8 md:size-10 text-primary", iconClassName)} />}
+          </h2>
+          {description && (
+            <p className="text-muted-foreground mt-1 text-sm md:text-base">{description}</p>
+          )}
+        </div>
       </div>
       
       <div className="flex items-center gap-3">
