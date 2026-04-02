@@ -10,7 +10,7 @@ export function LearningSearchBar() {
   const { searchQuery, setSearchQuery } = useLearningHubStore();
 
   return (
-    <div className="relative w-full max-w-sm">
+    <div className="relative w-full sm:max-w-sm">
       <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
       <Input
         type="text"

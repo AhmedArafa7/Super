@@ -6,7 +6,7 @@ import { useLearningHubStore, SubjectId, QuestionBankItem } from '../learning-hu
 import { ItemModal } from '../item-modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Archive, Plus, Edit3, Trash2, Download, FileText, Layers } from 'lucide-react';
+import { Archive, Plus, Edit3, Trash2, FileText, Layers } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -37,19 +37,20 @@ export function QuestionBanksSection({ subjectId }: QuestionBanksSectionProps) {
 
   return (
     <div className="space-y-4" dir="rtl">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <Archive className="size-4 text-primary" />
-          بنك الأسئلة
-          <span className="text-[10px] text-muted-foreground font-normal">({questionBanks.length})</span>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-bold text-white flex items-center gap-2 min-w-0">
+          <Archive className="size-4 text-primary shrink-0" />
+          <span className="truncate">بنك الأسئلة</span>
+          <span className="text-[10px] text-muted-foreground font-normal shrink-0">({questionBanks.length})</span>
         </h3>
         <Button
           size="sm"
           onClick={() => { setEditingItem(null); setModalOpen(true); }}
-          className="h-8 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold gap-1.5"
+          className="h-9 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold gap-1.5 shrink-0"
         >
           <Plus className="size-3.5" />
-          إضافة ملف
+          <span className="hidden sm:inline">إضافة ملف</span>
+          <span className="sm:hidden">إضافة</span>
         </Button>
       </div>
 
@@ -63,11 +64,11 @@ export function QuestionBanksSection({ subjectId }: QuestionBanksSectionProps) {
           {questionBanks.map((item) => (
             <div
               key={item.id}
-              className="group p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.07] transition-all"
+              className="group p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.07] transition-all active:scale-[0.98]"
             >
               <div className="flex items-start gap-3">
-                <div className="size-12 bg-indigo-500/10 rounded-xl flex items-center justify-center shrink-0">
-                  <FileText className="size-6 text-indigo-400" />
+                <div className="size-10 sm:size-12 bg-indigo-500/10 rounded-xl flex items-center justify-center shrink-0">
+                  <FileText className="size-5 sm:size-6 text-indigo-400" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-white truncate">{item.title}</p>
@@ -86,24 +87,17 @@ export function QuestionBanksSection({ subjectId }: QuestionBanksSectionProps) {
               </div>
 
               <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-white/5">
-                <Button
-                  size="sm" variant="ghost"
-                  className="h-7 text-[10px] text-primary hover:bg-primary/10 gap-1 rounded-lg flex-1"
-                  onClick={() => window.open(item.url, '_blank')}
-                >
-                  <Download className="size-3" /> تنزيل / عرض
-                </Button>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button size="icon" variant="ghost" className="size-7 text-amber-400 hover:bg-amber-500/10 rounded-lg" onClick={() => { setEditingItem(item); setModalOpen(true); }}>
-                    <Edit3 className="size-3" />
+                <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-1 justify-end">
+                  <Button size="sm" variant="ghost" className="h-8 text-[10px] text-amber-400 hover:bg-amber-500/10 gap-1 rounded-lg" onClick={() => { setEditingItem(item); setModalOpen(true); }}>
+                    <Edit3 className="size-3" /> تعديل
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button size="icon" variant="ghost" className="size-7 text-red-400 hover:bg-red-500/10 rounded-lg">
-                        <Trash2 className="size-3" />
+                      <Button size="sm" variant="ghost" className="h-8 text-[10px] text-red-400 hover:bg-red-500/10 gap-1 rounded-lg">
+                        <Trash2 className="size-3" /> حذف
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-slate-950 border-white/10 rounded-2xl" dir="rtl">
+                    <AlertDialogContent className="bg-slate-950 border-white/10 rounded-2xl w-[calc(100%-2rem)] max-w-md" dir="rtl">
                       <AlertDialogHeader>
                         <AlertDialogTitle>حذف ملف الأسئلة</AlertDialogTitle>
                         <AlertDialogDescription>هل أنت متأكد من حذف &quot;{item.title}&quot;؟</AlertDialogDescription>

@@ -44,19 +44,20 @@ export function QuizzesSection({ subjectId }: QuizzesSectionProps) {
 
   return (
     <div className="space-y-4" dir="rtl">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <BookCheck className="size-4 text-primary" />
-          الاختبارات
-          <span className="text-[10px] text-muted-foreground font-normal">({quizzes.length})</span>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-bold text-white flex items-center gap-2 min-w-0">
+          <BookCheck className="size-4 text-primary shrink-0" />
+          <span className="truncate">الاختبارات</span>
+          <span className="text-[10px] text-muted-foreground font-normal shrink-0">({quizzes.length})</span>
         </h3>
         <Button
           size="sm"
           onClick={() => { setEditingItem(null); setModalOpen(true); }}
-          className="h-8 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold gap-1.5"
+          className="h-9 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold gap-1.5 shrink-0"
         >
           <Plus className="size-3.5" />
-          إضافة اختبار
+          <span className="hidden sm:inline">إضافة اختبار</span>
+          <span className="sm:hidden">إضافة</span>
         </Button>
       </div>
 
@@ -70,20 +71,20 @@ export function QuizzesSection({ subjectId }: QuizzesSectionProps) {
           {quizzes.map((item) => (
             <div
               key={item.id}
-              className="group p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.07] transition-all"
+              className="group p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.07] transition-all active:scale-[0.98]"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-white truncate">{item.title}</p>
                   <div className="flex items-center gap-1.5 mt-1">
-                    <Calendar className="size-3 text-muted-foreground" />
+                    <Calendar className="size-3 text-muted-foreground shrink-0" />
                     <span className="text-[10px] text-muted-foreground">
                       {new Date(item.date).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
                   </div>
                 </div>
                 <Badge variant="outline" className={cn(
-                  'text-[9px] h-5 rounded-lg border',
+                  'text-[9px] h-5 rounded-lg border shrink-0 mr-2',
                   item.completed ? 'border-emerald-500/20 text-emerald-400 bg-emerald-500/10' : 'border-amber-500/20 text-amber-400 bg-amber-500/10'
                 )}>
                   {item.completed ? 'مكتمل' : 'قادم'}
@@ -91,11 +92,11 @@ export function QuizzesSection({ subjectId }: QuizzesSectionProps) {
               </div>
 
               {/* Score Display */}
-              <div className="flex items-center justify-center py-4">
+              <div className="flex items-center justify-center py-3 sm:py-4">
                 {item.completed && item.score !== undefined ? (
                   <div className="text-center">
-                    <div className="relative size-20 mx-auto mb-2">
-                      <svg className="size-20 -rotate-90" viewBox="0 0 80 80">
+                    <div className="relative size-16 sm:size-20 mx-auto mb-2">
+                      <svg className="size-16 sm:size-20 -rotate-90" viewBox="0 0 80 80">
                         <circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" strokeWidth="6" className="text-white/5" />
                         <circle
                           cx="40" cy="40" r="34" fill="none" stroke="currentColor" strokeWidth="6"
@@ -105,7 +106,7 @@ export function QuizzesSection({ subjectId }: QuizzesSectionProps) {
                         />
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className={cn('text-lg font-black tabular-nums', getScoreColor(item.score, item.maxScore))}>
+                        <span className={cn('text-base sm:text-lg font-black tabular-nums', getScoreColor(item.score, item.maxScore))}>
                           {item.score}
                         </span>
                       </div>
@@ -114,23 +115,23 @@ export function QuizzesSection({ subjectId }: QuizzesSectionProps) {
                   </div>
                 ) : (
                   <div className="text-center">
-                    <Trophy className="size-10 text-muted-foreground/20 mx-auto mb-1" />
+                    <Trophy className="size-8 sm:size-10 text-muted-foreground/20 mx-auto mb-1" />
                     <p className="text-[10px] text-muted-foreground">لم يتم التقييم بعد</p>
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center gap-1.5 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button size="sm" variant="ghost" className="h-7 text-[10px] text-amber-400 hover:bg-amber-500/10 gap-1 rounded-lg flex-1" onClick={() => { setEditingItem(item); setModalOpen(true); }}>
+              <div className="flex items-center gap-1.5 pt-3 border-t border-white/5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                <Button size="sm" variant="ghost" className="h-8 text-[10px] text-amber-400 hover:bg-amber-500/10 gap-1 rounded-lg flex-1" onClick={() => { setEditingItem(item); setModalOpen(true); }}>
                   <Edit3 className="size-3" /> تعديل
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="ghost" className="h-7 text-[10px] text-red-400 hover:bg-red-500/10 gap-1 rounded-lg flex-1">
+                    <Button size="sm" variant="ghost" className="h-8 text-[10px] text-red-400 hover:bg-red-500/10 gap-1 rounded-lg flex-1">
                       <Trash2 className="size-3" /> حذف
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="bg-slate-950 border-white/10 rounded-2xl" dir="rtl">
+                  <AlertDialogContent className="bg-slate-950 border-white/10 rounded-2xl w-[calc(100%-2rem)] max-w-md" dir="rtl">
                     <AlertDialogHeader>
                       <AlertDialogTitle>حذف الاختبار</AlertDialogTitle>
                       <AlertDialogDescription>هل أنت متأكد من حذف &quot;{item.title}&quot;؟</AlertDialogDescription>

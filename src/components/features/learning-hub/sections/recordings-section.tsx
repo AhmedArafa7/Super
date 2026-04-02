@@ -54,19 +54,20 @@ export function RecordingsSection({ subjectId }: RecordingsSectionProps) {
 
   return (
     <div className="space-y-4" dir="rtl">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <Video className="size-4 text-primary" />
-          التسجيلات
-          <span className="text-[10px] text-muted-foreground font-normal">({recordings.length})</span>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-bold text-white flex items-center gap-2 min-w-0">
+          <Video className="size-4 text-primary shrink-0" />
+          <span className="truncate">التسجيلات</span>
+          <span className="text-[10px] text-muted-foreground font-normal shrink-0">({recordings.length})</span>
         </h3>
         <Button
           size="sm"
           onClick={() => { setEditingItem(null); setModalOpen(true); }}
-          className="h-8 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold gap-1.5"
+          className="h-9 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold gap-1.5 shrink-0"
         >
           <Plus className="size-3.5" />
-          إضافة تسجيل
+          <span className="hidden sm:inline">إضافة تسجيل</span>
+          <span className="sm:hidden">إضافة</span>
         </Button>
       </div>
 
@@ -84,11 +85,11 @@ export function RecordingsSection({ subjectId }: RecordingsSectionProps) {
             return (
               <div
                 key={item.id}
-                className="group bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:bg-white/[0.07] hover:border-white/15 transition-all duration-300"
+                className="group bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:bg-white/[0.07] hover:border-white/15 transition-all duration-300 active:scale-[0.98]"
               >
                 {/* Thumbnail */}
                 <div
-                  className="relative h-36 bg-slate-800 flex items-center justify-center cursor-pointer overflow-hidden"
+                  className="relative h-32 sm:h-36 bg-slate-800 flex items-center justify-center cursor-pointer overflow-hidden"
                   onClick={() => setPlayerUrl(isYT ? getYouTubeEmbedUrl(item.url) : item.url)}
                 >
                   {thumbnail ? (
@@ -112,20 +113,17 @@ export function RecordingsSection({ subjectId }: RecordingsSectionProps) {
                 {/* Info */}
                 <div className="p-3">
                   <p className="text-sm font-bold text-white truncate">{item.title}</p>
-                  <div className="flex items-center gap-1.5 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button size="sm" variant="ghost" className="h-7 text-[10px] text-blue-400 hover:bg-blue-500/10 gap-1 rounded-lg" onClick={() => window.open(item.url, '_blank')}>
-                      <ExternalLink className="size-3" /> فتح
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-[10px] text-amber-400 hover:bg-amber-500/10 gap-1 rounded-lg" onClick={() => { setEditingItem(item); setModalOpen(true); }}>
+                  <div className="flex items-center gap-1.5 mt-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <Button size="sm" variant="ghost" className="h-8 text-[10px] text-amber-400 hover:bg-amber-500/10 gap-1 rounded-lg flex-1" onClick={() => { setEditingItem(item); setModalOpen(true); }}>
                       <Edit3 className="size-3" /> تعديل
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button size="sm" variant="ghost" className="h-7 text-[10px] text-red-400 hover:bg-red-500/10 gap-1 rounded-lg">
+                        <Button size="sm" variant="ghost" className="h-8 text-[10px] text-red-400 hover:bg-red-500/10 gap-1 rounded-lg flex-1">
                           <Trash2 className="size-3" /> حذف
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent className="bg-slate-950 border-white/10 rounded-2xl" dir="rtl">
+                      <AlertDialogContent className="bg-slate-950 border-white/10 rounded-2xl w-[calc(100%-2rem)] max-w-md" dir="rtl">
                         <AlertDialogHeader>
                           <AlertDialogTitle>حذف التسجيل</AlertDialogTitle>
                           <AlertDialogDescription>هل أنت متأكد من حذف &quot;{item.title}&quot;؟</AlertDialogDescription>
@@ -146,7 +144,7 @@ export function RecordingsSection({ subjectId }: RecordingsSectionProps) {
 
       {/* Video Player Modal */}
       <Dialog open={!!playerUrl} onOpenChange={() => setPlayerUrl(null)}>
-        <DialogContent className="bg-black border-white/10 rounded-2xl sm:max-w-3xl p-0 overflow-hidden">
+        <DialogContent className="bg-black border-white/10 rounded-2xl w-[calc(100%-1rem)] max-w-3xl p-0 overflow-hidden">
           <DialogHeader className="p-4 pb-0">
             <DialogTitle className="text-white text-sm">مشغل الفيديو</DialogTitle>
           </DialogHeader>

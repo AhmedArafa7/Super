@@ -43,52 +43,55 @@ export function SubjectDashboard({ subjectId }: SubjectDashboardProps) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
         transition={{ duration: 0.25, ease: 'easeOut' }}
-        className="p-6 space-y-6 h-full"
+        className="p-4 sm:p-6 space-y-4 sm:space-y-6 h-full"
         dir="rtl"
       >
         {/* Subject Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div className={cn(
-              'size-14 rounded-2xl flex items-center justify-center text-2xl border shadow-lg',
+              'size-12 sm:size-14 rounded-2xl flex items-center justify-center text-xl sm:text-2xl border shadow-lg shrink-0',
               subject.bgColor,
               `border-${subject.color.replace('text-', '')}/20`
             )}>
               {subject.icon}
             </div>
-            <div>
-              <h1 className="text-xl font-black text-white">{subject.name}</h1>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-black text-white truncate">{subject.name}</h1>
               <p className="text-xs text-muted-foreground">{subject.nameEn}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 sm:w-auto w-full">
+          <div className="w-full">
             <LearningSearchBar />
           </div>
         </div>
 
         {/* Progress Bar */}
-        <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
+        <div className="p-3 sm:p-4 bg-white/5 border border-white/10 rounded-2xl">
           <ProgressWidget subjectId={subjectId} />
         </div>
 
         {/* Tabs for Sub-sections */}
         <Tabs defaultValue="materials" className="space-y-4">
-          <TabsList className="bg-white/5 border border-white/10 rounded-xl p-1 h-auto flex flex-wrap gap-1">
-            {sectionOrder.map((section) => {
-              const Icon = sectionIcons[section];
-              return (
-                <TabsTrigger
-                  key={section}
-                  value={section}
-                  className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg text-xs font-bold gap-1.5 h-9 px-3 text-muted-foreground"
-                >
-                  <Icon className="size-3.5" />
-                  {SECTION_LABELS[section].label}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+          <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pb-1">
+            <TabsList className="bg-white/5 border border-white/10 rounded-xl p-1 h-auto inline-flex gap-1 min-w-max">
+              {sectionOrder.map((section) => {
+                const Icon = sectionIcons[section];
+                return (
+                  <TabsTrigger
+                    key={section}
+                    value={section}
+                    className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg text-xs font-bold gap-1.5 h-9 px-3 text-muted-foreground whitespace-nowrap"
+                  >
+                    <Icon className="size-3.5" />
+                    <span className="hidden xs:inline sm:inline">{SECTION_LABELS[section].label}</span>
+                    <span className="xs:hidden sm:hidden">{SECTION_LABELS[section].label}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </div>
 
           <TabsContent value="materials" className="mt-4">
             <MaterialsSection subjectId={subjectId} />

@@ -26,12 +26,10 @@ const sectionFields: Record<SectionType, { key: string; label: string; type: str
   materials: [
     { key: 'title', label: 'العنوان', type: 'text', required: false },
     { key: 'description', label: 'الوصف', type: 'textarea' },
-    { key: 'url', label: 'رابط الملف (اختياري)', type: 'url', required: false },
     { key: 'type', label: 'النوع', type: 'select', required: false, options: [{ value: 'pdf', label: 'PDF' }, { value: 'slide', label: 'عرض تقديمي' }, { value: 'link', label: 'رابط خارجي' }] },
   ],
   recordings: [
     { key: 'title', label: 'العنوان', type: 'text', required: false },
-    { key: 'url', label: 'رابط الفيديو (اختياري)', type: 'url', required: false },
     { key: 'duration', label: 'المدة', type: 'text' },
   ],
   assignments: [
@@ -48,13 +46,11 @@ const sectionFields: Record<SectionType, { key: string; label: string; type: str
   ],
   quizForms: [
     { key: 'title', label: 'العنوان', type: 'text', required: false },
-    { key: 'url', label: 'رابط النموذج (اختياري)', type: 'url', required: false },
     { key: 'provider', label: 'المزود', type: 'select', required: false, options: [{ value: 'google-forms', label: 'Google Forms' }, { value: 'internal', label: 'داخلي' }, { value: 'external', label: 'خارجي' }] },
     { key: 'status', label: 'الحالة', type: 'select', required: false, options: [{ value: 'not-taken', label: 'لم يُحل' }, { value: 'completed', label: 'تم الحل' }] },
   ],
   questionBanks: [
     { key: 'title', label: 'العنوان', type: 'text', required: false },
-    { key: 'url', label: 'رابط الملف (اختياري)', type: 'url', required: false },
     { key: 'category', label: 'التصنيف', type: 'text', required: false },
     { key: 'pages', label: 'عدد الصفحات', type: 'number' },
   ],
@@ -89,6 +85,7 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
     // Fallback defaults for missing required fields
     if (!cleaned.title) cleaned.title = 'عنصر جديد';
     
+    // Auto-set url to '#' for sections that need it
     const needsUrl = ['materials', 'recordings', 'quizForms', 'questionBanks'].includes(sectionType);
     if (needsUrl && (!cleaned.url || cleaned.url.trim() === '')) {
       cleaned.url = '#';
@@ -113,7 +110,7 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-slate-950 border-white/10 rounded-2xl sm:max-w-lg" dir="rtl">
+      <DialogContent className="bg-slate-950 border-white/10 rounded-2xl w-[calc(100%-2rem)] max-w-lg mx-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle className="text-right text-lg font-bold">
             {mode === 'add' ? 'إضافة' : 'تعديل'} — {SECTION_LABELS[sectionType].label}
@@ -132,7 +129,7 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
 
               {field.type === 'select' && field.options ? (
                 <Select value={formData[field.key] || ''} onValueChange={(v) => handleChange(field.key, v)}>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-right h-10 rounded-xl">
+                  <SelectTrigger className="bg-white/5 border-white/10 text-right h-11 rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-900 border-white/10">
@@ -153,7 +150,7 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
                   type={field.type}
                   value={formData[field.key] || ''}
                   onChange={(e) => handleChange(field.key, e.target.value)}
-                  className="bg-white/5 border-white/10 rounded-xl h-10 text-right"
+                  className="bg-white/5 border-white/10 rounded-xl h-11 text-right"
                   placeholder={field.label}
                   required={field.required}
                 />
@@ -162,11 +159,11 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
           ))}
 
           <div className="flex gap-3 pt-4">
-            <Button type="submit" className="flex-1 h-11 rounded-xl bg-primary hover:bg-primary/90 font-bold gap-2">
+            <Button type="submit" className="flex-1 h-12 rounded-xl bg-primary hover:bg-primary/90 font-bold gap-2 text-sm">
               <Save className="size-4" />
               {mode === 'add' ? 'إضافة' : 'حفظ التعديلات'}
             </Button>
-            <Button type="button" variant="outline" onClick={onClose} className="h-11 rounded-xl border-white/10 px-6">
+            <Button type="button" variant="outline" onClick={onClose} className="h-12 rounded-xl border-white/10 px-6">
               <X className="size-4" />
             </Button>
           </div>

@@ -49,19 +49,20 @@ export function QuizFormsSection({ subjectId }: QuizFormsSectionProps) {
 
   return (
     <div className="space-y-4" dir="rtl">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <FormInput className="size-4 text-primary" />
-          نماذج الاختبار
-          <span className="text-[10px] text-muted-foreground font-normal">({quizForms.length})</span>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-bold text-white flex items-center gap-2 min-w-0">
+          <FormInput className="size-4 text-primary shrink-0" />
+          <span className="truncate">نماذج الاختبار</span>
+          <span className="text-[10px] text-muted-foreground font-normal shrink-0">({quizForms.length})</span>
         </h3>
         <Button
           size="sm"
           onClick={() => { setEditingItem(null); setModalOpen(true); }}
-          className="h-8 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold gap-1.5"
+          className="h-9 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold gap-1.5 shrink-0"
         >
           <Plus className="size-3.5" />
-          إضافة نموذج
+          <span className="hidden sm:inline">إضافة نموذج</span>
+          <span className="sm:hidden">إضافة</span>
         </Button>
       </div>
 
@@ -75,43 +76,38 @@ export function QuizFormsSection({ subjectId }: QuizFormsSectionProps) {
           {quizForms.map((item) => (
             <div
               key={item.id}
-              className="group flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.07] transition-all"
+              className="group flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.07] transition-all active:scale-[0.99]"
             >
-              <div className={cn(
-                'size-10 rounded-xl flex items-center justify-center shrink-0',
-                item.status === 'completed' ? 'bg-emerald-500/10' : 'bg-white/5'
-              )}>
-                {item.status === 'completed' ? (
-                  <CheckCircle2 className="size-5 text-emerald-400" />
-                ) : (
-                  <Circle className="size-5 text-muted-foreground" />
-                )}
-              </div>
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className={cn(
+                  'size-10 rounded-xl flex items-center justify-center shrink-0',
+                  item.status === 'completed' ? 'bg-emerald-500/10' : 'bg-white/5'
+                )}>
+                  {item.status === 'completed' ? (
+                    <CheckCircle2 className="size-5 text-emerald-400" />
+                  ) : (
+                    <Circle className="size-5 text-muted-foreground" />
+                  )}
+                </div>
 
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-white truncate">{item.title}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-md', providerColors[item.provider])}>
-                    {providerLabels[item.provider]}
-                  </span>
-                  <Badge variant="outline" className={cn(
-                    'text-[9px] h-5 rounded-lg border',
-                    item.status === 'completed' ? 'border-emerald-500/20 text-emerald-400' : 'border-white/10 text-muted-foreground'
-                  )}>
-                    {item.status === 'completed' ? 'تم الحل' : 'لم يُحل'}
-                  </Badge>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-white truncate">{item.title}</p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-md', providerColors[item.provider])}>
+                      {providerLabels[item.provider]}
+                    </span>
+                    <Badge variant="outline" className={cn(
+                      'text-[9px] h-5 rounded-lg border',
+                      item.status === 'completed' ? 'border-emerald-500/20 text-emerald-400' : 'border-white/10 text-muted-foreground'
+                    )}>
+                      {item.status === 'completed' ? 'تم الحل' : 'لم يُحل'}
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5">
-                <Button
-                  size="sm" variant="ghost"
-                  className="h-8 text-[10px] text-primary hover:bg-primary/10 gap-1.5 rounded-lg font-bold"
-                  onClick={() => window.open(item.url, '_blank')}
-                >
-                  <ExternalLink className="size-3.5" /> فتح النموذج
-                </Button>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex items-center gap-1.5 sm:shrink-0">
+                <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                   <Button size="icon" variant="ghost" className="size-8 text-amber-400 hover:bg-amber-500/10 rounded-lg" onClick={() => { setEditingItem(item); setModalOpen(true); }}>
                     <Edit3 className="size-3.5" />
                   </Button>
@@ -121,7 +117,7 @@ export function QuizFormsSection({ subjectId }: QuizFormsSectionProps) {
                         <Trash2 className="size-3.5" />
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-slate-950 border-white/10 rounded-2xl" dir="rtl">
+                    <AlertDialogContent className="bg-slate-950 border-white/10 rounded-2xl w-[calc(100%-2rem)] max-w-md" dir="rtl">
                       <AlertDialogHeader>
                         <AlertDialogTitle>حذف النموذج</AlertDialogTitle>
                         <AlertDialogDescription>هل أنت متأكد من حذف &quot;{item.title}&quot;؟</AlertDialogDescription>

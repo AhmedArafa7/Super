@@ -63,28 +63,30 @@ export function AssignmentsSection({ subjectId }: AssignmentsSectionProps) {
 
   return (
     <div className="space-y-4" dir="rtl">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <ClipboardList className="size-4 text-primary" />
-          الواجبات
-          <span className="text-[10px] text-muted-foreground font-normal">({assignments.length})</span>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-bold text-white flex items-center gap-2 min-w-0">
+          <ClipboardList className="size-4 text-primary shrink-0" />
+          <span className="truncate">الواجبات</span>
+          <span className="text-[10px] text-muted-foreground font-normal shrink-0">({assignments.length})</span>
         </h3>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <Button
             size="sm"
             onClick={() => setDropzoneOpen(true)}
-            className="h-8 rounded-xl bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-bold gap-1.5"
+            className="h-9 rounded-xl bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-bold gap-1.5"
           >
             <Upload className="size-3.5" />
-            رفع ملف
+            <span className="hidden sm:inline">رفع ملف</span>
+            <span className="sm:hidden">رفع</span>
           </Button>
           <Button
             size="sm"
             onClick={() => { setEditingItem(null); setModalOpen(true); }}
-            className="h-8 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold gap-1.5"
+            className="h-9 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold gap-1.5"
           >
             <Plus className="size-3.5" />
-            إضافة واجب
+            <span className="hidden sm:inline">إضافة واجب</span>
+            <span className="sm:hidden">إضافة</span>
           </Button>
         </div>
       </div>
@@ -104,28 +106,28 @@ export function AssignmentsSection({ subjectId }: AssignmentsSectionProps) {
             return (
               <div
                 key={item.id}
-                className="group flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.07] transition-all"
+                className="group flex items-start sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.07] transition-all active:scale-[0.99]"
               >
                 <button
                   onClick={() => toggleAssignmentStatus(subjectId, item.id)}
                   className={cn(
-                    'size-10 rounded-xl flex items-center justify-center shrink-0 border transition-all hover:scale-110',
+                    'size-9 sm:size-10 rounded-xl flex items-center justify-center shrink-0 border transition-all hover:scale-110 active:scale-95',
                     status.color
                   )}
                 >
-                  <StatusIcon className="size-5" />
+                  <StatusIcon className="size-4 sm:size-5" />
                 </button>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className={cn('text-sm font-bold', item.status === 'graded' ? 'text-muted-foreground line-through' : 'text-white')}>
+                    <p className={cn('text-sm font-bold truncate', item.status === 'graded' ? 'text-muted-foreground line-through' : 'text-white')}>
                       {item.title}
                     </p>
-                    <Badge variant="outline" className={cn('text-[9px] h-5 rounded-lg border', status.color)}>
+                    <Badge variant="outline" className={cn('text-[9px] h-5 rounded-lg border shrink-0', status.color)}>
                       {status.label}
                     </Badge>
                     {item.grade !== undefined && (
-                      <Badge variant="outline" className="text-[9px] h-5 rounded-lg border-emerald-500/20 text-emerald-400 bg-emerald-500/10">
+                      <Badge variant="outline" className="text-[9px] h-5 rounded-lg border-emerald-500/20 text-emerald-400 bg-emerald-500/10 shrink-0">
                         {item.grade}%
                       </Badge>
                     )}
@@ -134,14 +136,14 @@ export function AssignmentsSection({ subjectId }: AssignmentsSectionProps) {
                     <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{item.description}</p>
                   )}
                   <div className="flex items-center gap-1.5 mt-1">
-                    {deadline.urgent && <AlertCircle className="size-3 text-red-400" />}
+                    {deadline.urgent && <AlertCircle className="size-3 text-red-400 shrink-0" />}
                     <span className={cn('text-[10px] font-medium', deadline.urgent ? 'text-red-400' : 'text-muted-foreground')}>
                       {deadline.text}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
                   <Button
                     size="icon" variant="ghost"
                     className="size-8 text-amber-400 hover:bg-amber-500/10 rounded-lg"
@@ -155,7 +157,7 @@ export function AssignmentsSection({ subjectId }: AssignmentsSectionProps) {
                         <Trash2 className="size-3.5" />
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-slate-950 border-white/10 rounded-2xl" dir="rtl">
+                    <AlertDialogContent className="bg-slate-950 border-white/10 rounded-2xl w-[calc(100%-2rem)] max-w-md" dir="rtl">
                       <AlertDialogHeader>
                         <AlertDialogTitle>حذف الواجب</AlertDialogTitle>
                         <AlertDialogDescription>هل أنت متأكد من حذف &quot;{item.title}&quot;؟</AlertDialogDescription>
@@ -175,7 +177,7 @@ export function AssignmentsSection({ subjectId }: AssignmentsSectionProps) {
 
       {/* File Upload Dialog */}
       <Dialog open={dropzoneOpen} onOpenChange={setDropzoneOpen}>
-        <DialogContent className="bg-slate-950 border-white/10 rounded-2xl sm:max-w-md" dir="rtl">
+        <DialogContent className="bg-slate-950 border-white/10 rounded-2xl w-[calc(100%-2rem)] max-w-md" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-right">رفع ملف الواجب</DialogTitle>
           </DialogHeader>

@@ -78,7 +78,7 @@ function ScheduleModal({ open, onClose, initialData, onSave, mode }: ScheduleMod
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-slate-950 border-white/10 rounded-2xl sm:max-w-md" dir="rtl">
+      <DialogContent className="bg-slate-950 border-white/10 rounded-2xl w-[calc(100%-2rem)] max-w-md mx-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle className="text-right">
             {mode === 'add' ? 'إضافة حصة' : 'تعديل حصة'}
@@ -296,7 +296,7 @@ export function ScheduleView() {
                                   <Trash2 className="size-3" />
                                 </Button>
                               </AlertDialogTrigger>
-                              <AlertDialogContent className="bg-slate-950 border-white/10 rounded-2xl" dir="rtl">
+                              <AlertDialogContent className="bg-slate-950 border-white/10 rounded-2xl w-[calc(100%-2rem)] max-w-md" dir="rtl">
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>حذف الحصة</AlertDialogTitle>
                                   <AlertDialogDescription>هل أنت متأكد من حذف &quot;{event.title}&quot;؟</AlertDialogDescription>

@@ -126,19 +126,19 @@ function makeDemoData(): Record<SubjectId, SubjectData> {
         { id: uid(), title: 'تصميم البنية التحتية', type: 'slide', url: '#', createdAt: new Date().toISOString(), description: 'عرض تقديمي عن تصميم البنية التحتية' },
       ],
       recordings: [
-        { id: uid(), title: 'المحاضرة 1 - أساسيات الشبكات', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', createdAt: new Date().toISOString(), duration: '1:30:00' },
-        { id: uid(), title: 'المحاضرة 2 - أنظمة التبريد', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', createdAt: new Date().toISOString(), duration: '45:00' },
+        { id: uid(), title: 'المحاضرة 1 - أساسيات الشبكات', url: '#', createdAt: new Date().toISOString(), duration: '1:30:00' },
+        { id: uid(), title: 'المحاضرة 2 - أنظمة التبريد', url: '#', createdAt: new Date().toISOString(), duration: '45:00' },
       ],
       assignments: [
         { id: uid(), title: 'تقرير عن تصميم مركز بيانات', status: 'pending', deadline: '2026-04-15T23:59:00', createdAt: new Date().toISOString(), description: 'تصميم مركز بيانات صغير مع رسم توضيحي' },
-        { id: uid(), title: 'تحليل أنظمة التبريد', status: 'submitted', deadline: '2026-04-05T23:59:00', createdAt: new Date().toISOString() },
+        { id: uid(), title: 'تحليل أنظمة التبريد', status: 'pending', deadline: '2026-04-05T23:59:00', createdAt: new Date().toISOString() },
       ],
       quizzes: [
-        { id: uid(), title: 'اختبار الفصل الأول', date: '2026-04-10T10:00:00', score: 85, maxScore: 100, completed: true, createdAt: new Date().toISOString() },
+        { id: uid(), title: 'اختبار الفصل الأول', date: '2026-04-10T10:00:00', maxScore: 100, completed: false, createdAt: new Date().toISOString() },
         { id: uid(), title: 'اختبار منتصف الفصل', date: '2026-04-20T10:00:00', maxScore: 100, completed: false, createdAt: new Date().toISOString() },
       ],
       quizForms: [
-        { id: uid(), title: 'نموذج اختبار الشبكات', url: 'https://forms.google.com', status: 'completed', provider: 'google-forms', createdAt: new Date().toISOString() },
+        { id: uid(), title: 'نموذج اختبار الشبكات', url: '#', status: 'not-taken', provider: 'google-forms', createdAt: new Date().toISOString() },
       ],
       questionBanks: [
         { id: uid(), title: 'بنك أسئلة الفصل الأول', url: '#', category: 'الفصل الأول', pages: 25, createdAt: new Date().toISOString() },
@@ -149,13 +149,13 @@ function makeDemoData(): Record<SubjectId, SubjectData> {
         { id: uid(), title: 'مقدمة في المستشعرات اللاسلكية', type: 'pdf', url: '#', createdAt: new Date().toISOString() },
       ],
       recordings: [
-        { id: uid(), title: 'المحاضرة 1 - بروتوكولات الاتصال', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', createdAt: new Date().toISOString(), duration: '1:15:00' },
+        { id: uid(), title: 'المحاضرة 1 - بروتوكولات الاتصال', url: '#', createdAt: new Date().toISOString(), duration: '1:15:00' },
       ],
       assignments: [
         { id: uid(), title: 'مشروع شبكة مستشعرات', status: 'pending', deadline: '2026-04-18T23:59:00', createdAt: new Date().toISOString() },
       ],
       quizzes: [
-        { id: uid(), title: 'كويز أسبوعي 1', date: '2026-04-08T09:00:00', score: 90, maxScore: 100, completed: true, createdAt: new Date().toISOString() },
+        { id: uid(), title: 'كويز أسبوعي 1', date: '2026-04-08T09:00:00', maxScore: 100, completed: false, createdAt: new Date().toISOString() },
       ],
       quizForms: [],
       questionBanks: [
@@ -169,11 +169,11 @@ function makeDemoData(): Record<SubjectId, SubjectData> {
       ],
       recordings: [],
       assignments: [
-        { id: uid(), title: 'تطبيق SOLID Principles', status: 'graded', deadline: '2026-03-30T23:59:00', createdAt: new Date().toISOString(), grade: 95 },
+        { id: uid(), title: 'تطبيق SOLID Principles', status: 'pending', deadline: '2026-04-30T23:59:00', createdAt: new Date().toISOString() },
       ],
       quizzes: [],
       quizForms: [
-        { id: uid(), title: 'اختبار Design Patterns', url: 'https://forms.google.com', status: 'not-taken', provider: 'google-forms', createdAt: new Date().toISOString() },
+        { id: uid(), title: 'اختبار Design Patterns', url: '#', status: 'not-taken', provider: 'google-forms', createdAt: new Date().toISOString() },
       ],
       questionBanks: [],
     },
@@ -182,11 +182,9 @@ function makeDemoData(): Record<SubjectId, SubjectData> {
         { id: uid(), title: 'مقدمة في الشبكات العصبية', type: 'pdf', url: '#', createdAt: new Date().toISOString() },
       ],
       recordings: [
-        { id: uid(), title: 'Neural Networks Basics', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', createdAt: new Date().toISOString(), duration: '2:00:00' },
+        { id: uid(), title: 'Neural Networks Basics', url: '#', createdAt: new Date().toISOString(), duration: '2:00:00' },
       ],
-      assignments: [
-        { id: uid(), title: 'تدريب نموذج CNN', status: 'pending', deadline: '2026-04-12T23:59:00', createdAt: new Date().toISOString() },
-      ],
+      assignments: [],
       quizzes: [
         { id: uid(), title: 'Quiz - Backpropagation', date: '2026-04-14T10:00:00', maxScore: 50, completed: false, createdAt: new Date().toISOString() },
       ],
@@ -360,7 +358,7 @@ export const useLearningHubStore = create<LearningHubState>()(
       },
     }),
     {
-      name: 'nexus-learning-hub',
+      name: 'nexus-learning-hub-v2',
     }
   )
 );
