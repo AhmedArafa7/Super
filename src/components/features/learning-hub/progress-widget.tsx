@@ -17,8 +17,12 @@ interface ProgressWidgetProps {
  */
 export function ProgressWidget({ subjectId, compact = false }: ProgressWidgetProps) {
   const getProgress = useLearningHubStore((s) => s.getProgress);
-  const progress = getProgress(subjectId);
+  const progress = typeof getProgress === 'function' ? getProgress(subjectId) : 0;
   const subject = SUBJECTS.find((s) => s.id === subjectId);
+  
+  // Safe color extraction
+  const subjectColor = subject?.color || 'text-primary';
+  const progressColor = subjectColor.replace('text-', 'bg-');
 
   if (compact) {
     return (
@@ -28,7 +32,7 @@ export function ProgressWidget({ subjectId, compact = false }: ProgressWidgetPro
         </div>
         <Progress 
           value={progress} 
-          className={cn("h-1 bg-white/5", subject?.color.replace('text-', 'bg-'))} 
+          className={cn("h-1 bg-white/5", progressColor)} 
         />
       </div>
     );
@@ -38,12 +42,12 @@ export function ProgressWidget({ subjectId, compact = false }: ProgressWidgetPro
     <div className="flex flex-col gap-4 w-full">
       <div className="flex items-center justify-between min-w-0">
         <div className="flex items-center gap-2">
-          <div className={cn('size-8 rounded-lg flex items-center justify-center bg-white/5 shadow-inner', subject?.color || 'text-primary')}>
+          <div className={cn('size-8 rounded-lg flex items-center justify-center bg-white/5 shadow-inner', subjectColor)}>
             <TrendingUp className="size-4 shrink-0" />
           </div>
           <div>
             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">معدل الإنجاز الأكاديمي</p>
-            <p className="text-xs font-bold text-white mt-1">المادة الدراسية: {subject?.name}</p>
+            <p className="text-xs font-bold text-white mt-1">المادة الدراسية: {subject?.name || 'غير معروف'}</p>
           </div>
         </div>
         <div className={cn(
@@ -61,7 +65,7 @@ export function ProgressWidget({ subjectId, compact = false }: ProgressWidgetPro
         />
         <div 
           className="absolute top-2 left-0 h-3 blur-[8px] opacity-30 transition-all duration-1000 bg-primary rounded-full shadow-[0_0_20px_var(--primary)]"
-          style={{ width: `${progress}%` }}
+          style={{ width: `${progress}%`, backgroundColor: 'var(--primary)' }}
         />
       </div>
       

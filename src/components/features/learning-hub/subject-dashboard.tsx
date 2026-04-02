@@ -33,7 +33,13 @@ interface SubjectDashboardProps {
 }
 
 export function SubjectDashboard({ subjectId }: SubjectDashboardProps) {
-  const subject = SUBJECTS.find((s) => s.id === subjectId)!;
+  const subject = SUBJECTS.find((s) => s.id === subjectId) || {
+    name: 'المادة',
+    nameEn: 'Subject',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    icon: '📚'
+  };
 
   return (
     <AnimatePresence mode="wait">
@@ -78,15 +84,21 @@ export function SubjectDashboard({ subjectId }: SubjectDashboardProps) {
             <TabsList className="bg-white/5 border border-white/10 rounded-xl p-1 h-auto inline-flex gap-1 min-w-max">
               {sectionOrder.map((section) => {
                 const Icon = sectionIcons[section];
+                const label = SECTION_LABELS[section]?.label || section;
+                
                 return (
                   <TabsTrigger
                     key={section}
                     value={section}
                     className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-lg text-xs font-bold gap-1.5 h-9 px-3 text-muted-foreground whitespace-nowrap"
                   >
-                    <Icon className="size-3.5" />
-                    <span className="hidden xs:inline sm:inline">{SECTION_LABELS[section].label}</span>
-                    <span className="xs:hidden sm:hidden">{SECTION_LABELS[section].label}</span>
+                    {Icon && typeof Icon === 'function' ? (
+                      <Icon className="size-3.5" />
+                    ) : (
+                      <div className="size-3.5 bg-white/10 rounded-full" />
+                    )}
+                    <span className="hidden xs:inline sm:inline">{label}</span>
+                    <span className="xs:hidden sm:hidden">{label}</span>
                   </TabsTrigger>
                 );
               })}

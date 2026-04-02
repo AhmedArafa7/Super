@@ -358,7 +358,7 @@ export const useLearningHubStore = create<LearningHubState>()(
       },
     }),
     {
-      name: 'nexus-learning-hub-v2',
+      name: 'nexus-learning-hub-v3', // Force reset to clear potential corrupt state from merge
     }
   )
 );
