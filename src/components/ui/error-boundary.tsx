@@ -11,7 +11,7 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
-  componentStack: string | null;
+  componentStack: string | null | undefined;
 }
 
 export class GlobalErrorBoundary extends Component<Props, State> {
@@ -64,6 +64,6 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       );
     }
 
-    return this.children;
+    return this.props.children;
   }
 }
