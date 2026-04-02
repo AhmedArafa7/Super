@@ -19,7 +19,7 @@ export function GlassCard({
   return (
     <div
       className={cn(
-        "glass border text-white/90 relative overflow-hidden transition-all duration-500",
+        "glass border text-white/90 relative overflow-hidden",
         // Varieties
         variant === 'default' && "border-white/10 rounded-[2.5rem] shadow-xl",
         variant === 'flat' && "border-white/5 rounded-3xl",

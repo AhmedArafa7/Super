@@ -3,8 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useLearningHubStore, SUBJECTS } from './learning-hub-store';
-import { Clock, AlertTriangle } from 'lucide-react';
+import { Clock, AlertTriangle, Zap } from 'lucide-react';
 
+/**
+ * [STABILITY_ANCHOR: DEADLINE_WIDGET_V2.0_MERGED]
+ * واجهة التنبيهات المدرسية المتقدمة — Nexus V2
+ */
 export function DeadlineWidget() {
   const getNextDeadline = useLearningHubStore((s) => s.getNextDeadline);
   const deadline = getNextDeadline();
@@ -19,7 +23,7 @@ export function DeadlineWidget() {
       const diff = target.getTime() - now.getTime();
 
       if (diff <= 0) {
-        setTimeLeft('انتهى الوقت!');
+        setTimeLeft('EXPIRED');
         return;
       }
 
@@ -28,11 +32,11 @@ export function DeadlineWidget() {
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
       if (days > 0) {
-        setTimeLeft(`${days} يوم ${hours} ساعة`);
+        setTimeLeft(`${days}D ${hours}H`);
       } else if (hours > 0) {
-        setTimeLeft(`${hours} ساعة ${minutes} دقيقة`);
+        setTimeLeft(`${hours}H ${minutes}M`);
       } else {
-        setTimeLeft(`${minutes} دقيقة`);
+        setTimeLeft(`${minutes}M`);
       }
     };
 
@@ -41,7 +45,12 @@ export function DeadlineWidget() {
     return () => clearInterval(interval);
   }, [deadline]);
 
-  if (!deadline) return null;
+  if (!deadline) return (
+     <div className="flex items-center gap-3 py-2 opacity-40 grayscale">
+        <Zap className="size-4" />
+        <span className="text-[10px] font-black tracking-widest uppercase">No Active Deadlines</span>
+     </div>
+  );
 
   const subject = SUBJECTS.find((s) => s.id === deadline.subjectId);
   const isUrgent = (() => {
@@ -51,29 +60,40 @@ export function DeadlineWidget() {
 
   return (
     <div className={cn(
-      'p-3 rounded-xl border transition-all',
+      'p-4 rounded-2xl border transition-all duration-700 relative overflow-hidden group',
       isUrgent
-        ? 'bg-red-500/10 border-red-500/20 animate-pulse'
-        : 'bg-white/5 border-white/10'
+        ? 'bg-red-500/10 border-red-500/20 shadow-lg shadow-red-500/5'
+        : 'bg-white/[0.03] border-white/5'
     )} dir="rtl">
-      <div className="flex items-center gap-2 mb-1.5">
-        {isUrgent ? (
-          <AlertTriangle className="size-3.5 text-red-400" />
-        ) : (
-          <Clock className="size-3.5 text-amber-400" />
-        )}
-        <span className="text-[10px] uppercase font-black tracking-wider text-muted-foreground">
-          الموعد القادم
-        </span>
-      </div>
-      <p className="text-xs font-bold text-white truncate">{deadline.item.title}</p>
-      <div className="flex items-center gap-2 mt-1">
-        <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-md', subject?.bgColor, subject?.color)}>
-          {subject?.name}
-        </span>
-        <span className={cn('text-xs font-black tabular-nums', isUrgent ? 'text-red-400' : 'text-amber-400')}>
+      {isUrgent && (
+         <div className="absolute top-0 right-0 size-20 bg-red-500/10 blur-[30px] -mr-10 -mt-10" />
+      )}
+      
+      <div className="flex items-center justify-between mb-4 relative z-10">
+        <div className="flex items-center gap-2">
+          {isUrgent ? (
+            <AlertTriangle className="size-4 text-red-400" />
+          ) : (
+            <Clock className="size-4 text-primary" />
+          )}
+          <span className="text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground">
+            {isUrgent ? 'بروتوكول عاجل' : 'الموعد القادم'}
+          </span>
+        </div>
+        <div className={cn('text-[10px] font-black tabular-nums tracking-tighter px-2 py-0.5 rounded-lg border', isUrgent ? 'border-red-500/20 text-red-400 bg-red-500/5' : 'border-primary/20 text-primary bg-primary/5')}>
           {timeLeft}
-        </span>
+        </div>
+      </div>
+
+      <div className="space-y-4 relative z-10">
+        <p className="text-sm font-black text-white leading-tight line-clamp-1">{deadline.item.title}</p>
+        
+        <div className="flex items-center justify-between pt-3 border-t border-white/5">
+          <span className={cn('text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest', subject?.bgColor, subject?.color)}>
+            {subject?.nameEn}
+          </span>
+          <p className="text-[9px] text-muted-foreground font-mono italic opacity-40">AUTO_SYNC_ENABLED</p>
+        </div>
       </div>
     </div>
   );

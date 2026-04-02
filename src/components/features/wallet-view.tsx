@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -14,7 +13,6 @@ import {
   EyeOff,
   ChevronDown
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
@@ -29,13 +27,16 @@ import {
 } from '@/lib/currency-store';
 import { toast } from '@/hooks/use-toast';
 
+import { FeatureHeader } from '@/components/ui/feature-header';
+import { GlassCard } from '@/components/ui/glass-card';
+
 import { WalletCurrencyCard } from './wallet/wallet-currency-card';
 import { WalletTransactionLog } from './wallet/wallet-transaction-log';
 import { WalletPendingSync } from './wallet/wallet-pending-sync';
 
 /**
- * [STABILITY_ANCHOR: WALLET_VIEW_V3.0]
- * عرض المحفظة المتعددة العملات — تم تقسيمه لمكونات فرعية.
+ * [STABILITY_ANCHOR: WALLET_VIEW_V3.0_MERGED]
+ * عرض المحفظة المتعددة العملات المطورة — Nexus V2
  */
 export function WalletView() {
   const { user } = useAuth();
@@ -61,23 +62,28 @@ export function WalletView() {
   const [convertAmount, setConvertAmount] = useState('');
   const [isConverting, setIsConverting] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
-    await Promise.all([
-      fetchWallet(user.id),
-      fetchTransactions(user.id)
-    ]);
-    const rules = await getUserUnfreezeRules(user.id);
-    setUnfreezeRules(rules);
-    setIsLoading(false);
-  };
+    try {
+      await Promise.all([
+        fetchWallet(user.id),
+        fetchTransactions(user.id)
+      ]);
+      const rules = await getUserUnfreezeRules(user.id);
+      setUnfreezeRules(rules);
+    } catch (e) {
+      console.error("Wallet Load Error", e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, fetchWallet, fetchTransactions]);
 
   useEffect(() => {
     loadData();
     const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [loadData]);
 
   const handleConvert = async () => {
     if (!user || !convertAmount || Number(convertAmount) <= 0) return;
@@ -98,8 +104,10 @@ export function WalletView() {
 
   if (isLoading && !wallet) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-primary" />
+      <div className="h-full flex flex-col items-center justify-center gap-4 animate-in fade-in duration-700">
+         <div className="size-16 border-4 border-primary/20 rounded-full" />
+         <div className="size-16 border-4 border-primary border-t-transparent rounded-full animate-spin absolute" />
+         <p className="text-xs font-black text-white/40 uppercase tracking-[0.2em] mt-20">Syncing Multi-Currency Ledger</p>
       </div>
     );
   }
@@ -111,70 +119,83 @@ export function WalletView() {
   const activeSyncing = pendingTransactions.filter(t => t.status === 'pending_sync');
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex justify-between items-center flex-row-reverse">
-        <div className="text-right">
-          <h2 className="text-4xl font-headline font-bold text-white tracking-tight flex items-center gap-3 justify-end">
-            المحفظة الذكية
-            <WalletIcon className="text-primary" />
-          </h2>
-          <p className="text-muted-foreground mt-1">إدارة عملاتك الرقمية والتحويلات بين المحافظ.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {pendingDebt > 0 && (
-            <Badge variant="destructive" className="h-10 px-4 rounded-xl gap-2 animate-pulse">
-              <AlertCircle className="size-4" />
-              -{(pendingDebt ?? 0).toLocaleString()} [Sync Pending]
-            </Badge>
-          )}
-          <Button variant="outline" className="rounded-xl border-white/10 hover:bg-white/5 gap-2" onClick={() => setShowsave(!showsave)}>
-            {showsave ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            {showsave ? 'إخفاء الداخلية' : 'عرض الداخلية'}
-          </Button>
-          <Button variant="outline" className="rounded-xl border-white/10 hover:bg-white/5" onClick={loadData}>
-            <RefreshCcw className="size-4" />
-          </Button>
-        </div>
-      </div>
+    <div className="p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 font-sans text-right">
+      <FeatureHeader 
+        title="المحفظة الذكية"
+        description="إدارة عملاتك الرقمية والتحويلات بين المحافظ."
+        Icon={WalletIcon}
+        onRefresh={loadData}
+        isRefreshing={isLoading}
+        action={
+          <div className="flex items-center gap-3">
+            {pendingDebt > 0 && (
+              <Badge variant="destructive" className="h-11 px-4 rounded-xl gap-2 border-red-500/20 bg-red-500/10 text-red-400 animate-pulse">
+                <AlertCircle className="size-4" />
+                -{(pendingDebt ?? 0).toLocaleString()} [Sync Pending]
+              </Badge>
+            )}
+            <Button 
+              variant="outline" 
+              className="h-11 rounded-xl border-white/5 bg-white/5 hover:bg-white/10 gap-3 font-bold" 
+              onClick={() => setShowsave(!showsave)}
+            >
+              {showsave ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              {showsave ? 'إخفاء الداخلية' : 'عرض الداخلية'}
+            </Button>
+          </div>
+        }
+      />
 
-      {/* Total Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="glass border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 size-40 bg-primary/10 blur-[60px] -mr-20 -mt-20" />
-          <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-2 flex items-center gap-2 justify-end">
-            إجمالي العملات الحقيقية <Zap className="size-3" />
-          </p>
-          <span className="text-4xl font-bold text-white tracking-tighter">{(totalReal ?? 0).toLocaleString()}</span>
-        </Card>
-        <Card className="glass border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 size-40 bg-indigo-500/10 blur-[60px] -mr-20 -mt-20" />
-          <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2 justify-end">
-            إجمالي العملات الداخلية <Coins className="size-3" />
-          </p>
-          <span className="text-4xl font-bold text-indigo-400 tracking-tighter">{(totalsave ?? 0).toLocaleString()}</span>
-        </Card>
-        <Card className="glass border-white/5 rounded-[2.5rem] p-8 flex items-center justify-center">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <GlassCard variant="default" className="relative overflow-hidden group border-white/5">
+          <div className="absolute top-0 right-0 size-64 bg-primary/20 blur-[100px] -mr-32 -mt-32 opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
+          <div className="relative z-10 space-y-2">
+            <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] flex items-center gap-2 justify-end mb-4">
+              إجمالي العملات الحقيقية <Zap className="size-3" />
+            </p>
+            <div className="flex items-baseline justify-end gap-2">
+              <span className="text-4xl md:text-5xl font-black text-white tracking-tighter">{(totalReal ?? 0).toLocaleString()}</span>
+              <span className="text-xs text-primary/60 font-bold">CREDITS</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2 font-mono">NET SETTLED VALUE</p>
+          </div>
+        </GlassCard>
+
+        <GlassCard variant="default" className="relative overflow-hidden group border-white/5">
+          <div className="absolute top-0 right-0 size-64 bg-indigo-500/20 blur-[100px] -mr-32 -mt-32 opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
+          <div className="relative z-10 space-y-2">
+            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2 justify-end mb-4">
+              إجمالي العملات الداخلية <Coins className="size-3" />
+            </p>
+            <div className="flex items-baseline justify-end gap-2">
+              <span className="text-4xl md:text-5xl font-black text-indigo-400 tracking-tighter">{(totalsave ?? 0).toLocaleString()}</span>
+              <span className="text-xs text-indigo-400/60 font-bold">V-UNIT</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2 font-mono">INTERNAL VIRTUAL BALANCE</p>
+          </div>
+        </GlassCard>
+
+        <GlassCard variant="hover" className="flex items-center justify-center border-primary/20 bg-primary/5">
           <Dialog open={isConvertOpen} onOpenChange={setIsConvertOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-l from-primary to-indigo-600 rounded-2xl h-16 px-10 font-bold text-lg shadow-xl shadow-primary/20 gap-3">
-                <ArrowRightLeft className="size-5" />
+              <Button className="bg-gradient-to-l from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-500 rounded-[1.5rem] h-20 px-12 font-bold text-xl shadow-2xl shadow-primary/30 gap-4 group transition-all active:scale-95">
+                <ArrowRightLeft className="size-6 group-hover:rotate-180 transition-transform duration-500" />
                 تحويل عملات
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right sm:max-w-md">
+            <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-10 text-right sm:max-w-md shadow-[0_0_100px_rgba(0,0,0,0.5)]">
               <DialogHeader>
-                <DialogTitle className="text-2xl font-bold text-white text-right">تحويل عملات</DialogTitle>
-                <DialogDescription className="text-muted-foreground text-right text-sm">
-                  حوّل بين العملات المتاحة. التحويل من الداخلية للحقيقية يخضع لشروط فك التجميد.
+                <DialogTitle className="text-2xl font-black text-white text-right">محول العملات</DialogTitle>
+                <DialogDescription className="text-muted-foreground text-right text-sm leading-relaxed mt-2">
+                  حوّل بين العملات المتاحة. التحويل من الحسابات الداخلية يخضع لبروتوكولات فك التجميد.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-6 py-4">
-                <div className="grid gap-2">
-                  <Label className="text-right text-xs font-bold">من عملة</Label>
+              <div className="space-y-6 py-6">
+                <div className="space-y-2">
+                  <Label className="text-right text-[10px] font-black text-muted-foreground uppercase tracking-widest block">المصدر (من)</Label>
                   <Select value={convertFrom} onValueChange={(v: any) => setConvertFrom(v)}>
-                    <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-12 rounded-xl"><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-white/10 text-white">
+                    <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-14 rounded-2xl focus:ring-primary/40"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-slate-950 border-white/10 text-white">
                       {CURRENCIES.map(c => (
                         <SelectItem key={c.code} value={c.code}>
                           {c.icon} {c.nameAr} — رصيد: {wallet?.balances?.[c.code]?.toLocaleString() || 0}
@@ -183,16 +204,16 @@ export function WalletView() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex justify-center">
-                  <div className="size-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
-                    <ChevronDown className="size-5 text-primary" />
+                <div className="flex justify-center -my-3 relative z-10">
+                   <div className="size-12 rounded-2xl bg-slate-900 flex items-center justify-center border-2 border-white/10 text-primary shadow-xl">
+                    <ChevronDown className="size-6" />
                   </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label className="text-right text-xs font-bold">إلى عملة</Label>
+                <div className="space-y-2">
+                  <Label className="text-right text-[10px] font-black text-muted-foreground uppercase tracking-widest block">الهدف (إلى)</Label>
                   <Select value={convertTo} onValueChange={(v: any) => setConvertTo(v)}>
-                    <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-12 rounded-xl"><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-white/10 text-white">
+                    <SelectTrigger className="bg-white/5 border-white/10 flex-row-reverse h-14 rounded-2xl focus:ring-primary/40"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-slate-950 border-white/10 text-white">
                       {CURRENCIES.filter(c => c.code !== convertFrom).map(c => (
                         <SelectItem key={c.code} value={c.code}>
                           {c.icon} {c.nameAr}
@@ -201,11 +222,12 @@ export function WalletView() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
-                  <Label className="text-right text-xs font-bold">الكمية</Label>
+                <div className="space-y-2">
+                  <Label className="text-right text-[10px] font-black text-muted-foreground uppercase tracking-widest block">الكمية المراد تحويلها</Label>
                   <Input
                     type="number"
-                    className="bg-white/5 border-white/10 text-center h-14 rounded-xl text-2xl font-bold text-white"
+                    dir="auto"
+                    className="bg-white/5 border-white/10 text-center h-16 rounded-2xl text-3xl font-black text-white focus-visible:ring-primary/40"
                     placeholder="0"
                     value={convertAmount}
                     onChange={e => setConvertAmount(e.target.value)}
@@ -216,18 +238,17 @@ export function WalletView() {
                 <Button
                   onClick={handleConvert}
                   disabled={isConverting || !convertAmount || Number(convertAmount) <= 0}
-                  className="w-full h-14 bg-primary rounded-2xl font-bold text-lg shadow-xl shadow-primary/20"
+                  className="w-full h-16 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black text-lg shadow-2xl shadow-primary/30 transition-all active:scale-95"
                 >
-                  {isConverting ? <Loader2 className="size-5 animate-spin" /> : <><ArrowRightLeft className="size-5 mr-2" /> تأكيد التحويل</>}
+                  {isConverting ? <Loader2 className="size-6 animate-spin" /> : <><ArrowRightLeft className="size-5 mr-3" /> تأكيد التحويل البروتوكولي</>}
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </Card>
+        </GlassCard>
       </div>
 
-      {/* Currency Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {displayCurrencies.map(currency => (
           <WalletCurrencyCard
             key={currency.code}
@@ -239,14 +260,12 @@ export function WalletView() {
         ))}
       </div>
 
-      {/* Transaction Log */}
       <WalletTransactionLog
         transactions={transactions}
         filterCurrency={filterCurrency}
         onFilterChange={setFilterCurrency}
       />
 
-      {/* Pending Sync */}
       <WalletPendingSync
         pendingDebt={pendingDebt}
         failedAcquisitions={failedAcquisitions}

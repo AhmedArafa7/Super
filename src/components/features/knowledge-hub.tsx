@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { LearningHub } from "./learning-hub/learning-hub";
+import LearningHub from "./learning-hub/learning-hub";
 
 /**
  * [STABILITY_ANCHOR: KNOWLEDGE_HUB_V6.0]
