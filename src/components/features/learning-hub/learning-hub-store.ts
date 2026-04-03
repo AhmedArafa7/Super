@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { learningService } from '@/lib/learning-service';
 
 // ───── Types ─────
 
@@ -255,6 +256,7 @@ interface LearningHubState {
   isLoading: boolean;
   setStorageMode: (mode: 'local' | 'cloud') => void;
   initCloudSync: () => Promise<void>;
+  _unsubscribe?: () => void;
 }
 
 export const useLearningHubStore = create<LearningHubState>()(
@@ -265,24 +267,44 @@ export const useLearningHubStore = create<LearningHubState>()(
       searchQuery: '',
 
       addItem: (subjectId, section, item) => {
+        const id = uid();
+        const newItem = { ...item, id, createdAt: new Date().toISOString() };
+        
         set((state) => {
           const subj = { ...state.subjects[subjectId] };
           const arr = [...(subj[section] as any[])];
-          arr.push({ ...item, id: uid(), createdAt: new Date().toISOString() });
+          arr.push(newItem);
           subj[section] = arr as any;
           return { subjects: { ...state.subjects, [subjectId]: subj } };
         });
+
+        // Cloud Sync
+        const { storageMode } = get();
+        if (storageMode === 'cloud') {
+          learningService.syncItem(subjectId, section, newItem).catch(console.error);
+        }
       },
 
       editItem: (subjectId, section, itemId, updates) => {
+        let updatedItem: any = null;
         set((state) => {
           const subj = { ...state.subjects[subjectId] };
-          const arr = (subj[section] as any[]).map((item: any) =>
-            item.id === itemId ? { ...item, ...updates } : item
-          );
+          const arr = (subj[section] as any[]).map((item: any) => {
+            if (item.id === itemId) {
+              updatedItem = { ...item, ...updates };
+              return updatedItem;
+            }
+            return item;
+          });
           subj[section] = arr as any;
           return { subjects: { ...state.subjects, [subjectId]: subj } };
         });
+
+        // Cloud Sync
+        const { storageMode } = get();
+        if (storageMode === 'cloud' && updatedItem) {
+          learningService.syncItem(subjectId, section, updatedItem).catch(console.error);
+        }
       },
 
       deleteItem: (subjectId, section, itemId) => {
@@ -292,6 +314,12 @@ export const useLearningHubStore = create<LearningHubState>()(
           subj[section] = arr as any;
           return { subjects: { ...state.subjects, [subjectId]: subj } };
         });
+
+        // Cloud Sync
+        const { storageMode } = get();
+        if (storageMode === 'cloud') {
+          learningService.deleteItem(subjectId, section, itemId).catch(console.error);
+        }
       },
 
       toggleAssignmentStatus: (subjectId, itemId) => {
@@ -363,15 +391,52 @@ export const useLearningHubStore = create<LearningHubState>()(
         return nearest ? { item: nearest.item, subjectId: nearest.subjectId } : null;
       },
 
-      // Hybrid Storage Implementation (Restored)
+      // Hybrid Storage Implementation (Real Firestore Sync)
       storageMode: 'local',
       isLoading: false,
-      setStorageMode: (mode) => set({ storageMode: mode }),
+      setStorageMode: (mode) => {
+        set({ storageMode: mode });
+        if (mode === 'cloud') {
+          get().initCloudSync();
+        } else {
+          // Cleanup subscription when leaving cloud mode
+          const state = get();
+          if (state._unsubscribe) {
+            state._unsubscribe();
+            set({ _unsubscribe: undefined });
+          }
+        }
+      },
       initCloudSync: async () => {
+        const { storageMode, _unsubscribe } = get();
+        if (storageMode !== 'cloud') return;
+
         set({ isLoading: true });
-        // Simulate cloud sync initialization
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        set({ isLoading: false });
+
+        try {
+          // 1. Fetch initial snapshot
+          const cloudData = await learningService.getCloudHub();
+          if (cloudData) {
+            set((state) => ({
+              subjects: { ...state.subjects, ...cloudData }
+            }));
+          }
+
+          // 2. Setup real-time listener if not already active
+          if (!_unsubscribe) {
+            const unsub = learningService.subscribeToHub((updatedData) => {
+              set((state) => ({
+                subjects: { ...state.subjects, ...updatedData }
+              }));
+              console.log('[Cloud Hub] Synchronized in real-time.');
+            });
+            set({ _unsubscribe: unsub });
+          }
+        } catch (error) {
+          console.error('[Cloud Sync] Failed to initialize:', error);
+        } finally {
+          set({ isLoading: false });
+        }
       },
     }),
     {
