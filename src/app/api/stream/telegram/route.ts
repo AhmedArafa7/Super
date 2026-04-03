@@ -59,12 +59,18 @@ export async function GET(req: NextRequest) {
         const contentLength = end - start + 1;
 
         let contentType = "application/octet-stream";
+        let fileName = "file";
+        
         try {
           const firstChunk = chunks[0];
           const getFilePathRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${firstChunk.id}`);
           const pathData = await getFilePathRes.json();
+          
           if (pathData.ok && pathData.result.file_path) {
-            const ext = pathData.result.file_path.split('.').pop()?.toLowerCase();
+            const filePath = pathData.result.file_path;
+            fileName = filePath.split('/').pop() || 'file';
+            const ext = fileName.split('.').pop()?.toLowerCase();
+            
             const mimeMap: Record<string, string> = {
               'pdf': 'application/pdf',
               'jpg': 'image/jpeg',
@@ -74,15 +80,23 @@ export async function GET(req: NextRequest) {
               'mp4': 'video/mp4',
               'mkv': 'video/x-matroska',
               'mp3': 'audio/mpeg',
+              'wav': 'audio/wav',
               'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              'doc': 'application/msword',
               'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-              'zip': 'application/zip'
+              'xls': 'application/vnd.ms-excel',
+              'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+              'ppt': 'application/vnd.ms-powerpoint',
+              'txt': 'text/plain',
+              'zip': 'application/zip',
+              'rar': 'application/x-rar-compressed'
             };
+            
             if (ext && mimeMap[ext]) contentType = mimeMap[ext];
-            else if (ext && ['mp4', 'mkv', 'avi', 'mov'].includes(ext)) contentType = 'video/mp4';
+            else if (ext && ['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(ext)) contentType = 'video/mp4';
           }
         } catch (e) {
-          console.warn("Failed to detect content type, falling back to octet-stream");
+          console.warn("Failed to detect metadata, using defaults");
         }
 
         const stream = new ReadableStream({
@@ -128,6 +142,7 @@ export async function GET(req: NextRequest) {
 
         const responseHeaders = new Headers();
         responseHeaders.set("Content-Type", contentType);
+        responseHeaders.set("Content-Disposition", `inline; filename="${encodeURIComponent(fileName)}"`);
         responseHeaders.set("Accept-Ranges", "bytes");
         responseHeaders.set("Content-Length", contentLength.toString());
 
