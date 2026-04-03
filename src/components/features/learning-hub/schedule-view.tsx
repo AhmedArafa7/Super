@@ -17,7 +17,7 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { CalendarDays, Plus, MapPin, Clock, Edit3, Trash2, Save, X } from 'lucide-react';
+import { CalendarDays, Plus, MapPin, Clock, Edit3, Trash2, Save, X, User } from 'lucide-react';
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8AM to 8PM
 
@@ -157,7 +157,7 @@ export function ScheduleView() {
                         )}
                         onClick={() => { setEditingEvent(event); setModalOpen(true); }}
                         >
-                          <div className="space-y-1">
+                          <div className="space-y-1.5">
                             <div className="flex items-center justify-between gap-2">
                                 <p className={cn('text-[11px] font-black leading-tight', colors.text)}>
                                     {event.title}
@@ -169,12 +169,24 @@ export function ScheduleView() {
                                     {event.groupId === 'A' ? 'Lecture' : event.groupId}
                                 </div>
                             </div>
-                            <p className="text-[10px] text-slate-400 font-medium">
-                              {subject?.icon} {subject?.name}
-                            </p>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                    {subject?.icon} {subject?.name}
+                                </span>
+                            </div>
+                            
+                            {/* Doctor Name - Prominent */}
+                            {event.staff && (
+                                <div className="flex items-center gap-1.5 mt-1 bg-white/5 rounded-lg px-2 py-1 w-fit group-hover/cell:bg-white/10 transition-colors">
+                                    <User className="size-3 text-primary animate-pulse" />
+                                    <span className="text-[9px] text-primary/90 font-black truncate max-w-[120px]">
+                                        {event.staff}
+                                    </span>
+                                </div>
+                            )}
                           </div>
 
-                          <div className="flex flex-col gap-1.5 mt-3 pt-3 border-t border-white/10">
+                          <div className="flex flex-col gap-1 mt-3 pt-3 border-t border-white/10">
                             {event.location && (
                               <div className="flex items-center gap-1.5 min-w-0">
                                 <MapPin className="size-3 text-slate-500 shrink-0" />
@@ -189,18 +201,21 @@ export function ScheduleView() {
                             </div>
                           </div>
                           
-                          {/* Trash indicator for fast delete */}
-                          <div className="absolute top-1 left-1 opacity-0 group-hover/cell:opacity-100 transition-opacity">
+                          {/* Fast Actions */}
+                          <div className="absolute top-1 left-1 opacity-0 group-hover/cell:opacity-100 transition-opacity flex gap-1">
+                             <button className="p-1 text-slate-400 hover:text-white" onClick={e => { e.stopPropagation(); setEditingEvent(event); setModalOpen(true); }}>
+                                <Edit3 className="size-3" />
+                             </button>
                              <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <button className="p-1 text-red-400 hover:text-red-300" onClick={e => e.stopPropagation()}>
+                                    <button className="p-1 text-red-500/60 hover:text-red-400" onClick={e => e.stopPropagation()}>
                                         <Trash2 className="size-3" />
                                     </button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent className="bg-slate-950 border-white/10 rounded-2xl w-[calc(100%-2rem)] max-w-md" dir="rtl">
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>حذف من الجدول</AlertDialogTitle>
-                                        <AlertDialogDescription>سيتم حذف "{event.title}" نهائياً من مجموعتك.</AlertDialogDescription>
+                                        <AlertDialogDescription>سيتم حذف "{event.title}" نهائياً.</AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter className="flex-row-reverse gap-2">
                                         <AlertDialogAction onClick={() => deleteScheduleEvent(event.id)} className="bg-red-600 rounded-xl">حذف</AlertDialogAction>
@@ -217,7 +232,7 @@ export function ScheduleView() {
                   return (
                     <td
                       key={dayIndex}
-                      className="border-b border-l border-white/5 h-20 hover:bg-white/[0.03] transition-colors relative"
+                      className="border-b border-l border-white/5 h-24 hover:bg-white/[0.03] transition-colors relative"
                       onClick={() => {
                         setEditingEvent({ id: '', subjectId: 'data-center', day: dayIndex, startHour: hour, endHour: hour + 1, title: '', groupId: selectedGroup === 'All' ? 'A' : selectedGroup });
                         setModalOpen(true);
@@ -261,6 +276,7 @@ function ScheduleModal({ open, onClose, initialData, onSave, mode }: ScheduleMod
   const [startHour, setStartHour] = useState(initialData?.startHour?.toString() || '8');
   const [endHour, setEndHour] = useState(initialData?.endHour?.toString() || '10');
   const [location, setLocation] = useState(initialData?.location || '');
+  const [staff, setStaff] = useState(initialData?.staff || '');
   const [groupId, setGroupId] = useState(initialData?.groupId || 'A');
 
   React.useEffect(() => {
@@ -271,7 +287,12 @@ function ScheduleModal({ open, onClose, initialData, onSave, mode }: ScheduleMod
       setStartHour(initialData.startHour?.toString() || '8');
       setEndHour(initialData.endHour?.toString() || '10');
       setLocation(initialData.location || '');
+      setStaff(initialData.staff || '');
       setGroupId(initialData.groupId || 'A');
+    } else {
+        setTitle('');
+        setStaff('');
+        setLocation('');
     }
   }, [initialData, open]);
 
@@ -284,6 +305,7 @@ function ScheduleModal({ open, onClose, initialData, onSave, mode }: ScheduleMod
       startHour: parseInt(startHour),
       endHour: parseInt(endHour),
       location: location || undefined,
+      staff: staff || undefined,
       groupId
     });
     onClose();
@@ -302,7 +324,7 @@ function ScheduleModal({ open, onClose, initialData, onSave, mode }: ScheduleMod
             <div className="space-y-2">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">المادة</Label>
                 <Select value={subjectId} onValueChange={(v) => setSubjectId(v as SubjectId)}>
-                <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-12 text-right"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-11 text-right"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-slate-900 border-white/10 rounded-2xl">
                     {SUBJECTS.map((s) => (
                     <SelectItem key={s.id} value={s.id} className="rounded-xl">{s.icon} {s.name}</SelectItem>
@@ -313,9 +335,9 @@ function ScheduleModal({ open, onClose, initialData, onSave, mode }: ScheduleMod
             <div className="space-y-2">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">المجموعة (Group)</Label>
                 <Select value={groupId} onValueChange={setGroupId}>
-                <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-12 text-right"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-11 text-right"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-slate-900 border-white/10 rounded-2xl">
-                    <SelectItem value="A" className="rounded-xl font-bold">A (Lecture)</SelectItem>
+                    <SelectItem value="A" className="rounded-xl font-bold text-amber-300">A (Lecture)</SelectItem>
                     <SelectItem value="A1" className="rounded-xl">A1</SelectItem>
                     <SelectItem value="A2" className="rounded-xl">A2</SelectItem>
                     <SelectItem value="A3" className="rounded-xl">A3</SelectItem>
@@ -327,14 +349,22 @@ function ScheduleModal({ open, onClose, initialData, onSave, mode }: ScheduleMod
 
           <div className="space-y-2">
             <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">العنوان</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} required className="bg-white/5 border-white/10 rounded-2xl h-12 text-right" placeholder="اسم السكشن أو المحاضرة" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} required className="bg-white/5 border-white/10 rounded-2xl h-11 text-right" placeholder="اسم السكشن أو المحاضرة" />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">أستاذ المادة / الدكتور</Label>
+            <div className="relative">
+                <Input value={staff} onChange={(e) => setStaff(e.target.value)} className="bg-white/5 border-white/10 rounded-2xl h-11 text-right pr-9" placeholder="د. فلان / م. فلان" />
+                <User className="absolute right-3 top-3.5 size-4 text-slate-500" />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">اليوم</Label>
                 <Select value={day} onValueChange={setDay}>
-                <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-12 text-right"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-11 text-right"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-slate-900 border-white/10 rounded-2xl">
                     {DAYS.slice(0, 3).map((d, i) => (
                     <SelectItem key={i} value={i.toString()} className="rounded-xl">{d}</SelectItem>
@@ -344,7 +374,10 @@ function ScheduleModal({ open, onClose, initialData, onSave, mode }: ScheduleMod
             </div>
             <div className="space-y-2">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">المكان</Label>
-                <Input value={location} onChange={(e) => setLocation(e.target.value)} className="bg-white/5 border-white/10 rounded-2xl h-12 text-right" placeholder="قاعة / معمل" />
+                <div className="relative">
+                    <Input value={location} onChange={(e) => setLocation(e.target.value)} className="bg-white/5 border-white/10 rounded-2xl h-11 text-right pr-9" placeholder="قاعة / معمل" />
+                    <MapPin className="absolute right-3 top-3.5 size-4 text-slate-500" />
+                </div>
             </div>
           </div>
 
@@ -352,7 +385,7 @@ function ScheduleModal({ open, onClose, initialData, onSave, mode }: ScheduleMod
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">من الساعة</Label>
               <Select value={startHour} onValueChange={setStartHour}>
-                <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-12 text-right tabular-nums"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-11 text-right tabular-nums"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-slate-900 border-white/10 rounded-2xl">
                   {HOURS.map((h) => (
                     <SelectItem key={h} value={h.toString()} className="tabular-nums">{h < 10 ? `0${h}` : h}:00</SelectItem>
@@ -363,7 +396,7 @@ function ScheduleModal({ open, onClose, initialData, onSave, mode }: ScheduleMod
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">إلى الساعة</Label>
               <Select value={endHour} onValueChange={setEndHour}>
-                <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-12 text-right tabular-nums"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-11 text-right tabular-nums"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-slate-900 border-white/10 rounded-2xl">
                   {HOURS.map((h) => (
                     <SelectItem key={h} value={h.toString()} className="tabular-nums">{h < 10 ? `0${h}` : h}:00</SelectItem>

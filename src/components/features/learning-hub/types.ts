@@ -71,6 +71,7 @@ export interface ScheduleEvent {
   endHour: number;
   title: string;
   location?: string;
+  staff?: string;
   groupId?: string; // e.g. 'A', 'A1', 'A2', 'A3', 'A4'
 }
 
