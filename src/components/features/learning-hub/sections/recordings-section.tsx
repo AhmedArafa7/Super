@@ -43,13 +43,14 @@ export function RecordingsSection({ subjectId }: RecordingsSectionProps) {
     !searchQuery || r.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSave = (data: any) => {
+  const handleSave = (data: any, syncToCloud: boolean) => {
     if (editingItem) {
       editItem(subjectId, 'recordings', editingItem.id, data);
     } else {
-      addItem(subjectId, 'recordings', data);
+      addItem(subjectId, 'recordings', data, syncToCloud);
     }
     setEditingItem(null);
+    setModalOpen(false);
   };
 
   return (
@@ -112,7 +113,15 @@ export function RecordingsSection({ subjectId }: RecordingsSectionProps) {
 
                 {/* Info */}
                 <div className="p-3">
-                  <p className="text-sm font-bold text-white truncate">{item.title}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-bold text-white truncate">{item.title}</p>
+                    <div className={cn(
+                      "px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter shrink-0",
+                      item.source === 'cloud' ? "bg-primary/20 text-primary" : "bg-white/10 text-muted-foreground"
+                    )}>
+                      {item.source === 'cloud' ? 'Cloud' : 'Local'}
+                    </div>
+                  </div>
                   <div className="flex items-center gap-1.5 mt-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     <Button size="sm" variant="ghost" className="h-8 text-[10px] text-amber-400 hover:bg-amber-500/10 gap-1 rounded-lg flex-1" onClick={() => { setEditingItem(item); setModalOpen(true); }}>
                       <Edit3 className="size-3" /> تعديل

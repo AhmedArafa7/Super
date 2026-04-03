@@ -7,12 +7,16 @@ import { LearningSidebar } from './learning-sidebar';
 import { SubjectDashboard } from './subject-dashboard';
 import { ScheduleView } from './schedule-view';
 import { FeatureHeader } from '@/components/ui/feature-header';
-import { GraduationCap, Cloud, Database, LayoutGrid, List, Search as SearchIcon, Sparkles } from 'lucide-react';
+import { 
+  GraduationCap, Search, Plus, BookOpen, Clock, Calendar, CheckCircle2, ChevronRight, 
+  Filter, MoreVertical, LayoutGrid, List, Trash2, Edit2, Share2, 
+  ExternalLink, FileText, Video, Play, Download, SearchIcon,
+  Cloud, Database, Loader2, Sparkles, Zap, ShieldCheck, Menu
+} from 'lucide-react';
 import { IconSafe } from '@/components/ui/icon-safe';
 import { LearningSearchBar } from './search-bar';
 import { QuickActionFab } from './quick-action-fab';
 import { Button } from '@/components/ui/button';
-import { Menu } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -33,19 +37,25 @@ import {
  */
 export default function LearningHub() {
   const { 
-    storageMode, 
-    setStorageMode, 
-    initCloudSync, 
-    isLoading 
+    subjects, 
+    schedule, 
+    searchQuery, 
+    setSearchQuery, 
+    addItem, 
+    editItem, 
+    deleteItem,
+    initCloudSync,
+    isLoading,
   } = useLearningHubStore();
   
   const [activeSubject, setActiveSubject] = useState<SubjectId>(SUBJECTS[0].id);
   const [activeView, setActiveView] = useState<'subject' | 'schedule'>('subject');
 
   // تفعيل المزامنة السحابية عند التحميل
+  // Automatic Sync on Mount
   useEffect(() => {
     initCloudSync();
-  }, []);
+  }, [initCloudSync]);
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-50 overflow-hidden font-sans selection:bg-primary/30" dir="rtl">
@@ -94,47 +104,33 @@ export default function LearningHub() {
                 {/* Storage Toggle Indicator */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      className={cn(
-                        "h-12 px-5 rounded-2xl border-white/5 bg-slate-900/40 backdrop-blur-xl font-black gap-3 transition-all",
-                        storageMode === 'cloud' ? "text-primary border-primary/20" : "text-amber-400 border-amber-400/20"
-                      )}
-                    >
-                      <IconSafe icon={storageMode === 'cloud' ? Cloud : Database} className="size-4" />
-                      <span className="text-xs uppercase tracking-widest">
-                        {storageMode === 'cloud' ? "الوضع السحابي المشترك" : "وضع التخزين المحلي"}
-                      </span>
-                      {isLoading && <div className="size-2 bg-primary rounded-full animate-ping" />}
-                    </Button>
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "hidden md:flex items-center gap-2 px-4 py-2 rounded-xl border backdrop-blur-md transition-all duration-500",
+                        isLoading 
+                          ? "bg-amber-500/10 border-amber-500/20 text-amber-500 animate-pulse" 
+                          : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                      )}>
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin" />
+                            <span className="text-xs font-bold uppercase tracking-wider">Syncing Cloud</span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="text-xs font-bold uppercase tracking-wider">Nexus Cloud Linked</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="bg-slate-950 border-white/10 rounded-2xl p-2 w-56 shadow-2xl">
                     <DropdownMenuLabel className="text-[10px] uppercase font-black text-muted-foreground p-3 tracking-widest">إعدادات النود الأكاديمية</DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-white/5" />
-                    <DropdownMenuItem 
-                      onClick={() => setStorageMode('cloud')}
-                      className="p-4 rounded-xl flex items-center gap-3 focus:bg-primary/10 cursor-pointer group"
-                    >
-                      <div className="size-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                        <IconSafe icon={Cloud} className="size-4" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-xs font-bold text-white">الوضع السحابي</p>
-                        <p className="text-[9px] text-muted-foreground">مشاركة البيانات مع الزملاء</p>
-                      </div>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => setStorageMode('local')}
-                      className="p-4 rounded-xl flex items-center gap-3 focus:bg-amber-500/10 cursor-pointer group"
-                    >
-                      <div className="size-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
-                        <IconSafe icon={Database} className="size-4" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-xs font-bold text-white">الوضع المحلي</p>
-                        <p className="text-[9px] text-muted-foreground">تخزين آمن على جهازك فقط</p>
-                      </div>
-                    </DropdownMenuItem>
+                    <div className="p-2 space-y-1">
+                      <div className="px-3 py-2 text-[10px] text-slate-500 uppercase tracking-tighter">الحالة الحالية: متصل بالسحابة</div>
+                    </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
 

@@ -45,13 +45,14 @@ export function MaterialsSection({ subjectId }: MaterialsSectionProps) {
     !searchQuery || m.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSave = (data: any) => {
+  const handleSave = (data: any, syncToCloud: boolean) => {
     if (editingItem) {
       editItem(subjectId, 'materials', editingItem.id, data);
     } else {
-      addItem(subjectId, 'materials', data);
+      addItem(subjectId, 'materials', data, syncToCloud);
     }
     setEditingItem(null);
+    setModalOpen(false);
   };
 
   return (
@@ -92,7 +93,15 @@ export function MaterialsSection({ subjectId }: MaterialsSectionProps) {
                     <Icon className="size-5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-white truncate">{item.title}</p>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-bold text-white truncate">{item.title}</p>
+                      <div className={cn(
+                        "px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter shrink-0",
+                        item.source === 'cloud' ? "bg-primary/20 text-primary" : "bg-white/10 text-muted-foreground"
+                      )}>
+                        {item.source === 'cloud' ? 'Cloud' : 'Local'}
+                      </div>
+                    </div>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-md', typeColors[item.type])}>
                         {typeLabels[item.type]}

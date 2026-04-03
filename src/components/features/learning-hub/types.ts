@@ -9,6 +9,7 @@ export interface BaseItem {
   id: string;
   title: string;
   createdAt: string;
+  source?: 'local' | 'cloud';
 }
 
 export interface MaterialItem extends BaseItem {

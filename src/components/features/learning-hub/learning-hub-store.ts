@@ -29,7 +29,7 @@ interface LearningHubState {
   searchQuery: string;
 
   // CRUD
-  addItem: (subjectId: SubjectId, section: SectionType, item: any) => void;
+  addItem: (subjectId: SubjectId, section: SectionType, item: any, syncToCloud?: boolean) => void;
   editItem: (subjectId: SubjectId, section: SectionType, itemId: string, updates: Partial<any>) => void;
   deleteItem: (subjectId: SubjectId, section: SectionType, itemId: string) => void;
 
@@ -51,9 +51,7 @@ interface LearningHubState {
   getNextDeadline: () => { item: AssignmentItem | QuizItem; subjectId: SubjectId } | null;
 
   // Hybrid Storage (Real Firestore Sync)
-  storageMode: 'local' | 'cloud';
   isLoading: boolean;
-  setStorageMode: (mode: 'local' | 'cloud') => void;
   initCloudSync: () => Promise<void>;
   _unsubscribe?: () => void;
 }
@@ -65,9 +63,14 @@ export const useLearningHubStore = create<LearningHubState>()(
       schedule: makeDemoSchedule(),
       searchQuery: '',
 
-      addItem: (subjectId, section, item) => {
+      addItem: (subjectId, section, item, syncToCloud = false) => {
         const id = uid();
-        const newItem = { ...item, id, createdAt: new Date().toISOString() };
+        const newItem = { 
+          ...item, 
+          id, 
+          createdAt: new Date().toISOString(),
+          source: syncToCloud ? ('cloud' as const) : ('local' as const)
+        };
         
         set((state) => {
           const subj = { ...state.subjects[subjectId] };
@@ -77,9 +80,8 @@ export const useLearningHubStore = create<LearningHubState>()(
           return { subjects: { ...state.subjects, [subjectId]: subj } };
         });
 
-        // Cloud Sync
-        const { storageMode } = get();
-        if (storageMode === 'cloud') {
+        // Cloud Sync if requested
+        if (syncToCloud) {
           learningService.syncItem(subjectId, section, newItem).catch(console.error);
         }
       },
@@ -99,9 +101,8 @@ export const useLearningHubStore = create<LearningHubState>()(
           return { subjects: { ...state.subjects, [subjectId]: subj } };
         });
 
-        // Cloud Sync
-        const { storageMode } = get();
-        if (storageMode === 'cloud' && updatedItem) {
+        // Cloud Sync if it's a cloud item
+        if (updatedItem && updatedItem.source === 'cloud') {
           learningService.syncItem(subjectId, section, updatedItem).catch(console.error);
         }
       },
@@ -114,9 +115,10 @@ export const useLearningHubStore = create<LearningHubState>()(
           return { subjects: { ...state.subjects, [subjectId]: subj } };
         });
 
-        // Cloud Sync
-        const { storageMode } = get();
-        if (storageMode === 'cloud') {
+        // Cloud Sync removal
+        const { subjects } = get();
+        const currentItem = (subjects[subjectId]?.[section] as any[])?.find(i => i.id === itemId);
+        if (currentItem && currentItem.source === 'cloud') {
           learningService.deleteItem(subjectId, section, itemId).catch(console.error);
         }
       },
@@ -191,24 +193,9 @@ export const useLearningHubStore = create<LearningHubState>()(
       },
 
       // Hybrid Storage Implementation (Real Firestore Sync)
-      storageMode: 'local',
       isLoading: false,
-      setStorageMode: (mode) => {
-        set({ storageMode: mode });
-        if (mode === 'cloud') {
-          get().initCloudSync();
-        } else {
-          // Cleanup subscription when leaving cloud mode
-          const state = get();
-          if (state._unsubscribe) {
-            state._unsubscribe();
-            set({ _unsubscribe: undefined });
-          }
-        }
-      },
       initCloudSync: async () => {
-        const { storageMode, _unsubscribe } = get();
-        if (storageMode !== 'cloud') return;
+        const { _unsubscribe } = get();
 
         set({ isLoading: true });
 
@@ -220,13 +207,22 @@ export const useLearningHubStore = create<LearningHubState>()(
               const newSubjects = { ...state.subjects };
               for (const [subjId, cloudSubjData] of Object.entries(cloudData)) {
                 const sId = subjId as SubjectId;
+                const existingSubj = newSubjects[sId] || { materials: [], recordings: [], assignments: [], quizzes: [], quizForms: [], questionBanks: [] };
+                
+                // Merge lists while avoiding duplicates using ID
+                const mergeList = (local: any[], cloud: any[]) => {
+                  const cloudIds = new Set(cloud.map(i => i.id));
+                  const filteredLocal = local.filter(i => !cloudIds.has(i.id));
+                  return [...filteredLocal, ...cloud];
+                };
+
                 newSubjects[sId] = {
-                  materials: cloudSubjData.materials || [],
-                  recordings: cloudSubjData.recordings || [],
-                  assignments: cloudSubjData.assignments || [],
-                  quizzes: cloudSubjData.quizzes || [],
-                  quizForms: cloudSubjData.quizForms || [],
-                  questionBanks: cloudSubjData.questionBanks || [],
+                  materials: mergeList(existingSubj.materials, cloudSubjData.materials || []),
+                  recordings: mergeList(existingSubj.recordings, cloudSubjData.recordings || []),
+                  assignments: mergeList(existingSubj.assignments, cloudSubjData.assignments || []),
+                  quizzes: mergeList(existingSubj.quizzes, cloudSubjData.quizzes || []),
+                  quizForms: mergeList(existingSubj.quizForms, cloudSubjData.quizForms || []),
+                  questionBanks: mergeList(existingSubj.questionBanks, cloudSubjData.questionBanks || []),
                 };
               }
               return { subjects: newSubjects };
@@ -240,13 +236,21 @@ export const useLearningHubStore = create<LearningHubState>()(
                 const newSubjects = { ...state.subjects };
                 for (const [subjId, cloudSubjData] of Object.entries(updatedData)) {
                   const sId = subjId as SubjectId;
+                  const existingSubj = newSubjects[sId] || { materials: [], recordings: [], assignments: [], quizzes: [], quizForms: [], questionBanks: [] };
+                  
+                  const mergeList = (local: any[], cloud: any[]) => {
+                    const cloudIds = new Set(cloud.map(i => i.id));
+                    const filteredLocal = local.filter(i => !cloudIds.has(i.id));
+                    return [...filteredLocal, ...cloud];
+                  };
+
                   newSubjects[sId] = {
-                    materials: cloudSubjData.materials || [],
-                    recordings: cloudSubjData.recordings || [],
-                    assignments: cloudSubjData.assignments || [],
-                    quizzes: cloudSubjData.quizzes || [],
-                    quizForms: cloudSubjData.quizForms || [],
-                    questionBanks: cloudSubjData.questionBanks || [],
+                    materials: mergeList(existingSubj.materials, cloudSubjData.materials || []),
+                    recordings: mergeList(existingSubj.recordings, cloudSubjData.recordings || []),
+                    assignments: mergeList(existingSubj.assignments, cloudSubjData.assignments || []),
+                    quizzes: mergeList(existingSubj.quizzes, cloudSubjData.quizzes || []),
+                    quizForms: mergeList(existingSubj.quizForms, cloudSubjData.quizForms || []),
+                    questionBanks: mergeList(existingSubj.questionBanks, cloudSubjData.questionBanks || []),
                   };
                 }
                 return { subjects: newSubjects };

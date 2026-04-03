@@ -40,13 +40,14 @@ export function AssignmentsSection({ subjectId }: AssignmentsSectionProps) {
     !searchQuery || a.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSave = (data: any) => {
+  const handleSave = (data: any, syncToCloud: boolean) => {
     if (editingItem) {
       editItem(subjectId, 'assignments', editingItem.id, data);
     } else {
-      addItem(subjectId, 'assignments', data);
+      addItem(subjectId, 'assignments', data, syncToCloud);
     }
     setEditingItem(null);
+    setModalOpen(false);
   };
 
   const formatDeadline = (d: string) => {
@@ -123,6 +124,12 @@ export function AssignmentsSection({ subjectId }: AssignmentsSectionProps) {
                     <p className={cn('text-sm font-bold truncate', item.status === 'graded' ? 'text-muted-foreground line-through' : 'text-white')}>
                       {item.title}
                     </p>
+                    <div className={cn(
+                      "px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter shrink-0",
+                      item.source === 'cloud' ? "bg-primary/20 text-primary" : "bg-white/10 text-muted-foreground"
+                    )}>
+                      {item.source === 'cloud' ? 'Cloud' : 'Local'}
+                    </div>
                     <Badge variant="outline" className={cn('text-[9px] h-5 rounded-lg border shrink-0', status.color)}>
                       {status.label}
                     </Badge>

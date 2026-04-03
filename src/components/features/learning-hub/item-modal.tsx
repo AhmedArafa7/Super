@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { SectionType, SECTION_LABELS } from './learning-hub-store';
-import { Save, X, FileUp, CheckCircle2, Loader2 } from 'lucide-react';
+import { Save, X, FileUp, CheckCircle2, Loader2, Cloud, Database } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { learningService } from '@/lib/learning-service';
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,7 +21,7 @@ interface ItemModalProps {
   onClose: () => void;
   sectionType: SectionType;
   initialData?: any;
-  onSave: (data: any) => void;
+  onSave: (data: any, syncToCloud: boolean) => void;
   mode: 'add' | 'edit';
 }
 
@@ -64,6 +65,7 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isCloudShared, setIsCloudShared] = useState(true);
   
   const fields = sectionFields[sectionType] || [];
   const sectionLabel = SECTION_LABELS[sectionType]?.label || 'عنصر';
@@ -108,8 +110,8 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
     let finalData = { ...formData };
     
     try {
-      if (selectedFile) {
-        toast({ title: "جاري الرفع العصبي...", description: "نقوم بمزامنة ملفك مع السحابة." });
+      if (selectedFile && isCloudShared) {
+        toast({ title: "جاري الرفع العصبي...", description: "نرفع ملفك لسحابة نكسوس المشتركة." });
         const downloadUrl = await learningService.uploadFile(selectedFile, (progress) => {
           setUploadProgress(progress);
         });
@@ -136,7 +138,7 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
         finalData.completed = !!finalData.score && finalData.score > 0;
       }
       
-      onSave(finalData);
+      onSave(finalData, isCloudShared);
       onClose();
     } catch (error: any) {
       toast({ 
@@ -164,6 +166,25 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          {mode === 'add' && (
+            <div className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl border border-primary/10">
+              <div className="flex items-center gap-3">
+                <div className={cn("size-10 rounded-xl flex items-center justify-center", isCloudShared ? "bg-primary/20 text-primary" : "bg-white/10 text-muted-foreground")}>
+                  {isCloudShared ? <Cloud className="size-5" /> : <Database className="size-5" />}
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white">مشاركة مع سحابة نكسوس</p>
+                  <p className="text-[10px] text-muted-foreground">تظهر للزملاء في الوضع السحابي</p>
+                </div>
+              </div>
+              <Switch 
+                checked={isCloudShared} 
+                onCheckedChange={setIsCloudShared} 
+                disabled={isUploading}
+              />
+            </div>
+          )}
+
           {showFileDrop && (
             <div className="space-y-2">
               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">رفع المصدر الأصلي</Label>
