@@ -162,8 +162,18 @@ function ScheduleModal({ open, onClose, initialData, onSave, mode }: ScheduleMod
   );
 }
 
+const GROUPS = ['A1', 'A2', 'A3', 'A4', 'All'];
+
 export function ScheduleView() {
-  const { schedule, addScheduleEvent, editScheduleEvent, deleteScheduleEvent } = useLearningHubStore();
+  const { 
+    schedule, 
+    addScheduleEvent, 
+    editScheduleEvent, 
+    deleteScheduleEvent,
+    selectedGroup,
+    setSelectedGroup
+  } = useLearningHubStore();
+  
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
 
@@ -177,70 +187,96 @@ export function ScheduleView() {
   };
 
   const getEventsForCell = (day: number, hour: number) => {
-    return schedule.filter((e) => e.day === day && e.startHour <= hour && e.endHour > hour);
+    // Filter Logic:
+    // 1. If 'All' is selected, show everything.
+    // 2. If a specific group (e.g. 'A1') is selected, show 'A' (Lectures) + 'A1'.
+    const filtered = schedule.filter(e => {
+        if (selectedGroup === 'All') return true;
+        return e.groupId === 'A' || e.groupId === selectedGroup;
+    });
+    
+    return filtered.filter((e) => e.day === day && e.startHour <= hour && e.endHour > hour);
   };
 
   const isEventStart = (event: ScheduleEvent, hour: number) => event.startHour === hour;
 
+  // Render only first 3 days (Sat, Sun, Mon) if we want to be strict, but let's keep all 6 headers 
+  // and just show data where it exists.
+  const ACTIVE_DAYS = DAYS.slice(0, 3); // Saturday, Sunday, Monday
+
   return (
-    <div className="space-y-4" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="size-10 bg-primary/10 rounded-xl flex items-center justify-center">
-            <CalendarDays className="size-5 text-primary" />
+    <div className="space-y-6" dir="rtl">
+      {/* Header & Group Selector */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="size-12 bg-primary/10 rounded-2xl flex items-center justify-center">
+            <CalendarDays className="size-6 text-primary" />
           </div>
           <div>
-            <h2 className="text-lg font-black text-white">الجدول الأسبوعي</h2>
-            <p className="text-[11px] text-muted-foreground">جدول المحاضرات والمعامل</p>
+            <h2 className="text-xl font-black text-white tracking-tight">الجدول الأكاديمي</h2>
+            <p className="text-xs text-muted-foreground">تتبع المجموعات والمحاضرات الفنية</p>
           </div>
         </div>
+
+        <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white/5 border border-white/10 rounded-2xl">
+          {GROUPS.map((g) => (
+            <button
+              key={g}
+              onClick={() => setSelectedGroup(g)}
+              className={cn(
+                "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300",
+                selectedGroup === g 
+                  ? "bg-primary text-white shadow-lg shadow-primary/20 scale-105" 
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              )}
+            >
+              {g === 'All' ? 'عرض الكل' : `Group ${g}`}
+            </button>
+          ))}
+        </div>
+
         <Button
           onClick={() => { setEditingEvent(null); setModalOpen(true); }}
-          className="h-9 rounded-xl bg-primary hover:bg-primary/90 text-xs font-bold gap-1.5"
+          className="h-11 rounded-2xl bg-primary hover:bg-primary/90 text-sm font-bold gap-2 px-6 shadow-xl shadow-primary/10"
         >
-          <Plus className="size-4" />
+          <Plus className="size-5" />
           إضافة حصة
         </Button>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-3 flex-wrap">
-        {SUBJECTS.map((s) => (
-          <div key={s.id} className="flex items-center gap-1.5">
-            <div className={cn('size-3 rounded-sm', subjectColorMap[s.id].bg, 'border', subjectColorMap[s.id].border)} />
-            <span className="text-[10px] text-muted-foreground">{s.name}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Calendar Grid */}
-      <div className="overflow-x-auto rounded-2xl border border-white/10">
-        <table className="w-full border-collapse min-w-[700px]">
+      {/* Grid */}
+      <div className="overflow-x-auto rounded-3xl border border-white/5 bg-slate-900/40 backdrop-blur-md">
+        <table className="w-full border-collapse min-w-[800px]">
           <thead>
             <tr>
-              <th className="p-2 text-[10px] font-bold text-muted-foreground bg-white/5 border-b border-r border-white/10 w-16 sticky right-0 z-10">
-                <Clock className="size-3 mx-auto" />
+              <th className="p-4 text-[10px] font-black text-slate-500 bg-white/5 border-b border-l border-white/5 w-20 sticky right-0 z-20">
+                <div className="flex flex-col items-center gap-1 opacity-40">
+                    <Clock className="size-4" />
+                    <span>TIME</span>
+                </div>
               </th>
-              {DAYS.map((day, i) => (
-                <th key={i} className="p-2.5 text-xs font-bold text-white bg-white/5 border-b border-r border-white/10 last:border-r-0">
-                  {day}
+              {ACTIVE_DAYS.map((day, i) => (
+                <th key={i} className="p-4 text-sm font-black text-slate-200 bg-white/5 border-b border-l border-white/5 last:border-l-0">
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="size-1.5 rounded-full bg-primary" />
+                    {day}
+                  </div>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {HOURS.map((hour) => (
-              <tr key={hour}>
-                <td className="p-2 text-[10px] font-bold text-muted-foreground text-center bg-white/[0.02] border-b border-r border-white/5 sticky right-0 z-10 tabular-nums">
-                  {hour}:00
+              <tr key={hour} className="group/row">
+                <td className="p-4 text-xs font-black text-slate-400 text-center bg-white/[0.01] border-b border-l border-white/5 sticky right-0 z-10 tabular-nums">
+                  {hour < 10 ? `0${hour}` : hour}:00
                 </td>
-                {DAYS.map((_, dayIndex) => {
+                {ACTIVE_DAYS.map((_, dayIndex) => {
                   const events = getEventsForCell(dayIndex, hour);
                   const event = events[0];
 
                   if (event && !isEventStart(event, hour)) {
-                    return null; // Covered by rowSpan
+                    return null;
                   }
 
                   if (event && isEventStart(event, hour)) {
@@ -252,61 +288,45 @@ export function ScheduleView() {
                       <td
                         key={dayIndex}
                         rowSpan={span}
-                        className={cn(
-                          'p-0 border-b border-r border-white/5 last:border-r-0 relative group'
-                        )}
+                        className="p-1 border-b border-l border-white/5 relative group/cell"
                       >
                         <div className={cn(
-                          'absolute inset-0.5 rounded-xl p-2 flex flex-col justify-between border transition-all',
+                          'absolute inset-1 rounded-2xl p-3 flex flex-col justify-between border transition-all duration-300',
                           colors.bg, colors.border,
-                          'hover:scale-[1.02] hover:shadow-lg cursor-pointer'
-                        )}>
-                          <div>
-                            <p className={cn('text-[11px] font-bold truncate', colors.text)}>
-                              {event.title}
-                            </p>
-                            <p className="text-[9px] text-muted-foreground mt-0.5">
+                          'hover:scale-[1.01] hover:shadow-2xl hover:z-30 cursor-pointer overflow-hidden'
+                        )}
+                        onClick={() => { setEditingEvent(event); setModalOpen(true); }}
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                                <p className={cn('text-[11px] font-black leading-tight', colors.text)}>
+                                    {event.title}
+                                </p>
+                                <div className={cn(
+                                    "px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter",
+                                    event.groupId === 'A' ? "bg-amber-500/20 text-amber-300" : "bg-white/10 text-white/50"
+                                )}>
+                                    {event.groupId === 'A' ? 'Lecture' : event.groupId}
+                                </div>
+                            </div>
+                            <p className="text-[10px] text-slate-400 font-medium">
                               {subject?.icon} {subject?.name}
                             </p>
                           </div>
-                          <div className="flex items-center justify-between mt-auto">
+
+                          <div className="flex flex-col gap-1.5 mt-3 pt-3 border-t border-white/10">
                             {event.location && (
-                              <div className="flex items-center gap-1">
-                                <MapPin className="size-2.5 text-muted-foreground" />
-                                <span className="text-[9px] text-muted-foreground">{event.location}</span>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <MapPin className="size-3 text-slate-500 shrink-0" />
+                                <span className="text-[9px] text-slate-400 truncate">{event.location}</span>
                               </div>
                             )}
-                            <span className="text-[9px] text-muted-foreground tabular-nums">
-                              {event.startHour}:00 - {event.endHour}:00
-                            </span>
-                          </div>
-
-                          {/* Hover Actions */}
-                          <div className="absolute top-1 left-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              size="icon" variant="ghost"
-                              className="size-6 rounded-lg bg-black/40 text-white hover:bg-black/60"
-                              onClick={() => { setEditingEvent(event); setModalOpen(true); }}
-                            >
-                              <Edit3 className="size-3" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button size="icon" variant="ghost" className="size-6 rounded-lg bg-black/40 text-red-400 hover:bg-black/60">
-                                  <Trash2 className="size-3" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent className="bg-slate-950 border-white/10 rounded-2xl w-[calc(100%-2rem)] max-w-md" dir="rtl">
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>حذف الحصة</AlertDialogTitle>
-                                  <AlertDialogDescription>هل أنت متأكد من حذف &quot;{event.title}&quot;؟</AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter className="flex-row-reverse gap-2">
-                                  <AlertDialogAction onClick={() => deleteScheduleEvent(event.id)} className="bg-red-600 hover:bg-red-700 rounded-xl">حذف</AlertDialogAction>
-                                  <AlertDialogCancel className="rounded-xl border-white/10">إلغاء</AlertDialogCancel>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                            <div className="flex items-center gap-1.5">
+                                <Clock className="size-3 text-slate-500 shrink-0" />
+                                <span className="text-[10px] text-slate-300 font-bold tabular-nums">
+                                    {event.startHour}:00 - {event.endHour}:00
+                                </span>
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -316,12 +336,16 @@ export function ScheduleView() {
                   return (
                     <td
                       key={dayIndex}
-                      className="border-b border-r border-white/5 last:border-r-0 h-12 hover:bg-white/[0.02] cursor-pointer transition-colors"
+                      className="border-b border-l border-white/5 h-20 hover:bg-white/[0.03] transition-colors relative"
                       onClick={() => {
-                        setEditingEvent(null);
+                        setEditingEvent({ id: '', subjectId: 'data-center', day: dayIndex, startHour: hour, endHour: hour + 1, title: '', groupId: selectedGroup === 'All' ? 'A' : selectedGroup });
                         setModalOpen(true);
                       }}
-                    />
+                    >
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/row:opacity-10 group-hover/cell:opacity-100 transition-opacity">
+                            <Plus className="size-4 text-white" />
+                        </div>
+                    </td>
                   );
                 })}
               </tr>
@@ -335,8 +359,150 @@ export function ScheduleView() {
         onClose={() => { setModalOpen(false); setEditingEvent(null); }}
         initialData={editingEvent}
         onSave={handleSave}
-        mode={editingEvent ? 'edit' : 'add'}
+        mode={editingEvent?.id ? 'edit' : 'add'}
       />
     </div>
+  );
+}
+
+interface ScheduleModalProps {
+  open: boolean;
+  onClose: () => void;
+  initialData?: ScheduleEvent | null;
+  onSave: (data: Omit<ScheduleEvent, 'id'> | Partial<ScheduleEvent>) => void;
+  mode: 'add' | 'edit';
+}
+
+function ScheduleModal({ open, onClose, initialData, onSave, mode }: ScheduleModalProps) {
+  const [title, setTitle] = useState(initialData?.title || '');
+  const [subjectId, setSubjectId] = useState<SubjectId>(initialData?.subjectId || 'data-center');
+  const [day, setDay] = useState(initialData?.day?.toString() || '0');
+  const [startHour, setStartHour] = useState(initialData?.startHour?.toString() || '8');
+  const [endHour, setEndHour] = useState(initialData?.endHour?.toString() || '10');
+  const [location, setLocation] = useState(initialData?.location || '');
+  const [groupId, setGroupId] = useState(initialData?.groupId || 'A');
+
+  React.useEffect(() => {
+    if (initialData) {
+      setTitle(initialData.title);
+      setSubjectId(initialData.subjectId);
+      setDay(initialData.day.toString());
+      setStartHour(initialData.startHour.toString());
+      setEndHour(initialData.endHour.toString());
+      setLocation(initialData.location || '');
+      setGroupId(initialData.groupId || 'A');
+    }
+  }, [initialData, open]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      title,
+      subjectId,
+      day: parseInt(day),
+      startHour: parseInt(startHour),
+      endHour: parseInt(endHour),
+      location: location || undefined,
+      groupId
+    });
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-slate-950 border-white/10 rounded-3xl w-[calc(100%-2rem)] max-w-md mx-auto overflow-hidden" dir="rtl">
+        <DialogHeader className="p-2">
+          <DialogTitle className="text-right text-xl font-black">
+            {mode === 'add' ? 'إضافة حصة جديدة' : 'تعديل بيانات الحصة'}
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 p-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">المادة</Label>
+                <Select value={subjectId} onValueChange={(v) => setSubjectId(v as SubjectId)}>
+                <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-12 text-right"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10 rounded-2xl">
+                    {SUBJECTS.map((s) => (
+                    <SelectItem key={s.id} value={s.id} className="rounded-xl">{s.icon} {s.name}</SelectItem>
+                    ))}
+                </SelectContent>
+                </Select>
+            </div>
+            <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">المجموعة (Group)</Label>
+                <Select value={groupId} onValueChange={setGroupId}>
+                <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-12 text-right"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10 rounded-2xl">
+                    <SelectItem value="A" className="rounded-xl font-bold">A (Lecture)</SelectItem>
+                    <SelectItem value="A1" className="rounded-xl">A1</SelectItem>
+                    <SelectItem value="A2" className="rounded-xl">A2</SelectItem>
+                    <SelectItem value="A3" className="rounded-xl">A3</SelectItem>
+                    <SelectItem value="A4" className="rounded-xl">A4</SelectItem>
+                </SelectContent>
+                </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">العنوان</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} required className="bg-white/5 border-white/10 rounded-2xl h-12 text-right" placeholder="اسم السكشن أو المحاضرة" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">اليوم</Label>
+                <Select value={day} onValueChange={setDay}>
+                <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-12 text-right"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10 rounded-2xl">
+                    {DAYS.slice(0, 3).map((d, i) => (
+                    <SelectItem key={i} value={i.toString()} className="rounded-xl">{d}</SelectItem>
+                    ))}
+                </SelectContent>
+                </Select>
+            </div>
+            <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">المكان</Label>
+                <Input value={location} onChange={(e) => setLocation(e.target.value)} className="bg-white/5 border-white/10 rounded-2xl h-12 text-right" placeholder="قاعة / معمل" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">من الساعة</Label>
+              <Select value={startHour} onValueChange={setStartHour}>
+                <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-12 text-right tabular-nums"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10 rounded-2xl">
+                  {HOURS.map((h) => (
+                    <SelectItem key={h} value={h.toString()} className="tabular-nums">{h < 10 ? `0${h}` : h}:00</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">إلى الساعة</Label>
+              <Select value={endHour} onValueChange={setEndHour}>
+                <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-12 text-right tabular-nums"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10 rounded-2xl">
+                  {HOURS.map((h) => (
+                    <SelectItem key={h} value={h.toString()} className="tabular-nums">{h < 10 ? `0${h}` : h}:00</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-6">
+            <Button type="submit" className="flex-1 h-12 rounded-2xl bg-primary hover:bg-primary/90 font-black gap-2 text-white">
+              <Save className="size-5" />
+              {mode === 'add' ? 'إضافة للجدول' : 'حفظ التعديلات'}
+            </Button>
+            <Button type="button" variant="outline" onClick={onClose} className="h-12 rounded-2xl border-white/10 px-6">
+              <X className="size-5 text-slate-400" />
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

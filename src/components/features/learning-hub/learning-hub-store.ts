@@ -41,8 +41,10 @@ interface LearningHubState {
   editScheduleEvent: (id: string, updates: Partial<ScheduleEvent>) => void;
   deleteScheduleEvent: (id: string) => void;
 
-  // Search
+  // Search & Filters
   setSearchQuery: (q: string) => void;
+  selectedGroup: string;
+  setSelectedGroup: (group: string) => void;
 
   // Progress
   getProgress: (subjectId: SubjectId) => number;
@@ -65,6 +67,9 @@ export const useLearningHubStore = create<LearningHubState>()(
       subjects: makeDemoData(),
       schedule: makeDemoSchedule(),
       searchQuery: '',
+      selectedGroup: 'A', // Default to common group
+      
+      setSelectedGroup: (group) => set({ selectedGroup: group }),
 
       addItem: (subjectId, section, item, syncToCloud = false) => {
         const id = uid();
