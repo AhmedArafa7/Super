@@ -76,6 +76,7 @@ export const learningService = {
     await updateDoc(docRef, {
       [`${subjectId}.${section}`]: arr
     });
+    console.log(`[Cloud Sync] ${item.title} successfully synced to Firestore.`);
   },
 
   /**

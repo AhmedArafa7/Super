@@ -89,7 +89,7 @@ export function OnboardingModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="bg-slate-950 border-white/10 rounded-[3rem] p-0 overflow-hidden shadow-[0_0_50px_rgba(99,102,241,0.2)] outline-none">
+      <DialogContent className="sm:max-w-[550px] bg-slate-950 border-white/10 rounded-[3rem] p-0 overflow-hidden shadow-[0_0_80px_rgba(99,102,241,0.2)] outline-none">
         <DialogHeader className="sr-only">
           <DialogTitle>NexusAI Onboarding</DialogTitle>
           <DialogDescription>
@@ -98,47 +98,47 @@ export function OnboardingModal() {
         </DialogHeader>
 
         {/* Cinematic Header Visual */}
-        <div className="relative h-56 flex items-center justify-center">
+        <div className="relative h-64 flex items-center justify-center overflow-visible">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-500/20 via-slate-950 to-slate-950" />
           <div className="absolute inset-0 opacity-30 bg-[url('https://picsum.photos/seed/nexus-pattern/800/400')] bg-cover mix-blend-overlay" />
           
-          <div className="relative z-10 flex flex-col items-center gap-4">
+          <div className="relative z-10 flex flex-col items-center gap-6 mt-4">
             <div className="flex items-center gap-6">
-               <div className="size-16 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl flex items-center justify-center shadow-2xl">
+               <div className="size-16 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.05)] transition-transform hover:scale-110">
                  <Zap className="size-8 text-primary animate-pulse" />
                </div>
                <div className="h-12 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent" />
-               <div className="size-16 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl flex items-center justify-center shadow-2xl">
+               <div className="size-16 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.1)] transition-transform hover:scale-110">
                  <ShieldCheck className="size-8 text-indigo-400" />
                </div>
             </div>
-            <div className="flex items-center gap-2 mt-2 px-4 py-1 bg-primary/10 border border-primary/20 rounded-full">
+            <div className="flex items-center gap-2 px-5 py-1.5 bg-primary/10 border border-primary/20 rounded-full backdrop-blur-md">
               <span className="size-1.5 rounded-full bg-primary animate-ping" />
-              <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-primary">Neural Link Establishing</span>
+              <span className="text-[10px] uppercase font-bold tracking-[0.3em] text-primary">Neural Link Establishing</span>
             </div>
           </div>
         </div>
 
-        <div className="px-10 pb-10 pt-6">
+        <div className="px-10 pb-10 pt-4">
           <Carousel setApi={setApi} className="w-full">
             <CarouselContent>
               {steps.map((step, index) => (
                 <CarouselItem key={index}>
-                  <div className="flex flex-col items-center text-center space-y-6 px-2">
+                  <div className="flex flex-col items-center text-center space-y-6 px-4">
                     <div className={cn(
-                      "size-20 rounded-[2rem] flex items-center justify-center border shadow-2xl transition-all duration-500", 
+                      "size-24 rounded-[2.5rem] flex items-center justify-center border shadow-3xl transition-all duration-700", 
                       step.bg,
                       step.accent
                     )}>
                       {step.icon && (typeof step.icon === 'function' || (typeof step.icon === 'object' && step.icon !== null)) ? (
-                        <step.icon className={cn("size-10", step.color)} />
+                        <step.icon className={cn("size-12", step.color)} />
                       ) : (
-                        <Sparkles className={cn("size-10", step.color)} />
+                        <Sparkles className={cn("size-12", step.color)} />
                       )}
                     </div>
-                    <div className="space-y-3">
+                    <div className="space-y-4 max-w-[400px] mx-auto">
                       <h3 className="text-3xl font-headline font-bold text-white tracking-tight">{step.title}</h3>
-                      <p className="text-muted-foreground text-base leading-relaxed  mx-auto">
+                      <p className="text-slate-400 text-sm md:text-base leading-relaxed">
                         {step.description}
                       </p>
                     </div>
