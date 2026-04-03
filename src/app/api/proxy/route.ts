@@ -27,6 +27,7 @@ async function handleProxyRequest(request: NextRequest) {
     'apis.google.com',
     'gstatic.com',
     'www.googleapis.com/oauth',
+    '/api/stream/telegram',
   ];
   const lowerUrl = targetUrl.toLowerCase();
   if (NEVER_PROXY_PATTERNS.some(pattern => lowerUrl.includes(pattern))) {
@@ -148,8 +149,13 @@ async function handleProxyRequest(request: NextRequest) {
             // 5. اختطاف الملاحة لضمان البقاء داخل نكسوس
             const originalOpen = window.open;
             window.open = function(url, name, specs) {
-              if (url && typeof url === 'string' && !url.startsWith(window.location.origin)) {
-                url = window.location.origin + '/api/proxy?url=' + encodeURIComponent(new URL(url, window.__NEXUS_TARGET_ORIGIN__).href);
+              if (url && typeof url === 'string') {
+                const isRelative = url.startsWith('/') || url.startsWith('./') || url.startsWith('../');
+                const isInternal = url.startsWith(window.location.origin) || url.includes('/api/stream/telegram');
+                
+                if (!isRelative && !isInternal) {
+                  url = window.location.origin + '/api/proxy?url=' + encodeURIComponent(new URL(url, window.__NEXUS_TARGET_ORIGIN__).href);
+                }
               }
               return originalOpen.call(window, url, name, specs);
             };
