@@ -417,17 +417,41 @@ export const useLearningHubStore = create<LearningHubState>()(
           // 1. Fetch initial snapshot
           const cloudData = await learningService.getCloudHub();
           if (cloudData) {
-            set((state) => ({
-              subjects: { ...state.subjects, ...cloudData }
-            }));
+            set((state) => {
+              const newSubjects = { ...state.subjects };
+              for (const [subjId, cloudSubjData] of Object.entries(cloudData)) {
+                const sId = subjId as SubjectId;
+                newSubjects[sId] = {
+                  materials: cloudSubjData.materials || [],
+                  recordings: cloudSubjData.recordings || [],
+                  assignments: cloudSubjData.assignments || [],
+                  quizzes: cloudSubjData.quizzes || [],
+                  quizForms: cloudSubjData.quizForms || [],
+                  questionBanks: cloudSubjData.questionBanks || [],
+                };
+              }
+              return { subjects: newSubjects };
+            });
           }
 
           // 2. Setup real-time listener if not already active
           if (!_unsubscribe) {
             const unsub = learningService.subscribeToHub((updatedData) => {
-              set((state) => ({
-                subjects: { ...state.subjects, ...updatedData }
-              }));
+              set((state) => {
+                const newSubjects = { ...state.subjects };
+                for (const [subjId, cloudSubjData] of Object.entries(updatedData)) {
+                  const sId = subjId as SubjectId;
+                  newSubjects[sId] = {
+                    materials: cloudSubjData.materials || [],
+                    recordings: cloudSubjData.recordings || [],
+                    assignments: cloudSubjData.assignments || [],
+                    quizzes: cloudSubjData.quizzes || [],
+                    quizForms: cloudSubjData.quizForms || [],
+                    questionBanks: cloudSubjData.questionBanks || [],
+                  };
+                }
+                return { subjects: newSubjects };
+              });
               console.log('[Cloud Hub] Synchronized in real-time.');
             });
             set({ _unsubscribe: unsub });
