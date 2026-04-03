@@ -92,11 +92,19 @@ export async function GET(req: NextRequest) {
               'rar': 'application/x-rar-compressed'
             };
             
-            if (ext && mimeMap[ext]) contentType = mimeMap[ext];
-            else if (ext && ['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(ext)) contentType = 'video/mp4';
+            if (ext && mimeMap[ext]) {
+              contentType = mimeMap[ext];
+            } else if (ext && ['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(ext)) {
+              contentType = 'video/mp4';
+            } else {
+              // Conscience Check: If no extension, try to guess or use PDF as a logical default for academic hub
+              // Many course materials are PDFs.
+              contentType = "application/pdf"; 
+              if (!fileName.includes('.')) fileName += ".pdf";
+            }
           }
         } catch (e) {
-          console.warn("Failed to detect metadata, using defaults");
+          contentType = "application/pdf"; // Fallback to PDF for academic context
         }
 
         const stream = new ReadableStream({
@@ -141,10 +149,13 @@ export async function GET(req: NextRequest) {
         });
 
         const responseHeaders = new Headers();
+        // Crucial: Use standard Content-Type and force inline
         responseHeaders.set("Content-Type", contentType);
         responseHeaders.set("Content-Disposition", `inline; filename="${encodeURIComponent(fileName)}"`);
         responseHeaders.set("Accept-Ranges", "bytes");
         responseHeaders.set("Content-Length", contentLength.toString());
+        // Add cache control to avoid re-downloads
+        responseHeaders.set("Cache-Control", "public, max-age=31536000, immutable");
 
         if (range) {
             responseHeaders.set("Content-Range", `bytes ${start}-${end}/${totalSize}`);
