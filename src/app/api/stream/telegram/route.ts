@@ -149,12 +149,15 @@ export async function GET(req: NextRequest) {
         });
 
         const responseHeaders = new Headers();
-        // Crucial: Use standard Content-Type and force inline
+        
+        // Final Conscience Fix: Force browser to recognize as full-page PDF
         responseHeaders.set("Content-Type", contentType);
-        responseHeaders.set("Content-Disposition", `inline; filename="${encodeURIComponent(fileName)}"`);
+        // Using a simpler filename format to avoid browser rendering quirks
+        responseHeaders.set("Content-Disposition", `inline; filename=${JSON.stringify(fileName)}`);
+        responseHeaders.set("X-Content-Type-Options", "nosniff");
+        responseHeaders.set("X-Frame-Options", "ALLOWALL");
         responseHeaders.set("Accept-Ranges", "bytes");
         responseHeaders.set("Content-Length", contentLength.toString());
-        // Add cache control to avoid re-downloads
         responseHeaders.set("Cache-Control", "public, max-age=31536000, immutable");
 
         if (range) {
