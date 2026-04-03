@@ -6,7 +6,8 @@ import { useLearningHubStore, SubjectId, QuizFormItem } from '../learning-hub-st
 import { ItemModal } from '../item-modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FormInput, Plus, Edit3, Trash2, ExternalLink, CheckCircle2, Circle } from 'lucide-react';
+import { FormInput, Plus, Edit3, Trash2, ExternalLink, CheckCircle2, Circle, Eye } from 'lucide-react';
+import { EmptyState } from '../empty-state';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -68,17 +69,23 @@ export function QuizFormsSection({ subjectId }: QuizFormsSectionProps) {
       </div>
 
       {quizForms.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <FormInput className="size-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">لا توجد نماذج اختبار بعد</p>
-        </div>
+        <EmptyState 
+          icon={FormInput} 
+          title="نماذج الاختبارات" 
+          description="لا تتوفر أي روابط لنماذج اختبارات حالياً. سيتم إدراجها هنا فور نشرها من قبل المحاضرين."
+        />
       ) : (
         <div className="space-y-2">
           {quizForms.map((item) => (
             <div
               key={item.id}
-              className="group flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.07] transition-all active:scale-[0.99]"
+              onClick={() => item.url && window.open(item.url, '_blank')}
+              className="group relative flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.07] hover:border-primary/30 transition-all active:scale-[0.99] cursor-pointer"
             >
+              {/* Hover Eye Indicator */}
+              <div className="absolute top-2 left-2 size-6 rounded-lg bg-primary/20 text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Eye className="size-3.5" />
+              </div>
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className={cn(
                   'size-10 rounded-xl flex items-center justify-center shrink-0',
@@ -116,7 +123,7 @@ export function QuizFormsSection({ subjectId }: QuizFormsSectionProps) {
               </div>
 
               <div className="flex items-center gap-1.5 sm:shrink-0">
-                <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                   <Button size="icon" variant="ghost" className="size-8 text-amber-400 hover:bg-amber-500/10 rounded-lg" onClick={() => { setEditingItem(item); setModalOpen(true); }}>
                     <Edit3 className="size-3.5" />
                   </Button>

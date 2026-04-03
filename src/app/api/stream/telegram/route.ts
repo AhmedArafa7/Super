@@ -58,22 +58,46 @@ export async function GET(req: NextRequest) {
 
         const contentLength = end - start + 1;
 
+        let contentType = "application/octet-stream";
+        try {
+          const firstChunk = chunks[0];
+          const getFilePathRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${firstChunk.id}`);
+          const pathData = await getFilePathRes.json();
+          if (pathData.ok && pathData.result.file_path) {
+            const ext = pathData.result.file_path.split('.').pop()?.toLowerCase();
+            const mimeMap: Record<string, string> = {
+              'pdf': 'application/pdf',
+              'jpg': 'image/jpeg',
+              'jpeg': 'image/jpeg',
+              'png': 'image/png',
+              'gif': 'image/gif',
+              'mp4': 'video/mp4',
+              'mkv': 'video/x-matroska',
+              'mp3': 'audio/mpeg',
+              'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              'zip': 'application/zip'
+            };
+            if (ext && mimeMap[ext]) contentType = mimeMap[ext];
+            else if (ext && ['mp4', 'mkv', 'avi', 'mov'].includes(ext)) contentType = 'video/mp4';
+          }
+        } catch (e) {
+          console.warn("Failed to detect content type, falling back to octet-stream");
+        }
+
         const stream = new ReadableStream({
             async start(controller) {
                 try {
                     let currentOffset = 0;
-
                     for (let i = 0; i < chunks.length; i++) {
                         const chunk = chunks[i];
                         const chunkStart = currentOffset;
                         const chunkEnd = currentOffset + chunk.size - 1;
 
-                        // Check if this chunk intersects with the requested range
                         if (start <= chunkEnd && end >= chunkStart) {
                             const localStart = Math.max(0, start - chunkStart);
                             const localEnd = Math.min(chunk.size - 1, end - chunkStart);
 
-                            // Fetch chunk file path
                             const getFileResponse = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${chunk.id}`);
                             const getFileData = await getFileResponse.json();
                             if (!getFileData.ok) throw new Error(getFileData.description);
@@ -86,7 +110,6 @@ export async function GET(req: NextRequest) {
                             const chunkRes = await fetch(fileUrl, { headers });
                             if (!chunkRes.ok || !chunkRes.body) throw new Error(`Failed to fetch chunk ${i}`);
 
-                            // Pipe the chunk data into the main stream
                             const reader = chunkRes.body.getReader();
                             while (true) {
                                 const { done, value } = await reader.read();
@@ -94,19 +117,17 @@ export async function GET(req: NextRequest) {
                                 controller.enqueue(value);
                             }
                         }
-
                         currentOffset += chunk.size;
                     }
                     controller.close();
                 } catch (e: any) {
-                    console.error("Multi-chunk Stream Error:", e);
                     controller.error(e);
                 }
             }
         });
 
         const responseHeaders = new Headers();
-        responseHeaders.set("Content-Type", "video/mp4");
+        responseHeaders.set("Content-Type", contentType);
         responseHeaders.set("Accept-Ranges", "bytes");
         responseHeaders.set("Content-Length", contentLength.toString());
 

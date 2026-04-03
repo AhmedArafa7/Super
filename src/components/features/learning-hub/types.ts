@@ -9,6 +9,7 @@ export interface BaseItem {
   id: string;
   title: string;
   createdAt: string;
+  url?: string;
   source?: 'local' | 'cloud';
 }
 

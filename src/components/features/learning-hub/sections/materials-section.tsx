@@ -7,7 +7,8 @@ import {
 } from '../learning-hub-store';
 import { ItemModal } from '../item-modal';
 import { Button } from '@/components/ui/button';
-import { FileText, Presentation, Link2, Plus, Edit3, Trash2, ExternalLink } from 'lucide-react';
+import { FileText, Presentation, Link2, Plus, Edit3, Trash2, ExternalLink, Eye } from 'lucide-react';
+import { EmptyState } from '../empty-state';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -75,10 +76,11 @@ export function MaterialsSection({ subjectId }: MaterialsSectionProps) {
       </div>
 
       {materials.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <FileText className="size-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">لا توجد مواد بعد</p>
-        </div>
+        <EmptyState 
+          icon={FileText} 
+          title="لا توجد مواد دراسية" 
+          description="لم يتم رفع أي ملفات أو مراجع لهذه المادة بعد. ابدأ بإضافة أول مرجع الآن!"
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {materials.map((item) => {
@@ -86,8 +88,13 @@ export function MaterialsSection({ subjectId }: MaterialsSectionProps) {
             return (
               <div
                 key={item.id}
-                className="group p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.07] hover:border-white/15 transition-all duration-300 active:scale-[0.98]"
+                onClick={() => item.url && window.open(item.url, '_blank')}
+                className="group relative p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.07] hover:border-primary/30 transition-all duration-300 active:scale-[0.98] cursor-pointer"
               >
+                {/* Hover Eye Indicator */}
+                <div className="absolute top-2 left-2 size-6 rounded-lg bg-primary/20 text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Eye className="size-3.5" />
+                </div>
                 <div className="flex items-start gap-3">
                   <div className={cn('size-10 rounded-xl flex items-center justify-center shrink-0', typeColors[item.type])}>
                     <Icon className="size-5" />
@@ -113,7 +120,7 @@ export function MaterialsSection({ subjectId }: MaterialsSectionProps) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-white/5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-white/5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                   <Button
                     size="sm" variant="ghost"
                     className="h-8 text-[10px] text-amber-400 hover:bg-amber-500/10 gap-1 rounded-lg flex-1"

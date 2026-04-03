@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils';
 import { useLearningHubStore, SubjectId, RecordingItem } from '../learning-hub-store';
 import { ItemModal } from '../item-modal';
 import { Button } from '@/components/ui/button';
-import { Video, Plus, Edit3, Trash2, Play, Clock, ExternalLink } from 'lucide-react';
+import { Video, Plus, Edit3, Trash2, Play, Clock, ExternalLink, Eye } from 'lucide-react';
+import { EmptyState } from '../empty-state';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -73,26 +74,31 @@ export function RecordingsSection({ subjectId }: RecordingsSectionProps) {
       </div>
 
       {recordings.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <Video className="size-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">لا توجد تسجيلات بعد</p>
-        </div>
+        <EmptyState 
+          icon={Video} 
+          title="لا توجد تسجيلات" 
+          description="لم يتم توفير أي تسجيلات للمحاضرات أو السكاشن بعد. سيتم إدراجها هنا فور توفرها."
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {recordings.map((item) => {
             const isYT = isYouTubeUrl(item.url);
             const thumbnail = isYT ? getYouTubeThumbnail(item.url) : null;
+            const openVideo = () => setPlayerUrl(isYT ? getYouTubeEmbedUrl(item.url) : item.url);
 
             return (
               <div
                 key={item.id}
-                className="group bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:bg-white/[0.07] hover:border-white/15 transition-all duration-300 active:scale-[0.98]"
+                onClick={openVideo}
+                className="group relative bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:bg-white/[0.07] hover:border-primary/30 transition-all duration-300 active:scale-[0.98] cursor-pointer"
               >
+                {/* Hover Eye Indicator */}
+                <div className="absolute top-2 left-2 z-10 size-6 rounded-lg bg-primary/20 text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Eye className="size-3.5" />
+                </div>
+
                 {/* Thumbnail */}
-                <div
-                  className="relative h-32 sm:h-36 bg-slate-800 flex items-center justify-center cursor-pointer overflow-hidden"
-                  onClick={() => setPlayerUrl(isYT ? getYouTubeEmbedUrl(item.url) : item.url)}
-                >
+                <div className="relative h-32 sm:h-36 bg-slate-800 flex items-center justify-center overflow-hidden">
                   {thumbnail ? (
                     <img src={thumbnail} alt={item.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                   ) : (
@@ -122,7 +128,7 @@ export function RecordingsSection({ subjectId }: RecordingsSectionProps) {
                       {item.source === 'cloud' ? 'Cloud' : 'Local'}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 mt-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1.5 mt-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                     <Button size="sm" variant="ghost" className="h-8 text-[10px] text-amber-400 hover:bg-amber-500/10 gap-1 rounded-lg flex-1" onClick={() => { setEditingItem(item); setModalOpen(true); }}>
                       <Edit3 className="size-3" /> تعديل
                     </Button>
@@ -157,14 +163,25 @@ export function RecordingsSection({ subjectId }: RecordingsSectionProps) {
           <DialogHeader className="p-4 pb-0">
             <DialogTitle className="text-white text-sm">مشغل الفيديو</DialogTitle>
           </DialogHeader>
-          <div className="aspect-video w-full">
+          <div className="aspect-video w-full bg-black">
             {playerUrl && (
-              <iframe
-                src={playerUrl}
-                className="w-full h-full border-none"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+              isYouTubeUrl(playerUrl) ? (
+                <iframe
+                  src={playerUrl}
+                  className="w-full h-full border-none"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <video 
+                  src={playerUrl} 
+                  controls 
+                  autoPlay 
+                  className="w-full h-full"
+                >
+                  متصفحك لا يدعم تشغيل هذا الفيديو.
+                </video>
+              )
             )}
           </div>
         </DialogContent>

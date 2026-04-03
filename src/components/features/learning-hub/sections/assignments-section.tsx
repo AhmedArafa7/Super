@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   ClipboardList, Plus, Edit3, Trash2, Clock, CheckCircle2,
-  AlertCircle, ArrowUpDown, Upload,
+  AlertCircle, ArrowUpDown, Upload, Eye
 } from 'lucide-react';
+import { EmptyState } from '../empty-state';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -93,10 +94,11 @@ export function AssignmentsSection({ subjectId }: AssignmentsSectionProps) {
       </div>
 
       {assignments.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <ClipboardList className="size-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">لا توجد واجبات بعد</p>
-        </div>
+        <EmptyState 
+          icon={ClipboardList} 
+          title="لا توجد واجبات" 
+          description="لم يتم تكليفك بأي واجبات لهذه المادة بعد. استغل الوقت في المراجعة!"
+        />
       ) : (
         <div className="space-y-2">
           {assignments.map((item) => {
@@ -107,8 +109,13 @@ export function AssignmentsSection({ subjectId }: AssignmentsSectionProps) {
             return (
               <div
                 key={item.id}
-                className="group flex items-start sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.07] transition-all active:scale-[0.99]"
+                onClick={() => item.url && window.open(item.url, '_blank')}
+                className="group relative flex items-start sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.07] hover:border-primary/30 transition-all active:scale-[0.99] cursor-pointer"
               >
+                {/* Hover Eye Indicator */}
+                <div className="absolute top-2 left-2 size-6 rounded-lg bg-primary/20 text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Eye className="size-3.5" />
+                </div>
                 <button
                   onClick={() => toggleAssignmentStatus(subjectId, item.id)}
                   className={cn(
@@ -150,7 +157,7 @@ export function AssignmentsSection({ subjectId }: AssignmentsSectionProps) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
+                <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0" onClick={(e) => e.stopPropagation()}>
                   <Button
                     size="icon" variant="ghost"
                     className="size-8 text-amber-400 hover:bg-amber-500/10 rounded-lg"
