@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -29,139 +29,6 @@ const subjectColorMap: Record<SubjectId, { bg: string; border: string; text: str
   'embedded-rtos': { bg: 'bg-cyan-500/20', border: 'border-cyan-500/30', text: 'text-cyan-300' },
 };
 
-interface ScheduleModalProps {
-  open: boolean;
-  onClose: () => void;
-  initialData?: ScheduleEvent | null;
-  onSave: (data: Omit<ScheduleEvent, 'id'> | Partial<ScheduleEvent>) => void;
-  mode: 'add' | 'edit';
-}
-
-function ScheduleModal({ open, onClose, initialData, onSave, mode }: ScheduleModalProps) {
-  const [title, setTitle] = useState(initialData?.title || '');
-  const [subjectId, setSubjectId] = useState<SubjectId>(initialData?.subjectId || 'data-center');
-  const [day, setDay] = useState(initialData?.day?.toString() || '0');
-  const [startHour, setStartHour] = useState(initialData?.startHour?.toString() || '8');
-  const [endHour, setEndHour] = useState(initialData?.endHour?.toString() || '10');
-  const [location, setLocation] = useState(initialData?.location || '');
-
-  React.useEffect(() => {
-    if (initialData) {
-      setTitle(initialData.title);
-      setSubjectId(initialData.subjectId);
-      setDay(initialData.day.toString());
-      setStartHour(initialData.startHour.toString());
-      setEndHour(initialData.endHour.toString());
-      setLocation(initialData.location || '');
-    } else {
-      setTitle('');
-      setSubjectId('data-center');
-      setDay('0');
-      setStartHour('8');
-      setEndHour('10');
-      setLocation('');
-    }
-  }, [initialData, open]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({
-      title,
-      subjectId,
-      day: parseInt(day),
-      startHour: parseInt(startHour),
-      endHour: parseInt(endHour),
-      location: location || undefined,
-    });
-    onClose();
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-slate-950 border-white/10 rounded-2xl w-[calc(100%-2rem)] max-w-md mx-auto" dir="rtl">
-        <DialogHeader>
-          <DialogTitle className="text-right">
-            {mode === 'add' ? 'إضافة حصة' : 'تعديل حصة'}
-          </DialogTitle>
-          <DialogDescription className="text-right text-sm text-muted-foreground">
-            {mode === 'add' ? 'أدخل تفاصيل الحصة الجديدة' : 'عدّل البيانات ثم اضغط حفظ'}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-muted-foreground">العنوان <span className="text-red-400">*</span></Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} required className="bg-white/5 border-white/10 rounded-xl h-10 text-right" placeholder="مثال: محاضرة الشبكات" />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-muted-foreground">المادة</Label>
-            <Select value={subjectId} onValueChange={(v) => setSubjectId(v as SubjectId)}>
-              <SelectTrigger className="bg-white/5 border-white/10 rounded-xl h-10 text-right"><SelectValue /></SelectTrigger>
-              <SelectContent className="bg-slate-900 border-white/10">
-                {SUBJECTS.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.icon} {s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-muted-foreground">اليوم</Label>
-            <Select value={day} onValueChange={setDay}>
-              <SelectTrigger className="bg-white/5 border-white/10 rounded-xl h-10 text-right"><SelectValue /></SelectTrigger>
-              <SelectContent className="bg-slate-900 border-white/10">
-                {DAYS.map((d, i) => (
-                  <SelectItem key={i} value={i.toString()}>{d}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-muted-foreground">من الساعة</Label>
-              <Select value={startHour} onValueChange={setStartHour}>
-                <SelectTrigger className="bg-white/5 border-white/10 rounded-xl h-10 text-right"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-slate-900 border-white/10">
-                  {HOURS.map((h) => (
-                    <SelectItem key={h} value={h.toString()}>{h}:00</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-muted-foreground">إلى الساعة</Label>
-              <Select value={endHour} onValueChange={setEndHour}>
-                <SelectTrigger className="bg-white/5 border-white/10 rounded-xl h-10 text-right"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-slate-900 border-white/10">
-                  {HOURS.map((h) => (
-                    <SelectItem key={h} value={h.toString()}>{h}:00</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-muted-foreground">المكان</Label>
-            <Input value={location} onChange={(e) => setLocation(e.target.value)} className="bg-white/5 border-white/10 rounded-xl h-10 text-right" placeholder="مثال: قاعة 301" />
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <Button type="submit" className="flex-1 h-11 rounded-xl bg-primary hover:bg-primary/90 font-bold gap-2">
-              <Save className="size-4" />
-              {mode === 'add' ? 'إضافة' : 'حفظ'}
-            </Button>
-            <Button type="button" variant="outline" onClick={onClose} className="h-11 rounded-xl border-white/10 px-6">
-              <X className="size-4" />
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 const GROUPS = ['A1', 'A2', 'A3', 'A4', 'All'];
 
 export function ScheduleView() {
@@ -178,7 +45,7 @@ export function ScheduleView() {
   const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
 
   const handleSave = (data: any) => {
-    if (editingEvent) {
+    if (editingEvent?.id) {
       editScheduleEvent(editingEvent.id, data);
     } else {
       addScheduleEvent(data);
@@ -187,21 +54,14 @@ export function ScheduleView() {
   };
 
   const getEventsForCell = (day: number, hour: number) => {
-    // Filter Logic:
-    // 1. If 'All' is selected, show everything.
-    // 2. If a specific group (e.g. 'A1') is selected, show 'A' (Lectures) + 'A1'.
     const filtered = schedule.filter(e => {
         if (selectedGroup === 'All') return true;
         return e.groupId === 'A' || e.groupId === selectedGroup;
     });
-    
     return filtered.filter((e) => e.day === day && e.startHour <= hour && e.endHour > hour);
   };
 
   const isEventStart = (event: ScheduleEvent, hour: number) => event.startHour === hour;
-
-  // Render only first 3 days (Sat, Sun, Mon) if we want to be strict, but let's keep all 6 headers 
-  // and just show data where it exists.
   const ACTIVE_DAYS = DAYS.slice(0, 3); // Saturday, Sunday, Monday
 
   return (
@@ -328,6 +188,27 @@ export function ScheduleView() {
                                 </span>
                             </div>
                           </div>
+                          
+                          {/* Trash indicator for fast delete */}
+                          <div className="absolute top-1 left-1 opacity-0 group-hover/cell:opacity-100 transition-opacity">
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <button className="p-1 text-red-400 hover:text-red-300" onClick={e => e.stopPropagation()}>
+                                        <Trash2 className="size-3" />
+                                    </button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="bg-slate-950 border-white/10 rounded-2xl w-[calc(100%-2rem)] max-w-md" dir="rtl">
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>حذف من الجدول</AlertDialogTitle>
+                                        <AlertDialogDescription>سيتم حذف "{event.title}" نهائياً من مجموعتك.</AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter className="flex-row-reverse gap-2">
+                                        <AlertDialogAction onClick={() => deleteScheduleEvent(event.id)} className="bg-red-600 rounded-xl">حذف</AlertDialogAction>
+                                        <AlertDialogCancel className="rounded-xl border-white/10 text-white">إلغاء</AlertDialogCancel>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                             </AlertDialog>
+                          </div>
                         </div>
                       </td>
                     );
@@ -384,11 +265,11 @@ function ScheduleModal({ open, onClose, initialData, onSave, mode }: ScheduleMod
 
   React.useEffect(() => {
     if (initialData) {
-      setTitle(initialData.title);
-      setSubjectId(initialData.subjectId);
-      setDay(initialData.day.toString());
-      setStartHour(initialData.startHour.toString());
-      setEndHour(initialData.endHour.toString());
+      setTitle(initialData.title || '');
+      setSubjectId(initialData.subjectId || 'data-center');
+      setDay(initialData.day?.toString() || '0');
+      setStartHour(initialData.startHour?.toString() || '8');
+      setEndHour(initialData.endHour?.toString() || '10');
       setLocation(initialData.location || '');
       setGroupId(initialData.groupId || 'A');
     }
