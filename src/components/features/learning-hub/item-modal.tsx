@@ -104,9 +104,16 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsUploading(true);
-    
+    if (!formData.title || formData.title.trim() === '') {
+      toast({ 
+        variant: "destructive", 
+        title: "خطأ في البيانات", 
+        description: "يرجى إدخال عنوان للمورد قبل الحفظ." 
+      });
+      setIsUploading(false);
+      return;
+    }
+
     let finalData = { ...formData };
     
     try {
@@ -151,7 +158,7 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
     }
   };
 
-  const showFileDrop = ['materials', 'questionBanks', 'recordings'].includes(sectionType) && mode === 'add';
+  const showFileDrop = mode === 'add'; // Enable for everything in Add mode
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -203,7 +210,7 @@ export function ItemModal({ open, onClose, sectionType, initialData, onSave, mod
                       ? "video/*,audio/*" 
                       : sectionType === 'materials' 
                         ? ".pdf,.doc,.docx,.ppt,.pptx,image/*" 
-                        : ".pdf"
+                        : ".pdf,.doc,.docx,.xlsx,.zip,image/*"
                   }
                   disabled={isUploading}
                 />

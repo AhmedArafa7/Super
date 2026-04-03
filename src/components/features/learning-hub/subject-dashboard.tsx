@@ -13,9 +13,10 @@ import { QuizzesSection } from './sections/quizzes-section';
 import { QuizFormsSection } from './sections/quiz-forms-section';
 import { QuestionBanksSection } from './sections/question-banks-section';
 import {
-  FileText, Video, ClipboardList, BookCheck, FormInput, Archive,
+  FileText, Video, ClipboardList, BookCheck, FormInput, Archive, Clock, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLearningHubStore } from './learning-hub-store';
 
 const sectionIcons: Record<SectionType, React.ElementType> = {
   materials: FileText,
@@ -62,10 +63,13 @@ export function SubjectDashboard({ subjectId }: SubjectDashboardProps) {
             )}>
               {subject.icon}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h1 className="text-base sm:text-xl font-black text-white truncate">{subject.name}</h1>
               <p className="text-[10px] sm:text-xs text-muted-foreground">{subject.nameEn}</p>
             </div>
+
+            {/* Subject-Specific Deadline */}
+            <SubjectDeadline subjectId={subjectId} />
           </div>
 
           <div className="w-full">
@@ -126,5 +130,27 @@ export function SubjectDashboard({ subjectId }: SubjectDashboardProps) {
         </Tabs>
       </motion.div>
     </AnimatePresence>
+  );
+}
+function SubjectDeadline({ subjectId }: { subjectId: SubjectId }) {
+  const getNextDeadlineForSubject = useLearningHubStore((s) => s.getNextDeadlineForSubject);
+  const deadline = getNextDeadlineForSubject(subjectId);
+
+  if (!deadline) return null;
+
+  const targetDate = new Date('deadline' in deadline.item ? (deadline.item as any).deadline : (deadline.item as any).date);
+  const isUrgent = (targetDate.getTime() - Date.now()) < 1000 * 60 * 60 * 48;
+
+  return (
+    <div className={cn(
+      "flex items-center gap-2 px-3 py-1.5 rounded-xl border animate-in fade-in slide-in-from-right-4 duration-500",
+      isUrgent ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-primary/10 border-primary/20 text-primary"
+    )}>
+      {isUrgent ? <AlertTriangle className="size-3" /> : <Clock className="size-3" />}
+      <div className="flex flex-col">
+        <span className="text-[8px] font-black uppercase tracking-widest opacity-60">أقرب موعد</span>
+        <span className="text-[10px] font-bold truncate max-w-[100px] sm:max-w-xs">{deadline.item.title}</span>
+      </div>
+    </div>
   );
 }

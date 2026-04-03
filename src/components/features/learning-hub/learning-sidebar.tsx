@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { SUBJECTS, SubjectId } from './learning-hub-store';
+import { SUBJECTS, SubjectId, useLearningHubStore } from './learning-hub-store';
 import { ProgressWidget } from './progress-widget';
 import { DeadlineWidget } from './deadline-widget';
 import { GraduationCap, CalendarDays, Rocket } from 'lucide-react';
@@ -23,17 +23,47 @@ interface LearningSidebarProps {
  * شريط التنقل الجانبي لمركز التعلم — Nexus V2
  */
 export function LearningSidebar({ activeSubject, activeView, onSubjectSelect, onScheduleSelect, className }: LearningSidebarProps) {
+  const getGlobalProgress = useLearningHubStore((s) => s.getGlobalProgress);
+  const globalProgress = typeof getGlobalProgress === 'function' ? getGlobalProgress() : 0;
+
+  const getStatus = (progress: number) => {
+    if (progress >= 80) return { label: 'On Track', color: 'text-emerald-400', bg: 'bg-emerald-400/10' };
+    if (progress >= 50) return { label: 'Getting There', color: 'text-amber-400', bg: 'bg-amber-400/10' };
+    return { label: 'Focus Needed', color: 'text-primary', bg: 'bg-primary/10' };
+  };
+
+  const status = getStatus(globalProgress);
+
   return (
     <div className={cn("flex flex-col h-full font-sans shadow-2xl bg-slate-950", className)} dir="rtl">
       {/* Sidebar Header (V2 Stylized) */}
       <div className="p-8 border-b border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
         <div className="flex items-center gap-4">
-          <div className="size-14 bg-gradient-to-br from-primary to-violet-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/30 group-hover:scale-105 transition-transform">
+          <div className="size-14 bg-gradient-to-br from-primary to-violet-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/30 group-hover:scale-105 transition-transform shrink-0">
             <GraduationCap className="size-7 text-white" />
           </div>
-          <div className="text-right">
-            <h1 className="text-xl font-black text-white tracking-tight">التعلم</h1>
-            <p className="text-[10px] text-primary font-bold uppercase tracking-[0.2em] mt-0.5">Academic Core</p>
+          <div className="text-right min-w-0">
+            <h1 className="text-xl font-black text-white tracking-tight truncate">التعلم</h1>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[10px] text-primary font-bold uppercase tracking-[0.2em]">Academic Core</span>
+              <span className={cn("px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter", status.bg, status.color)}>
+                {status.label}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Global Progress Section */}
+        <div className="mt-8 space-y-2">
+          <div className="flex justify-between items-end">
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">الإنجاز الكلي</p>
+            <p className="text-lg font-black text-white tabular-nums">{globalProgress}%</p>
+          </div>
+          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-l from-primary to-violet-500 transition-all duration-1000"
+              style={{ width: `${globalProgress}%` }}
+            />
           </div>
         </div>
       </div>

@@ -46,9 +46,11 @@ interface LearningHubState {
 
   // Progress
   getProgress: (subjectId: SubjectId) => number;
+  getGlobalProgress: () => number;
 
   // Deadline
   getNextDeadline: () => { item: AssignmentItem | QuizItem; subjectId: SubjectId } | null;
+  getNextDeadlineForSubject: (subjectId: SubjectId) => { item: AssignmentItem | QuizItem } | null;
 
   // Hybrid Storage (Real Firestore Sync)
   isLoading: boolean;
@@ -161,9 +163,20 @@ export const useLearningHubStore = create<LearningHubState>()(
         const completedAssignments = subj.assignments.filter((a) => a.status === 'submitted' || a.status === 'graded').length;
         const totalQuizzes = subj.quizzes.length;
         const completedQuizzes = subj.quizzes.filter((q) => q.completed).length;
-        const total = totalAssignments + totalQuizzes;
+        const totalForms = subj.quizForms.length;
+        const completedForms = subj.quizForms.filter((f) => f.status === 'completed').length;
+        
+        const total = totalAssignments + totalQuizzes + totalForms;
         if (total === 0) return 0;
-        return Math.round(((completedAssignments + completedQuizzes) / total) * 100);
+        return Math.round(((completedAssignments + completedQuizzes + completedForms) / total) * 100);
+      },
+
+      getGlobalProgress: () => {
+        const { subjects, getProgress } = get();
+        const sIds = Object.keys(subjects) as SubjectId[];
+        if (sIds.length === 0) return 0;
+        const totalProgress = sIds.reduce((acc, id) => acc + getProgress(id), 0);
+        return Math.round(totalProgress / sIds.length);
       },
 
       getNextDeadline: () => {
@@ -190,6 +203,31 @@ export const useLearningHubStore = create<LearningHubState>()(
           }
         }
         return nearest ? { item: nearest.item, subjectId: nearest.subjectId } : null;
+      },
+
+      getNextDeadlineForSubject: (subjectId) => {
+        const subj = get().subjects[subjectId];
+        if (!subj) return null;
+        const now = new Date();
+        let nearest: { item: AssignmentItem | QuizItem; date: Date } | null = null;
+
+        for (const a of subj.assignments) {
+          if (a.status === 'pending') {
+            const d = new Date(a.deadline);
+            if (d > now && (!nearest || d < nearest.date)) {
+              nearest = { item: a, date: d };
+            }
+          }
+        }
+        for (const q of subj.quizzes) {
+          if (!q.completed) {
+            const d = new Date(q.date);
+            if (d > now && (!nearest || d < nearest.date)) {
+              nearest = { item: q, date: d };
+            }
+          }
+        }
+        return nearest ? { item: nearest.item } : null;
       },
 
       // Hybrid Storage Implementation (Real Firestore Sync)
