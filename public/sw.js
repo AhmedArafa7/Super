@@ -50,7 +50,31 @@ self.addEventListener('fetch', (event) => {
     // Skip non-GET requests (POST, PUT, etc.)
     if (request.method !== 'GET') return;
 
-    // Skip internal API routes (proxy, etc.) — never cache
+    // ─── Special Handling: Telegram File Streams (Offline Support) ───
+    if (url.pathname.startsWith('/api/stream/telegram')) {
+        event.respondWith(
+            caches.match(request).then((cached) => {
+                if (cached) return cached;
+                
+                // Not in cache, fetch from network and store
+                return fetch(request).then((response) => {
+                    // We only cache successful full responses (200) or partials we want to keep
+                    // Note: Caching 206 (Partial) can be tricky, but for PDFs/Docs it's often 200
+                    if (response.ok) {
+                        const responseClone = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+                    }
+                    return response;
+                }).catch(() => {
+                    // Offline and not in cache: return a custom offline response if possible
+                    return caches.match(OFFLINE_URL);
+                });
+            })
+        );
+        return;
+    }
+
+    // Skip other internal API routes (proxy, etc.) — never cache
     if (url.pathname.startsWith('/api/')) return;
 
     // Skip Firebase/Firestore, Google Auth, and external API requests — always network

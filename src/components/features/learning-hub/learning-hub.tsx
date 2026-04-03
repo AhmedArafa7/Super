@@ -46,12 +46,12 @@ export default function LearningHub() {
     deleteItem,
     initCloudSync,
     isLoading,
+    isOnline,
   } = useLearningHubStore();
   
   const [activeSubject, setActiveSubject] = useState<SubjectId>(SUBJECTS[0].id);
   const [activeView, setActiveView] = useState<'subject' | 'schedule'>('subject');
 
-  // تفعيل المزامنة السحابية عند التحميل
   // Automatic Sync on Mount
   useEffect(() => {
     initCloudSync();
@@ -102,37 +102,33 @@ export default function LearningHub() {
             action={
               <div className="flex items-center gap-3">
                 {/* Storage Toggle Indicator */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "hidden md:flex items-center gap-2 px-4 py-2 rounded-xl border backdrop-blur-md transition-all duration-500",
-                        isLoading 
-                          ? "bg-amber-500/10 border-amber-500/20 text-amber-500 animate-pulse" 
-                          : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                      )}>
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="size-4 animate-spin" />
-                            <span className="text-xs font-bold uppercase tracking-wider">Syncing Cloud</span>
-                          </>
-                        ) : (
-                          <>
-                            <div className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-                            <span className="text-xs font-bold uppercase tracking-wider">Nexus Cloud Linked</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="bg-slate-950 border-white/10 rounded-2xl p-2 w-56 shadow-2xl">
-                    <DropdownMenuLabel className="text-[10px] uppercase font-black text-muted-foreground p-3 tracking-widest">إعدادات النود الأكاديمية</DropdownMenuLabel>
-                    <DropdownMenuSeparator className="bg-white/5" />
-                    <div className="p-2 space-y-1">
-                      <div className="px-3 py-2 text-[10px] text-slate-500 uppercase tracking-tighter">الحالة الحالية: متصل بالسحابة</div>
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "hidden md:flex items-center gap-2 px-4 py-2 rounded-xl border backdrop-blur-md transition-all duration-500",
+                    !isOnline 
+                      ? "bg-slate-800/40 border-white/5 text-slate-400"
+                      : isLoading 
+                        ? "bg-amber-500/10 border-amber-500/20 text-amber-500 animate-pulse" 
+                        : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                  )}>
+                    {!isOnline ? (
+                      <>
+                        <Zap className="size-4 opacity-50" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Offline Mode</span>
+                      </>
+                    ) : isLoading ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Syncing Cloud</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Nexus Cloud Linked</span>
+                      </>
+                    )}
+                  </div>
+                </div>
 
                 <LearningSearchBar />
               </div>

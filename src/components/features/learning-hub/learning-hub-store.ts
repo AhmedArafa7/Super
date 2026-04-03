@@ -54,6 +54,7 @@ interface LearningHubState {
 
   // Hybrid Storage (Real Firestore Sync)
   isLoading: boolean;
+  isOnline: boolean;
   initCloudSync: () => Promise<void>;
   _unsubscribe?: () => void;
 }
@@ -232,8 +233,16 @@ export const useLearningHubStore = create<LearningHubState>()(
 
       // Hybrid Storage Implementation (Real Firestore Sync)
       isLoading: false,
+      isOnline: typeof window !== 'undefined' ? window.navigator.onLine : true,
+      
       initCloudSync: async () => {
         const { _unsubscribe } = get();
+        
+        // Setup Online/Offline listeners
+        if (typeof window !== 'undefined') {
+          window.addEventListener('online', () => set({ isOnline: true }));
+          window.addEventListener('offline', () => set({ isOnline: false }));
+        }
 
         set({ isLoading: true });
 
