@@ -56,15 +56,15 @@ export function SubjectDashboard({ subjectId }: SubjectDashboardProps) {
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3 sm:gap-4">
             <div className={cn(
-              'size-12 sm:size-14 rounded-2xl flex items-center justify-center text-xl sm:text-2xl border shadow-lg shrink-0',
+              'size-11 sm:size-14 rounded-2xl flex items-center justify-center text-lg sm:text-2xl border shadow-lg shrink-0',
               subject.bgColor,
               `border-${subject.color.replace('text-', '')}/20`
             )}>
               {subject.icon}
             </div>
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl font-black text-white truncate">{subject.name}</h1>
-              <p className="text-xs text-muted-foreground">{subject.nameEn}</p>
+              <h1 className="text-base sm:text-xl font-black text-white truncate">{subject.name}</h1>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">{subject.nameEn}</p>
             </div>
           </div>
 
@@ -80,8 +80,8 @@ export function SubjectDashboard({ subjectId }: SubjectDashboardProps) {
 
         {/* Tabs for Sub-sections */}
         <Tabs defaultValue="materials" className="space-y-4">
-          <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pb-1">
-            <TabsList className="bg-white/5 border border-white/10 rounded-xl p-1 h-auto inline-flex gap-1 min-w-max">
+          <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-none">
+            <TabsList className="bg-white/5 border border-white/10 rounded-xl p-1 h-auto flex gap-1 min-w-max">
               {sectionOrder.map((section) => {
                 const Icon = sectionIcons[section];
                 const label = SECTION_LABELS[section]?.label || section;

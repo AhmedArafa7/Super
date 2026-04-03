@@ -15,15 +15,16 @@ interface LearningSidebarProps {
   activeView: 'subject' | 'schedule';
   onSubjectSelect: (id: SubjectId) => void;
   onScheduleSelect: () => void;
+  className?: string;
 }
 
 /**
  * [STABILITY_ANCHOR: LEARNING_SIDEBAR_V2.0_MERGED]
  * شريط التنقل الجانبي لمركز التعلم — Nexus V2
  */
-export function LearningSidebar({ activeSubject, activeView, onSubjectSelect, onScheduleSelect }: LearningSidebarProps) {
+export function LearningSidebar({ activeSubject, activeView, onSubjectSelect, onScheduleSelect, className }: LearningSidebarProps) {
   return (
-    <div className="w-80 shrink-0 border-l border-white/5 bg-slate-950/60 backdrop-blur-3xl flex flex-col h-full font-sans shadow-2xl" dir="rtl">
+    <div className={cn("flex flex-col h-full font-sans shadow-2xl bg-slate-950", className)} dir="rtl">
       {/* Sidebar Header (V2 Stylized) */}
       <div className="p-8 border-b border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
         <div className="flex items-center gap-4">
