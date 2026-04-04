@@ -319,7 +319,7 @@ export const useLearningHubStore = create<LearningHubState>()(
       },
     }),
     {
-      name: 'nexus-learning-hub-v3', 
+      name: 'nexus-learning-hub-v4', 
     }
   )
 );
