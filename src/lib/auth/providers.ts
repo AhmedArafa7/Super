@@ -6,7 +6,8 @@ import {
   GithubAuthProvider, 
   signOut,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword
+  createUserWithEmailAndPassword,
+  linkWithPopup
 } from 'firebase/auth';
 import { initializeFirebase } from '@/firebase';
 import { setSession } from './session';
@@ -52,6 +53,24 @@ export const signInWithGithub = async () => {
   const { auth } = initializeFirebase();
   const provider = new GithubAuthProvider();
   return signInWithPopup(auth, provider);
+};
+
+export const linkGoogleAccount = async () => {
+  const { auth } = initializeFirebase();
+  const provider = new GoogleAuthProvider();
+  if (auth.currentUser) {
+      return linkWithPopup(auth.currentUser, provider);
+  }
+  throw new Error("No user to link");
+};
+
+export const linkGithubAccount = async () => {
+  const { auth } = initializeFirebase();
+  const provider = new GithubAuthProvider();
+  if (auth.currentUser) {
+      return linkWithPopup(auth.currentUser, provider);
+  }
+  throw new Error("No user to link");
 };
 
 export const signInWithCredentials = async (username: string, securityCode: string) => {

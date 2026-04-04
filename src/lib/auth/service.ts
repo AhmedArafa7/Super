@@ -1,7 +1,7 @@
 'use client';
 
 import { 
-  doc, getDoc, setDoc, updateDoc, collection, getDocs, limit, query 
+  doc, getDoc, setDoc, updateDoc, collection, getDocs, limit, query, runTransaction
 } from 'firebase/firestore';
 import { User as FirebaseUser } from 'firebase/auth';
 import { initializeFirebase } from '@/firebase';
@@ -47,7 +47,28 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
   }
 
   let detectedUsername = "user_" + firebaseUser.uid.substring(0, 5);
-  if (firebaseUser.email) {
+  let detectedName = firebaseUser.displayName || "ضيف جديد";
+
+  if (firebaseUser.isAnonymous) {
+      try {
+          const sysRef = doc(firestore, 'system', 'metadata');
+          const finalCount = await runTransaction(firestore, async (transaction) => {
+              const sfDoc = await transaction.get(sysRef);
+              let count = 1;
+              if (sfDoc.exists()) {
+                  count = (sfDoc.data().guestCount || 0) + 1;
+                  transaction.update(sysRef, { guestCount: count });
+              } else {
+                  transaction.set(sysRef, { guestCount: count }, { merge: true });
+              }
+              return count;
+          });
+          detectedName = "مستخدم " + finalCount;
+          detectedUsername = "guest_" + finalCount;
+      } catch (err) {
+          console.error("Counter TX Error:", err);
+      }
+  } else if (firebaseUser.email) {
     detectedUsername = firebaseUser.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
   }
 
@@ -57,7 +78,7 @@ export const ensureUserProfile = async (firebaseUser: FirebaseUser): Promise<Use
   const newUser: User = {
     id: firebaseUser.uid,
     username: detectedUsername,
-    name: firebaseUser.displayName || "عضو جديد",
+    name: detectedName,
     email: firebaseUser.email || "",
     role: isEngMo ? 'admin' : 'free',
     classification: 'none',

@@ -47,12 +47,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error("Profile Sync Error:", err);
           setUser(null);
         }
+        setLoading(false);
       } else {
-        // إذا لم يكن هناك مستخدم سحابي، يتم مسح الجلسة فوراً لمنع أخطاء التصاريح
-        setSession(null);
-        setUser(null);
+        // الدخول التلقائي الخفي بدلاً من طرد المستخدم
+        import('firebase/auth').then(({ signInAnonymously }) => {
+            signInAnonymously(auth).catch(err => {
+                console.error("Anonymous Sync Error:", err);
+                setSession(null);
+                setUser(null);
+                setLoading(false);
+            });
+        });
       }
-      setLoading(false);
     });
 
     const handleUpdate = () => {

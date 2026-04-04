@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { User, Loader2, CheckCircle2, Camera } from "lucide-react";
+import { User, Loader2, CheckCircle2, Camera, Github, Mail } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { updateUserProfile, uploadAvatar } from "@/lib/auth-store";
+import { updateUserProfile, uploadAvatar, linkGoogleAccount, linkGithubAccount } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { ThemeSettingsCard } from "./theme-settings-card";
@@ -170,6 +170,41 @@ export function ProfileSettings({ user }: any) {
               {isUpdating ? <Loader2 className="size-5 animate-spin mr-2" /> : <CheckCircle2 className="size-5 mr-2" />}
               مزامنة بيانات العقدة
             </Button>
+          </div>
+
+          <div className="pt-6 border-t border-white/5 space-y-4">
+            <h4 className="text-right text-xs font-bold text-slate-400 uppercase tracking-widest px-1">تأمين الهوية السحابية</h4>
+            <p className="text-xs text-muted-foreground text-right px-1">
+                يفضل ربط حسابك المؤقت لتتمكن من الوصول لبياناتك من أي جهاز آخر في المستقبل.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                <Button 
+                   onClick={async () => {
+                     try {
+                        await linkGoogleAccount();
+                        toast({ title: "تم تأمين حسابك", description: "تم ربط الحساب بنجاح مع جوجل." });
+                     } catch(e) {
+                        toast({ variant: 'destructive', title: "خطأ بالربط", description: "لم نتمكن من ربط الحساب بجوجل." });
+                     }
+                   }}
+                   variant="outline" className="h-14 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10 gap-3 font-bold">
+                   <Mail className="size-5 text-rose-400"/>
+                   تأمين باستخدام جوجل
+                </Button>
+                <Button 
+                   onClick={async () => {
+                     try {
+                        await linkGithubAccount();
+                        toast({ title: "تم تأمين حسابك", description: "تم ربط الحساب بنجاح مع جيتهاب." });
+                     } catch(e) {
+                        toast({ variant: 'destructive', title: "خطأ بالربط", description: "لم نتمكن من ربط الحساب بجيتهاب." });
+                     }
+                   }}
+                   variant="outline" className="h-14 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10 gap-3 font-bold">
+                   <Github className="size-5 text-slate-300"/>
+                   تأمين باستخدام جيتهاب
+                </Button>
+            </div>
           </div>
         </div>
       </Card>
