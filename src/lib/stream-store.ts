@@ -38,10 +38,19 @@ export const useStreamStore = create<StreamState>((set, get) => ({
   autoFloat: typeof window !== 'undefined' ? localStorage.getItem("nexus_auto_float") === 'true' : false,
 
   setActiveVideo: (video) => {
-    // [TEMPORARY LEGAL BYPASS]: Prevent internal YouTube playback. Redirect to external tab.
+    // [TEMPORARY LEGAL BYPASS]: Prevent internal YouTube playback. Redirect to external tab without proxy.
     if (video && video.source === 'youtube' && video.externalUrl) {
       if (typeof window !== 'undefined') {
-        window.open(video.externalUrl, '_blank');
+        let directUrl = video.externalUrl;
+        if (directUrl.includes('/api/proxy?url=')) {
+          try {
+             const parsedUrl = new URL(directUrl, window.location.origin).searchParams.get('url');
+             if (parsedUrl) directUrl = parsedUrl;
+          } catch (e) {
+             console.error('Failed to parse proxy URL', e);
+          }
+        }
+        window.open(directUrl, '_blank');
       }
       return; 
     }
