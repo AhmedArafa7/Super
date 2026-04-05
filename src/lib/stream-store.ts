@@ -37,11 +37,21 @@ export const useStreamStore = create<StreamState>((set, get) => ({
   backgroundPlayback: typeof window !== 'undefined' ? localStorage.getItem("nexus_bg_playback") !== 'false' : true,
   autoFloat: typeof window !== 'undefined' ? localStorage.getItem("nexus_auto_float") === 'true' : false,
 
-  setActiveVideo: (video) => set({
-    activeVideo: video,
-    isPlaying: !!video,
-    isMinimized: false
-  }),
+  setActiveVideo: (video) => {
+    // [TEMPORARY LEGAL BYPASS]: Prevent internal YouTube playback. Redirect to external tab.
+    if (video && video.source === 'youtube' && video.externalUrl) {
+      if (typeof window !== 'undefined') {
+        window.open(video.externalUrl, '_blank');
+      }
+      return; 
+    }
+
+    set({
+      activeVideo: video,
+      isPlaying: !!video,
+      isMinimized: false
+    });
+  },
 
   setIsPlaying: (playing) => set({ isPlaying: playing }),
 
