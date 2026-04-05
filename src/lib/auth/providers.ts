@@ -34,6 +34,7 @@ export const sanitizeUsername = (username: string) => {
 export const signInWithGoogle = async () => {
   const { auth } = initializeFirebase();
   const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
   return signInWithPopup(auth, provider);
 };
 
@@ -44,7 +45,7 @@ export const linkYouTubeAccount = async () => {
   provider.addScope('https://www.googleapis.com/auth/youtube');
   provider.setCustomParameters({
     access_type: 'offline',
-    prompt: 'consent'
+    prompt: 'consent select_account'
   });
   return signInWithPopup(auth, provider);
 };
@@ -52,12 +53,14 @@ export const linkYouTubeAccount = async () => {
 export const signInWithGithub = async () => {
   const { auth } = initializeFirebase();
   const provider = new GithubAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
   return signInWithPopup(auth, provider);
 };
 
 export const linkGoogleAccount = async () => {
   const { auth } = initializeFirebase();
   const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
   if (auth.currentUser) {
       return linkWithPopup(auth.currentUser, provider);
   }
@@ -67,6 +70,7 @@ export const linkGoogleAccount = async () => {
 export const linkGithubAccount = async () => {
   const { auth } = initializeFirebase();
   const provider = new GithubAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
   if (auth.currentUser) {
       return linkWithPopup(auth.currentUser, provider);
   }
