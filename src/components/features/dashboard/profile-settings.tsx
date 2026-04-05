@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { User, Loader2, CheckCircle2, Camera, Github, Mail } from "lucide-react";
+import { User, Loader2, CheckCircle2, Camera, Github, Mail, LogIn } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { updateUserProfile, uploadAvatar, linkGoogleAccount, linkGithubAccount } from "@/lib/auth-store";
+import { updateUserProfile, uploadAvatar, linkGoogleAccount, linkGithubAccount, signInWithGoogle, signInWithGithub } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { ThemeSettingsCard } from "./theme-settings-card";
@@ -203,6 +203,41 @@ export function ProfileSettings({ user }: any) {
                    variant="outline" className="h-14 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10 gap-3 font-bold">
                    <Github className="size-5 text-slate-300"/>
                    تأمين باستخدام جيتهاب
+                </Button>
+            </div>
+          </div>
+
+          <div className="pt-6 border-t border-white/5 space-y-4">
+            <h4 className="text-right text-xs font-bold text-slate-400 uppercase tracking-widest px-1">استعادة حساب سابق</h4>
+            <p className="text-xs text-muted-foreground text-right px-1">
+                هل قمت بتأمين حسابك مسبقاً؟ سجل الدخول الآن لاستعادة بياناتك ومحفظتك.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                <Button 
+                   onClick={async () => {
+                     try {
+                        await signInWithGoogle();
+                        toast({ title: "أهلاً بك مجدداً", description: "تم استعادة الحساب بنجاح." });
+                     } catch(e) {
+                        toast({ variant: 'destructive', title: "خطأ بالاستعادة", description: "حدث خطأ أثناء محاولة تسجيل الدخول." });
+                     }
+                   }}
+                   variant="outline" className="h-14 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10 gap-3 font-bold border-indigo-500/30">
+                   <LogIn className="size-5 text-indigo-400"/>
+                   استعادة باستخدام جوجل
+                </Button>
+                <Button 
+                   onClick={async () => {
+                     try {
+                        await signInWithGithub();
+                        toast({ title: "أهلاً بك مجدداً", description: "تم استعادة الحساب بنجاح." });
+                     } catch(e) {
+                        toast({ variant: 'destructive', title: "خطأ بالاستعادة", description: "حدث خطأ أثناء محاولة تسجيل الدخول." });
+                     }
+                   }}
+                   variant="outline" className="h-14 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10 gap-3 font-bold border-indigo-500/30">
+                   <LogIn className="size-5 text-indigo-400"/>
+                   استعادة باستخدام جيتهاب
                 </Button>
             </div>
           </div>
