@@ -42,13 +42,13 @@ export const useStreamStore = create<StreamState>((set, get) => ({
     if (video && video.source === 'youtube' && video.externalUrl) {
       if (typeof window !== 'undefined') {
         let directUrl = video.externalUrl;
-        if (directUrl.includes('/api/proxy?url=')) {
-          try {
-             const parsedUrl = new URL(directUrl, window.location.origin).searchParams.get('url');
-             if (parsedUrl) directUrl = parsedUrl;
-          } catch (e) {
-             console.error('Failed to parse proxy URL', e);
-          }
+        const proxyMatch = directUrl.match(/url=([^&]+)/);
+        if (proxyMatch && proxyMatch[1]) {
+           try {
+              directUrl = decodeURIComponent(proxyMatch[1]);
+           } catch (e) {
+              console.error('Failed to decode proxy URL', e);
+           }
         }
         window.open(directUrl, '_blank');
       }
