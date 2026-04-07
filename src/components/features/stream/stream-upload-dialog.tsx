@@ -81,7 +81,14 @@ export function StreamUploadDialog({ onUpload, onOpenVault, user }: any) {
 
   const handleUrlChange = (url: string) => {
     setData(prev => ({ ...prev, externalUrl: url }));
-    if (url.length > 15 && source === 'youtube') {
+    
+    // اكتشاف تلقائي لروابط يوتيوب وتحويل التبويب للراحة ومنع الخطأ
+    const isYoutube = url.includes('youtube.com/') || url.includes('youtu.be/');
+    if (isYoutube && source !== 'youtube') {
+      setSource('youtube');
+    }
+
+    if (url.length > 15 && (isYoutube || source === 'youtube')) {
       fetchVideoTitle(url);
     }
   };
