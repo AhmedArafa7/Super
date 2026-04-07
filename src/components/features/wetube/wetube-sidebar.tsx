@@ -71,7 +71,7 @@ export function WeTubeSidebar({ isSidebarOpen, activeTab, setActiveTab, subscrip
 
   return (
     <aside className={cn(
-      "flex flex-col py-3 bg-[#0f0f0f] md:bg-black/20 backdrop-blur-xl rounded-3xl border border-white/10 h-full hover:overflow-y-auto no-scrollbar rtl text-right shrink-0 transition-all duration-300 z-[100]",
+      "flex flex-col py-3 bg-[#0f0f0f] md:bg-black/20 backdrop-blur-xl rounded-3xl border border-white/10 h-full hover:overflow-y-auto no-scrollbar rtl text-right shrink-0 transition-all duration-300 z-[30]",
       variant === 'overlay' ? "fixed md:absolute top-0 right-0 w-64 shadow-2xl" : "hidden md:flex w-64"
     )}>
       {/* Main Links */}
