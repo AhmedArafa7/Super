@@ -23,6 +23,8 @@ export interface Video {
   allowedUserIds: string[];
   adminFeedback?: string;
   uploaderRole: 'admin' | 'employee' | 'user';
+  submitterId?: string;
+  submitterName?: string;
   createdAt: string;
   source: VideoSource;
   externalUrl?: string;

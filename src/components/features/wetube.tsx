@@ -261,17 +261,30 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const handleUpload = async (source: 'youtube' | 'drive' | 'local', uploadData: { title: string, externalUrl?: string, file?: File, productIds?: string[], productDisplayMode?: any }) => {
     if (!user) return null;
     if (source === 'youtube' || source === 'drive') {
+      let youtubeMeta = null;
+      
+      // جلب بيانات اليوتيوب الأساسية (القناة، العنوان الحقيقي) قبل الحفظ لضمان الدقة
+      if (source === 'youtube' && uploadData.externalUrl) {
+         const { fetchVideoDetails } = await import("@/lib/youtube-discovery-store");
+         const ytId = extractYouTubeId(uploadData.externalUrl);
+         if (ytId) {
+            youtubeMeta = await fetchVideoDetails(ytId);
+         }
+      }
+
       await import("@/lib/video-store").then(m => m.addVideo({
-        title: uploadData.title,
-        author: user.name,
-        authorId: user.id,
-        channelAvatar: user.avatar_url,
-        thumbnail: "",
+        title: youtubeMeta?.title || uploadData.title,
+        author: youtubeMeta?.author || "", // سنتركها فارغة ليشتقها الهوك من يوتيوب مباشرة لاحقاً لتوفير المساحة، أو نخزنها كاحتياط
+        authorId: youtubeMeta?.authorId || "", 
+        channelAvatar: youtubeMeta?.channelAvatar || "", // نتركها فارغة ليشتقها الهوك حيّاً
+        thumbnail: "", // سيتم اشتقاقها من id الفيديو برمجياً في الواجهة
         time: source === 'youtube' ? "YouTube" : "Vault",
-        status: user.role === 'admin' ? 'published' : 'pending_review',
+        status: (user.role === 'admin' || user.role === 'founder') ? 'published' : 'pending_review',
         visibility: 'public',
         allowedUserIds: [],
         uploaderRole: user.role as any,
+        submitterId: user.id,
+        submitterName: user.name,
         source: source,
         externalUrl: uploadData.externalUrl || "",
         productIds: uploadData.productIds,

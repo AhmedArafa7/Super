@@ -61,20 +61,32 @@ export function StreamHub({ onOpenVault }: { onOpenVault?: () => void }) {
   const handleUpload = async (source: any, uploadData: any) => {
     if (!user) return null;
     if (source === 'youtube' || source === 'drive') {
+      let youtubeMeta = null;
+      if (source === 'youtube' && uploadData.externalUrl) {
+        const { extractYouTubeId } = await import("@/lib/youtube-utils");
+        const { fetchVideoDetails } = await import("@/lib/youtube-discovery-store");
+        const ytId = extractYouTubeId(uploadData.externalUrl);
+        if (ytId) {
+          youtubeMeta = await fetchVideoDetails(ytId);
+        }
+      }
+
       await addVideo({
-        title: uploadData.title,
-        author: user.name,
-        authorId: user.id,
-        thumbnail: source === 'youtube' ? "https://images.unsplash.com/photo-1611162617474-5b21e879e113" : "https://images.unsplash.com/photo-1544391496-1ca7c974b711",
+        title: youtubeMeta?.title || uploadData.title,
+        author: youtubeMeta?.author || "",
+        authorId: youtubeMeta?.authorId || "",
+        thumbnail: "",
         time: source === 'youtube' ? "YouTube" : "Vault",
         status: (user.role === 'admin' || user.role === 'founder') ? 'published' : 'pending_review',
         visibility: 'public',
         allowedUserIds: [],
         uploaderRole: user.role as any,
+        submitterId: user.id,
+        submitterName: user.name,
         source: source,
         externalUrl: uploadData.externalUrl
       });
-      toast({ title: "تم ربط العقدة" });
+      toast({ title: "تم ربط العقدة بنجاح" });
       return null;
     } else {
       const taskId = addTask(uploadData.file, 'video', { title: uploadData.title, author: user.name, authorId: user.id, status: (user.role === 'admin' || user.role === 'founder') ? 'published' : 'pending_review' });

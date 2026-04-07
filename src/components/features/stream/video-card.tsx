@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { YoutubeThumbnail } from "@/components/features/wetube/YoutubeThumbnail";
 import { getRelativeTime } from "@/lib/date-utils";
+import { useVideoMetadata } from "@/hooks/use-video-metadata";
 
 const getYoutubeId = (url?: string) => {
   if (!url) return null;
@@ -26,15 +27,19 @@ const getYoutubeId = (url?: string) => {
 
 
 /**
- * [STABILITY_ANCHOR: YOUTUBE_VIDEO_CARD_V1.1]
- * تصنيف واقعي لبيانات الفيديو، إزالة مدة 10:24 الوهمية، وتجميل حالة الفيديوهات بدون صورة مصغرة.
+ * [STABILITY_ANCHOR: YOUTUBE_VIDEO_CARD_V1.2]
+ * استخدام الربط الحي لبيانات اليوتيوب — توفير مساحة الداتابيز واستدامة الباقة المجانية.
  */
 export function VideoCard({ video, isActive, isCached, currentUser, onClick, onSync, onDelete, onChannelClick }: any) {
   const ytId = video.source === 'youtube' ? getYoutubeId(video.externalUrl) : null;
+  const { author: resolvedAuthor, avatar: resolvedAvatar } = useVideoMetadata(ytId, video.author, video.channelAvatar);
 
   // Clean off the save data fallback (netflix/picsum) that used to be here
   const issaveThumb = (url?: string) => !url || url.includes('photo-1611162617474-5b21e879e113') || url.includes('picsum.photos');
-  const validThumb = video.thumbnail && !issaveThumb(video.thumbnail) ? video.thumbnail : null;
+  
+  // اشتقاق الصورة المصغرة لليوتيوب تلقائياً في حال عدم توفرها لتوفير التخزين
+  const youtubeDerivedThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
+  const validThumb = video.thumbnail && !issaveThumb(video.thumbnail) ? video.thumbnail : (video.source === 'youtube' ? youtubeDerivedThumb : null);
 
   const thumbSrc = validThumb;
   const showYoutubeThumbnail = video.source === 'youtube' && ytId;
@@ -131,14 +136,14 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
           className="mt-1 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={(e) => {
             e.stopPropagation();
-            if (video.authorId) onChannelClick?.(video.authorId, video.author, video.channelAvatar);
+            if (video.authorId) onChannelClick?.(video.authorId, resolvedAuthor, resolvedAvatar);
           }}
         >
           <div className="size-9 rounded-full bg-[#272727] overflow-hidden flex items-center justify-center text-white/50 text-[10px]">
-            {video.channelAvatar ? (
-              <img src={video.channelAvatar} className="size-full object-cover" alt={video.author} />
+            {resolvedAvatar ? (
+              <img src={resolvedAvatar} className="size-full object-cover" alt={resolvedAuthor} />
             ) : (
-              video.author?.charAt(0) || "?"
+              resolvedAuthor?.charAt(0) || "?"
             )}
           </div>
         </div>
@@ -153,10 +158,10 @@ export function VideoCard({ video, isActive, isCached, currentUser, onClick, onS
               className="truncate hover:text-foreground transition-colors cursor-pointer w-fit"
               onClick={(e) => {
                 e.stopPropagation();
-                if (video.authorId) onChannelClick?.(video.authorId, video.author, video.channelAvatar);
+                if (video.authorId) onChannelClick?.(video.authorId, resolvedAuthor, resolvedAvatar);
               }}
             >
-              {video.author || "مستخدم مخفي"}
+              {resolvedAuthor || "جاري التحميل..."}
             </span>
             <div className="flex items-center justify-end gap-1 flex-row-reverse truncate">
               <span>{views} مشاهدة</span>
