@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Loader2, History, Bell, Sparkles, Home, PlaySquare, Library, BellRing, Compass, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -91,6 +91,36 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
   const [activeChannel, setActiveChannel] = useState<{ id: string, name: string, avatar?: string } | null>(null);
   const [channelVideos, setChannelVideos] = useState<FeedVideo[]>([]);
   const [isChannelLoading, setIsChannelLoading] = useState(false);
+
+  // نظام التمرير اللانهائي (Infinite Scroll)
+  const [visibleCount, setVisibleCount] = useState(20);
+  const observerTarget = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => prev + 20);
+        }
+      },
+      { threshold: 1.0 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [observerTarget]);
+
+  // لإعادة تصفير العداد عند تغيير التبويب أو الفلاتر
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [activeTab, activeCategory, searchQuery]);
 
   const runAutoSync = useCallback(async (subs: YouTubeSubscription[], feed: FeedVideo[]) => {
     const favorites = subs.filter(s => s.isFavorite);
@@ -468,19 +498,27 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
             )}
           </div>
 
-          <div className="p-4 md:p-8 flex-1 overflow-y-auto no-scrollbar">
+          <div className="p-4 md:p-8 flex-1 overflow-y-auto custom-scrollbar">
              {activeTab === 'home' || activeTab === 'explore' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-6 gap-y-12">
-                  {allHomeContent.map((v, i) => (
-                    <VideoCard
-                      key={`${v.id}-${i}`} video={v as Video}
-                      isCached={cachedAssets.some(a => a.id === `video-${v.id}`)}
-                      currentUser={user} onClick={() => setActiveVideo(v as Video)}
-                      onSync={handleToggleLocal} onDelete={deleteVideo}
-                      onChannelClick={handleChannelClick}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-6 gap-y-12">
+                    {allHomeContent.slice(0, visibleCount).map((v, i) => (
+                      <VideoCard
+                        key={`${v.id}-${i}`} video={v as Video}
+                        isCached={cachedAssets.some(a => a.id === `video-${v.id}`)}
+                        currentUser={user} onClick={() => setActiveVideo(v as Video)}
+                        onSync={handleToggleLocal} onDelete={deleteVideo}
+                        onChannelClick={handleChannelClick}
+                      />
+                    ))}
+                  </div>
+                  {/* عنصر المراقبة للتمرير اللانهائي */}
+                  <div ref={observerTarget} className="h-20 w-full flex items-center justify-center mt-10">
+                    {visibleCount < allHomeContent.length && (
+                      <Loader2 className="size-8 text-primary animate-spin opacity-50" />
+                    )}
+                  </div>
+                </>
              ) : activeTab === 'subs' ? (
                 <div className="space-y-10 text-right">
                   <FeatureHeader 

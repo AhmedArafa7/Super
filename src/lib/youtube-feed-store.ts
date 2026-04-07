@@ -36,7 +36,7 @@ export const fetchChannelVideos = async (channelId: string): Promise<FeedVideo[]
     const entries = xmlDoc.getElementsByTagName("entry");
     const videos: FeedVideo[] = [];
 
-    for (let i = 0; i < Math.min(entries.length, 15); i++) {
+    for (let i = 0; i < Math.min(entries.length, 40); i++) {
       const entry = entries[i];
       const videoId = entry.getElementsByTagName("yt:videoId")[0]?.textContent || "";
       const title = entry.getElementsByTagName("title")[0]?.textContent || "";
