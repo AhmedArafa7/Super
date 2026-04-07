@@ -123,6 +123,9 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     if (user?.id) {
       const unsubscribeSubs = listenToSubscriptions(user.id, (subs) => {
         setSubscriptions(subs);
+        if (subs.length > 0) {
+          syncFeed(subs);
+        }
       });
 
       const loadHistory = async () => {
