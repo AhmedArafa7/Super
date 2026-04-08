@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Bot, Loader2, AlertTriangle, ShieldAlert, BadgeCheck } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useSettingsStore } from "@/lib/settings-store";
+import { ModerationVoteButtons } from "../moderation-vote-buttons";
 
 interface CensorshipCardProps {
   video: Video;
@@ -194,31 +195,11 @@ export function CensorshipCard({ video, onPreview, onRefresh }: CensorshipCardPr
 
         <div className="flex gap-3 flex-row-reverse mt-2">
           {video.status === 'pending_review' || video.status === 'trash' ? (
-            <>
-              <Button 
-                className={cn(
-                  "flex-1 h-11 rounded-[0.5rem] px-1 text-[10px] font-bold shadow-lg transition-all",
-                  hasApproved 
-                    ? "bg-emerald-600/40 text-emerald-200 border border-emerald-500/20" 
-                    : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20"
-                )} 
-                onClick={() => handleVote('approve')}
-              >
-                {hasApproved ? "تم التأييد" : "تأييد النشر"} ({video.approvals?.length || 0}/{moderation.votesToApprove})
-              </Button>
-              <Button 
-                variant="outline"
-                className={cn(
-                  "flex-1 h-11 rounded-[0.5rem] px-1 text-[10px] font-bold border-white/10 transition-all",
-                  hasRejected 
-                    ? "bg-red-600/40 text-red-200 border-red-500/20" 
-                    : "hover:bg-red-500/10 text-red-400 shadow-red-600/20"
-                )} 
-                onClick={() => handleVote('reject')}
-              >
-                {hasRejected ? "تم التحفظ" : "تحفظ على المحتوى"} ({video.rejections?.length || 0}/{moderation.votesToTrash})
-              </Button>
-            </>
+            <ModerationVoteButtons 
+              approvals={video.approvals || []}
+              rejections={video.rejections || []}
+              onVote={(vote) => voteOnVideo(video.id, user?.id || "", vote, moderation)}
+            />
           ) : video.status === 'published' ? (
             <Button 
               className="flex-1 bg-amber-600 hover:bg-amber-500 h-11 rounded-xl text-xs font-bold shadow-lg shadow-amber-600/20" 

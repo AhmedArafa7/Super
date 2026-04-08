@@ -31,9 +31,13 @@ import { SectionsManagement } from "./admin/sections-management";
 import { getStoredMessages } from "@/lib/chat-store";
 import { getStoredUsers } from "@/lib/auth-store";
 import { getStoredVideos } from "@/lib/video-store";
-import { getAllOffersAdmin, getMarketItems, updateMarketItem, getCategoryRequests } from "@/lib/market-store";
-import { getAllTransactionsAdmin } from "@/lib/wallet-store";
 import { getAds } from "@/lib/ads-store";
+import { 
+  getAllOffersAdmin, getMarketItems, updateMarketItem, getCategoryRequests,
+  voteOnMarketItem, voteOnCategoryRequest 
+} from "@/lib/market-store";
+import { getAllTransactionsAdmin } from "@/lib/wallet-store";
+import { ModerationVoteButtons } from "./admin/moderation-vote-buttons";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { initializeFirebase } from "@/firebase";
 
@@ -76,7 +80,7 @@ export function AdminPanel() {
         offers: allOffers || [],
         transactions: (txResult as any)?.transactions || [],
         ads: (adsResult as any)?.ads || [],
-        pendingProducts: marketRes.items.filter(i => i.status === 'pending_review'),
+        pendingProducts: marketRes.items.filter((i: any) => i.status === 'pending_review'),
         categoryRequests: catReqs || []
       });
     } catch (err) {
@@ -170,8 +174,14 @@ export function AdminPanel() {
                     </div>
                   </div>
                   <div className="flex gap-3 flex-row-reverse pt-4 border-t border-white/5">
-                    <Button className="flex-1 bg-green-600 hover:bg-green-500 rounded-xl h-12 font-bold" onClick={() => handleProductAction(p.id, 'active')}><CheckCircle2 className="size-4 mr-2" /> نشر المنتج</Button>
-                    <Button variant="ghost" className="text-red-400 hover:bg-red-500/10 rounded-xl px-8" onClick={() => handleProductAction(p.id, 'rejected')}><XCircle className="size-4 mr-2" /> رفض</Button>
+                    <ModerationVoteButtons 
+                      approvals={p.approvals || []}
+                      rejections={p.rejections || []}
+                      onVote={(vote) => voteOnMarketItem(p.id, currentUser.id, vote, { 
+                        votesToApprove: 3, 
+                        votesToTrash: 5 
+                      }).then(loadAllData)}
+                    />
                   </div>
                 </Card>
               ))
@@ -192,9 +202,16 @@ export function AdminPanel() {
                   </div>
                   <p className="text-xs text-muted-foreground">بواسطة: @{r.userName} ({r.userId.substring(0, 8)})</p>
                   <Input dir="auto" className="bg-white/5 border-white/10 text-right mt-2" placeholder="ملاحظات أو سبب الرفض..." value={rejectFeedback[r.id] || ""} onChange={e => setRejectFeedback({ ...rejectFeedback, [r.id]: e.target.value })} />
-                  <div className="flex gap-2 justify-end">
-                    <Button className="bg-indigo-600 rounded-xl" onClick={() => handleCategoryAction(r.id, 'approved')}>اعتماد وإضافة</Button>
-                    <Button variant="ghost" className="text-red-400" onClick={() => handleCategoryAction(r.id, 'rejected')}>رفض الطلب</Button>
+                  <div className="flex gap-2 justify-end pt-2">
+                    <ModerationVoteButtons 
+                      variant="minimal"
+                      approvals={r.approvals || []}
+                      rejections={r.rejections || []}
+                      onVote={(vote) => voteOnCategoryRequest(r.id, currentUser.id, vote, { 
+                        votesToApprove: 2, 
+                        votesToTrash: 3 
+                      }).then(loadAllData)}
+                    />
                   </div>
                 </Card>
               ))

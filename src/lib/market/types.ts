@@ -28,6 +28,8 @@ export interface MarketItem {
   themeSlug?: string;
   purchasedBy?: string[];
   hideWhenOutOfStock?: boolean;
+  approvals?: string[];
+  rejections?: string[];
 }
 
 export interface CategoryRequest {
@@ -36,9 +38,11 @@ export interface CategoryRequest {
   userName: string;
   suggestedName: string;
   parentCategory: MainCategory;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'trash';
   adminFeedback?: string;
   createdAt: string;
+  approvals?: string[];
+  rejections?: string[];
 }
 
 export type OfferStatus = 'pending' | 'accepted' | 'rejected';

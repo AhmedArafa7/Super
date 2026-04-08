@@ -4,6 +4,7 @@
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
 import { addNotification } from './notification-store';
+import { voteOnEntity, ModerationConfig } from './moderation-core';
 
 export type VideoStatus = 'published' | 'pending_review' | 'rejected' | 'needs_action' | 'trash';
 export type Visibility = 'public' | 'unlisted' | 'private';
@@ -115,38 +116,13 @@ export const voteOnVideo = async (
   vote: 'approve' | 'reject', 
   thresholds: { votesToApprove: number, votesToTrash: number }
 ) => {
-  const { firestore, auth } = initializeFirebase();
-  const videoRef = doc(firestore, 'videos', videoId);
-  
-  const { getDoc } = await import('firebase/firestore');
-  const snap = await getDoc(videoRef);
-  if (!snap.exists()) return;
-  
-  const data = snap.data() as Video;
-  let approvals = data.approvals || [];
-  let rejections = data.rejections || [];
-  
-  // إزالة أي تصويت سابق لهذا المستخدم لضمان النزاهة
-  approvals = approvals.filter(id => id !== userId);
-  rejections = rejections.filter(id => id !== userId);
-  
-  if (vote === 'approve') {
-    approvals.push(userId);
-  } else {
-    rejections.push(userId);
-  }
-  
-  const updates: Partial<Video> = { approvals, rejections };
-  
-  // التحقيق من الوصول للنصاب القانوني (Threshold)
-  if (approvals.length >= thresholds.votesToApprove) {
-    updates.status = 'published';
-  } else if (rejections.length >= thresholds.votesToTrash) {
-    updates.status = 'trash';
-  } else {
-    updates.status = 'pending_review';
-  }
-  
-  await updateDoc(videoRef, updates);
-  window.dispatchEvent(new Event('videos-update'));
+  const config: ModerationConfig = {
+    votesToApprove: thresholds.votesToApprove,
+    votesToTrash: thresholds.votesToTrash,
+    successStatus: 'published',
+    failStatus: 'trash',
+    pendingStatus: 'pending_review'
+  };
+
+  await voteOnEntity('videos', videoId, userId, vote, config);
 };

@@ -7,6 +7,7 @@ import {
   addDoc, where, limit, increment, getDoc, orderBy, DocumentSnapshot, arrayUnion 
 } from 'firebase/firestore';
 import { MarketItem, MainCategory, MarketItemStatus } from './types';
+import { voteOnEntity, ModerationConfig } from '../moderation-core';
 
 export const getMarketItems = async (
   limitSize: number = 50, 
@@ -51,7 +52,9 @@ export const addMarketItem = async (item: Omit<MarketItem, 'id' | 'status' | 'cu
     ...item, 
     status: isAdmin ? 'active' : 'pending_review', 
     currency: 'Credits',
-    createdAt: new Date().toISOString() 
+    createdAt: new Date().toISOString(),
+    approvals: [],
+    rejections: []
   });
   return docRef.id;
 };
@@ -114,4 +117,24 @@ export const seedProProduct = async (sellerId: string) => {
     return true;
   }
   return false;
+};
+
+/**
+ * التصويت الجماعي للمنتجات
+ */
+export const voteOnMarketItem = async (
+  itemId: string, 
+  userId: string, 
+  vote: 'approve' | 'reject', 
+  thresholds: { votesToApprove: number, votesToTrash: number }
+) => {
+  const config: ModerationConfig = {
+    votesToApprove: thresholds.votesToApprove,
+    votesToTrash: thresholds.votesToTrash,
+    successStatus: 'active',
+    failStatus: 'rejected',
+    pendingStatus: 'pending_review'
+  };
+
+  await voteOnEntity('products', itemId, userId, vote, config);
 };
