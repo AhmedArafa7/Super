@@ -1,13 +1,15 @@
 "use client";
 
 import React from "react";
-import { Play, Trash2, CheckCircle2, Youtube, HardDrive, Radio, RotateCcw } from "lucide-react";
+import { Play, Trash2, CheckCircle2, Youtube, HardDrive, Radio, RotateCcw, ThumbsUp, ThumbsDown, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { updateVideoStatus, deleteVideo, Video } from "@/lib/video-store";
+import { updateVideoStatus, deleteVideo, Video, voteOnVideo } from "@/lib/video-store";
 import { cn } from "@/lib/utils";
 import { Bot, Loader2, AlertTriangle, ShieldAlert, BadgeCheck } from "lucide-react";
+import { useAuth } from "@/components/auth/auth-provider";
+import { useSettingsStore } from "@/lib/settings-store";
 
 interface CensorshipCardProps {
   video: Video;
@@ -16,6 +18,9 @@ interface CensorshipCardProps {
 }
 
 export function CensorshipCard({ video, onPreview, onRefresh }: CensorshipCardProps) {
+  const { user } = useAuth();
+  const moderation = useSettingsStore(state => state.settings.moderation);
+
   const getYoutubeId = (url?: string) => {
     if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -27,6 +32,15 @@ export function CensorshipCard({ video, onPreview, onRefresh }: CensorshipCardPr
   const thumbSrc = video.source === 'youtube' && ytId 
     ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` 
     : video.thumbnail;
+
+  const handleVote = async (vote: 'approve' | 'reject') => {
+    if (!user?.id) return;
+    await voteOnVideo(video.id, user.id, vote, moderation);
+    onRefresh();
+  };
+
+  const hasApproved = video.approvals?.includes(user?.id || "");
+  const hasRejected = video.rejections?.includes(user?.id || "");
 
   const handleStatusChange = async (status: any, hasMusic?: boolean) => {
     await updateVideoStatus(video.id, status, undefined, hasMusic);
@@ -100,8 +114,9 @@ export function CensorshipCard({ video, onPreview, onRefresh }: CensorshipCardPr
         <div className="absolute top-4 left-4 flex gap-2">
           <Badge className={cn(
             "uppercase text-[8px] font-black tracking-widest px-3 py-1",
-            video.status === 'published' ? "bg-green-500/80" : "bg-amber-500/80"
-          )}>{video.status}</Badge>
+            video.status === 'published' ? "bg-green-500/80" : 
+            video.status === 'trash' ? "bg-red-600/80" : "bg-amber-500/80"
+          )}>{video.status === 'trash' ? 'سلة المحذوفات' : video.status}</Badge>
           <Badge className="bg-black/60 backdrop-blur-md border-white/10 p-1">
             {video.source === 'youtube' ? <Youtube className="size-3 text-red-500" /> : video.source === 'drive' ? <HardDrive className="size-3 text-emerald-400" /> : <Radio className="size-3 text-indigo-400" />}
           </Badge>
@@ -119,7 +134,14 @@ export function CensorshipCard({ video, onPreview, onRefresh }: CensorshipCardPr
         <div className="flex items-center justify-between flex-row-reverse border-t border-white/5 pt-4 mt-auto">
           <div className="text-right">
             <p className="text-[10px] text-muted-foreground uppercase font-bold">بواسطة: @{video.author}</p>
-            <p className="text-[10px] text-indigo-400 font-mono mt-0.5">{video.views} views</p>
+            <div className="flex items-center gap-3 mt-1 justify-end">
+              <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                {video.approvals?.length || 0} <ThumbsUp className="size-2.5" />
+              </span>
+              <span className="text-[10px] text-red-400 font-bold flex items-center gap-1">
+                {video.rejections?.length || 0} <ThumbsDown className="size-2.5" />
+              </span>
+            </div>
           </div>
           <div className="size-10 rounded-xl bg-white/5 border border-white/10 overflow-hidden">
             <img src={`https://picsum.photos/seed/${video.authorId}/40/40`} className="size-full object-cover" />
@@ -171,29 +193,41 @@ export function CensorshipCard({ video, onPreview, onRefresh }: CensorshipCardPr
         )}
 
         <div className="flex gap-3 flex-row-reverse mt-2">
-          {video.status !== 'published' ? (
+          {video.status === 'pending_review' || video.status === 'trash' ? (
             <>
               <Button 
-                className="flex-1 bg-emerald-600 hover:bg-emerald-500 h-11 rounded-[0.5rem] px-1 text-[10px] font-bold shadow-lg shadow-emerald-600/20" 
-                onClick={() => handleStatusChange('published', false)}
+                className={cn(
+                  "flex-1 h-11 rounded-[0.5rem] px-1 text-[10px] font-bold shadow-lg transition-all",
+                  hasApproved 
+                    ? "bg-emerald-600/40 text-emerald-200 border border-emerald-500/20" 
+                    : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20"
+                )} 
+                onClick={() => handleVote('approve')}
               >
-                اعتماد
+                {hasApproved ? "تم التأييد" : "تأييد النشر"} ({video.approvals?.length || 0}/{moderation.votesToApprove})
               </Button>
               <Button 
-                className="flex-1 bg-amber-600 hover:bg-amber-500 h-11 rounded-[0.5rem] px-1 text-[10px] font-bold shadow-lg shadow-amber-600/20" 
-                onClick={() => handleStatusChange('published', true)}
+                variant="outline"
+                className={cn(
+                  "flex-1 h-11 rounded-[0.5rem] px-1 text-[10px] font-bold border-white/10 transition-all",
+                  hasRejected 
+                    ? "bg-red-600/40 text-red-200 border-red-500/20" 
+                    : "hover:bg-red-500/10 text-red-400 shadow-red-600/20"
+                )} 
+                onClick={() => handleVote('reject')}
               >
-                اعتماد لكن (به معازف)
+                {hasRejected ? "تم التحفظ" : "تحفظ على المحتوى"} ({video.rejections?.length || 0}/{moderation.votesToTrash})
               </Button>
             </>
-          ) : (
+          ) : video.status === 'published' ? (
             <Button 
               className="flex-1 bg-amber-600 hover:bg-amber-500 h-11 rounded-xl text-xs font-bold shadow-lg shadow-amber-600/20" 
               onClick={() => handleStatusChange('pending_review')}
             >
-              <RotateCcw className="mr-2 size-4" /> سحب الاعتماد
+              <RotateCcw className="mr-2 size-4" /> إعادة للمراجعة
             </Button>
-          )}
+          ) : null}
+          
           <Button 
             variant="ghost" 
             className="text-red-400 hover:bg-red-500/10 h-11 rounded-xl group/del px-4" 

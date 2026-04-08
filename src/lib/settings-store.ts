@@ -38,10 +38,16 @@ export interface GeneralSettings {
   hideMusic?: boolean;
 }
 
+export interface ModerationSettings {
+  votesToApprove: number;
+  votesToTrash: number;
+}
+
 export interface AppSettings {
   sections: Record<string, SectionSettings>;
   voice: VoiceSettings;
   general: GeneralSettings;
+  moderation: ModerationSettings;
 }
 
 interface SettingsState {
@@ -51,6 +57,7 @@ interface SettingsState {
   updateSectionBeta: (sectionId: string, isBeta: boolean) => Promise<void>;
   updateVoiceSettings: (voice: Partial<VoiceSettings>) => Promise<void>;
   updateGeneralSettings: (general: Partial<GeneralSettings>) => Promise<void>;
+  updateModerationSettings: (mod: Partial<ModerationSettings>) => Promise<void>;
   downloadVoice: (voiceId: string) => Promise<void>;
 }
 
@@ -58,7 +65,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: { 
     sections: {}, 
     voice: { preferredVoice: '', rate: 1, pitch: 1, isEmergencyOnly: false, downloadedVoices: [] },
-    general: { language: 'ar', theme: 'dark', hideMusic: true }
+    general: { language: 'ar', theme: 'dark', hideMusic: true },
+    moderation: { votesToApprove: 3, votesToTrash: 5 }
   },
   isLoading: true,
 
@@ -75,16 +83,18 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           settings: { 
             sections: data.sections || {},
             voice: data.voice || { preferredVoice: '', rate: 1, pitch: 1, isEmergencyOnly: false },
-            general: { language: 'ar', theme: 'dark', hideMusic: true, ...data.general }
+            general: { language: 'ar', theme: 'dark', hideMusic: true, ...data.general },
+            moderation: data.moderation || { votesToApprove: 3, votesToTrash: 5 }
           }, 
           isLoading: false 
         });
       } else {
         // Initialize default empty document if not exists
-        const defaults = {
+        const defaults: AppSettings = {
            sections: {},
            voice: { preferredVoice: '', rate: 1, pitch: 1, isEmergencyOnly: false, downloadedVoices: [] },
-           general: { language: 'ar' as const, theme: 'dark' as const, hideMusic: true }
+           general: { language: 'ar' as const, theme: 'dark' as const, hideMusic: true },
+           moderation: { votesToApprove: 3, votesToTrash: 5 }
         };
         setDoc(settingsRef, defaults);
         set({ settings: defaults, isLoading: false });
@@ -159,6 +169,22 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       await setDoc(settingsRef, { general: newGeneral }, { merge: true });
     } catch (err) {
       console.error("Update General Error", err);
+      set({ settings: current });
+    }
+  },
+
+  updateModerationSettings: async (mod) => {
+    const { firestore } = initializeFirebase();
+    const settingsRef = doc(firestore, 'app_settings', 'sections');
+    const current = get().settings;
+    const newMod = { ...current.moderation, ...mod };
+
+    set({ settings: { ...current, moderation: newMod } });
+
+    try {
+      await setDoc(settingsRef, { moderation: newMod }, { merge: true });
+    } catch (err) {
+      console.error("Update Moderation Error", err);
       set({ settings: current });
     }
   }

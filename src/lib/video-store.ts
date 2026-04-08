@@ -5,7 +5,7 @@ import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, orderBy 
 import { initializeFirebase } from '@/firebase';
 import { addNotification } from './notification-store';
 
-export type VideoStatus = 'published' | 'pending_review' | 'rejected' | 'needs_action';
+export type VideoStatus = 'published' | 'pending_review' | 'rejected' | 'needs_action' | 'trash';
 export type Visibility = 'public' | 'unlisted' | 'private';
 export type VideoSource = 'local' | 'youtube' | 'drive';
 
@@ -40,6 +40,8 @@ export interface Video {
     reviewedAt?: string;
     fallbackUsed?: boolean;
   };
+  approvals?: string[];
+  rejections?: string[];
 }
 
 export const getStoredVideos = async (): Promise<Video[]> => {
@@ -58,7 +60,9 @@ export const addVideo = async (video: Omit<Video, 'id' | 'createdAt' | 'views'>)
   const payload = {
     ...video,
     views: 0,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    approvals: [],
+    rejections: []
   };
   const docRef = await addDoc(collection(firestore, 'videos'), payload);
 
@@ -99,5 +103,50 @@ export const updateVideoStatus = async (id: string, status: VideoStatus, feedbac
 export const deleteVideo = async (id: string) => {
   const { firestore } = initializeFirebase();
   await deleteDoc(doc(firestore, 'videos', id));
+  window.dispatchEvent(new Event('videos-update'));
+};
+
+/**
+ * نظام التصويت الجماعي (Multi-Admin Voting)
+ */
+export const voteOnVideo = async (
+  videoId: string, 
+  userId: string, 
+  vote: 'approve' | 'reject', 
+  thresholds: { votesToApprove: number, votesToTrash: number }
+) => {
+  const { firestore, auth } = initializeFirebase();
+  const videoRef = doc(firestore, 'videos', videoId);
+  
+  const { getDoc } = await import('firebase/firestore');
+  const snap = await getDoc(videoRef);
+  if (!snap.exists()) return;
+  
+  const data = snap.data() as Video;
+  let approvals = data.approvals || [];
+  let rejections = data.rejections || [];
+  
+  // إزالة أي تصويت سابق لهذا المستخدم لضمان النزاهة
+  approvals = approvals.filter(id => id !== userId);
+  rejections = rejections.filter(id => id !== userId);
+  
+  if (vote === 'approve') {
+    approvals.push(userId);
+  } else {
+    rejections.push(userId);
+  }
+  
+  const updates: Partial<Video> = { approvals, rejections };
+  
+  // التحقيق من الوصول للنصاب القانوني (Threshold)
+  if (approvals.length >= thresholds.votesToApprove) {
+    updates.status = 'published';
+  } else if (rejections.length >= thresholds.votesToTrash) {
+    updates.status = 'trash';
+  } else {
+    updates.status = 'pending_review';
+  }
+  
+  await updateDoc(videoRef, updates);
   window.dispatchEvent(new Event('videos-update'));
 };
