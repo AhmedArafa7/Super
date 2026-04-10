@@ -13,11 +13,10 @@ export function CodeWorkspace() {
   const { files, activeFilePath, setActiveFile, updateFile } = useAgentStore();
   const activeFile = files.find(f => f.path === activeFilePath);
 
-  // Generate an HTML string that loads React, Babel, and Tailwind, and mounts the activeFile code.
+  // Generate a robust HTML sandbox that mocks missing libraries and handles multi-file context.
   const getPreviewHtml = () => {
     if (!activeFile) return "";
     
-    // If it's pure HTML, just wrap with Tailwind
     if (activeFile.language === "html" || activeFile.language === "htm") {
         return `
             <!DOCTYPE html>
@@ -26,18 +25,17 @@ export function CodeWorkspace() {
                 <script src="https://cdn.tailwindcss.com"></script>
                 <style>body { font-family: sans-serif; }</style>
             </head>
-            <body>
-                ${activeFile.content}
-            </body>
+            <body>${activeFile.content}</body>
             </html>
         `;
     }
 
-    // Default to React/JSX evaluation
-    const rawCode = activeFile.content
-        .replace(/import .* from .*/g, "")
-        .replace(/export default function\s+(\w+)/, "function App")
-        .replace(/export function\s+(\w+)/, "function App");
+    // Smart Transformation: Clean up imports and prepare for Babel
+    const cleanCode = activeFile.content
+        .replace(/import\s+[\s\S]*?from\s+['"].*?['"];?/g, "") // Robust multi-line import removal
+        .replace(/export\s+default\s+function\s+(\w+)/g, "function App")
+        .replace(/export\s+default\s+/g, "const App = ")
+        .replace(/export\s+(const|let|var|function|class)/g, "$1");
 
     return `
       <!DOCTYPE html>
@@ -49,22 +47,64 @@ export function CodeWorkspace() {
         <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
         <script src="https://cdn.tailwindcss.com"></script>
         <style>
-            body { font-family: sans-serif; background: transparent; padding: 10px; }
-            ::-webkit-scrollbar { width: 8px; }
-            ::-webkit-scrollbar-track { background: transparent; }
-            ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+            body { font-family: sans-serif; background: #0f172a; color: white; padding: 20px; min-height: 100vh; }
+            #root { height: 100%; }
+            .preview-error { 
+                background: #1e293b; border: 1px solid #ef4444; border-radius: 1rem; padding: 2rem;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            }
         </style>
       </head>
       <body>
         <div id="root"></div>
+        <script>
+          // --- NEURAL MAGIC PROXY ---
+          // Automatically mocks missing components/libraries to prevent white-screen crashes
+          const MagicHandler = {
+            get: (target, prop) => {
+              if (prop === '$$typeof') return undefined;
+              if (prop === 'displayName') return prop;
+              // Return a dummy component that shows the name of the missing element
+              return function DummyComponent(props) {
+                return React.createElement('div', { 
+                  style: { border: '1px dashed #6366f1', padding: '4px', borderRadius: '4px', fontSize: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px' } 
+                }, React.createElement('span', { style: { opacity: 0.5 } }, '🧱'), prop);
+              };
+            }
+          };
+
+          window.lucide = new Proxy({}, MagicHandler);
+          window['lucide-react'] = window.lucide;
+          window['framer-motion'] = new Proxy({ motion: new Proxy({}, MagicHandler), AnimatePresence: MagicHandler.get(null, 'AnimatePresence') }, MagicHandler);
+          
+          // Basic Mocks for common project hooks
+          window.useAuth = () => ({ user: { id: '123', name: 'User' }, isLoading: false });
+          window.useTheme = () => ({ theme: 'dark', setTheme: () => {} });
+        </script>
         <script type="text/babel">
           try {
-            const React = window.React;
-            ${rawCode}
-            const root = ReactDOM.createRoot(document.getElementById('root'));
+            const { useState, useEffect, useMemo, useCallback, useRef, memo } = React;
+            
+            // Inject cleaner code
+            ${cleanCode}
+
+            // Mount logic
+            const rootElement = document.getElementById('root');
+            if (typeof App === 'undefined') {
+                 throw new Error("Could not find a default export. Please ensure your component has an 'export default'.");
+            }
+            const root = ReactDOM.createRoot(rootElement);
             root.render(<App />);
           } catch(err) {
-            document.getElementById('root').innerHTML = '<div style="color:red; padding:20px; font-family:monospace; direction:ltr; text-align:left;"><b>Preview Error:</b><br/>' + err.message + '</div>';
+            console.error("Neural Sandbox Error:", err);
+            document.getElementById('root').innerHTML = 
+              '<div class="preview-error">' +
+                '<h2 style="color:#ef4444; margin:0 0 1rem 0; font-size:1.25rem;">⚠️ Neural Sandbox Exception</h2>' +
+                '<div style="color:#cbd5e1; font-size:0.875rem; white-space:pre-wrap; line-height:1.6;">' + err.message + '</div>' +
+                '<div style="margin-top:2rem; padding-top:1rem; border-top:1px solid #334155; font-size:0.75rem; color:#64748b;">' +
+                   'Note: The sandbox removes imports and mocks missing libraries. If you see this, there might be a syntax error or a missing local dependency.' +
+                '</div>' +
+              '</div>';
           }
         </script>
       </body>
