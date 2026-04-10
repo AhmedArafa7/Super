@@ -103,7 +103,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
           setVisibleCount((prev) => prev + 20);
         }
       },
-      { threshold: 1.0 }
+      { threshold: 0.1 }
     );
 
     if (observerTarget.current) {

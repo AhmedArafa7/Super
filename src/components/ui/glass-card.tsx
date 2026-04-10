@@ -30,10 +30,8 @@ export function GlassCard({
       )}
       {...props}
     >
-      {/* Optional internal gloss effect could go here */}
-      <div className="relative z-10 w-full">
-        {children}
-      </div>
+      {/* التأثيرات الزجاجية أو الخلفيات الإضافية مستقبلاً يجب إضافتها عبر pseudo-elements ::before / ::after لعدم كسر هندسة المتصفح الـ DOM */}
+      {children}
     </div>
   );
 }
