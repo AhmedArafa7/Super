@@ -57,18 +57,43 @@ export function CodeWorkspace() {
       </head>
       <body>
         <div id="root"></div>
+        <div id="neural-monitor" style="position: fixed; bottom: 10px; left: 10px; right: 10px; background: rgba(0,0,0,0.8); border: 1px solid #334155; border-radius: 8px; padding: 10px; font-family: monospace; font-size: 10px; color: #94a3b8; max-height: 150px; overflow-y: auto; z-index: 9999; pointer-events: none;">
+           <div style="color: #6366f1; font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid #1e293b; padding-bottom: 2px;">⚡ NEURAL DIAGNOSTICS</div>
+           <div id="neural-logs"></div>
+        </div>
+
         <script>
+          const log = (msg, type = 'info') => {
+            const el = document.getElementById('neural-logs');
+            const div = document.createElement('div');
+            div.style.color = type === 'error' ? '#ef4444' : (type === 'success' ? '#10b981' : '#94a3b8');
+            div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+            el.appendChild(div);
+            el.scrollTop = el.scrollHeight;
+          };
+
+          log("Neural Sandbox: Initializing...");
+
+          // Global Error Handler
+          window.onerror = function(message, source, lineno, colno, error) {
+            log("FATAL: " + message + " (Line " + lineno + ")", 'error');
+            document.getElementById('root').innerHTML = 
+              '<div class="preview-error" style="border-color: #f97316;">' +
+                '<h2 style="color:#f97316; margin:0 0 1rem 0; font-size:1.25rem;">⚠️ System Runtime Exception</h2>' +
+                '<div style="color:#cbd5e1; font-size:0.875rem; white-space:pre-wrap; line-height:1.6;">' + message + '</div>' +
+              '</div>';
+            return true;
+          };
+          
           // --- NEURAL MAGIC PROXY ---
-          // Automatically mocks missing components/libraries to prevent white-screen crashes
           const MagicHandler = {
             get: (target, prop) => {
               if (prop === '$$typeof') return undefined;
               if (prop === 'displayName') return prop;
-              // Return a dummy component that shows the name of the missing element
               return function DummyComponent(props) {
                 return React.createElement('div', { 
-                  style: { border: '1px dashed #6366f1', padding: '4px', borderRadius: '4px', fontSize: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px' } 
-                }, React.createElement('span', { style: { opacity: 0.5 } }, '🧱'), prop);
+                  style: { border: '1px dashed #6366f1', padding: '10px', margin: '4px', borderRadius: '8px', fontSize: '12px', background: 'rgba(99, 102, 241, 0.05)', color: '#a5b4fc' } 
+                }, React.createElement('span', { style: { marginRight: '8px', opacity: 0.5 } }, '📦'), prop);
               };
             }
           };
@@ -76,36 +101,49 @@ export function CodeWorkspace() {
           window.lucide = new Proxy({}, MagicHandler);
           window['lucide-react'] = window.lucide;
           window['framer-motion'] = new Proxy({ motion: new Proxy({}, MagicHandler), AnimatePresence: MagicHandler.get(null, 'AnimatePresence') }, MagicHandler);
+          window['@/components/ui'] = new Proxy({}, MagicHandler);
+          window['@/lib/utils'] = { cn: (...args) => args.filter(Boolean).join(' ') };
           
-          // Basic Mocks for common project hooks
           window.useAuth = () => ({ user: { id: '123', name: 'User' }, isLoading: false });
           window.useTheme = () => ({ theme: 'dark', setTheme: () => {} });
-        </script>
-        <script type="text/babel">
-          try {
-            const { useState, useEffect, useMemo, useCallback, useRef, memo } = React;
-            
-            // Inject cleaner code
-            ${cleanCode}
 
-            // Mount logic
-            const rootElement = document.getElementById('root');
-            if (typeof App === 'undefined') {
-                 throw new Error("Could not find a default export. Please ensure your component has an 'export default'.");
+          log("Neural Proxy: Active", 'success');
+        </script>
+
+        <script type="text/babel">
+          (async function() {
+            try {
+              log("Babel: Compiling source...");
+              const { useState, useEffect, useMemo, useCallback, useRef, memo } = React;
+              
+              const UserCode = (function() {
+                ${cleanCode}
+                return typeof App !== 'undefined' ? App : (typeof Default !== 'undefined' ? Default : null);
+              })();
+
+              if (!UserCode) {
+                throw new Error("No usable component found. Please check your 'export default'.");
+              }
+
+              log("React: Rendering component...", 'success');
+              const root = ReactDOM.createRoot(document.getElementById('root'));
+              root.render(<UserCode />);
+              
+              // Auto-hide monitor after success
+              setTimeout(() => {
+                const monitor = document.getElementById('neural-monitor');
+                if (monitor) monitor.style.opacity = '0.3';
+              }, 2000);
+
+            } catch(err) {
+              log("ERROR: " + err.message, 'error');
+              document.getElementById('root').innerHTML = 
+                '<div class="preview-error">' +
+                  '<h2 style="color:#ef4444; margin:0 0 1rem 0; font-size:1.25rem;">⚠️ Neural Sandbox Exception</h2>' +
+                  '<div style="color:#cbd5e1; font-size:0.875rem; white-space:pre-wrap; line-height:1.6;">' + err.message + '</div>' +
+                '</div>';
             }
-            const root = ReactDOM.createRoot(rootElement);
-            root.render(<App />);
-          } catch(err) {
-            console.error("Neural Sandbox Error:", err);
-            document.getElementById('root').innerHTML = 
-              '<div class="preview-error">' +
-                '<h2 style="color:#ef4444; margin:0 0 1rem 0; font-size:1.25rem;">⚠️ Neural Sandbox Exception</h2>' +
-                '<div style="color:#cbd5e1; font-size:0.875rem; white-space:pre-wrap; line-height:1.6;">' + err.message + '</div>' +
-                '<div style="margin-top:2rem; padding-top:1rem; border-top:1px solid #334155; font-size:0.75rem; color:#64748b;">' +
-                   'Note: The sandbox removes imports and mocks missing libraries. If you see this, there might be a syntax error or a missing local dependency.' +
-                '</div>' +
-              '</div>';
-          }
+          })();
         </script>
       </body>
       </html>
