@@ -25,6 +25,17 @@ export interface ThemeDefinition {
     isDefault: boolean;
     /** سعر التصميم في المتجر (0 = مجاني) */
     storePrice: number;
+    
+    // --- خصائص مولد الواجهات الديناميكية (No-Code Builder) ---
+    /** محرك الرندر المناسب لهذا التصميم (الشريط الجانبي، العلوي، الخ) */
+    layoutEngine?: 'nexus' | 'dulms';
+    /** لوحة الألوان المخصصة (إن وجدت) */
+    customColors?: {
+        primary?: string;     // e.g. #3b82f6
+        background?: string;  // e.g. #0f111a
+    };
+    /** معرف المستخدم صانع التصميم (للثيمات المجتمعية) */
+    authorId?: string;
 }
 
 // ─── Theme Registry (المسجل المركزي) ─────────────────────────────────
@@ -37,6 +48,7 @@ export const THEME_REGISTRY: ThemeDefinition[] = [
         supportsDarkMode: false, // Nexus ليلي دائماً
         isDefault: true,
         storePrice: 0,
+        layoutEngine: 'nexus',
     },
     {
         slug: 'dulms',
@@ -45,6 +57,7 @@ export const THEME_REGISTRY: ThemeDefinition[] = [
         supportsDarkMode: true,
         isDefault: false,
         storePrice: 0,
+        layoutEngine: 'dulms',
     },
 ];
 

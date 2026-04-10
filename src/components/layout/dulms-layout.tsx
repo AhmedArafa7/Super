@@ -30,7 +30,7 @@ import { AIChat } from "@/components/features/ai-chat";
 import { PeerChat } from "@/components/features/peer-chat";
 import { WeTube } from "@/components/features/wetube";
 import { TechMarket } from "@/components/features/tech-market";
-import { Capabilities } from "@/components/features/capabilities";
+import { ModulesGuide } from "@/components/features/modules-guide";
 import { AdminPanel } from "@/components/features/admin-panel";
 import { NotificationsView } from "@/components/features/notifications-view";
 import { KnowledgeHub } from "@/components/features/knowledge-hub";
@@ -208,7 +208,7 @@ export function DulmsLayout({ user }: DulmsLayoutProps) {
                 if (tab === 'peer-chat' && payload) handleNavigateToPeerChat(payload);
                 else handleTabChange(tab);
             }} />;
-            case "features": return <Capabilities />;
+            case "features": return <ModulesGuide onNavigate={(tab: string) => handleTabChange(tab as NavItemId)} />;
             case "micro-ide": return <MicrocontrollerLab />;
             case "admin":
                 if (hasAdminAccess) return <AdminPanel />;

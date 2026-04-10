@@ -2,7 +2,7 @@ import {
   LayoutDashboard, MessageCircleQuestion, Clock, HeartPulse, MessageSquare, Cpu,
   HardDrive, Tag, MessageCircle, Video, ShoppingCart, GraduationCap, LibraryBig,
   Megaphone, DownloadCloud, Rocket, Wallet, Repeat, CircuitBoard, Library,
-  Microscope, Users, BookOpen, Zap, Bell, Settings, ShieldCheck
+  Microscope, Users, BookOpen, Zap, Bell, Settings, ShieldCheck, PaintBucket
 } from "lucide-react";
 
 export type ModuleCategory = 'core' | 'communication' | 'productivity' | 'learning' | 'tools' | 'management' | 'community';
@@ -298,5 +298,15 @@ export const DETAILED_MODULES: DetailedModule[] = [
     benefits: ["نظام رقابة جماعي وحوكمة متقدمة", "رؤية لبيانات الاستهلاك الإجمالية", "صناعة وتعديل أقسام جديدة"],
     icon: ShieldCheck,
     color: "bg-fuchsia-600/20 text-fuchsia-500 border-fuchsia-600/30"
+  },
+  {
+    id: "settings", // We navigate them to settings to access the theme studio
+    category: "tools",
+    title: "الاستوديو البصري (Theme Engine)",
+    shortDesc: "اصنع هيكلك وألوانك بدون كود.",
+    detailedDesc: "محرك لتوليد الثيمات المرئية الحية (No-Code Builder). يتيح لك تغيير هيكل الموقع كاملاً وضبط البصمة اللونية لتعكس هويتك الشخصية.",
+    benefits: ["الاستقلال عن الواجهة الأساسية", "تغيير الألوان الرئيسية بديناميكية", "التطبيق الفوري دون إعادة تشغيل"],
+    icon: PaintBucket,
+    color: "bg-blue-600/20 text-blue-500 border-blue-600/30"
   }
 ];

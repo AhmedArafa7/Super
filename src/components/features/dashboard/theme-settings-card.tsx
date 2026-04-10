@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, Palette, Store, Moon, Monitor } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ThemeBuilder } from './theme-builder';
 import { Switch } from '@/components/ui/switch';
 import {
   getOwnedThemes, getAvailableThemes, getActiveThemeSlug,
@@ -144,6 +145,11 @@ export function ThemeSettingsCard({ user }: ThemeSettingsCardProps) {
               )}
             </div>
           </div>
+        </div>
+
+        {/* No-Code Theme Builder Access */}
+        <div className="mt-12 pt-12 border-t border-white/5 relative z-10">
+          <ThemeBuilder />
         </div>
       </div>
     </Card>

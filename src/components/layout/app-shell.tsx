@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { X, ExternalLink, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, hexToHSL } from "@/lib/utils";
 import { AIChat } from "@/components/features/ai-chat";
 import { PeerChat } from "@/components/features/peer-chat";
 import { WeTube } from "@/components/features/wetube";
@@ -110,15 +110,31 @@ export function AppShell() {
     return () => window.removeEventListener('notifications-update', updateCount);
   }, [isAuthenticated, user]);
 
+  // CSS Variables Injection for Custom Themes
+  useEffect(() => {
+    if (user?.customThemeDef && user.activeTheme === user.customThemeDef.slug) {
+      const colors = user.customThemeDef.customColors;
+      if (colors?.primary) document.documentElement.style.setProperty('--primary', hexToHSL(colors.primary));
+      if (colors?.background) document.documentElement.style.setProperty('--background', hexToHSL(colors.background));
+    } else {
+       document.documentElement.style.removeProperty('--primary');
+       document.documentElement.style.removeProperty('--background');
+    }
+  }, [user]);
+
   if (!isAuthenticated) return <LoginView />;
 
-  // Theme Routing: slug-based check from the centralized registry
+  // Theme Routing: slug-based check from the centralized registry or Custom defined layout Engine
   const activeThemeSlug = user?.activeTheme;
   if (activeThemeSlug && activeThemeSlug !== 'nexus') {
+    // Check if it's a hardcoded theme
     const themeDef = getThemeBySlug(activeThemeSlug);
     if (themeDef) {
-      // Map slug → layout component
-      if (activeThemeSlug === 'dulms') return <DulmsLayout user={user as any} />;
+      if (themeDef.layoutEngine === 'dulms') return <DulmsLayout user={user as any} />;
+    }
+    // Check if it's a dynamic custom built theme
+    if (user?.customThemeDef && activeThemeSlug === user.customThemeDef.slug) {
+      if (user.customThemeDef.layoutEngine === 'dulms') return <DulmsLayout user={user as any} />;
     }
   }
 

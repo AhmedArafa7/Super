@@ -46,6 +46,14 @@ export interface User {
   ownedThemes?: string[];
   activeTheme?: string;
   themeMode?: 'light' | 'dark';
+  customThemeDef?: {
+    slug: string;
+    layoutEngine: 'nexus' | 'dulms';
+    customColors?: {
+      primary?: string;
+      background?: string;
+    };
+  };
   linkedYouTubeChannel?: {
     id: string;
     title: string;
