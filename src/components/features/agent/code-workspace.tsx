@@ -26,14 +26,60 @@ export function CodeWorkspace() {
   const sandpackFiles = React.useMemo(() => {
     const map: Record<string, string> = {};
     files.forEach(f => {
-      // Sandpack expects a flat path or relative to root
+      // Normalize paths to absolute for Sandpack
       const key = f.path.startsWith('/') ? f.path : `/${f.path}`;
       map[key] = f.content;
     });
     
-    // Create a dynamic Entry Point that renders the current active file
+    // Ghost Dependency System: Prevent crashes if internal files are missing
     if (activeFile) {
         const activeKey = activeFile.path.startsWith('/') ? activeFile.path : `/${activeFile.path}`;
+        
+        // Scan for imports in current file
+        const importRegex = /import\s+[\s\S]*?from\s+['"](@\/|(?:\.\/|\.\.\/)+)(.*?)['"]/g;
+        let match;
+        while ((match = importRegex.exec(activeFile.content)) !== null) {
+            const prefix = match[1];
+            const name = match[2];
+            const fullPath = prefix === '@/' ? `/src/${name}` : name; // Basic normalization
+            
+            // Check if this file (or its potential TSX/JS version) is in our map
+            const possiblePaths = [fullPath, `${fullPath}.tsx`, `${fullPath}.ts`, `${fullPath}.js`, `${fullPath}/index.tsx`, `${fullPath}/index.ts`].map(p => p.startsWith('/') ? p : `/${p}`);
+            const exists = possiblePaths.some(p => map[p]);
+
+            if (!exists) {
+                // Create a Ghost Component
+                const ghostPath = possiblePaths[0];
+                const componentName = name.split('/').pop() || 'Component';
+                
+                // Determine if it's likely a hook or a component
+                if (componentName.startsWith('use')) {
+                    map[ghostPath] = `export const ${componentName} = () => ({});`;
+                } else {
+                    map[ghostPath] = `
+import React from "react";
+export const ${componentName} = (props) => (
+  <div style={{ 
+    border: '1px dashed #6366f1', 
+    padding: '12px', 
+    margin: '4px', 
+    borderRadius: '8px', 
+    background: 'rgba(99, 102, 241, 0.05)', 
+    color: '#a5b4fc',
+    fontSize: '11px',
+    fontFamily: 'monospace'
+  }}>
+    <span style={{ marginRight: '8px' }}>👻 Ghost Component:</span>
+    <strong>${componentName}</strong>
+    {props.children}
+  </div>
+);
+export default ${componentName};
+`;
+                }
+            }
+        }
+
         map["/App.tsx"] = `
 import React from "react";
 import Component from "${activeKey.replace(/\.tsx?$/, "")}";
