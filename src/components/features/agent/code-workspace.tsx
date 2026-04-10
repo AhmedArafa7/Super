@@ -91,18 +91,36 @@ export function CodeWorkspace() {
               if (prop === '$$typeof') return undefined;
               if (prop === 'displayName') return prop;
               return function DummyComponent(props) {
+                const content = props.children || prop;
                 return React.createElement('div', { 
-                  style: { border: '1px dashed #6366f1', padding: '10px', margin: '4px', borderRadius: '8px', fontSize: '12px', background: 'rgba(99, 102, 241, 0.05)', color: '#a5b4fc' } 
-                }, React.createElement('span', { style: { marginRight: '8px', opacity: 0.5 } }, '📦'), prop);
+                  style: { border: '1px dashed #6366f1', padding: '10px', margin: '4px', borderRadius: '8px', fontSize: '12px', background: 'rgba(99, 102, 241, 0.05)', color: '#a5b4fc', display: 'inline-block' } 
+                }, React.createElement('span', { style: { marginRight: '8px', opacity: 0.5 } }, '📦'), content);
               };
             }
           };
 
+          // --- CORE MOCKS ---
           window.lucide = new Proxy({}, MagicHandler);
           window['lucide-react'] = window.lucide;
           window['framer-motion'] = new Proxy({ motion: new Proxy({}, MagicHandler), AnimatePresence: MagicHandler.get(null, 'AnimatePresence') }, MagicHandler);
           window['@/components/ui'] = new Proxy({}, MagicHandler);
           window['@/lib/utils'] = { cn: (...args) => args.filter(Boolean).join(' ') };
+          
+          // Next.js Mocks
+          const mockRouter = {
+            push: (url) => log("Navigation: push to " + url, 'info'),
+            replace: (url) => log("Navigation: replace with " + url, 'info'),
+            prefetch: () => {}, back: () => {}, forward: () => {}, refresh: () => {}
+          };
+          
+          window.useRouter = () => mockRouter;
+          window.usePathname = () => "/";
+          window.useParams = () => ({});
+          window.useSearchParams = () => ({ get: () => null });
+          
+          // Component Mocks
+          window.Image = (props) => React.createElement('img', { ...props, style: { ...props.style, maxWidth: '100%', height: 'auto' } });
+          window.Link = (props) => React.createElement('a', { ...props, onClick: (e) => { e.preventDefault(); log("Link clicked: " + props.href); } });
           
           window.useAuth = () => ({ user: { id: '123', name: 'User' }, isLoading: false });
           window.useTheme = () => ({ theme: 'dark', setTheme: () => {} });
@@ -116,6 +134,14 @@ export function CodeWorkspace() {
               log("Babel: Compiling source...");
               const { useState, useEffect, useMemo, useCallback, useRef, memo } = React;
               
+              // Injected Router/Components for Next.js files
+              const useRouter = window.useRouter;
+              const usePathname = window.usePathname;
+              const useParams = window.useParams;
+              const useSearchParams = window.useSearchParams;
+              const Image = window.Image;
+              const Link = window.Link;
+
               const UserCode = (function() {
                 ${cleanCode}
                 return typeof App !== 'undefined' ? App : (typeof Default !== 'undefined' ? Default : null);
