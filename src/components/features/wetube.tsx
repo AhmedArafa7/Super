@@ -445,7 +445,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
     }
 
     return (
-       <div className="flex flex-col h-full animate-in fade-in duration-700">
+       <div className="flex flex-col h-full overflow-hidden animate-in fade-in duration-700">
           <div className="sticky top-0 z-10 bg-slate-950/60 backdrop-blur-xl border-b border-white/5 py-3 px-6 shadow-2xl">
             <div className="flex items-center gap-3 overflow-x-auto no-scrollbar rtl flex-row-reverse">
               {CATEGORIES.map(cat => (
@@ -616,7 +616,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
         />
 
         <main className="flex-1 overflow-hidden">
-          <GlassCard variant="borderless" noPadding className="h-full flex flex-col bg-slate-900/20 backdrop-blur-3xl border border-white/5 shadow-2xl">
+          <GlassCard variant="borderless" noPadding className="h-full flex flex-col overflow-hidden bg-slate-900/20 backdrop-blur-3xl border border-white/5 shadow-2xl">
             {activeVideo ? (
               <div className="h-full overflow-y-auto animate-in zoom-in-95 duration-500">
                 <WeTubeWatchView
