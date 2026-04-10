@@ -12,6 +12,7 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
+  const isStreaming = message.isStreaming === true;
   const { setActiveFile } = useAgentStore();
 
   const handleIndicatorClick = () => {
@@ -52,6 +53,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
         )}>
           <div className="text-sm leading-relaxed whitespace-pre-wrap font-medium">
             {message.content}
+            {isStreaming && (
+              <span className="inline-block w-[2px] h-[1em] bg-primary align-middle ml-0.5 animate-[pulse_0.8s_ease-in-out_infinite]" />
+            )}
           </div>
 
           {/* User Image Display */}
@@ -67,8 +71,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
           </div>
         </div>
         
-        {/* Files Updated Indicator */}
-        {message.files && message.files.length > 0 && (
+        {/* Files Updated Indicator — only shown after streaming completes */}
+        {!isStreaming && message.files && message.files.length > 0 && (
           <div 
             className="w-full mt-1 animate-in zoom-in-95 duration-200 cursor-pointer active:scale-95 transition-transform"
             onClick={handleIndicatorClick}

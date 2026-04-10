@@ -20,6 +20,7 @@ export interface AgentMessage {
   files?: { path: string; content: string; language: string }[];
   engine?: string;
   image?: string | null;
+  isStreaming?: boolean; // رسالة مؤقتة أثناء الـ Streaming
 }
 
 export function useAgentChat(onQuotaExceeded?: () => void) {
@@ -188,22 +189,87 @@ export function useAgentChat(onQuotaExceeded?: () => void) {
         throw new Error('quota_exceeded');
       }
 
-      const res = await response.json();
-      console.log('--- Agent Raw Response ---', res);
-
-      if (!response.ok || !res.success) {
-        throw new Error(res.error || 'Neural connection failed');
+      if (!response.ok || !response.body) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || 'Neural connection failed');
       }
 
-      const assistantMessage: AgentMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: res.explanation || 'تمت المعالجة.',
-        files: res.files,
-        engine: res.engine,
-      };
+      // ─── STREAMING READER ───────────────────────────────────────────────
+      // إنشاء رسالة مؤقتة تظهر فوراً وتُحدَّث بكل chunk
+      const streamingId = `stream-${Date.now()}`;
+      const streamingMsg: AgentMessage = { id: streamingId, role: 'assistant', content: '', isStreaming: true };
+      await saveAgentMessage(user.id, convId!, streamingMsg);
 
-      await saveAgentMessage(user.id, convId, assistantMessage);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        fullText += chunk;
+        // تحديث الرسالة المؤقتة لحظياً
+        setMessages(prev => prev.map(m =>
+          m.id === streamingId ? { ...m, content: fullText } : m
+        ));
+      }
+      // ── تم الانتهاء من الـ stream ──────────────────────────────────────
+
+      // تحليل الـ JSON من النص المتراكم
+      let explanation = fullText;
+      let files: any[] = [];
+      let requestedFiles: string[] = [];
+      let engine = preferredAI === 'groq' ? 'Groq (Stream)' : 'Gemini (Stream)';
+
+      try {
+        let cleanJson = fullText.trim();
+        // محاولة استخراج JSON من code block
+        const jsonMatch = cleanJson.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (jsonMatch) {
+          cleanJson = jsonMatch[1].trim();
+        } else {
+          const firstBrace = cleanJson.indexOf('{');
+          if (firstBrace !== -1) {
+            let depth = 0, inString = false, escape = false, lastClose = -1;
+            for (let i = firstBrace; i < cleanJson.length; i++) {
+              const ch = cleanJson[i];
+              if (escape) { escape = false; continue; }
+              if (ch === '\\' && inString) { escape = true; continue; }
+              if (ch === '"') { inString = !inString; continue; }
+              if (!inString) {
+                if (ch === '{') depth++;
+                else if (ch === '}') { depth--; if (depth === 0) { lastClose = i; break; } }
+              }
+            }
+            if (lastClose !== -1) cleanJson = cleanJson.substring(firstBrace, lastClose + 1);
+          }
+        }
+        cleanJson = cleanJson.replace(
+          /"((?:[^"\\]|\\.)*)"/g,
+          (_, inner) => `"${inner.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t')}"`
+        );
+        const parsed = JSON.parse(cleanJson);
+        explanation = parsed.explanation || parsed.text || fullText;
+        files = Array.isArray(parsed.files) ? parsed.files : [];
+        requestedFiles = Array.isArray(parsed.requestedFiles) ? parsed.requestedFiles : [];
+        engine = parsed.engine || engine;
+      } catch (parseErr) {
+        console.warn('[Agent Stream Parser] JSON parse failed, using raw text:', parseErr);
+      }
+
+      // استبدال الرسالة المؤقتة بالرسالة النهائية المكتملة
+      const assistantMessage: AgentMessage = {
+        id: streamingId,
+        role: 'assistant',
+        content: explanation,
+        files,
+        engine,
+        isStreaming: false,
+      };
+      await saveAgentMessage(user.id, convId!, assistantMessage);
+
+      const res = { success: true, explanation, files, requestedFiles, engine };
 
       // --- [NEW]: Fetch requested files and auto-retry ---
       if (res.requestedFiles && res.requestedFiles.length > 0 && githubToken && linkedRepo) {

@@ -1,13 +1,14 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
-import { generateText } from 'ai';
+import { streamText } from 'ai';
 
 export const runtime = 'edge';
 
 /**
- * [STABILITY_ANCHOR: NEURAL_ARCHITECT_API_V4.0]
- * المهندس العصبي - النسخة الاحترافية الكاملة باستخدام AI SDK.
- * يستخدم generateText لضمان الاستقرار في بيئة Edge وتفادي مشاكل الـ Streaming.
+ * [STABILITY_ANCHOR: NEURAL_ARCHITECT_API_V5.0_STREAMING]
+ * المهندس العصبي - مع دعم الـ Streaming الحقيقي.
+ * تم الترقية من generateText → streamText لإلغاء التجميد أثناء المعالجة.
+ * البروتوكول: يبث النص كـ text/event-stream، والعميل يجمعه ثم يحلل JSON.
  */
 
 const GEMINI_API_KEY = process.env.GOOGLE_GENAI_API_KEY ||
@@ -15,57 +16,57 @@ const GEMINI_API_KEY = process.env.GOOGLE_GENAI_API_KEY ||
   process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
   process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
-const google = createGoogleGenerativeAI({
-  apiKey: GEMINI_API_KEY,
-});
-
+const google = createGoogleGenerativeAI({ apiKey: GEMINI_API_KEY });
 const groq = createOpenAI({
   baseURL: 'https://api.groq.com/openai/v1',
   apiKey: process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY,
 });
 
-const AGENT_SYSTEM_PROMPT = `أنت "المهندس العصبي" (Neural Architect) في نظام NexusAI. بيئة بناء سيادية متطورة.
-مهمتك الأساسية هي بناء وتعديل الأكواد البرمجية والملفات في بيئة عمل المستخدم.
+const AGENT_SYSTEM_PROMPT = `[STRICT_RESPONSE_FORMAT: JSON_ONLY]
+[NEURAL_IDENTITY: THE_ARCHITECT]
+You are the "Neural Architect", a high-end AI developer orchestrator.
 
-قانون الرد الصارم:
-يجب أن يكون ردك دائماً بصيغة JSON نظيفة تحتوي على الحقول التالية:
-{
-  "explanation": "شرح عربي تقني لما قمت به",
-  "files": [
-    {"path": "مسار/الملف", "content": "محتوى الملف", "language": "اللغة"}
-  ]
-}
-
-إذا كان الطلب استفساراً فقط، اترك مصفوفة الملفات فارغة.
-لا تضع أي نصوص خارج الـ JSON.`;
+[ACTION_PROTOCOL]
+1. PRE-ANALYSIS: Before answering, scan the "Project Structure (Files)" to identify the MOST RELEVANT files.
+   - Changing site name: Look for "package.json", "index.html", "layout.tsx", "metadata" files.
+   - Changing colors: Look for "globals.css", "tailwind.config.js", theme files.
+2. If a screenshot is provided, analyze it deeply for UI/UX context.
+3. [DEEP_CODE_ACCESS - STRICT RULES]:
+   - If you need a file NOT in [CORE_PROJECT_FILES_CONTENT], add its EXACT path to "requestedFiles".
+   - ⚠️ CRITICAL: Use the EXACT path from the "Project Structure (Files)" list ONLY.
+4. If you have enough info in [CORE_PROJECT_FILES_CONTENT], proceed with the "files" array.
+5. Your response must ALWAYS be a clean JSON object with:
+   - "explanation": Your reasoning in Arabic.
+   - "files": Array of [NEW], [MODIFY], or [DELETE] operations.
+   - "requestedFiles": Array of VERIFIED file paths to read (if you need more context).
+   - "engine": "The Architect".
+6. Do NOT include any text outside the JSON. Start directly with {`;
 
 export async function POST(req: Request) {
   try {
-    const { 
-      messages, preferredAI, autoFallback, imageDataUri, 
-      linkedRepo, repoTree, coreFileContents 
+    const {
+      messages, preferredAI, autoFallback, imageDataUri,
+      linkedRepo, repoTree, coreFileContents
     } = await req.json();
-    
+
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: 'Messages array is required' }), { status: 400 });
     }
 
     const lastMessage = messages[messages.length - 1];
     const previousMessages = messages.slice(0, -1);
-    const provider = preferredAI === 'groq' ? groq : google;
-    const modelName = preferredAI === 'groq' ? 'llama-3.3-70b-versatile' : 'gemini-2.5-flash';
 
     // تشكيل الرسائل مع دعم الصورة للمهمة الأخيرة
     const processedMessages = [
       ...previousMessages,
       {
-        role: 'user' as any,
-        content: imageDataUri 
+        role: 'user' as const,
+        content: imageDataUri
           ? [
-              { type: 'text', text: lastMessage.content || "حلل هذه الصورة برمجياً" },
-              { 
-                type: 'image', 
-                image: new Uint8Array(atob(imageDataUri.split(',')[1]).split('').map(c => c.charCodeAt(0))),
+              { type: 'text' as const, text: lastMessage.content || "حلل هذه الصورة برمجياً" },
+              {
+                type: 'image' as const,
+                image: new Uint8Array(atob(imageDataUri.split(',')[1]).split('').map((c: string) => c.charCodeAt(0))),
                 mimeType: imageDataUri.split(';')[0].split(':')[1]
               }
             ]
@@ -73,141 +74,55 @@ export async function POST(req: Request) {
       }
     ];
 
-    // سياق المستودع المرتبط (إن وجد)
-    const repoContext = linkedRepo 
+    // سياق المستودع المرتبط
+    const repoContext = linkedRepo
       ? `\n\n[CONTEXT: GITHUB REPOSITORY LINKED]
 Repo: "${linkedRepo.full_name}"
 Description: ${linkedRepo.description || "No description provided"}
 Default Branch: ${linkedRepo.default_branch}
 Project Structure (Files): ${Array.isArray(repoTree) ? repoTree.join(', ') : 'Loading...'}`
-      : '\n\n[CONTEXT: NO REPOSITORY LINKED]\nAdvise the user to use the GitHub Engine if they want you to work on their remote projects.';
+      : '\n\n[CONTEXT: NO REPOSITORY LINKED]\nAdvise the user to link a GitHub repo via the GitHub Engine if they want file-level operations.';
 
     const coreFilesPrompt = coreFileContents && Object.keys(coreFileContents).length > 0
       ? `\n\n[CORE_PROJECT_FILES_CONTENT]\nYou have immediate access to these critical files:\n${Object.entries(coreFileContents).map(([p, c]) => `--- FILE: ${p} ---\n${c}`).join('\n\n')}`
       : "";
 
-    const systemPrompt = `[STRICT_RESPONSE_FORMAT: JSON_ONLY]
-[NEURAL_IDENTITY: THE_ARCHITECT]
-You are the "Neural Architect", a high-end AI developer orchestrator.
-${repoContext}
-${coreFilesPrompt}
+    const systemPrompt = AGENT_SYSTEM_PROMPT + repoContext + coreFilesPrompt;
 
-[ACTION_PROTOCOL]
-1. PRE-ANALYSIS: Before answering, scan the "Project Structure (Files)" below to identify the MOST RELEVANT files for the user's request.
-   - If changing the site name: Look for "package.json", "index.html", "layout.tsx", "metadata", or configuration files.
-   - If changing colors: Look for "globals.css", "tailwind.config.js", or "theme" files.
-2. If the user provides a screenshot, analyze it deeply.
-3. [DEEP_CODE_ACCESS - STRICT RULES]:
-   - If you need to read a file NOT in [CORE_PROJECT_FILES_CONTENT], add its EXACT path to "requestedFiles".
-   - ⚠️ CRITICAL: You MUST use the EXACT path from the "Project Structure (Files)" list provided below.
-   - Only request files that are actually in the list.
-4. If you have enough information in [CORE_PROJECT_FILES_CONTENT], proceed directly with the "files" array for modifications.
-5. You must return only a valid JSON object.
-6. Your response must always be a clean JSON object with:
-   - "explanation": Reasoning in Arabic.
-   - "files": Array of [NEW], [MODIFY], or [DELETE] operations.
-   - "requestedFiles": Array of VERIFIED file paths to read.
-   - "engine": "The Architect".
-7. Do not include any text outside the JSON.`;
-
-    let result;
-    let engine = 'NexusAI';
-
-    try {
-      const response = await generateText({
-        model: provider(modelName),
+    // ─── محاولة Streaming مع نظام Fallback ────────────────────────────────
+    async function buildStream(modelProvider: any) {
+      return streamText({
+        model: modelProvider,
         system: systemPrompt,
         messages: processedMessages,
         temperature: 0.3,
       });
-      result = response;
-      engine = preferredAI === 'groq' ? 'Groq' : 'Gemini';
-    } catch (err: any) {
-      console.warn('Primary model failed, checking fallback:', err.message);
-      
-      if (autoFallback && preferredAI !== 'groq' && process.env.GROQ_API_KEY) {
-        const response = await generateText({
-          model: groq('llama-3.3-70b-versatile'),
-          system: systemPrompt,
-          messages: processedMessages,
-        });
-        result = response;
-        engine = 'Groq (Auto-Fallback)';
-      } else {
-        throw err;
-      }
     }
 
-    // تنظيف وتحليل الرد
-    const rawText = result.text;
-    let explanation = rawText;
-    let files: any[] = [];
-    let requestedFiles: string[] = [];
-
+    let streamResult;
     try {
-      let cleanJson = rawText.trim();
+      const modelId = preferredAI === 'groq' ? 'llama-3.3-70b-versatile' : 'gemini-2.5-flash';
+      const provider = preferredAI === 'groq' ? groq(modelId) : google(modelId);
+      streamResult = await buildStream(provider);
+    } catch (primaryErr: any) {
+      console.warn('[Neural Architect] Primary model failed, falling back to Groq:', primaryErr.message);
 
-      // 1. Try markdown code block first
-      const jsonMatch = cleanJson.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) {
-        cleanJson = jsonMatch[1].trim();
+      if (autoFallback && preferredAI !== 'groq' && process.env.GROQ_API_KEY) {
+        streamResult = await buildStream(groq('llama-3.3-70b-versatile'));
       } else {
-        // 2. Find the outermost { } using bracket counter to avoid cutting off early
-        const firstBrace = cleanJson.indexOf('{');
-        if (firstBrace !== -1) {
-          let depth = 0;
-          let inString = false;
-          let escape = false;
-          let lastClose = -1;
-          for (let i = firstBrace; i < cleanJson.length; i++) {
-            const ch = cleanJson[i];
-            if (escape) { escape = false; continue; }
-            if (ch === '\\' && inString) { escape = true; continue; }
-            if (ch === '"') { inString = !inString; continue; }
-            if (!inString) {
-              if (ch === '{') depth++;
-              else if (ch === '}') { depth--; if (depth === 0) { lastClose = i; break; } }
-            }
-          }
-          if (lastClose !== -1) {
-            cleanJson = cleanJson.substring(firstBrace, lastClose + 1);
-          }
-        }
+        throw primaryErr;
       }
-
-      // 3. Sanitize unescaped control chars that break JSON.parse
-      // Replace raw newlines ONLY inside string values
-      cleanJson = cleanJson.replace(
-        /"((?:[^"\\]|\\.)*)"/g,
-        (_, inner) => `"${inner.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t')}"`
-      );
-
-      const parsed = JSON.parse(cleanJson);
-      explanation = parsed.explanation || parsed.text || rawText;
-      files = Array.isArray(parsed.files) ? parsed.files : [];
-      requestedFiles = Array.isArray(parsed.requestedFiles) ? parsed.requestedFiles : [];
-    } catch (e) {
-      // إذا لم يلتزم بالـ JSON، نعامله كـ متن عادي
-      console.warn('[Agent Parser] JSON parse failed, using rawText as explanation:', e);
     }
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      explanation, 
-      files, 
-      requestedFiles,
-      engine 
-    }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    // إرسال الـ Stream مباشرةً كـ text/event-stream
+    return streamResult.toTextStreamResponse();
 
   } catch (err: any) {
     console.error('[Neural Architect API Error]', err);
     return new Response(JSON.stringify({
       success: false,
       error: err.message || 'Neural Architect construction failed',
-      diagnostics: err.stack
-    }), { 
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
