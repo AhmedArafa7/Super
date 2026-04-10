@@ -84,7 +84,7 @@ export function AgentChat() {
   }, [messages]);
 
   return (
-    <div className="flex h-[650px] bg-slate-900/40 border-t border-white/5 rounded-b-[3rem] overflow-hidden shadow-2xl backdrop-blur-md relative mx-auto max-w-[1600px]">
+    <div className="flex flex-col h-full bg-slate-900/40 border-t border-white/5 overflow-hidden shadow-2xl backdrop-blur-md relative">
       
       {/* GitHub Side Panel (Left) */}
       <div className={cn(

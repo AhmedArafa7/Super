@@ -19,9 +19,9 @@ export function TaskTerminal() {
   }, [logs]);
 
   return (
-    <div className="w-80 border-l border-white/5 bg-black/40 flex flex-col h-full rounded-r-[2.5rem] overflow-hidden">
-      <header className="p-6 border-b border-white/5 bg-white/5 flex items-center justify-between flex-row-reverse">
-        <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] text-right flex items-center justify-end gap-2">
+    <div className="w-full bg-black/40 flex flex-col h-full overflow-hidden">
+      <header className="px-6 py-2 border-b border-white/5 bg-white/5 flex items-center justify-between flex-row-reverse">
+        <h3 className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em] text-right flex items-center justify-end gap-2">
           سجل المهام
           <TerminalIcon className="size-3" />
         </h3>

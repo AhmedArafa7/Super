@@ -73,7 +73,7 @@ export function CodeWorkspace() {
   };
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-black/20 rounded-l-[2.5rem] border-r border-white/5 shadow-2xl">
+    <div className="flex-1 flex overflow-hidden bg-black/20 border-r border-white/5">
       {/* File Explorer */}
       <aside className="w-64 border-r border-white/5 flex flex-col bg-slate-900/40">
         <div className="p-6 border-b border-white/5">

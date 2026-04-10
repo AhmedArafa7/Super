@@ -80,12 +80,23 @@ export function AgentAI() {
       <main className="flex-1 flex gap-0 min-h-0 overflow-hidden glass border-white/5 rounded-[2.5rem]">
         {showHistory && <HistorySidebar />}
         
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex-1 flex min-h-0 border-b border-white/5">
-            <CodeWorkspace />
-            <TaskTerminal />
+        <div className="flex-1 flex min-w-0">
+          {/* Main IDE area: Explorer + Editor */}
+          <div className="flex-1 flex flex-col min-w-0 border-l border-white/5 relative">
+            <div className="flex-1 flex min-h-0 bg-slate-950/40">
+              <CodeWorkspace />
+            </div>
+            
+            {/* Task Terminal: Now a status bar/panel at the bottom of the workspace */}
+            <div className="h-40 border-t border-white/5">
+              <TaskTerminal />
+            </div>
           </div>
-          <AgentChat />
+
+          {/* Right Sidebar: Agent Chat */}
+          <div className="w-[450px] shrink-0 border-l border-white/5 bg-slate-900/20">
+            <AgentChat />
+          </div>
         </div>
       </main>
 
