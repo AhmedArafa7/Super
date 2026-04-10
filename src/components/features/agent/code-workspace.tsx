@@ -31,28 +31,44 @@ export function CodeWorkspace() {
       map[key] = f.content;
     });
     
-    // Ensure we have an entry point if not present
-    if (!map["/App.js"] && !map["/App.tsx"] && !map["/index.js"]) {
-        // Find the first tsx/js file to use as entry
-        const entry = files.find(f => f.path.endsWith('.tsx') || f.path.endsWith('.js'));
-        if (entry) {
-            map["/App.tsx"] = entry.content;
-        }
+    // Create a dynamic Entry Point that renders the current active file
+    if (activeFile) {
+        const activeKey = activeFile.path.startsWith('/') ? activeFile.path : `/${activeFile.path}`;
+        map["/App.tsx"] = `
+import React from "react";
+import Component from "${activeKey.replace(/\.tsx?$/, "")}";
+
+export default function App() {
+  return (
+    <div style={{ minHeight: '100vh', background: '#0f172a', color: 'white', padding: '20px' }}>
+      <Component />
+    </div>
+  );
+}`;
     }
     
     return map;
-  }, [files]);
+  }, [files, activeFile]);
 
   return (
     <div className="flex-1 flex overflow-hidden bg-slate-950/40 border-r border-white/5">
       <SandpackProvider
-        template="react"
+        template="react-ts"
         theme={nightOwl}
         files={sandpackFiles}
+        customSetup={{
+          dependencies: {
+            "lucide-react": "latest",
+            "framer-motion": "latest",
+            "clsx": "latest",
+            "tailwind-merge": "latest"
+          }
+        }}
         options={{
           recompileMode: "immediate",
           recompileDelay: 300,
-          externalResources: ["https://cdn.tailwindcss.com"]
+          externalResources: ["https://cdn.tailwindcss.com"],
+          activeFile: activeFilePath?.startsWith('/') ? activeFilePath : `/${activeFilePath}`
         }}
         className="size-full"
       >
