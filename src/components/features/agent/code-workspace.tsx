@@ -15,6 +15,7 @@ import {
   useSandpack
 } from "@codesandbox/sandpack-react";
 import { nightOwl } from "@codesandbox/sandpack-themes";
+import { BASE_PROJECT_CONTEXT } from "@/lib/agent-base-context";
 
 
 export function CodeWorkspace() {
@@ -25,7 +26,10 @@ export function CodeWorkspace() {
   // Map our store files to Sandpack format
   const sandpackFiles = React.useMemo(() => {
     const map: Record<string, string> = {
-      // Native Alias Support via tsconfig.json
+      // 1. BASE PROJECT CONTEXT (Real files provided as fallback)
+      ...BASE_PROJECT_CONTEXT,
+
+      // 2. Native Alias Support via tsconfig.json
       "/tsconfig.json": JSON.stringify({
         compilerOptions: {
           baseUrl: ".",
