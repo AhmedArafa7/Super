@@ -74,13 +74,16 @@ export function CodeWorkspace() {
         
         map["/App.tsx"] = `
 import React from "react";
+import { AuthProvider } from "@/components/auth/auth-provider";
 import Component from "${activeKey.replace(/\.tsx?$/, "")}";
 
 export default function App() {
   return (
-    <div style={{ minHeight: '100vh', background: '#0f172a', color: 'white' }}>
-      <Component />
-    </div>
+    <AuthProvider>
+      <div style={{ minHeight: '100vh', background: '#0f172a', color: 'white' }}>
+        <Component />
+      </div>
+    </AuthProvider>
   );
 }`;
     }
