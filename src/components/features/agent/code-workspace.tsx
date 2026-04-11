@@ -104,7 +104,7 @@ export function CodeWorkspace() {
         map["/App.tsx"] = `
 import React from "react";
 import { AuthProvider } from "@/components/auth/auth-provider";
-import Component from "\${activeKey.replace(/\.tsx?$/, "")}";
+import Component from "${activeKey.replace(/\.tsx?$/, "")}";
 
 export default function App() {
   return (
