@@ -15,15 +15,44 @@ import {
   useSandpack
 } from "@codesandbox/sandpack-react";
 import { nightOwl } from "@codesandbox/sandpack-themes";
+import { motion, AnimatePresence } from "framer-motion";
 import { BASE_PROJECT_CONTEXT } from "@/lib/agent-base-context";
 
 
 export function CodeWorkspace() {
   const [activeTab, setActiveTab] = React.useState<"code" | "preview">("code");
+  const [isMaximized, setIsMaximized] = React.useState(false);
+  const [sidebarWidth, setSidebarWidth] = React.useState(240);
   const { files, activeFilePath, setActiveFile, updateFile } = useAgentStore();
   const activeFile = files.find(f => f.path === activeFilePath);
 
-  // Map our store files to Sandpack format
+  // Resize Handling
+  const [isResizing, setIsResizing] = React.useState(false);
+
+  const startResizing = React.useCallback(() => {
+    setIsResizing(true);
+  }, []);
+
+  const stopResizing = React.useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const resize = React.useCallback((mouseMoveEvent: any) => {
+    if (isResizing) {
+      setSidebarWidth(mouseMoveEvent.clientX);
+    }
+  }, [isResizing]);
+
+  React.useEffect(() => {
+    window.addEventListener("mousemove", resize);
+    window.addEventListener("mouseup", stopResizing);
+    return () => {
+      window.removeEventListener("mousemove", resize);
+      window.removeEventListener("mouseup", stopResizing);
+    };
+  }, [resize, stopResizing]);
+
+  // ... (sandpackFiles memo)
   const sandpackFiles = React.useMemo(() => {
     const map: Record<string, string> = {
       // 1. BASE PROJECT CONTEXT (Real files provided as fallback)
@@ -75,7 +104,7 @@ export function CodeWorkspace() {
         map["/App.tsx"] = `
 import React from "react";
 import { AuthProvider } from "@/components/auth/auth-provider";
-import Component from "${activeKey.replace(/\.tsx?$/, "")}";
+import Component from "\${activeKey.replace(/\.tsx?$/, "")}";
 
 export default function App() {
   return (
@@ -92,7 +121,7 @@ export default function App() {
   }, [files, activeFile]);
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-slate-950/40 border-r border-white/5">
+    <div className="flex-1 flex overflow-hidden bg-slate-950/40 border-r border-white/5 relative">
       <SandpackProvider
         template="react-ts"
         theme={nightOwl}
@@ -114,7 +143,13 @@ export default function App() {
         className="size-full"
       >
         {/* File Explorer */}
-        <aside className="w-64 border-r border-white/5 flex flex-col bg-slate-900/40">
+        <aside 
+          style={{ width: `${sidebarWidth}px` }} 
+          className={cn(
+            "border-r border-white/5 flex flex-col bg-slate-900/40 shrink-0 select-none",
+            isResizing && "opacity-50"
+          )}
+        >
             <div className="p-6 border-b border-white/5">
                 <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] text-right flex items-center justify-end gap-2">
                     مستكشف العقد البرمجية
@@ -146,38 +181,57 @@ export default function App() {
             </ScrollArea>
         </aside>
 
+        {/* Resizer Handle */}
+        <div 
+          onMouseDown={startResizing}
+          className="w-1 cursor-col-resize hover:bg-indigo-500/50 transition-colors bg-white/5 z-10 shrink-0" 
+        />
+
         {/* Editor & Preview Area */}
-        <main className="flex-1 flex flex-col min-w-0 bg-slate-950/20">
+        <main className="flex-1 flex flex-col min-w-0 bg-slate-950/20 relative">
             {activeFile ? (
                 <>
-                    <header className="h-12 border-b border-white/5 bg-slate-900/50 flex items-center justify-between px-6 flex-row-reverse">
+                    <header className="h-12 border-b border-white/5 bg-slate-900/50 flex items-center justify-between px-6 flex-row-reverse shrink-0">
                         <div className="flex items-center gap-3 flex-row-reverse">
                             <Badge variant="outline" className="text-[8px] border-indigo-500/30 text-indigo-400 uppercase">{activeFile.language}</Badge>
                             <span className="text-[10px] font-mono text-slate-400 truncate max-w-[150px]">{activeFile.path}</span>
                         </div>
-                        <div className="flex gap-2 bg-black/40 p-1 rounded-xl">
-                            <button
-                                onClick={() => setActiveTab("code")}
-                                className={cn(
-                                    "px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2", 
-                                    activeTab === "code" ? "bg-indigo-600 text-white" : "text-muted-foreground hover:text-white"
-                                )}
-                            >
-                                <Code2 className="size-3" />
-                                الكود
-                            </button>
-                            <button
-                                onClick={() => setActiveTab("preview")}
-                                className={cn(
-                                    "px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2", 
-                                    activeTab === "preview" ? "bg-indigo-600 text-white" : "text-muted-foreground hover:text-white"
-                                )}
-                            >
-                                <Play className="size-3" />
-                                معاينة حية
-                            </button>
+                        <div className="flex items-center gap-4">
+                            <div className="flex gap-2 bg-black/40 p-1 rounded-xl">
+                                <button
+                                    onClick={() => setActiveTab("code")}
+                                    className={cn(
+                                        "px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2", 
+                                        activeTab === "code" ? "bg-indigo-600 text-white" : "text-muted-foreground hover:text-white"
+                                    )}
+                                >
+                                    <Code2 className="size-3" />
+                                    الكود
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab("preview")}
+                                    className={cn(
+                                        "px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2", 
+                                        activeTab === "preview" ? "bg-indigo-600 text-white" : "text-muted-foreground hover:text-white"
+                                    )}
+                                >
+                                    <Play className="size-3" />
+                                    معاينة حية
+                                </button>
+                            </div>
+                            
+                            {activeTab === "preview" && (
+                                <button 
+                                    onClick={() => setIsMaximized(!isMaximized)}
+                                    className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                                    title="توسيع شاشة المعاينة"
+                                >
+                                    <Layers className={cn("size-4", isMaximized && "text-indigo-400")} />
+                                </button>
+                            )}
                         </div>
                     </header>
+
                     <div className="flex-1 overflow-hidden relative">
                         {activeTab === "code" ? (
                             <div className="size-full bg-slate-950/40">
@@ -188,13 +242,37 @@ export default function App() {
                                 />
                             </div>
                         ) : (
-                            <div className="size-full bg-slate-950/40 rounded-br-[2rem] p-4">
-                                <SandpackPreview 
-                                    showOpenInCodeSandbox={false}
-                                    showRefreshButton={false}
-                                    style={{ height: '100%', borderRadius: '1rem', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}
-                                />
-                            </div>
+                            <motion.div 
+                                layout
+                                className={cn(
+                                    "size-full transition-all duration-500",
+                                    isMaximized ? "fixed inset-4 z-[100] bg-slate-950/90 backdrop-blur-3xl p-6 rounded-[2.5rem] border border-white/10 shadow-[0_0_100px_rgba(79,70,229,0.2)]" : "p-4"
+                                )}
+                            >
+                                {isMaximized && (
+                                    <div className="flex items-center justify-between mb-4 flex-row-reverse px-4">
+                                        <div className="flex items-center gap-3 flex-row-reverse">
+                                            <div className="size-8 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                                                <Play className="text-white size-4" />
+                                            </div>
+                                            <h2 className="text-sm font-bold text-white uppercase tracking-widest">Neural Live Preview</h2>
+                                        </div>
+                                        <button 
+                                            onClick={() => setIsMaximized(false)}
+                                            className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white transition-all border border-white/10"
+                                        >
+                                            <Layers className="size-4 rotate-180" />
+                                        </button>
+                                    </div>
+                                )}
+                                <div className={cn("size-full relative", isMaximized ? "h-[calc(100%-48px)]" : "h-full")}>
+                                    <SandpackPreview 
+                                        showOpenInCodeSandbox={false}
+                                        showRefreshButton={true}
+                                        style={{ height: '100%', borderRadius: isMaximized ? '1.5rem' : '1rem', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)', background: 'white' }}
+                                    />
+                                </div>
+                            </motion.div>
                         )}
                     </div>
                 </>
