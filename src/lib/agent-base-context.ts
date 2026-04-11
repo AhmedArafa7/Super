@@ -2,18 +2,34 @@
 "use client";
 
 /**
- * [STABILITY_ANCHOR: AGENT_BASE_CONTEXT_V1.0]
+ * [STABILITY_ANCHOR: AGENT_BASE_CONTEXT_V2.0]
  * This file provides a 'Neural Base Context' for the Sandpack preview engine.
- * It contains the real, actual code of core layout components to ensure that
- * the IDE preview can render the full project structure even if these files
- * aren't currently active in the workspace store.
+ * Improved with professional viewport control and responsive layout mocks.
  */
 
 export const BASE_PROJECT_CONTEXT: Record<string, string> = {
+  "/public/index.html": `
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Nexus Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body { margin: 0; padding: 0; overflow: hidden; background: #0f172a; }
+      #root { height: 100vh; width: 100vw; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+`,
   "/src/components/layout/app-shell.tsx": `
 'use client';
 import React, { useState, useEffect } from "react";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/components/auth/auth-provider";
 import { AppSidebar } from "./app-sidebar";
 import { AppHeader } from "./app-header";
@@ -27,11 +43,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-slate-950 text-white overflow-hidden relative">
+      <div className="flex h-screen w-full bg-slate-950 text-white overflow-hidden relative">
         <AppSidebar activeTab={activeTab} onTabChange={setActiveTab} user={user} />
-        <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        <div className="flex-1 flex flex-col h-full overflow-hidden relative">
           <AppHeader onTabChange={setActiveTab} />
-          <main className="flex-1 overflow-y-auto bg-slate-900/20 p-6">
+          <main className="flex-1 overflow-y-auto bg-slate-900/20 p-4 md:p-6">
             {children}
           </main>
         </div>
@@ -70,13 +86,27 @@ export const useAuth = () => useContext(AuthContext);
 `,
   "/src/components/layout/app-header.tsx": `
 import React from "react";
-import { Bell, Search, Wallet, Layers } from "lucide-react";
+import { Menu, Search, User } from "lucide-react";
+import { useSidebar } from "@/components/ui/sidebar";
 
 export function AppHeader({ onTabChange }: any) {
+  const { open, setOpen } = useSidebar();
+  
   return (
-    <header className="h-16 border-b border-white/5 bg-slate-900/40 backdrop-blur-md flex items-center justify-between px-6 z-20 flex-row-reverse shrink-0">
-      <div className="flex items-center gap-4 flex-row-reverse">
-        <h2 className="text-sm font-bold text-white">Neural Sandbox Preview</h2>
+    <header className="h-14 border-b border-white/5 bg-slate-900/40 backdrop-blur-md flex items-center justify-between px-4 z-20 flex-row-reverse shrink-0">
+      <div className="flex items-center gap-3 flex-row-reverse">
+        <button 
+          onClick={() => setOpen(!open)}
+          className="p-2 hover:bg-white/5 rounded-lg text-slate-400 block"
+        >
+          <Menu size={18} />
+        </button>
+        <h2 className="text-xs font-bold text-white truncate max-w-[120px]">Nexus Preview</h2>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="size-8 bg-indigo-600/20 rounded-full flex items-center justify-center border border-indigo-500/20">
+          <User size={14} className="text-indigo-400" />
+        </div>
       </div>
     </header>
   );
@@ -84,67 +114,80 @@ export function AppHeader({ onTabChange }: any) {
 `,
   "/src/components/layout/app-sidebar.tsx": `
 import React from "react";
-import { LayoutDashboard, MessageSquare, Cpu, Box } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Cpu, Box, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSidebar } from "@/components/ui/sidebar";
 
 export function AppSidebar({ activeTab, onTabChange, user }: any) {
+  const { open, setOpen } = useSidebar();
   const menu = [
     { id: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard },
     { id: "chat", label: "الدردشة", icon: MessageSquare },
   ];
 
   return (
-    <aside className="w-64 border-l border-white/5 bg-slate-900/50 flex flex-col p-4 gap-4">
-      <div className="flex items-center gap-3 justify-end mb-8">
-        <h1 className="font-bold text-lg">Nexus Preview</h1>
-        <Box className="text-primary" />
+    <aside 
+      style={{ width: open ? '240px' : '0px' }}
+      className={cn(
+        "border-l border-white/5 bg-slate-900/50 flex flex-col gap-4 transition-all duration-300 overflow-hidden relative z-30",
+        !open && "border-none"
+      )}
+    >
+      <div className="p-4 flex items-center justify-between flex-row-reverse mb-4 shrink-0">
+        <div className="flex items-center gap-2 justify-end">
+           <span className="font-bold text-sm">Nexus AI</span>
+           <Box className="text-indigo-500 size-4" />
+        </div>
       </div>
-      {menu.map(item => (
-        <button 
-          key={item.id}
-          className={cn(
-            "w-full p-3 rounded-xl flex items-center justify-end gap-3 transition-all",
-            activeTab === item.id ? "bg-primary/20 text-primary border border-primary/20" : "text-slate-400 hover:bg-white/5"
-          )}
-          onClick={() => onTabChange(item.id)}
-        >
-          <span>{item.label}</span>
-          <item.icon size={18} />
-        </button>
-      ))}
+      
+      <div className="px-2 space-y-1 flex-1 overflow-y-auto">
+        {menu.map(item => (
+          <button 
+            key={item.id}
+            className={cn(
+              "w-full p-3 rounded-xl flex items-center justify-end gap-3 transition-all",
+              activeTab === item.id ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/10" : "text-slate-400 hover:bg-white/5"
+            )}
+            onClick={() => onTabChange(item.id)}
+          >
+            <span>{item.label}</span>
+            <item.icon size={16} />
+          </button>
+        ))}
+      </div>
     </aside>
   );
 }
 `,
   "/src/components/ui/sidebar.tsx": `
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 const SidebarContext = createContext({ open: true, setOpen: (v: boolean) => {} });
 export const SidebarProvider = ({ children }: any) => {
-  const [open, setOpen] = useState(true);
+  // Auto-collapse on small screens
+  const [open, setOpen] = useState(window.innerWidth > 600);
   return <SidebarContext.Provider value={{ open, setOpen }}>{children}</SidebarContext.Provider>;
 };
 export const useSidebar = () => useContext(SidebarContext);
-export const SidebarTrigger = () => <button>Toggle</button>;
 `,
   "/src/components/ui/button.tsx": `
 import React from "react";
 import { cn } from "@/lib/utils";
 export const Button = React.forwardRef(({ className, variant, size, ...props }: any, ref: any) => (
-  <button ref={ref} className={cn("inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2", className)} {...props} />
+  <button ref={ref} className={cn("inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-indigo-600 text-white shadow hover:bg-indigo-700 h-9 px-4 py-2", className)} {...props} />
 ));
 `,
   "/src/components/ui/input.tsx": `
 import React from "react";
 import { cn } from "@/lib/utils";
 export const Input = React.forwardRef(({ className, type, ...props }: any, ref: any) => (
-  <input type={type} className={cn("flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50", className)} ref={ref} {...props} />
+  <input type={type} className={cn("flex h-9 w-full rounded-md border border-white/10 bg-black/20 px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500/50 disabled:cursor-not-allowed disabled:opacity-50", className)} ref={ref} {...props} />
 ));
 `,
   "/src/components/ui/badge.tsx": `
 import React from "react";
 import { cn } from "@/lib/utils";
 export const Badge = ({ className, variant, ...props }: any) => (
-  <div className={cn("inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2", className)} {...props} />
+  <div className={cn("inline-flex items-center rounded-md border border-white/10 px-2.5 py-0.5 text-[10px] font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2", className)} {...props} />
 );
 `,
   "/src/components/ui/icon-safe.tsx": `
