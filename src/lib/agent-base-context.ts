@@ -115,5 +115,45 @@ export function AppSidebar({ activeTab, onTabChange, user }: any) {
     </aside>
   );
 }
+`,
+  "/src/components/ui/sidebar.tsx": `
+import React, { createContext, useContext, useState } from "react";
+const SidebarContext = createContext({ open: true, setOpen: (v: boolean) => {} });
+export const SidebarProvider = ({ children }: any) => {
+  const [open, setOpen] = useState(true);
+  return <SidebarContext.Provider value={{ open, setOpen }}>{children}</SidebarContext.Provider>;
+};
+export const useSidebar = () => useContext(SidebarContext);
+export const SidebarTrigger = () => <button>Toggle</button>;
+`,
+  "/src/components/ui/button.tsx": `
+import React from "react";
+import { cn } from "@/lib/utils";
+export const Button = React.forwardRef(({ className, variant, size, ...props }: any, ref: any) => (
+  <button ref={ref} className={cn("inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2", className)} {...props} />
+));
+`,
+  "/src/components/ui/input.tsx": `
+import React from "react";
+import { cn } from "@/lib/utils";
+export const Input = React.forwardRef(({ className, type, ...props }: any, ref: any) => (
+  <input type={type} className={cn("flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50", className)} ref={ref} {...props} />
+));
+`,
+  "/src/components/ui/badge.tsx": `
+import React from "react";
+import { cn } from "@/lib/utils";
+export const Badge = ({ className, variant, ...props }: any) => (
+  <div className={cn("inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2", className)} {...props} />
+);
+`,
+  "/src/components/ui/icon-safe.tsx": `
+import React from "react";
+export const IconSafe = ({ icon: Icon, className }: any) => Icon ? <Icon className={className} /> : null;
+`,
+  "/src/lib/utils.ts": `
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+export function cn(...inputs: ClassValue[]) { return twMerge(clsx(inputs)); }
 `
 };
