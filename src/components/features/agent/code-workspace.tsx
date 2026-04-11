@@ -29,12 +29,13 @@ export function CodeWorkspace() {
       // 1. BASE PROJECT CONTEXT (Real files provided as fallback)
       ...BASE_PROJECT_CONTEXT,
 
-      // 2. Native Alias Support via tsconfig.json
+      // 2. Native Alias Support via tsconfig.json (The Professional way to mock packages)
       "/tsconfig.json": JSON.stringify({
         compilerOptions: {
           baseUrl: ".",
           paths: {
-            "@/*": ["src/*"]
+            "@/*": ["src/*"],
+            "next/*": ["src/mocks/next/*"]
           },
           jsx: "react-jsx"
         }
@@ -47,8 +48,8 @@ export function CodeWorkspace() {
       map[key] = f.content;
     });
     
-    // --- NEXT.JS COMPATIBILITY LAYER ---
-    map["/node_modules/next/navigation.js"] = `
+    // --- NEXT.JS BROWSER MOCKS ---
+    map["/src/mocks/next/navigation.js"] = `
         import React from "react";
         const noop = () => {};
         const mockRouter = {
@@ -61,7 +62,7 @@ export function CodeWorkspace() {
         export const useSearchParams = () => ({ get: () => null });
     `;
 
-    map["/node_modules/next/image.js"] = `
+    map["/src/mocks/next/image.js"] = `
         import React from "react";
         export default function Image(props) {
             return <img {...props} style={{ maxWidth: "100%", height: "auto", ...props.style }} />;
