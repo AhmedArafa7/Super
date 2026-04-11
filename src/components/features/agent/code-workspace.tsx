@@ -24,21 +24,26 @@ export function CodeWorkspace() {
 
   // Map our store files to Sandpack format
   const sandpackFiles = React.useMemo(() => {
-    const map: Record<string, string> = {};
-    
-    // Helper to transform aliases in code strings
-    const transformCode = (code: string) => {
-        return code.replace(/from\s+['"]@\/(.*?)['"]/g, 'from "/src/$1"');
+    const map: Record<string, string> = {
+      // Native Alias Support via tsconfig.json
+      "/tsconfig.json": JSON.stringify({
+        compilerOptions: {
+          baseUrl: ".",
+          paths: {
+            "@/*": ["src/*"]
+          },
+          jsx: "react-jsx"
+        }
+      }, null, 2)
     };
-
+    
     files.forEach(f => {
       // Normalize paths to absolute for Sandpack
       const key = f.path.startsWith('/') ? f.path : `/${f.path}`;
-      map[key] = transformCode(f.content);
+      map[key] = f.content;
     });
     
     // --- NEXT.JS COMPATIBILITY LAYER ---
-    // Instead of ghosts, we provide robust mocks for the framework APIs that are missing in the browser sandbox.
     map["/node_modules/next/navigation.js"] = `
         import React from "react";
         const noop = () => {};
@@ -68,7 +73,7 @@ import Component from "${activeKey.replace(/\.tsx?$/, "")}";
 
 export default function App() {
   return (
-    <div style={{ minHeight: '100vh', background: '#0f172a', color: 'white', padding: '20px' }}>
+    <div style={{ minHeight: '100vh', background: '#0f172a', color: 'white' }}>
       <Component />
     </div>
   );
