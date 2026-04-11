@@ -25,44 +25,51 @@ export function CodeWorkspace() {
   // Map our store files to Sandpack format
   const sandpackFiles = React.useMemo(() => {
     const map: Record<string, string> = {};
+    
+    // Helper to transform aliases in code strings
+    const transformCode = (code: string) => {
+        return code.replace(/from\s+['"]@\/(.*?)['"]/g, 'from "/src/$1"');
+    };
+
     files.forEach(f => {
       // Normalize paths to absolute for Sandpack
       const key = f.path.startsWith('/') ? f.path : `/${f.path}`;
-      map[key] = f.content;
+      map[key] = transformCode(f.content);
     });
     
     // Ghost Dependency System: Prevent crashes if internal files are missing
     if (activeFile) {
         const activeKey = activeFile.path.startsWith('/') ? activeFile.path : `/${activeFile.path}`;
         
-        // Scan for imports in current file
-        const importRegex = /import\s+[\s\S]*?from\s+['"](@\/|(?:\.\/|\.\.\/)+)(.*?)['"]/g;
+        // Scan for imports in current file (the transformed version)
+        const transformedContent = transformCode(activeFile.content);
+        const importRegex = /import\s+[\s\S]*?from\s+['"](\/src\/|(?:\.\/|\.\.\/)+)(.*?)['"]/g;
         let match;
-        while ((match = importRegex.exec(activeFile.content)) !== null) {
+        while ((match = importRegex.exec(transformedContent)) !== null) {
             const prefix = match[1];
             const name = match[2];
             
-            // Generate paths to check/create
-            const rawPath = prefix === '@/' ? `/@/${name}` : name;
-            const srcPath = prefix === '@/' ? `/src/${name}` : name;
-            
-            const possiblePaths = [rawPath, srcPath, `${rawPath}.tsx`, `${srcPath}.tsx`, `${rawPath}.ts`, `${srcPath}.ts`].map(p => p.startsWith('/') ? p : `/${p}`);
-            const exists = possiblePaths.some(p => map[p]);
+            // Only ghost missing internal src files
+            if (prefix === '/src/') {
+                const fullPath = `/src/${name}`;
+                const possiblePaths = [fullPath, `${fullPath}.tsx`, `${fullPath}.ts`, `${fullPath}.js`, `${fullPath}/index.tsx`].map(p => p.startsWith('/') ? p : `/${p}`);
+                const exists = possiblePaths.some(p => map[p]);
 
-            if (!exists) {
-                // Create placeholders at both locations to be safe
-                const ghostContent = `
+                if (!exists) {
+                    const ghostPath = possiblePaths[1] || possiblePaths[0]; // Prefer .tsx
+                    const componentName = name.split('/').pop() || 'Component';
+                    
+                    map[ghostPath] = `
 import React from "react";
-export const ${name.split('/').pop() || 'Component'} = (props) => (
+export const ${componentName} = (props) => (
   <div style={{ border: '1px dashed #6366f1', padding: '12px', margin: '4px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.05)', color: '#a5b4fc', fontSize: '11px' }}>
-    👻 Ghost Component: <strong>${name.split('/').pop()}</strong>
+    👻 Ghost Component: <strong>${componentName}</strong>
     {props.children}
   </div>
 );
-export default ${name.split('/').pop() || 'Component'};
+export default ${componentName};
 `;
-                map[possiblePaths[0]] = ghostContent;
-                map[possiblePaths[1]] = ghostContent;
+                }
             }
         }
 
