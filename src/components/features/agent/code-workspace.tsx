@@ -37,42 +37,31 @@ export function CodeWorkspace() {
       map[key] = transformCode(f.content);
     });
     
-    // Ghost Dependency System: Prevent crashes if internal files are missing
+    // --- NEXT.JS COMPATIBILITY LAYER ---
+    // Instead of ghosts, we provide robust mocks for the framework APIs that are missing in the browser sandbox.
+    map["/node_modules/next/navigation.js"] = `
+        import React from "react";
+        const noop = () => {};
+        const mockRouter = {
+            push: noop, replace: noop, back: noop, forward: noop, 
+            refresh: noop, prefetch: noop, pathname: "/"
+        };
+        export const useRouter = () => mockRouter;
+        export const usePathname = () => "/";
+        export const useParams = () => ({});
+        export const useSearchParams = () => ({ get: () => null });
+    `;
+
+    map["/node_modules/next/image.js"] = `
+        import React from "react";
+        export default function Image(props) {
+            return <img {...props} style={{ maxWidth: "100%", height: "auto", ...props.style }} />;
+        }
+    `;
+
     if (activeFile) {
         const activeKey = activeFile.path.startsWith('/') ? activeFile.path : `/${activeFile.path}`;
         
-        // Scan for imports in current file (the transformed version)
-        const transformedContent = transformCode(activeFile.content);
-        const importRegex = /import\s+[\s\S]*?from\s+['"](\/src\/|(?:\.\/|\.\.\/)+)(.*?)['"]/g;
-        let match;
-        while ((match = importRegex.exec(transformedContent)) !== null) {
-            const prefix = match[1];
-            const name = match[2];
-            
-            // Only ghost missing internal src files
-            if (prefix === '/src/') {
-                const fullPath = `/src/${name}`;
-                const possiblePaths = [fullPath, `${fullPath}.tsx`, `${fullPath}.ts`, `${fullPath}.js`, `${fullPath}/index.tsx`].map(p => p.startsWith('/') ? p : `/${p}`);
-                const exists = possiblePaths.some(p => map[p]);
-
-                if (!exists) {
-                    const ghostPath = possiblePaths[1] || possiblePaths[0]; // Prefer .tsx
-                    const componentName = name.split('/').pop() || 'Component';
-                    
-                    map[ghostPath] = `
-import React from "react";
-export const ${componentName} = (props) => (
-  <div style={{ border: '1px dashed #6366f1', padding: '12px', margin: '4px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.05)', color: '#a5b4fc', fontSize: '11px' }}>
-    👻 Ghost Component: <strong>${componentName}</strong>
-    {props.children}
-  </div>
-);
-export default ${componentName};
-`;
-                }
-            }
-        }
-
         map["/App.tsx"] = `
 import React from "react";
 import Component from "${activeKey.replace(/\.tsx?$/, "")}";
