@@ -340,3 +340,42 @@ export const fetchVideoComments = async (videoId: string): Promise<YouTubeCommen
     return [];
   }
 };
+
+/**
+ * [NEURAL_BRIDGE] جلب سجل مشاهدات يوتيوب الرسمي (للقراءة فقط)
+ * يسمح للمستخدم بإكمال ما بدأه على المنصة الرسمية دون تتبع
+ */
+export const fetchYouTubeRemoteHistory = async (): Promise<FeedVideo[]> => {
+  const url = "https://www.youtube.com/feed/history";
+  const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+
+  try {
+    const response = await fetch(proxyUrl);
+    const html = await response.text();
+    const data = extractInitialData(html);
+
+    if (!data) return [];
+
+    // المسار الخاص بسجل المشاهدات في ytInitialData
+    const contents = data.contents?.twoColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents;
+    if (!contents) return [];
+
+    const videos: FeedVideo[] = [];
+    contents.forEach((section: any) => {
+      const items = section.itemSectionRenderer?.contents;
+      if (items) {
+        items.forEach((item: any) => {
+          if (item.videoRenderer) {
+            const v = parseVideoRenderer(item.videoRenderer);
+            if (v) videos.push(v);
+          }
+        });
+      }
+    });
+
+    return videos;
+  } catch (err) {
+    console.error("YouTube Remote History Sync Error", err);
+    return [];
+  }
+};

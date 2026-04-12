@@ -56,7 +56,7 @@ export function NexusVideoPlayer({
     const [internalSrc, setInternalSrc] = useState(src);
     const [isCaching, setIsCaching] = useState(false);
     const frameRef = useRef(0);
-    const rafRef = useRef<number>();
+    const rafRef = useRef<number | null>(null);
     const { addUsageRecord, totalSavedMB } = useProStore();
 
     let hideControlsTimeout: NodeJS.Timeout;
@@ -261,7 +261,7 @@ export function NexusVideoPlayer({
             {sourceType === 'youtube' && !proSettings ? (
                 <div className="relative w-full h-full">
                     <iframe
-                        src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&vq=hd${quality.replace(/\D/g, '')}`}
+                        src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}&vq=hd${quality.replace(/\D/g, '')}`}
                         className="w-full h-full"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen

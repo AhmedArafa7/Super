@@ -25,6 +25,7 @@ import { WatchDescription } from "./watch-description";
 import { WatchComments } from "./watch-comments";
 import { WatchSidebar } from "./watch-sidebar";
 import { WatchProductShelf } from "./watch-product-shelf";
+import { NexusNativeAds } from "./nexus-native-ads";
 
 /**
  * [STABILITY_ANCHOR: WETUBE_WATCH_VIEW_V3.0]
@@ -144,6 +145,8 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached, onCh
                     dateStr={dateStr}
                 />
 
+                <NexusNativeAds type="banner" className="mb-8" />
+
                 <WatchProductShelf 
                     authorId={video.authorId}
                     productIds={video.productIds}
@@ -154,7 +157,10 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached, onCh
             </div>
 
             {/* Right Column: Related Videos */}
-            <WatchSidebar relatedVideos={relatedVideos} onChannelClick={onChannelClick} />
+            <div className="w-full lg:w-[350px] shrink-0">
+                <NexusNativeAds type="sidebar" className="hidden lg:block" />
+                <WatchSidebar relatedVideos={relatedVideos} onChannelClick={onChannelClick} />
+            </div>
 
             {/* Warning Dialogs */}
             <AlertDialog open={showDataWarningDialog} onOpenChange={(o) => !o && abortQualityChange()}>

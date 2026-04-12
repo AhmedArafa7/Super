@@ -13,15 +13,15 @@ export interface HistoryItem {
   userId: string;
   channelId?: string;
   channelAvatar?: string;
+  // Neural Analysis Fields
+  conceptTags?: string[];
+  sentimentScore?: number;
+  isNeuralIndexed?: boolean;
 }
 
-export const addToHistory = async (userId: string, video: any) => {
+export const addToHistory = async (userId: string, video: any, neuralAnalysis?: any) => {
   try {
     const { firestore } = initializeFirebase();
-    
-    // Check if video already exists in recent history to avoid duplicates
-    // We'll just add it for now as Firestore is cheap for this scale, 
-    // but in production we might want to update the timestamp instead.
     
     await addDoc(collection(firestore, 'history'), {
       videoId: video.id,
@@ -31,7 +31,11 @@ export const addToHistory = async (userId: string, video: any) => {
       channelId: video.authorId || video.channelId || "",
       channelAvatar: video.channelAvatar || "",
       userId: userId,
-      watchedAt: new Timestamp(Math.floor(Date.now() / 1000), 0)
+      watchedAt: new Timestamp(Math.floor(Date.now() / 1000), 0),
+      // Advanced Neural Mapping
+      conceptTags: neuralAnalysis?.tags || [],
+      sentimentScore: neuralAnalysis?.sentiment || 0,
+      isNeuralIndexed: !!neuralAnalysis
     });
     
     window.dispatchEvent(new Event('history-update'));
@@ -62,7 +66,10 @@ export const getHistory = async (userId: string, count: number = 50): Promise<Hi
         watchedAt: data.watchedAt?.toDate().toISOString() || new Date().toISOString(),
         userId: data.userId,
         channelId: data.channelId,
-        channelAvatar: data.channelAvatar
+        channelAvatar: data.channelAvatar,
+        conceptTags: data.conceptTags,
+        sentimentScore: data.sentimentScore,
+        isNeuralIndexed: data.isNeuralIndexed
       };
     });
   } catch (e) {

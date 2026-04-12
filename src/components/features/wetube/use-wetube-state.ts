@@ -40,6 +40,7 @@ export function useWeTubeState() {
 
   const [isFeedLoading, setIsFeedLoading] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [remoteHistory, setRemoteHistory] = useState<FeedVideo[]>([]);
   const [searchSp, setSearchSp] = useState<string>("");
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -118,7 +119,17 @@ export function useWeTubeState() {
         const data = await getHistory(user.id);
         setHistory(data);
       };
+
+      const syncRemote = async () => {
+        try {
+          const { fetchYouTubeRemoteHistory } = await import("@/lib/youtube-discovery-store");
+          const rh = await fetchYouTubeRemoteHistory();
+          setRemoteHistory(rh);
+        } catch (e) { }
+      };
+
       loadHistory();
+      syncRemote();
       window.addEventListener('history-update', loadHistory);
       return () => {
         unsubscribeSubs();
@@ -383,7 +394,7 @@ export function useWeTubeState() {
     isSidebarOpen, setIsSidebarOpen,
     searchQuery, setSearchQuery,
     isMobileSearchOpen, setIsMobileSearchOpen,
-    isFeedLoading, history,
+    isFeedLoading, history, remoteHistory,
     searchSp, setSearchSp,
     isAddModalOpen, setIsAddModalOpen,
     isManageModalOpen, setIsManageModalOpen,
