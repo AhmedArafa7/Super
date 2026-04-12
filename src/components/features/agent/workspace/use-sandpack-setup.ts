@@ -25,9 +25,9 @@ export function useSandpackSetup(files: SandpackFile[], activeFile?: SandpackFil
             "next/*": ["src/mocks/next/*"]
           },
           jsx: "react-jsx"
-        }
+        }                       
       }, null, 2)
-    };
+    };  
     
     files.forEach(f => {
       const key = f.path.startsWith('/') ? f.path : `/${f.path}`;
