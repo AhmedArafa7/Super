@@ -8,7 +8,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArcadeArena } from "./arcade-arena";
+import { SaveBridgeManager } from "./save-bridge-manager";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/auth/auth-provider";
 
 /**
  * [STABILITY_ANCHOR: ARCADE_HUB_V1.0]
@@ -62,6 +64,7 @@ const GAMES_LIBRARY: Game[] = [
 ];
 
 export function ArcadeHub() {
+  const { user } = useAuth();
   const [activeGame, setActiveGame] = useState<Game | null>(null);
   const [viewMode, setViewMode] = useState<"gallery" | "playing">("gallery");
 
@@ -122,26 +125,22 @@ export function ArcadeHub() {
         </div>
       </div>
 
-      {/* Stats/Sync Bridge Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-          <Card className="p-8 bg-indigo-600/5 border-indigo-500/20 rounded-[2rem] flex items-center gap-6 flex-row-reverse border-dashed">
-              <div className="size-16 bg-indigo-600/20 rounded-2xl flex items-center justify-center text-indigo-400 shrink-0">
-                  <RefreshCw className="size-8 animate-spin-slow" />
+      {/* Stats/Sync Bridge - Professional Logic */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+          <div className="lg:col-span-2">
+             <SaveBridgeManager 
+                userId={user?.id || ""} 
+                gameId="mindustry"
+                className="h-full"
+             />
+          </div>
+          <Card className="p-8 bg-amber-600/5 border-amber-500/20 rounded-[2rem] flex flex-col items-center justify-center gap-6 border-dashed">
+              <div className="size-20 bg-amber-600/20 rounded-[2rem] flex items-center justify-center text-amber-400 shrink-0">
+                  <ShieldCheck className="size-10" />
               </div>
-              <div>
-                  <h4 className="font-bold text-white text-lg mb-1">Nexus Save Bridge</h4>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                      بما أن Mindustry تدعم تصدير ملفات الحفظ، يمكنك رفع ملف التقدم الخاص بك إلى <b>Nexus Vault</b> لتحميله على الأندرويد أو أي جهاز آخر.
-                  </p>
-              </div>
-          </Card>
-          <Card className="p-8 bg-amber-600/5 border-amber-500/20 rounded-[2rem] flex items-center gap-6 flex-row-reverse border-dashed">
-              <div className="size-16 bg-amber-600/20 rounded-2xl flex items-center justify-center text-amber-400 shrink-0">
-                  <ShieldCheck className="size-8" />
-              </div>
-              <div>
-                  <h4 className="font-bold text-white text-lg mb-1">بيئة آمنة ونظيفة</h4>
-                  <p className="text-xs text-slate-400 leading-relaxed">
+              <div className="text-center">
+                  <h4 className="font-black text-white text-xl mb-2">بيئة آمنة ونظيفة</h4>
+                  <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">
                       جميع الألعاب المختارة هنا هي ألعاب مفتوحة المصدر (FOSS) أو مجانية تماماً، تضمن لك الخصوصية وعدم تتبع البيانات.
                   </p>
               </div>
