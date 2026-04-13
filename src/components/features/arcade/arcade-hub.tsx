@@ -37,8 +37,8 @@ const GAMES_LIBRARY: Game[] = [
     thumbnail: "https://images.unsplash.com/photo-1614064641938-3bbee52942c7?q=80&w=1000&auto=format&fit=crop",
     genre: "Strategy",
     platforms: ["browser", "android", "pc"],
-    nativeLink: "https://play.google.com/store/apps/details?id=io.anuken.mindustry",
-    webUrl: "https://mindustry.pro/classic/", // Stable mirror
+    nativeLink: "https://anuke.itch.io/mindustry-classic",
+    webUrl: "https://mindustry-classic-mirror.vercel.app/", // Stable Vercel Mirror
     status: "available"
   },
   {
