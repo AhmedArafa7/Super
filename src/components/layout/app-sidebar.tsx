@@ -8,7 +8,7 @@ import {
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat,
   BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, Library,
   ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown, Clock, Tag, HeartPulse, CircuitBoard, Settings, MessageCircleQuestion,
-  Search, Play, Pause, Heart, Loader2, Music, Edit3, Headphones, CheckCircle2, ShoppingCart, LibraryBig
+  Search, Play, Pause, Heart, Loader2, Music, Edit3, Headphones, CheckCircle2, ShoppingCart, LibraryBig, Gamepad2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ export type NavItem = {
 export const ALL_NAV_ITEMS: NavItem[] = [
   { id: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard, restricted: false, isPermanent: true },
   { id: "qa", label: "الأسئلة والطلبات", icon: MessageCircleQuestion, restricted: false, isPermanent: true },
+  { id: "arcade", label: "Nexus Arcade", icon: Gamepad2, restricted: false },
   { id: "time", label: "تنظيم الوقت", icon: Clock, restricted: false },
   { id: "health", label: "الصحة والرياضة", icon: HeartPulse, restricted: false },
   { id: "chat", label: "الدردشة الذكية", icon: MessageSquare, restricted: false },

@@ -32,6 +32,7 @@ import { HealthView } from "@/components/features/health-view";
 import { LibraryView } from "@/components/features/library/library-view";
 import { MicrocontrollerLab } from "@/components/features/microcontroller-lab";
 import { SettingsView } from "@/components/features/settings-view";
+import { ArcadeHub } from "@/components/features/arcade/arcade-hub";
 import { getNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
@@ -215,6 +216,7 @@ export function AppShell() {
         if (['founder', 'cofounder', 'admin', 'management'].includes(user?.role || '')) return <AdminPanel />;
         return <UserDashboard onNavigate={(tab) => setActiveTab(tab)} />;
       case "learning": return <KnowledgeHub />;
+      case "arcade": return <ArcadeHub />;
       case "library": return <LibraryView />;
       case "hisn": return <HisnAlMuslim />;
       case "notifications": return <NotificationsView onSmartRoute={() => { }} />;
