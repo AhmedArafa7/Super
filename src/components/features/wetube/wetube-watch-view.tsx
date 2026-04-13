@@ -145,7 +145,11 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached, onCh
                     dateStr={dateStr}
                 />
 
-                <NexusNativeAds type="banner" className="mb-8" />
+                <NexusNativeAds 
+                    type="banner" 
+                    category={video.category || (details as any)?.category} 
+                    className="mb-8" 
+                />
 
                 <WatchProductShelf 
                     authorId={video.authorId}
@@ -158,7 +162,11 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached, onCh
 
             {/* Right Column: Related Videos */}
             <div className="w-full lg:w-[350px] shrink-0">
-                <NexusNativeAds type="sidebar" className="hidden lg:block" />
+                <NexusNativeAds 
+                    type="sidebar" 
+                    category={video.category || (details as any)?.category}
+                    className="hidden lg:block" 
+                />
                 <WatchSidebar relatedVideos={relatedVideos} onChannelClick={onChannelClick} />
             </div>
 

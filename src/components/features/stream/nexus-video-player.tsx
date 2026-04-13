@@ -58,8 +58,7 @@ export function NexusVideoPlayer({
     const frameRef = useRef(0);
     const rafRef = useRef<number | null>(null);
     const { addUsageRecord, totalSavedMB } = useProStore();
-
-    let hideControlsTimeout: NodeJS.Timeout;
+    const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null);
 
     // --- WeTube Pro: Smart Cache ---
     useEffect(() => {
@@ -142,9 +141,9 @@ export function NexusVideoPlayer({
 
     const handleMouseMove = () => {
         setShowControls(true);
-        clearTimeout(hideControlsTimeout);
+        if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current);
         if (isPlaying) {
-            hideControlsTimeout = setTimeout(() => setShowControls(false), 3000);
+            hideControlsTimeout.current = setTimeout(() => setShowControls(false), 3000);
         }
     };
 
@@ -236,6 +235,12 @@ export function NexusVideoPlayer({
         const result = new Date(timeInSeconds * 1000).toISOString().substring(11, 19);
         return result.startsWith("00:") ? result.substring(3) : result;
     };
+
+    useEffect(() => {
+        return () => {
+            if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current);
+        };
+    }, []);
 
     return (
         <div

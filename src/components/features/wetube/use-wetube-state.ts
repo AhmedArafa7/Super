@@ -120,16 +120,7 @@ export function useWeTubeState() {
         setHistory(data);
       };
 
-      const syncRemote = async () => {
-        try {
-          const { fetchYouTubeRemoteHistory } = await import("@/lib/youtube-discovery-store");
-          const rh = await fetchYouTubeRemoteHistory();
-          setRemoteHistory(rh);
-        } catch (e) { }
-      };
-
       loadHistory();
-      syncRemote();
       window.addEventListener('history-update', loadHistory);
       return () => {
         unsubscribeSubs();
@@ -137,6 +128,23 @@ export function useWeTubeState() {
       };
     }
   }, [user?.id]);
+
+  // [PROFESSIONAL_REFACTOR] Independent Remote History Sync
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const syncRemote = async () => {
+      try {
+        const { fetchYouTubeRemoteHistory } = await import("@/lib/youtube-discovery-store");
+        const rh = await fetchYouTubeRemoteHistory();
+        setRemoteHistory(rh);
+      } catch (e) {
+        console.error("[REMOTE_HISTORY_SYNC_ERR]", e);
+      }
+    };
+    
+    syncRemote();
+  }, [user?.id, activeTab === 'library']); // Sync when entering library
 
   useEffect(() => {
     let isMounted = true;

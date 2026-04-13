@@ -1,8 +1,7 @@
-
 "use client";
 
 import React, { useState } from "react";
-import { Megaphone, Plus, Trash2, Edit3, Loader2, Zap, Globe, CheckCircle2, XCircle, BarChart3, Clock } from "lucide-react";
+import { Megaphone, Plus, Trash2, Loader2, Zap, Globe, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,18 +12,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { addAd, updateAdStatus, deleteAd, Ad } from "@/lib/ads-store";
+import { addAd, deleteAd, Ad } from "@/lib/ads-store";
 import { cn } from "@/lib/utils";
+import { AdStatsPanel, AdCampaignCard } from "./ad-dashboard-components";
 
 interface AdsManagementProps {
   ads: Ad[];
   onRefresh: () => void;
 }
 
-/**
- * [STABILITY_ANCHOR: ADS_MANAGEMENT_NODE_V1.1]
- * تحصين مكون الإعلانات ضد أخطاء المصفوفات الفارغة.
- */
+const PRE_DEFINED_CATEGORIES = [
+  "تقنية", "ذكاء اصطناعي", "قرآن", "أخبار", "تعليم", "ترفيه", "برمجيات", "عمل حر"
+];
+
+const AD_TYPES = [
+  { id: 'sidebar', label: 'قائمة جانبية (Sidebar)' },
+  { id: 'banner', label: 'بانر عريض (Banner)' },
+  { id: 'feed', label: 'خلاصة (Feed)' },
+  { id: 'page', label: 'صفحة (Full Page)' }
+];
+
 export function AdsManagement({ ads = [], onRefresh }: AdsManagementProps) {
   const { toast } = useToast();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -35,180 +42,154 @@ export function AdsManagement({ ads = [], onRefresh }: AdsManagementProps) {
     imageUrl: "",
     linkUrl: "",
     rewardAmount: 0,
-    category: "promo" as any,
-    type: "page" as 'video' | 'image' | 'page'
+    type: "sidebar" as any,
+    targetCategories: [] as string[],
+    customCategory: ""
   });
-  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState("");
-  const [selectedAdId, setSelectedAdId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("active");
+
+  const toggleCategory = (cat: string) => {
+    setFormData((prev: typeof formData) => ({
+      ...prev,
+      targetCategories: prev.targetCategories.includes(cat) 
+        ? prev.targetCategories.filter((c: string) => c !== cat)
+        : [...prev.targetCategories, cat]
+    }));
+  };
 
   const handleSave = async () => {
-    if (!formData.title) return;
+    if (!formData.title || !formData.imageUrl) {
+        toast({ variant: "destructive", title: "بيانات ناقصة", description: "يرجى إكمال العنوان ورابط الصورة." });
+        return;
+    }
     setIsSubmitting(true);
     try {
+      const finalCategories = [...formData.targetCategories];
+      if (formData.customCategory.trim()) {
+        finalCategories.push(formData.customCategory.trim());
+      }
+
       await addAd({
         title: formData.title,
         description: formData.description,
         linkUrl: formData.linkUrl,
         rewardAmount: formData.rewardAmount,
-        category: formData.category,
+        category: finalCategories[0] || "general",
         type: formData.type,
-        imageUrls: formData.imageUrl ? [formData.imageUrl] : [],
+        targetCategories: finalCategories,
+        imageUrls: [formData.imageUrl],
         authorId: "admin",
         authorName: "System Admin"
       }, true);
-      toast({ title: "تم نشر الإعلان", description: "اللوحة العصبية أصبحت نشطة الآن." });
+
+      toast({ title: "تم إطلاق الحملة", description: "تم نشر الإعلان المستهدف بنجاح." });
       setIsAddModalOpen(false);
-      setFormData({ title: "", description: "", imageUrl: "", linkUrl: "", rewardAmount: 0, category: "promo", type: "page" });
+      setFormData({ title: "", description: "", imageUrl: "", linkUrl: "", rewardAmount: 0, type: "sidebar", targetCategories: [], customCategory: "" });
       onRefresh();
     } catch (err) {
-      toast({ variant: "destructive", title: "فشل النشر" });
+      toast({ variant: "destructive", title: "فشل الإطلاق" });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleStatusUpdate = async (id: string, status: any, reason?: string) => {
-    await updateAdStatus(id, status, reason);
-    toast({ title: status === 'active' ? "تم التفعيل" : "تم الرفض" });
-    if (status === 'rejected') {
-      setIsRejectModalOpen(false);
-      setRejectionReason("");
-      setSelectedAdId(null);
-    }
-    onRefresh();
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("هل أنت متأكد من مسح هذه اللوحة؟")) return;
-    await deleteAd(id);
-    toast({ title: "تم المسح نهائياً" });
-    onRefresh();
-  };
-
-  // ضمان أن ads هي مصفوفة دائماً قبل إجراء الفلترة
   const safeAds = Array.isArray(ads) ? ads : [];
-  const pendingAds = safeAds.filter(a => a.status === 'pending_review');
   const activeAds = safeAds.filter(a => a.status === 'active');
+  const totalImpressions = activeAds.reduce((acc, curr) => acc + (curr.impressions || 0), 0);
+  const totalClicks = activeAds.reduce((acc, curr) => acc + (curr.clicks || 0), 0);
+  const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
 
   return (
     <div className="space-y-8 text-right">
+      <AdStatsPanel totalImpressions={totalImpressions} totalClicks={totalClicks} avgCTR={avgCTR} />
+
       <div className="flex justify-between items-center flex-row-reverse">
         <h3 className="text-xl font-bold text-white flex items-center gap-3 flex-row-reverse">
-          <Megaphone className="text-amber-400" /> إدارة النظام الإعلاني
+          <Megaphone className="text-amber-400" /> إدارة السيادة الإعلانية
         </h3>
         <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-amber-600 rounded-xl px-6 font-bold h-11"><Plus className="mr-2 size-4" /> إعلان إداري مباشر</Button>
+            <Button className="bg-amber-600 hover:bg-amber-500 rounded-2xl px-8 font-bold h-12 shadow-lg shadow-amber-600/20">
+                <Plus className="mr-2 size-5" /> 
+                إنشاء حملة مستهدفة
+            </Button>
           </DialogTrigger>
-          <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right">
-            <DialogHeader><DialogTitle className="text-right">إطلاق لوحة إعلانية سيادية</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-4">
-              <Input dir="auto" className="bg-white/5 border-white/10 text-right" placeholder="العنوان" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
-              <Textarea dir="auto" className="bg-white/5 border-white/10 text-right" placeholder="الوصف" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-              <Input className="bg-white/5 border-white/10 text-right" placeholder="رابط الصورة" value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
-              <Input className="bg-white/5 border-white/10 text-right" placeholder="رابط التوجيه" value={formData.linkUrl} onChange={e => setFormData({...formData, linkUrl: e.target.value})} />
+          <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-10 text-right max-w-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
+            <DialogHeader><DialogTitle className="text-right text-2xl font-black">إطلاق حملة ذكاء اصطناعي</DialogTitle></DialogHeader>
+            <div className="space-y-6 py-4">
+              <div className="space-y-2">
+                  <Label className="text-white/60 text-[10px] font-bold uppercase mr-2">العنوان والوصف</Label>
+                  <Input dir="auto" className="bg-white/5 border-white/10 text-right h-12 rounded-xl" placeholder="عنوان الإعلان (مثلاً: خصم 50% على اشتراك برو)" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+                  <Textarea dir="auto" className="bg-white/5 border-white/10 text-right rounded-xl" placeholder="وصف الإعلان الجذاب..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 text-right">
+                      <Label className="text-white/60 text-[10px] font-bold uppercase mr-2">نوع الإعلان</Label>
+                      <Select value={formData.type} onValueChange={v => setFormData({...formData, type: v as any})}>
+                          <SelectTrigger className="bg-white/5 border-white/10 rounded-xl h-12 text-right flex-row-reverse">
+                              <SelectValue placeholder="اختر مكان الظهور" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-900 border-white/10 text-white rounded-xl">
+                              {AD_TYPES.map(t => (
+                                  <SelectItem key={t.id} value={t.id} className="text-right flex-row-reverse">{t.label}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                  </div>
+                  <div className="space-y-2 text-right">
+                      <Label className="text-white/60 text-[10px] font-bold uppercase mr-2">مكافأة المشاهدة (اختياري)</Label>
+                      <Input type="number" className="bg-white/5 border-white/10 text-right h-12 rounded-xl" placeholder="0.00" value={formData.rewardAmount} onChange={e => setFormData({...formData, rewardAmount: Number(e.target.value)})} />
+                  </div>
+              </div>
+
+              <div className="space-y-2">
+                  <Label className="text-white/60 text-[10px] font-bold uppercase mr-2">استهداف الفئات (Hybrid Selection)</Label>
+                  <div className="flex flex-wrap gap-2 justify-end">
+                      {PRE_DEFINED_CATEGORIES.map(cat => (
+                          <Badge 
+                            key={cat} 
+                            onClick={() => toggleCategory(cat)}
+                            className={cn(
+                                "cursor-pointer py-1.5 px-4 rounded-lg border transition-all",
+                                formData.targetCategories.includes(cat) 
+                                    ? "bg-indigo-600 border-indigo-400 text-white" 
+                                    : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"
+                            )}
+                          >
+                              {cat}
+                          </Badge>
+                      ))}
+                  </div>
+                  <Input dir="auto" className="bg-white/5 border-white/10 text-right h-10 rounded-xl mt-3 text-xs" placeholder="أو أضف فئة مخصصة يدوياً..." value={formData.customCategory} onChange={e => setFormData({...formData, customCategory: e.target.value})} />
+              </div>
+
+              <div className="space-y-2">
+                  <Label className="text-white/60 text-[10px] font-bold uppercase mr-2">الوسائط والروابط</Label>
+                  <Input className="bg-white/5 border-white/10 text-right h-12 rounded-xl" placeholder="رابط صورة الإعلان (Unsplash/Direct link)" value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
+                  <Input className="bg-white/5 border-white/10 text-right h-12 rounded-xl" placeholder="رابط التوجيه عند النقر" value={formData.linkUrl} onChange={e => setFormData({...formData, linkUrl: e.target.value})} />
+              </div>
             </div>
-            <DialogFooter>
-              <Button onClick={handleSave} disabled={isSubmitting} className="w-full bg-amber-600">تأكيد النشر</Button>
+            <DialogFooter className="mt-8">
+              <Button onClick={handleSave} disabled={isSubmitting} className="w-full bg-indigo-600 hover:bg-indigo-500 rounded-2xl h-14 font-black shadow-xl shadow-indigo-600/30">
+                  {isSubmitting ? <Loader2 className="animate-spin" /> : "إطلاق الحملة فوراً"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      <Tabs defaultValue="pending" className="w-full">
-        <TabsList className="bg-white/5 border-white/10 p-1 flex-row-reverse mb-6">
-          <TabsTrigger value="pending" className="rounded-lg gap-2 flex-row-reverse">
-            الطلبات المعلقة 
-            {pendingAds.length > 0 && <Badge className="bg-red-500 text-[10px] h-4 w-4 p-0 flex items-center justify-center">{pendingAds.length}</Badge>}
-          </TabsTrigger>
-          <TabsTrigger value="active" className="rounded-lg">اللوحات النشطة</TabsTrigger>
+      <Tabs defaultValue="active" className="w-full">
+        <TabsList className="bg-white/5 border-white/10 p-1 flex-row-reverse mb-6 rounded-2xl">
+          <TabsTrigger value="active" className="rounded-xl px-8 font-bold">الحملات النشطة</TabsTrigger>
+          <TabsTrigger value="pending" className="rounded-xl px-8 font-bold">بانتظار المراجعة</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pending" className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {pendingAds.length === 0 ? (
-            <div className="col-span-full py-20 text-center opacity-30 border-2 border-dashed border-white/5 rounded-3xl">لا توجد طلبات جديدة</div>
-          ) : (
-            pendingAds.map(ad => (
-              <Card key={ad.id} className="p-6 glass border-amber-500/20 rounded-3xl space-y-4">
-                <div className="flex justify-between items-start flex-row-reverse">
-                  <div className="text-right">
-                    <h4 className="font-bold text-white">{ad.title}</h4>
-                    <p className="text-[10px] text-muted-foreground uppercase">بواسطة: @{ad.authorName}</p>
-                  </div>
-                  <Badge variant="outline" className="text-amber-400 border-amber-400/20"><Clock className="size-3 mr-1" /> قيد المراجعة</Badge>
-                </div>
-                <p className="text-xs text-slate-400 text-right line-clamp-2 italic">"{ad.description}"</p>
-                <div className="flex gap-2 pt-4 border-t border-white/5 flex-row-reverse">
-                  <Button className="flex-1 bg-green-600 hover:bg-green-500 rounded-xl h-10 font-bold text-xs" onClick={() => handleStatusUpdate(ad.id, 'active')}>
-                    <CheckCircle2 className="size-4 mr-2" /> اعتماد النشر
-                  </Button>
-                  <Button variant="ghost" className="text-red-400 hover:bg-red-500/10 rounded-xl h-10 px-4" onClick={() => {
-                    setSelectedAdId(ad.id);
-                    setIsRejectModalOpen(true);
-                  }}>
-                    <XCircle className="size-4" />
-                  </Button>
-                </div>
-              </Card>
-            ))
-          )}
-        </TabsContent>
-
-        {/* Reject Dialog */}
-        <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
-          <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] p-8 text-right">
-            <DialogHeader><DialogTitle className="text-right text-red-400">توضيح سبب الرفض</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-4">
-              <p className="text-xs text-slate-400">سيظهر هذا التوضيح للمستخدم ليعرف لماذا تم رفض طلبه الإعلاني.</p>
-              <Textarea 
-                dir="auto" 
-                className="bg-white/5 border-white/10 text-right min-h-[100px]" 
-                placeholder="مثال: الرابط لا يعمل، أو المحتوى غير لائق لمجتمعنا..." 
-                value={rejectionReason} 
-                onChange={e => setRejectionReason(e.target.value)} 
-              />
-            </div>
-            <DialogFooter>
-              <Button 
-                variant="destructive" 
-                className="w-full rounded-2xl h-12 font-bold"
-                disabled={!rejectionReason.trim()}
-                onClick={() => selectedAdId && handleStatusUpdate(selectedAdId, 'rejected', rejectionReason)}
-              >
-                تأكيد الرفض مع الأسباب
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
         <TabsContent value="active" className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {activeAds.map(ad => (
-            <Card key={ad.id} className="p-6 glass border-white/5 rounded-3xl group relative overflow-hidden">
-              <div className="flex justify-between items-start flex-row-reverse mb-4">
-                <div className="text-right">
-                  <h4 className="font-bold text-white text-lg">{ad.title}</h4>
-                  <p className="text-[10px] text-muted-foreground uppercase">الناشر: @{ad.authorName}</p>
-                </div>
-                <Button variant="ghost" size="icon" className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDelete(ad.id)}>
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
-              <div className="grid grid-cols-3 gap-4 border-t border-white/5 pt-4">
-                <div className="text-center p-2 bg-white/5 rounded-xl border border-white/5">
-                  <p className="text-[8px] text-muted-foreground uppercase font-black">النقرات</p>
-                  <p className="text-sm font-black text-indigo-400">{ad.clicks}</p>
-                </div>
-                <div className="text-center p-2 bg-white/5 rounded-xl border border-white/5">
-                  <p className="text-[8px] text-muted-foreground uppercase font-black">المكافأة</p>
-                  <p className="text-sm font-black text-amber-400">{ad.rewardAmount}</p>
-                </div>
-                <div className="text-center p-2 bg-white/5 rounded-xl border border-white/5">
-                  <p className="text-[8px] text-muted-foreground uppercase font-black">الحالة</p>
-                  <p className="text-[10px] font-bold text-green-400">ACTIVE</p>
-                </div>
-              </div>
-            </Card>
+          {activeAds.length === 0 ? (
+             <div className="col-span-full py-24 text-center opacity-30 border-2 border-dashed border-white/5 rounded-[2.5rem]">لا توجد حملات نشطة حالياً</div>
+          ) : activeAds.map(ad => (
+              <AdCampaignCard key={ad.id} ad={ad} onDelete={deleteAd} />
           ))}
         </TabsContent>
       </Tabs>
