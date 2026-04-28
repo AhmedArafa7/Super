@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 type ViewMode = 'login' | 'register';
 
 export function LoginView() {
-  const { login, register, loginWithGoogle, loginWithGithub } = useAuth();
+  const { login, register, loginWithGoogle, loginWithGithub, loginAnonymously } = useAuth();
   const [mode, setMode] = useState<ViewMode>('login');
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
@@ -196,7 +196,7 @@ export function LoginView() {
             </div>
 
             <button 
-              onClick={() => useAuth().loginAnonymously()}
+              onClick={() => loginAnonymously()}
               className="text-[10px] text-muted-foreground hover:text-white font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-2 w-full py-2 hover:bg-white/5 rounded-lg"
             >
               استمر كضيف (محدود)
