@@ -51,7 +51,7 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
            user={state.user} setActiveVideo={state.setActiveVideo as any} 
            handleToggleLocal={state.handleToggleLocal}
            handleChannelClick={state.handleChannelClick}
-           deleteVideo={handleDeleteVideo}
+            deleteVideo={state.handleDeleteVideo}
          />
       );
     }
