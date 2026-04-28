@@ -215,18 +215,50 @@ export function useWeTubeState() {
   }, [activeTab, feedVideos.length, subscriptions, isFeedLoading]);
 
   useEffect(() => {
-    if (activeTab === 'shorts' && shortsFeed.length === 0) {
-      const loadShorts = async () => {
+    if (activeTab === 'shorts') {
+      const loadShortsContent = async () => {
         setIsShortsLoading(true);
         try {
-          const results = await searchYouTube('#shorts', 'EgQQASAB');
-          setShortsFeed(results.map(v => ({ ...v, isShorts: true })));
-        } catch (e) { }
-        setIsShortsLoading(false);
+          // 1. Get Platform Shorts (Videos approved on the site)
+          const platformShorts = videos.filter(v => v.isShorts || v.type === 'short').map(v => ({
+             ...v,
+             source: v.source || 'platform',
+             isShorts: true
+          }));
+
+          // 2. Get Subscription Feed Shorts
+          const subShorts = feedVideos.filter(v => v.isShorts || v.title.toLowerCase().includes('#shorts')).map(v => ({
+             ...v,
+             source: 'youtube',
+             isShorts: true
+          }));
+
+          // 3. Fetch Global YouTube Shorts as fallback
+          const globalResults = await searchYouTube('#shorts', 'EgQQASAB');
+          const globalShorts = globalResults.map(v => ({ ...v, isShorts: true, source: 'youtube' }));
+
+          // Combine and prioritize: Platform > Subscriptions > Global
+          const combined = [...platformShorts, ...subShorts, ...globalShorts];
+          
+          // Remove duplicates by ID
+          const seen = new Set();
+          const unique = combined.filter(v => {
+            if (seen.has(v.id)) return false;
+            seen.add(v.id);
+            return true;
+          });
+
+          setShortsFeed(unique as any);
+        } catch (e) {
+          console.error("Shorts Load Error", e);
+        } finally {
+          setIsShortsLoading(false);
+        }
       };
-      loadShorts();
+
+      loadShortsContent();
     }
-  }, [activeTab, shortsFeed.length]);
+  }, [activeTab, videos, feedVideos]);
 
   useEffect(() => {
     if (activeTab === 'notifications') {
