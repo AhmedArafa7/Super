@@ -5,6 +5,9 @@ import {
   Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter
 } from "@/components/ui/sidebar";
 import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent
+} from "@/components/ui/dropdown-menu";
+import {
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat,
   BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, Library,
   ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown, Clock, Tag, HeartPulse, CircuitBoard, Settings, MessageCircleQuestion,
@@ -19,7 +22,8 @@ import { cn } from "@/lib/utils";
 import { useSettingsStore } from "@/lib/settings-store";
 import { useProStore } from "@/lib/wetube-pro-engine";
 import { useSidebarStore } from "@/lib/sidebar-store";
-import { ChevronRight, ChevronLeft, EyeOff } from "lucide-react";
+import { useSectionSettingsStore } from "@/lib/section-settings-store";
+import { ChevronRight, ChevronLeft, EyeOff, Star, Palette, PlusCircle, Settings2, Download, ExternalLink, Activity } from "lucide-react";
 import { IconSafe } from "@/components/ui/icon-safe";
 
 export type NavItem = {
@@ -75,6 +79,148 @@ export function getVisibleNavItems(user: any, settings: any, navItems: NavItem[]
     return true;
   });
 }
+
+function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }: any) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const clickTimeout = React.useRef<NodeJS.Timeout | null>(null);
+  const { defaultActions, setDefaultAction } = useSectionSettingsStore();
+  
+  const currentDefaultAction = defaultActions[item.id] || 'open';
+
+  const executeAction = (action: string) => {
+    switch (action) {
+      case 'open':
+        onTabChange(item.id);
+        break;
+      case 'settings':
+        window.dispatchEvent(new CustomEvent('open-section-settings', { detail: { sectionId: item.id } }));
+        break;
+      case 'design':
+        window.dispatchEvent(new CustomEvent('open-section-design', { detail: { sectionId: item.id } }));
+        break;
+      case 'feature':
+        window.dispatchEvent(new CustomEvent('open-section-feature', { detail: { sectionId: item.id } }));
+        break;
+      case 'preload':
+        window.dispatchEvent(new CustomEvent('open-section-preload', { detail: { sectionId: item.id } }));
+        break;
+      default:
+        onTabChange(item.id);
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (clickTimeout.current) {
+      // Double click detected
+      clearTimeout(clickTimeout.current);
+      clickTimeout.current = null;
+      setIsOpen(false);
+      executeAction(currentDefaultAction);
+    } else {
+      // Start timer to check for double click
+      clickTimeout.current = setTimeout(() => {
+        clickTimeout.current = null;
+        setIsOpen(true);
+      }, 250); // 250ms delay
+    }
+  };
+
+  return (
+    <SidebarMenuItem>
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen} dir="rtl">
+        <DropdownMenuTrigger asChild>
+          <SidebarMenuButton
+            isActive={activeTab === item.id}
+            onClick={handleClick}
+            className={cn(
+              "h-12 gap-4 px-4 rounded-xl transition-all flex-row-reverse justify-start relative",
+              activeTab === item.id ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
+            )}
+          >
+            <IconSafe 
+              icon={item.icon} 
+              className={cn(
+                "size-5 shrink-0",
+                item.id === 'time' && "text-primary",
+                item.id === 'micro-ide' && "text-emerald-400",
+                item.id === 'health' && "text-red-400 font-bold",
+                item.id === 'vault' && "text-amber-400",
+                item.id === 'downloads' && "text-primary"
+              )} 
+            />
+            {!isCollapsed && (
+              <>
+                <span className="font-medium animate-in fade-in slide-in-from-right-1">{item.label}</span>
+                {isBeta && (
+                  <div className="mr-auto text-[8px] px-1.5 h-4 border border-amber-500/30 text-amber-500 font-black tracking-widest uppercase rounded-full flex items-center">BETA</div>
+                )}
+                {item.id === 'stream' && (
+                  <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-black px-1.5 py-0.5 rounded-md font-black text-[8px] uppercase tracking-tighter mr-auto">PRO</div>
+                )}
+                {item.badge !== undefined && item.badge > 0 && !isBeta && (
+                  <div className="mr-auto bg-indigo-500 text-white h-5 w-5 flex items-center justify-center text-[10px] rounded-full font-bold">{item.badge}</div>
+                )}
+              </>
+            )}
+          </SidebarMenuButton>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" side="right" className="w-56 bg-slate-900 border-white/10 text-white p-2 rounded-xl shadow-2xl z-50 animate-in zoom-in-95">
+          <DropdownMenuLabel className="text-xs text-indigo-400 opacity-70">إجراءات {item.label}</DropdownMenuLabel>
+          <DropdownMenuSeparator className="bg-white/10" />
+          
+          <DropdownMenuItem onClick={() => executeAction('open')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg">
+            <ExternalLink className="size-4" />
+            <span className="flex-1 text-right">فتح القسم</span>
+            {currentDefaultAction === 'open' && <Star className="size-3 text-amber-400 fill-amber-400" />}
+          </DropdownMenuItem>
+
+          <DropdownMenuItem onClick={() => executeAction('settings')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg">
+            <Settings2 className="size-4" />
+            <span className="flex-1 text-right">إعدادات القسم</span>
+            {currentDefaultAction === 'settings' && <Star className="size-3 text-amber-400 fill-amber-400" />}
+          </DropdownMenuItem>
+
+          <DropdownMenuItem onClick={() => executeAction('design')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg">
+            <Palette className="size-4" />
+            <span className="flex-1 text-right">تعديل التصميم</span>
+            {currentDefaultAction === 'design' && <Star className="size-3 text-amber-400 fill-amber-400" />}
+          </DropdownMenuItem>
+
+          <DropdownMenuItem onClick={() => executeAction('feature')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg text-emerald-400 hover:text-emerald-300">
+            <PlusCircle className="size-4" />
+            <span className="flex-1 text-right">إضافة فيتشر جديدة</span>
+            {currentDefaultAction === 'feature' && <Star className="size-3 text-amber-400 fill-amber-400" />}
+          </DropdownMenuItem>
+
+          <DropdownMenuItem onClick={() => executeAction('preload')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg">
+            <Download className="size-4" />
+            <span className="flex-1 text-right">تحميل القسم مسبقاً</span>
+            {currentDefaultAction === 'preload' && <Star className="size-3 text-amber-400 fill-amber-400" />}
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator className="bg-white/10 mt-2" />
+          
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg">
+              <Activity className="size-4" />
+              <span className="flex-1 text-right">تعيين الافتراضي (دبل كليك)</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="bg-slate-800 border-white/10 text-white p-2 rounded-xl">
+              <DropdownMenuItem onClick={() => setDefaultAction(item.id, 'open')} className="flex justify-between rtl:flex-row-reverse hover:bg-white/10">فتح القسم {currentDefaultAction === 'open' && '✅'}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDefaultAction(item.id, 'settings')} className="flex justify-between rtl:flex-row-reverse hover:bg-white/10">إعدادات القسم {currentDefaultAction === 'settings' && '✅'}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDefaultAction(item.id, 'design')} className="flex justify-between rtl:flex-row-reverse hover:bg-white/10">تعديل التصميم {currentDefaultAction === 'design' && '✅'}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDefaultAction(item.id, 'preload')} className="flex justify-between rtl:flex-row-reverse hover:bg-white/10">تحميل القسم {currentDefaultAction === 'preload' && '✅'}</DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </SidebarMenuItem>
+  );
+}
+
+
 
 export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, togglePin, uploadTasks, unreadCount, pendingOffersCount }: any) {
   const { settings } = useSettingsStore();
@@ -132,43 +278,14 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
       <SidebarContent className="px-3">
         <SidebarMenu className="gap-2">
           {pinnedSidebarItems.map((item) => (
-            <SidebarMenuItem key={item.id}>
-              <SidebarMenuButton
-                isActive={activeTab === item.id}
-                onClick={() => onTabChange(item.id)}
-                className={cn(
-                  "h-12 gap-4 px-4 rounded-xl transition-all flex-row-reverse justify-start",
-                  activeTab === item.id ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
-                )}
-              >
-                <IconSafe 
-                  icon={item.icon} 
-                  className={cn(
-                    "size-5 shrink-0",
-                    item.id === 'admin' && (user?.role === 'founder' ? "text-amber-400" : "text-indigo-400"),
-                    item.id === 'time' && "text-primary",
-                    item.id === 'micro-ide' && "text-emerald-400",
-                    item.id === 'health' && "text-red-400 font-bold",
-                    item.id === 'vault' && "text-amber-400",
-                    item.id === 'downloads' && "text-primary"
-                  )} 
-                />
-                {!isCollapsed && (
-                  <>
-                    <span className="font-medium animate-in fade-in slide-in-from-right-1">{item.label}</span>
-                    {isBeta(item.id) && (
-                      <div className="mr-auto text-[8px] px-1.5 h-4 border border-amber-500/30 text-amber-500 font-black tracking-widest uppercase rounded-full flex items-center">BETA</div>
-                    )}
-                    {item.id === 'stream' && (
-                      <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-black px-1.5 py-0.5 rounded-md font-black text-[8px] uppercase tracking-tighter mr-auto">PRO</div>
-                    )}
-                    {item.badge !== undefined && item.badge > 0 && !isBeta(item.id) && (
-                      <div className="mr-auto bg-indigo-500 text-white h-5 w-5 flex items-center justify-center text-[10px] rounded-full font-bold">{item.badge}</div>
-                    )}
-                  </>
-                )}
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            <SmartSidebarItem 
+              key={item.id} 
+              item={item} 
+              activeTab={activeTab} 
+              onTabChange={onTabChange} 
+              isCollapsed={isCollapsed} 
+              isBeta={isBeta(item.id)} 
+            />
           ))}
         </SidebarMenu>
 

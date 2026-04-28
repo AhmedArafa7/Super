@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/auth-provider";
 import { syncLike, syncSubscription } from "@/lib/youtube-sync-service";
 import { useToast } from "@/hooks/use-toast";
+import { useSectionSettingsStore } from "@/lib/section-settings-store";
 
 interface ShortItemProps {
     short: any;
@@ -72,6 +73,29 @@ function ShortItem({ short, isActive, isMuted, setIsMuted }: ShortItemProps) {
         }
     };
 
+    const iframeRef = React.useRef<HTMLIFrameElement>(null);
+    const { streamSettings } = useSectionSettingsStore();
+
+    React.useEffect(() => {
+        if (streamSettings.backgroundPlay) return; // Feature: Keep playing in background
+
+        const handleVisibilityChange = () => {
+            if (document.hidden && isPlaying && iframeRef.current?.contentWindow) {
+                iframeRef.current.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                setIsPlaying(false);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Pause if this specific short becomes inactive (this one we always pause regardless of background play so we don't hear 10 shorts at once)
+        if (!isActive && isPlaying && iframeRef.current?.contentWindow) {
+            iframeRef.current.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+            setIsPlaying(false);
+        }
+
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [isActive, isPlaying, streamSettings.backgroundPlay]);
+
     return (
         <div className="h-full snap-start w-full relative flex items-center justify-center p-4 py-6 rtl">
             <div
@@ -82,7 +106,8 @@ function ShortItem({ short, isActive, isMuted, setIsMuted }: ShortItemProps) {
                 <div className="absolute inset-0 z-0">
                     {ytId && isActive ? (
                         <iframe
-                            src={`https://www.youtube.com/embed/${ytId}?autoplay=${isPlaying ? 1 : 0}&mute=${isMuted ? 1 : 0}&controls=0&modestbranding=1&loop=1&playlist=${ytId}&rel=0`}
+                            ref={iframeRef}
+                            src={`https://www.youtube.com/embed/${ytId}?autoplay=${isPlaying ? 1 : 0}&mute=${isMuted ? 1 : 0}&controls=0&modestbranding=1&loop=1&playlist=${ytId}&rel=0&enablejsapi=1`}
                             className="w-[300%] h-full -ml-[100%] pointer-events-none"
                             allow="autoplay; encrypted-media"
                         />
@@ -153,7 +178,18 @@ function ShortItem({ short, isActive, isMuted, setIsMuted }: ShortItemProps) {
                     <div className="flex flex-col items-center gap-1.5">
                         <button 
                             className={cn("p-3 rounded-full backdrop-blur-sm transition-colors text-white", isDisliked ? "bg-white/20" : "bg-black/40 hover:bg-black/60")}
-                            onClick={(e) => { e.stopPropagation(); setIsDisliked(!isDisliked); setIsLiked(false); }}
+                            onClick={async (e) => { 
+                                e.stopPropagation(); 
+                                const newStatus = !isDisliked;
+                                setIsDisliked(newStatus); 
+                                setIsLiked(false);
+                                if (youtubeToken && short.source === 'youtube') {
+                                    try {
+                                        await syncLike(short.id, newStatus ? 'dislike' : 'none', youtubeToken);
+                                        toast({ title: "تمت المزامنة", description: newStatus ? "تم تسجيل عدم الإعجاب." : "تمت إزالة عدم الإعجاب." });
+                                    } catch (err) {}
+                                }
+                            }}
                         >
                             <ThumbsDown className="size-6" fill={isDisliked ? "currentColor" : "none"} />
                         </button>
@@ -196,6 +232,32 @@ function ShortItem({ short, isActive, isMuted, setIsMuted }: ShortItemProps) {
 export function WeTubeShortsView({ shorts }: { shorts: any[] }) {
     const [activeIndex, setActiveIndex] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
+    const containerRef = React.useRef<HTMLDivElement>(null);
+    const observer = React.useRef<IntersectionObserver | null>(null);
+
+    React.useEffect(() => {
+        if (!containerRef.current) return;
+
+        const options = {
+            root: containerRef.current,
+            rootMargin: '0px',
+            threshold: 0.6 // Trigger when 60% of the short is visible
+        };
+
+        observer.current = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const index = Number(entry.target.getAttribute('data-index'));
+                    if (!isNaN(index)) setActiveIndex(index);
+                }
+            });
+        }, options);
+
+        const children = containerRef.current.querySelectorAll('.short-item-container');
+        children.forEach((child) => observer.current?.observe(child));
+
+        return () => observer.current?.disconnect();
+    }, [shorts]);
 
     if (shorts.length === 0) {
         return (
@@ -205,27 +267,18 @@ export function WeTubeShortsView({ shorts }: { shorts: any[] }) {
         );
     }
 
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        const container = e.currentTarget;
-        const scrollPosition = container.scrollTop;
-        const itemHeight = container.clientHeight;
-        const newIndex = Math.round(scrollPosition / itemHeight);
-        if (newIndex !== activeIndex && newIndex < shorts.length) {
-            setActiveIndex(newIndex);
-        }
-    };
-
     return (
-        <div className="flex-1 overflow-y-auto h-full snap-y snap-mandatory hide-scroll flex justify-center bg-transparent" onScroll={handleScroll}>
+        <div ref={containerRef} className="flex-1 overflow-y-auto h-full snap-y snap-mandatory hide-scroll flex justify-center bg-transparent">
             <div className="flex flex-col w-full max-w-[480px]">
                 {shorts.map((short, index) => (
-                    <ShortItem 
-                        key={short.id} 
-                        short={short} 
-                        isActive={index === activeIndex} 
-                        isMuted={isMuted}
-                        setIsMuted={setIsMuted}
-                    />
+                    <div key={short.id} data-index={index} className="short-item-container h-full w-full snap-start">
+                        <ShortItem 
+                            short={short} 
+                            isActive={index === activeIndex} 
+                            isMuted={isMuted}
+                            setIsMuted={setIsMuted}
+                        />
+                    </div>
                 ))}
             </div>
             <style dangerouslySetInnerHTML={{

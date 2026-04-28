@@ -9,6 +9,7 @@ import { NeuralMetadata } from "@/lib/wetube-pro-engine";
 import { Forward, Loader2 } from "lucide-react";
 import { getChunk, saveChunk } from "@/lib/wetube-pro-cache-manager";
 import { useProStore, ConsumptionRecord, shouldRenderFrame } from "@/lib/wetube-pro-engine";
+import { useSectionSettingsStore } from "@/lib/section-settings-store";
 
 interface NexusVideoPlayerProps {
     src: string;
@@ -59,6 +60,7 @@ export function NexusVideoPlayer({
     const rafRef = useRef<number | null>(null);
     const { addUsageRecord, totalSavedMB } = useProStore();
     const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null);
+    const { streamSettings } = useSectionSettingsStore();
 
     // --- WeTube Pro: Smart Cache ---
     useEffect(() => {
@@ -138,6 +140,37 @@ export function NexusVideoPlayer({
             setIsPlaying(true);
         }
     }, [autoPlay]);
+
+    // Handle background playback prevention
+    useEffect(() => {
+        if (streamSettings.backgroundPlay) return; // Feature: Keep playing in background
+
+        const handleVisibilityChange = () => {
+            if (document.hidden && videoRef.current && !videoRef.current.paused) {
+                videoRef.current.pause();
+                setIsPlaying(false);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting && videoRef.current && !videoRef.current.paused) {
+                    videoRef.current.pause();
+                    setIsPlaying(false);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        if (containerRef.current) {
+            observer.observe(containerRef.current);
+        }
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            observer.disconnect();
+        };
+    }, [streamSettings.backgroundPlay]);
 
     const handleMouseMove = () => {
         setShowControls(true);

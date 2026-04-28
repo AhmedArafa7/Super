@@ -12,6 +12,7 @@ import { useUploadStore } from "@/lib/upload-store";
 import { useSettingsStore } from "@/lib/settings-store";
 import { useToast } from "@/hooks/use-toast";
 import { getHistory, HistoryItem } from "@/lib/history-store";
+import { usePreferencesStore } from "@/lib/preferences-store";
 import { extractYouTubeId } from "@/lib/youtube-utils";
 import { ContentItem } from "./wetube-types";
 
@@ -42,6 +43,7 @@ export function useWeTubeState() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [remoteHistory, setRemoteHistory] = useState<FeedVideo[]>([]);
   const [searchSp, setSearchSp] = useState<string>("");
+  const { hiddenVideos, hiddenChannels } = usePreferencesStore();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
@@ -75,6 +77,8 @@ export function useWeTubeState() {
   }, [activeTab, activeCategory, searchQuery]);
 
   const runAutoSync = useCallback(async (subs: YouTubeSubscription[], feed: FeedVideo[]) => {
+    if (typeof window !== 'undefined' && localStorage.getItem('enable_wetube_autosync') !== 'true') return;
+    
     const favorites = subs.filter(s => s.isFavorite);
     if (favorites.length === 0) return;
     for (const sub of favorites) {
@@ -128,6 +132,15 @@ export function useWeTubeState() {
       };
     }
   }, [user?.id]);
+
+  const handleDeleteVideo = async (id: string) => {
+    try {
+      await deleteVideo(id);
+      setVideos(prev => prev.filter(v => v.id !== id));
+    } catch (e) {
+      console.error("Delete Failed", e);
+    }
+  };
 
   // [PROFESSIONAL_REFACTOR] Independent Remote History Sync
   useEffect(() => {
@@ -382,14 +395,25 @@ export function useWeTubeState() {
       finalCombined = finalCombined.filter(v => !(v as any).hasMusic);
     }
 
-    return finalCombined.sort(() => Math.random() - 0.5).sort((a, b) => {
+    // Filter hidden videos and channels using the zustand store
+    finalCombined = finalCombined.filter(v => 
+      !hiddenVideos.includes(v.id) && !hiddenChannels.includes(v.authorId || "")
+    );
+
+    // Sort chronologically instead of randomly, prioritizing newer content
+    return finalCombined.sort((a, b) => {
+      const aTime = a.fetchedAt || new Date(a.time || 0).getTime();
+      const bTime = b.fetchedAt || new Date(b.time || 0).getTime();
+      if (aTime !== bTime) return bTime - aTime;
+      
+      // Fallback sort for stable UI
       const aHasThumb = a.source === 'youtube' || (a.thumbnail && !issaveThumb(a.thumbnail));
       const bHasThumb = b.source === 'youtube' || (b.thumbnail && !issaveThumb(b.thumbnail));
       if (aHasThumb && !bHasThumb) return -1;
       if (!aHasThumb && bHasThumb) return 1;
       return 0;
     });
-  }, [videos, feedVideos, trendingVideos, searchResults, searchQuery, activeCategory, activeTab, subscriptions, activeChannel, channelVideos, user?.id, user?.avatar_url]);
+  }, [videos, feedVideos, trendingVideos, searchResults, searchQuery, activeCategory, activeTab, subscriptions, activeChannel, channelVideos, user?.id, user?.avatar_url, hiddenVideos, hiddenChannels]);
 
   return {
     user,
@@ -403,7 +427,9 @@ export function useWeTubeState() {
     searchQuery, setSearchQuery,
     isMobileSearchOpen, setIsMobileSearchOpen,
     isFeedLoading, history, remoteHistory,
-    searchSp, setSearchSp,
+    searchSp,
+    setSearchSp,
+    handleDeleteVideo,
     isAddModalOpen, setIsAddModalOpen,
     isManageModalOpen, setIsManageModalOpen,
     isImportModalOpen, setIsImportModalOpen,

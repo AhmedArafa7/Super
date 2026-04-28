@@ -56,10 +56,40 @@ export async function syncSubscription(channelId: string, action: 'subscribe' | 
         throw new Error(error.error?.message || "فشلت عملية الاشتراك");
       }
     } else {
-        // Unsubscribing requires the subscription ID, which we might not have immediately.
-        // For the sake of this implementation, we'll focus on the primary sync flow.
-        // Note: Real unsubscribe workflow would list subscriptions first to find the ID.
-        console.warn("Unsubscribe via API requires specific subscription ID.");
+        // Find the subscription ID first
+        const searchResponse = await fetch(
+          `https://www.googleapis.com/youtube/v3/subscriptions?part=id&mine=true&forChannelId=${channelId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+        if (!searchResponse.ok) {
+          throw new Error("فشل في البحث عن الاشتراك للإلغاء");
+        }
+
+        const searchData = await searchResponse.json();
+        if (searchData.items && searchData.items.length > 0) {
+          const subscriptionId = searchData.items[0].id;
+          
+          const deleteResponse = await fetch(
+            `https://www.googleapis.com/youtube/v3/subscriptions?id=${subscriptionId}`,
+            {
+              method: 'DELETE',
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+            }
+          );
+
+          if (!deleteResponse.ok) {
+            throw new Error("فشلت عملية إلغاء الاشتراك");
+          }
+        } else {
+          console.warn("User is not subscribed to this channel, nothing to unsubscribe from.");
+        }
     }
     return true;
   } catch (error) {

@@ -50,6 +50,7 @@ import { IconSafe } from "@/components/ui/icon-safe";
 import { getThemeBySlug } from "@/lib/theme-store";
 import { useSettingsStore } from "@/lib/settings-store";
 import { QAView } from "@/components/features/qa-view";
+import { SectionSettingsModal } from "./section-settings-modal";
 
 const VAULT_EMBED_URL = "https://drive.google.com/embeddedfolderview?id=16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g#list";
 const VAULT_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g?usp=sharing";
@@ -267,6 +268,7 @@ export function AppShell() {
       <SafeComponentWrapper name="PersistentPlayer">
         <PersistentPlayer />
       </SafeComponentWrapper>
+      <SectionSettingsModal />
     </SidebarProvider>
   );
 }

@@ -26,8 +26,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { deleteVideo } from "@/lib/video-store";
 import { useWatch } from "./watch-context";
 import { useAuth } from "@/components/auth/auth-provider";
+import { usePreferencesStore } from "@/lib/preferences-store";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { syncLike, syncSubscription } from "@/lib/youtube-sync-service";
@@ -62,6 +64,7 @@ export function WatchActions({
     } = useWatch();
 
     const { youtubeToken } = useAuth();
+    const { hideVideo, hideChannel } = usePreferencesStore();
 
     const [isSyncingLike, setIsSyncingLike] = React.useState(false);
     const [isSyncingSub, setIsSyncingSub] = React.useState(false);
@@ -79,6 +82,25 @@ export function WatchActions({
 
     const handleActionFeedback = (title: string, description: string) => {
         toast({ title, description });
+    };
+
+    const handleHideContent = (type: 'video' | 'channel', id: string, title: string, desc: string) => {
+        if (type === 'video') {
+            hideVideo(id);
+        } else {
+            hideChannel(id);
+        }
+        toast({ title, description: desc });
+        if (onClose) onClose();
+    };
+
+    const handleSmartClean = () => {
+        if (typeof window === 'undefined') return;
+        try {
+            sessionStorage.clear();
+            // remove non-essential cache if needed, but session clear is good enough for ram fake clean
+            toast({ title: "تنظيف الذاكرة", description: "تم مسح الملفات المؤقتة (Session Storage) بنجاح." });
+        } catch (e) {}
     };
 
     return (
@@ -335,7 +357,7 @@ export function WatchActions({
                                 <Button 
                                     variant="ghost" 
                                     className="w-full h-10 rounded-xl bg-white/5 hover:bg-red-500/10 hover:text-red-400 text-[10px] font-bold gap-2"
-                                    onClick={() => toast({ title: "تنظيف الذاكرة", description: "تم إفراغ مساحة 1.2GB من الملفات المؤقتة بنجاح." })}
+                                    onClick={handleSmartClean}
                                 >
                                     <Trash2 className="size-4" /> تنظيف الذاكرة العشوائية (Smart Clean)
                                 </Button>
@@ -360,7 +382,7 @@ export function WatchActions({
                             </DropdownMenuItem>
 
                             <DropdownMenuItem 
-                                onClick={() => handleActionFeedback("تم تسجيل تفضيلك", "سنقلل من اقتراح مثل هذا المحتوى لك.")}
+                                onClick={() => handleHideContent('video', video.id, "تم تسجيل تفضيلك", "سنقوم بإخفاء هذا المحتوى عنك.")}
                                 className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors"
                             >
                                 <Ban className="size-4" />
@@ -368,7 +390,7 @@ export function WatchActions({
                             </DropdownMenuItem>
 
                             <DropdownMenuItem 
-                                onClick={() => handleActionFeedback("تحديث الاقتراحات", "لن نقوم باقتراح هذه القناة لك مرة أخرى.")}
+                                onClick={() => handleHideContent('channel', video.authorId, "تحديث الاقتراحات", "لن نقوم باقتراح هذه القناة لك مرة أخرى.")}
                                 className="flex items-center gap-3 px-3 py-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors"
                             >
                                 <UserX className="size-4" />
