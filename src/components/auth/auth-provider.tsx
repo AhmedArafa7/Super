@@ -15,6 +15,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<boolean>;
   loginWithGoogle: () => Promise<void>;
   loginWithGithub: () => Promise<void>;
+  loginAnonymously: () => Promise<void>;
   register: (username: string, name: string, password?: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
@@ -43,12 +44,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const profile = await ensureUserProfile(firebaseUser);
           setSession(profile);
           setUser(profile);
+          localStorage.removeItem('manual_logout');
         } catch (err) {
           console.error("Profile Sync Error:", err);
           setUser(null);
         }
         setLoading(false);
       } else {
+        const isManualLogout = localStorage.getItem('manual_logout') === 'true';
+        
+        if (isManualLogout) {
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
         // الدخول التلقائي الخفي بدلاً من طرد المستخدم
         import('firebase/auth').then(({ signInAnonymously }) => {
             signInAnonymously(auth).catch(err => {
@@ -76,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
+      localStorage.removeItem('manual_logout');
       await signInWithCredentials(username, password);
       // التحديث سيتم تلقائياً عبر onAuthStateChanged
       return true;
@@ -87,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithGoogle = async () => {
     try {
+      localStorage.removeItem('manual_logout');
       await signInWithGoogle();
     } catch (err) {
       console.error("Google Login Error:", err);
@@ -95,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithGithub = async () => {
     try {
+      localStorage.removeItem('manual_logout');
       await signInWithGithub();
     } catch (err) {
       console.error("Github Login Error:", err);
@@ -103,6 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (username: string, name: string, password?: string): Promise<boolean> => {
     try {
+      localStorage.removeItem('manual_logout');
       // 1. إنشاء الحساب في Firebase Auth أولاً
       const userCredential = await signUpWithCredentials(username, password || "nexus123456");
       const firebaseUser = userCredential.user;
@@ -129,7 +144,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const loginAnonymously = async () => {
+    const { auth } = initializeFirebase();
+    localStorage.removeItem('manual_logout');
+    setLoading(true);
+    try {
+      const { signInAnonymously } = await import('firebase/auth');
+      await signInAnonymously(auth);
+    } catch (err) {
+      console.error("Manual Anonymous Login Error:", err);
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
+    localStorage.setItem('manual_logout', 'true');
     await logoutFromFirebase();
   };
 
@@ -140,6 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login, 
       loginWithGoogle,
       loginWithGithub,
+      loginAnonymously,
       register, 
       logout, 
       isLoading: loading,

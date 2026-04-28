@@ -178,7 +178,7 @@ export function LoginView() {
             </Button>
           </form>
 
-          <div className="mt-8 pt-8 border-t border-white/5 text-center">
+          <div className="mt-8 pt-8 border-t border-white/5 space-y-4">
             <button 
               onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}
               className="text-xs text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 w-full"
@@ -188,6 +188,18 @@ export function LoginView() {
               ) : (
                 <><LogIn className="size-3" /> لديك حساب بالفعل؟ سجل دخولك</>
               )}
+            </button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
+              <div className="relative flex justify-center text-[8px] uppercase font-black text-muted-foreground/30"><span className="bg-slate-950 px-4 tracking-widest">أو</span></div>
+            </div>
+
+            <button 
+              onClick={() => useAuth().loginAnonymously()}
+              className="text-[10px] text-muted-foreground hover:text-white font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-2 w-full py-2 hover:bg-white/5 rounded-lg"
+            >
+              استمر كضيف (محدود)
             </button>
           </div>
         </div>

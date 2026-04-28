@@ -347,17 +347,66 @@ export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, tog
           "flex items-center gap-3 flex-row-reverse",
           isCollapsed ? "justify-center" : "px-2"
         )}>
-          <div className="size-9 rounded-xl bg-indigo-900/50 border border-white/10 overflow-hidden cursor-pointer relative shrink-0" onClick={() => onTabChange("dashboard")}>
-            <img src={user?.avatar_url || `https://picsum.photos/seed/${user?.username}/40/40`} className="size-full object-cover" />
-            {user?.role === 'founder' && (Crown && typeof Crown !== 'string' ? <Crown className="absolute bottom-0 right-0 size-2.5 text-amber-400 bg-black/80 rounded-full p-0.5" /> : null)}
-          </div>
+          <DropdownMenu dir="rtl">
+            <DropdownMenuTrigger asChild>
+              <div className="size-9 rounded-xl bg-indigo-900/50 border border-white/10 overflow-hidden cursor-pointer relative shrink-0 group/avatar">
+                <img src={user?.avatar_url || `https://picsum.photos/seed/${user?.username}/40/40`} className="size-full object-cover group-hover/avatar:scale-110 transition-transform" />
+                {user?.role === 'founder' && (Crown && typeof Crown !== 'string' ? <Crown className="absolute bottom-0 right-0 size-2.5 text-amber-400 bg-black/80 rounded-full p-0.5" /> : null)}
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="top" className="w-64 bg-slate-900/95 backdrop-blur-2xl border-white/10 text-white p-2 rounded-[1.5rem] shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+              <DropdownMenuLabel className="text-right px-2 py-4">
+                <div className="flex items-center gap-3 mb-4 px-2 flex-row-reverse">
+                  <div className="size-12 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center text-indigo-400 border border-white/5">
+                    <UserCircle className="size-6" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-black truncate">{user?.name}</p>
+                    <p className="text-[10px] text-muted-foreground truncate uppercase tracking-tighter">
+                      {user?.role === 'founder' ? 'المالك والمؤسس' : 'عضو نظام Nexus'}
+                    </p>
+                  </div>
+                </div>
+                <div className="mx-2 bg-white/5 border border-white/5 p-2.5 rounded-xl flex items-center justify-between flex-row-reverse">
+                   <span className="text-[9px] font-black text-indigo-400/70 uppercase tracking-widest">Session Status</span>
+                   <div className="flex items-center gap-2 flex-row-reverse">
+                      <div className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+                      <span className="text-[10px] text-emerald-400 font-bold">متصل</span>
+                   </div>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-white/10 mx-2" />
+              <div className="p-1">
+                <DropdownMenuItem onClick={() => onTabChange("dashboard")} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/5 rounded-xl transition-all text-right flex-row-reverse group">
+                  <LayoutDashboard className="size-4 text-primary group-hover:scale-110 transition-transform" />
+                  <span className="flex-1 font-bold text-xs text-white/80 group-hover:text-white">لوحة التحكم المركزية</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onTabChange("settings")} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/5 rounded-xl transition-all text-right flex-row-reverse group">
+                  <Settings className="size-4 text-muted-foreground group-hover:rotate-45 transition-transform" />
+                  <span className="flex-1 font-bold text-xs text-white/80 group-hover:text-white">إعدادات الحساب</span>
+                </DropdownMenuItem>
+              </div>
+              <DropdownMenuSeparator className="bg-white/10 mx-2" />
+              <div className="p-1">
+                <DropdownMenuItem onClick={logout} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-red-500/10 text-red-400 rounded-xl transition-all text-right flex-row-reverse group">
+                  <LogOut className="size-4 group-hover:-translate-x-1 transition-transform" />
+                  <span className="flex-1 font-black text-xs uppercase tracking-widest">تسجيل الخروج الآمن</span>
+                </DropdownMenuItem>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {!isCollapsed && (
-            <div className="flex-1 min-w-0 text-right animate-in fade-in slide-in-from-right-1">
+            <div className="flex-1 min-w-0 text-right animate-in fade-in slide-in-from-right-1 cursor-default">
               <p className="text-xs font-bold truncate text-white">{user?.name}</p>
               <p className="text-[9px] text-muted-foreground truncate capitalize">{user?.role === 'founder' ? 'المؤسس' : 'عضو مفعل'}</p>
             </div>
           )}
-          {!isCollapsed && <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-white" onClick={logout}><LogOut className="size-4" /></Button>}
+          {!isCollapsed && (
+            <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-lg" onClick={logout}>
+              <LogOut className="size-4" />
+            </Button>
+          )}
         </div>
       </SidebarFooter>
     </Sidebar>

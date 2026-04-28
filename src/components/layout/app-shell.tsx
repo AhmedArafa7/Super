@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { X, ExternalLink, Layers } from "lucide-react";
+import { X, ExternalLink, Layers, LogOut, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, hexToHSL } from "@/lib/utils";
 import { AIChat } from "@/components/features/ai-chat";
@@ -65,19 +65,23 @@ export function AppShell() {
   
   // Dynamic Initial Tab Logic
   const [activeTab, setActiveTab] = useState<NavItemId>("chat"); // Default safe fallback
-  const [hasInitializedTab, setHasInitializedTab] = useState(false);
+  const [lastUserId, setLastUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isAuthenticated && user && settings && !hasInitializedTab) {
-      const visible = getVisibleNavItems(user, settings, ALL_NAV_ITEMS);
-      // If "dashboard" is visible, use it, otherwise use the first visible item
-      const initial = visible.some(i => i.id === 'dashboard') 
-        ? "dashboard" 
-        : (visible[0]?.id as NavItemId || "chat");
-      setActiveTab(initial);
-      setHasInitializedTab(true);
+    if (isAuthenticated && user && settings) {
+      if (user.id !== lastUserId) {
+        const visible = getVisibleNavItems(user, settings, ALL_NAV_ITEMS);
+        // Reset to dashboard if available, else first visible
+        const initial = visible.some(i => i.id === 'dashboard') 
+          ? "dashboard" 
+          : (visible[0]?.id as NavItemId || "chat");
+        setActiveTab(initial);
+        setLastUserId(user.id);
+      }
+    } else if (!isAuthenticated) {
+      setLastUserId(null);
     }
-  }, [isAuthenticated, user, settings, hasInitializedTab]);
+  }, [isAuthenticated, user, settings, lastUserId]);
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingOffersCount, setPendingOffersCount] = useState(0);
@@ -173,17 +177,30 @@ export function AppShell() {
     // Protection Layer: if tab is not visible/allowed, fallback to a safe component or "Access Denied"
     if (!isTabVisible && activeTab !== 'notifications' && activeTab !== 'settings') {
       return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-8 animate-in fade-in duration-500">
-          <div className="size-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-6 border border-red-500/20">
-            <X className="size-10" />
+        <div className="flex flex-col items-center justify-center h-full text-center p-12 animate-in fade-in zoom-in duration-700 bg-slate-950/40 backdrop-blur-3xl">
+          <div className="size-24 bg-gradient-to-br from-red-500/20 to-amber-500/20 rounded-full flex items-center justify-center text-red-500 mb-8 border border-white/10 shadow-[0_0_50px_-12px_rgba(239,68,68,0.3)]">
+            <ShieldCheck className="size-12" />
           </div>
-          <h2 className="text-2xl font-black text-white mb-2">منطقة مقيدة</h2>
-          <p className="text-muted-foreground max-w-md">أنت لا تملك صلاحية الوصول لهذا القسم حالياً (نسخة Beta أو مقيد للإدارة).</p>
-          <Button 
-            variant="outline" 
-            className="mt-8 rounded-xl border-white/10"
-            onClick={() => setActiveTab(visibleItems[0]?.id as NavItemId || "qa")}
-          >العودة للأقسام المتاحة</Button>
+          <h2 className="text-3xl font-black text-white mb-3 tracking-tight">هذه المنطقة مغلقة</h2>
+          <p className="text-muted-foreground max-w-sm leading-relaxed">
+            يتطلب الوصول لهذه الميزة صلاحيات إدارية أو اشتراكاً نشطاً. 
+            يرجى التأكد من أنك مسجل دخولك بالحساب الصحيح.
+          </p>
+          <div className="flex items-center gap-4 mt-12">
+            <Button 
+              variant="outline" 
+              className="rounded-2xl border-white/10 h-12 px-8 font-bold hover:bg-white/5 transition-all"
+              onClick={() => setActiveTab(visibleItems[0]?.id as NavItemId || "qa")}
+            >العودة للأقسام المتاحة</Button>
+            <Button 
+              variant="ghost" 
+              className="rounded-2xl text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 h-12 px-8 font-bold gap-2 group"
+              onClick={logout}
+            >
+              <LogOut className="size-4 group-hover:-translate-x-1 transition-transform" />
+              تغيير الحساب
+            </Button>
+          </div>
         </div>
       );
     }
