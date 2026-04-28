@@ -70,7 +70,7 @@ export function AppShell() {
   useEffect(() => {
     if (isAuthenticated && user && settings) {
       if (user.id !== lastUserId) {
-        const visible = getVisibleNavItems(user, settings, ALL_NAV_ITEMS);
+        const visible = getVisibleNavItems(user, settings, ALL_NAV_ITEMS, isAuthenticated);
         // Reset to dashboard if available, else first visible
         const initial = visible.some(i => i.id === 'dashboard') 
           ? "dashboard" 
@@ -171,7 +171,7 @@ export function AppShell() {
       );
     }
 
-    const visibleItems = getVisibleNavItems(user, settings, ALL_NAV_ITEMS);
+    const visibleItems = getVisibleNavItems(user, settings, ALL_NAV_ITEMS, isAuthenticated);
     const isTabVisible = visibleItems.some(item => item.id === activeTab);
 
     // Protection Layer: if tab is not visible/allowed, fallback to a safe component or "Access Denied"
@@ -250,7 +250,7 @@ export function AppShell() {
           <SafeComponentWrapper name="AppSidebar" fallback={<SidebarFallback />}>
             <AppSidebar
               activeTab={activeTab} onTabChange={(id: any) => { setActiveTab(id); setLaunchedApp(null); setActiveRecipientId(undefined); }}
-              user={user} logout={logout} isPinned={isPinned} togglePin={togglePin}
+              user={user} isAuthenticated={isAuthenticated} logout={logout} isPinned={isPinned} togglePin={togglePin}
               uploadTasks={uploadTasks} unreadCount={unreadCount} pendingOffersCount={pendingOffersCount}
             />
           </SafeComponentWrapper>

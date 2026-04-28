@@ -67,9 +67,9 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { id: "admin", label: "لوحة الإدارة", icon: ShieldCheck, restricted: true },
 ];
 
-export function getVisibleNavItems(user: any, settings: any, navItems: NavItem[]) {
+export function getVisibleNavItems(user: any, settings: any, navItems: NavItem[], isAuthenticated: boolean = true) {
   const managementRoles = ['founder', 'cofounder', 'admin', 'management'];
-  const hasAdminAccess = user && managementRoles.includes(user.role);
+  const hasAdminAccess = isAuthenticated && user && managementRoles.includes(user.role);
   
   const isBeta = (id: string) => settings?.sections?.[id]?.isBeta ?? false;
 
@@ -222,13 +222,13 @@ function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }:
 
 
 
-export function AppSidebar({ activeTab, onTabChange, user, logout, isPinned, togglePin, uploadTasks, unreadCount, pendingOffersCount }: any) {
+export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logout, isPinned, togglePin, uploadTasks, unreadCount, pendingOffersCount }: any) {
   const { settings } = useSettingsStore();
   const { settings: proSettings } = useProStore();
   const { isCollapsed, setCollapsed, setVisible } = useSidebarStore();
   const isPro = proSettings.frameSkipRatio !== undefined;
   
-  const visibleItems = getVisibleNavItems(user, settings, ALL_NAV_ITEMS).map(item => {
+  const visibleItems = getVisibleNavItems(user, settings, ALL_NAV_ITEMS, isAuthenticated).map(item => {
     if (item.id === 'offers') return { ...item, badge: pendingOffersCount };
     if (item.id === 'notifications') return { ...item, badge: unreadCount };
     return item;

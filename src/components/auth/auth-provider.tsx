@@ -54,6 +54,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const isManualLogout = localStorage.getItem('manual_logout') === 'true';
         
         if (isManualLogout) {
+          // [GLOBAL_SECURITY_PURGE]
+          // Clear all sensitive stores immediately on manual logout
+          const { useChatStore } = await import('@/lib/chat-store');
+          const { useWalletStore } = await import('@/lib/wallet-store');
+          const { useNotificationStore } = await import('@/lib/notification-store');
+          const { usePreferencesStore } = await import('@/lib/preferences-store');
+          const { useStreamStore } = await import('@/lib/stream-store');
+          
+          // Resetting stores to initial state
+          useChatStore.setState({ messages: [], isLoading: false });
+          useWalletStore.setState({ wallet: null, transactions: [] });
+          useNotificationStore.setState({ notifications: [], unreadCount: 0 });
+          useStreamStore.setState({ activeVideo: null });
+          
+          sessionStorage.clear();
           setSession(null);
           setUser(null);
           setLoading(false);
