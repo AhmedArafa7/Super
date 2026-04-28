@@ -71,8 +71,20 @@ export const fetchChannelVideos = async (channelId: string): Promise<FeedVideo[]
 export const fetchAllSubscriptionsFeed = async (channelIds: string[]): Promise<FeedVideo[]> => {
   if (!channelIds || channelIds.length === 0) return [];
   
-  const feedPromises = channelIds.map(id => fetchChannelVideos(id));
-  const results = await Promise.all(feedPromises);
+  const results: FeedVideo[][] = [];
+  const chunkSize = 3; // Fetch 3 channels at a time
+  
+  for (let i = 0; i < channelIds.length; i += chunkSize) {
+    const chunk = channelIds.slice(i, i + chunkSize);
+    const chunkPromises = chunk.map(id => fetchChannelVideos(id));
+    const chunkResults = await Promise.all(chunkPromises);
+    results.push(...chunkResults);
+    
+    // Small delay between chunks to avoid rate limiting
+    if (i + chunkSize < channelIds.length) {
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
+  }
   
   const allVideos = results.flat();
   return allVideos.sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime());
