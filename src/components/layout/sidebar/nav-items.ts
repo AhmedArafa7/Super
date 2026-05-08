@@ -1,6 +1,6 @@
 import { 
   LayoutDashboard, MessageCircleQuestion, Gamepad2, Clock, HeartPulse, MessageSquare, 
-  Cpu, HardDrive, Tag, MessageCircle, Video, ShoppingCart, GraduationCap, LibraryBig, 
+  Cpu, HardDrive, Table, Tag, MessageCircle, Video, ShoppingCart, GraduationCap, LibraryBig, 
   Megaphone, DownloadCloud, Rocket, Wallet, Repeat, CircuitBoard, Library, Microscope, 
   Users, BookOpen, Zap, Bell, Settings, ShieldCheck 
 } from "lucide-react";
@@ -44,6 +44,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { id: "chat", label: "الدردشة الذكية", icon: MessageSquare, restricted: false },
   { id: "agent-ai", label: "المهندس المساعد", icon: Cpu, restricted: false },
   { id: "vault", label: "خزنة الملفات", icon: HardDrive, restricted: false },
+  { id: "sheets", label: "جداول البيانات", icon: Table, restricted: false },
   { id: "deals", label: "عروض المحلات", icon: Tag, restricted: false },
   { id: "peer-chat", label: "التواصل المباشر", icon: MessageCircle, restricted: false },
   { id: "stream", label: "WeTube", icon: Video, restricted: false },

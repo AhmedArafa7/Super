@@ -33,6 +33,7 @@ import { LibraryView } from "@/components/features/library/library-view";
 import { MicrocontrollerLab } from "@/components/features/microcontroller-lab";
 import { SettingsView } from "@/components/features/settings-view";
 import { ArcadeHub } from "@/components/features/arcade/arcade-hub";
+import { NexusSheets } from "@/components/features/nexus-sheets";
 import { getNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
@@ -213,6 +214,7 @@ export function AppShell() {
       case "chat": return <AIChat />;
       case "agent-ai": return <AgentAI />;
       case "vault": return <VaultExplorer />;
+      case "sheets": return <NexusSheets />;
       case "ads": return <AdsCenter />;
       case "downloads": return <DownloadCenter />;
       case "peer-chat": return <PeerChat initialTargetId={activeRecipientId} />;
