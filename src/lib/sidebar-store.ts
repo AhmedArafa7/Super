@@ -5,27 +5,30 @@ import { persist } from 'zustand/middleware';
 
 export type NavItemId = "chat" | "peer-chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn" | "launcher" | "lab" | "directory" | "agent-ai" | "ads" | "vault" | "downloads" | "time" | "deals" | "health" | "qa" | "micro-ide" | "library" | "settings" | "study-ai" | "arcade";
 
+export type SidebarPosition = "left" | "right" | "top" | "bottom" | "floating";
+
 interface SidebarState {
   pinnedItems: NavItemId[];
   isCollapsed: boolean;
   isVisible: boolean;
   width: number;
-  side: "left" | "right";
+  position: SidebarPosition;
+  floatingPos: { x: number, y: number };
   
   togglePin: (id: NavItemId) => void;
   isPinned: (id: NavItemId) => boolean;
   setCollapsed: (val: boolean) => void;
   setVisible: (val: boolean) => void;
   setWidth: (val: number) => void;
-  setSide: (val: "left" | "right") => void;
-  toggleSide: () => void;
+  setPosition: (val: SidebarPosition) => void;
+  setFloatingPos: (pos: { x: number, y: number }) => void;
   toggleCollapsed: () => void;
   toggleVisible: () => void;
 }
 
 /**
- * [STABILITY_ANCHOR: SIDEBAR_STORE_V3.2]
- * محرك تخصيص القائمة الجانبية - يدعم العرض والموقع القابل للتخصيص.
+ * [STABILITY_ANCHOR: SIDEBAR_STORE_V4.0]
+ * محرك Omni-Layout - يدعم المواقع (يمين، يسار، فوق، تحت، عائم).
  */
 export const useSidebarStore = create<SidebarState>()(
   persist(
@@ -34,7 +37,8 @@ export const useSidebarStore = create<SidebarState>()(
       isCollapsed: false,
       isVisible: true,
       width: 280,
-      side: "left",
+      position: "left",
+      floatingPos: { x: 20, y: 100 },
 
       togglePin: (id) => {
         const { pinnedItems } = get();
@@ -50,14 +54,14 @@ export const useSidebarStore = create<SidebarState>()(
       setCollapsed: (isCollapsed) => set({ isCollapsed }),
       setVisible: (isVisible) => set({ isVisible }),
       setWidth: (width) => set({ width }),
-      setSide: (side) => set({ side }),
-      toggleSide: () => set((state) => ({ side: state.side === "left" ? "right" : "left" })),
+      setPosition: (position) => set({ position }),
+      setFloatingPos: (floatingPos) => set({ floatingPos }),
       
       toggleCollapsed: () => set((state) => ({ isCollapsed: !state.isCollapsed })),
       toggleVisible: () => set((state) => ({ isVisible: !state.isVisible })),
     }),
     {
-      name: 'nexus-sidebar-prefs',
+      name: 'nexus-sidebar-prefs-v4',
     }
   )
 );

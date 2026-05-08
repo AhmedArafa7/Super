@@ -11,7 +11,9 @@ import {
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat,
   BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, Library,
   ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown, Clock, Tag, HeartPulse, CircuitBoard, Settings, MessageCircleQuestion,
-  Search, Play, Pause, Heart, Loader2, Music, Edit3, Headphones, CheckCircle2, ShoppingCart, LibraryBig, Gamepad2, UserCircle, MoreVertical, ArrowLeftRight
+  Search, Play, Pause, Heart, Loader2, Music, Edit3, Headphones, CheckCircle2, ShoppingCart, LibraryBig, Gamepad2, UserCircle, MoreVertical, ArrowLeftRight,
+  ChevronRight, ChevronLeft, EyeOff, Star, Palette, PlusCircle, Settings2, Download, ExternalLink, Activity,
+  PanelTop, PanelBottom, PanelLeft, PanelRight, Orbit, Box
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,7 +25,6 @@ import { useSettingsStore } from "@/lib/settings-store";
 import { useProStore } from "@/lib/wetube-pro-engine";
 import { useSidebarStore } from "@/lib/sidebar-store";
 import { useSectionSettingsStore } from "@/lib/section-settings-store";
-import { ChevronRight, ChevronLeft, EyeOff, Star, Palette, PlusCircle, Settings2, Download, ExternalLink, Activity } from "lucide-react";
 import { IconSafe } from "@/components/ui/icon-safe";
 
 export type NavItem = {
@@ -82,9 +83,8 @@ export function getVisibleNavItems(user: any, settings: any, navItems: NavItem[]
 
 function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }: any) {
   const [isOpen, setIsOpen] = React.useState(false);
-  const clickTimeout = React.useRef<NodeJS.Timeout | null>(null);
-  const { defaultActions, setDefaultAction, toggleSide } = useSectionSettingsStore() as any;
-  const { side } = useSidebarStore();
+  const { defaultActions, setDefaultAction } = useSectionSettingsStore() as any;
+  const { position } = useSidebarStore();
   
   const currentDefaultAction = defaultActions[item.id] || 'open';
 
@@ -105,8 +105,20 @@ function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }:
       case 'preload':
         window.dispatchEvent(new CustomEvent('open-section-preload', { detail: { sectionId: item.id } }));
         break;
-      case 'toggle-side':
-        useSidebarStore.getState().toggleSide();
+      case 'set-pos-left':
+        useSidebarStore.getState().setPosition('left');
+        break;
+      case 'set-pos-right':
+        useSidebarStore.getState().setPosition('right');
+        break;
+      case 'set-pos-top':
+        useSidebarStore.getState().setPosition('top');
+        break;
+      case 'set-pos-bottom':
+        useSidebarStore.getState().setPosition('bottom');
+        break;
+      case 'set-pos-floating':
+        useSidebarStore.getState().setPosition('floating');
         break;
       default:
         onTabChange(item.id);
@@ -153,7 +165,6 @@ function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }:
                   <div className="mr-auto bg-indigo-500 text-white h-5 w-5 flex items-center justify-center text-[10px] rounded-full font-bold">{item.badge}</div>
                 )}
                 
-                {/* Options Trigger (Visible on Hover) */}
                 <DropdownMenuTrigger asChild>
                    <Button 
                     variant="ghost" 
@@ -236,10 +247,29 @@ function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }:
               </DropdownMenuSubContent>
             </DropdownMenuSub>
 
-            <DropdownMenuItem onClick={() => executeAction('toggle-side')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg py-2.5 text-indigo-300">
-              <ArrowLeftRight className="size-4" />
-              <span className="flex-1 text-right text-sm font-medium">نقل للشريط {side === "left" ? "الأيمن" : "الأيسر"}</span>
-            </DropdownMenuItem>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg py-2.5 text-indigo-300">
+                <Box className="size-4" />
+                <span className="flex-1 text-right text-sm font-medium">تغيير تخطيط الواجهة</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="bg-slate-900 border-white/10 text-white p-2 rounded-xl shadow-xl min-w-[200px]">
+                <DropdownMenuItem onClick={() => executeAction('set-pos-left')} className="flex items-center gap-3 hover:bg-white/10 py-2 rounded-md">
+                  <PanelLeft className="size-4" /> <span className="text-xs">الشريط الأيسر</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => executeAction('set-pos-right')} className="flex items-center gap-3 hover:bg-white/10 py-2 rounded-md">
+                  <PanelRight className="size-4" /> <span className="text-xs">الشريط الأيمن</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => executeAction('set-pos-top')} className="flex items-center gap-3 hover:bg-white/10 py-2 rounded-md">
+                  <PanelTop className="size-4" /> <span className="text-xs">شريط علوي</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => executeAction('set-pos-bottom')} className="flex items-center gap-3 hover:bg-white/10 py-2 rounded-md">
+                  <PanelBottom className="size-4" /> <span className="text-xs">شريط سفلي</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => executeAction('set-pos-floating')} className="flex items-center gap-3 hover:bg-white/10 py-2 rounded-md text-amber-400">
+                  <Orbit className="size-4" /> <span className="text-xs font-bold">الوضع العائم (Nexus Orb)</span>
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
           </div>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -247,14 +277,136 @@ function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }:
   );
 }
 
+function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
+  const { floatingPos, setFloatingPos, setPosition } = useSidebarStore();
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [isOpen, setIsOpen] = React.useState(false);
+  const dragRef = React.useRef<any>(null);
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    setIsDragging(true);
+    dragRef.current = {
+      startX: e.clientX - floatingPos.x,
+      startY: e.clientY - floatingPos.y
+    };
+  };
 
-export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logout, isPinned, togglePin, uploadTasks, unreadCount, pendingOffersCount }: any) {
+  React.useEffect(() => {
+    if (!isDragging) return;
+    const onMove = (e: MouseEvent) => {
+      setFloatingPos({ 
+        x: e.clientX - dragRef.current.startX, 
+        y: e.clientY - dragRef.current.startY 
+      });
+    };
+    const onUp = () => setIsDragging(false);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [isDragging, setFloatingPos]);
+
+  return (
+    <div 
+      style={{ left: floatingPos.x, top: floatingPos.y }}
+      className="fixed z-[9999] touch-none"
+      onMouseDown={handleMouseDown}
+    >
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen} dir="rtl">
+        <DropdownMenuTrigger asChild>
+          <div className={cn(
+            "size-14 rounded-full bg-slate-900 border-2 border-primary/50 shadow-[0_0_30px_-5px_rgba(var(--primary),0.5)] flex items-center justify-center cursor-move transition-transform hover:scale-110 active:scale-95 group relative overflow-hidden",
+            isDragging && "scale-105 border-primary"
+          )}>
+            <div className="absolute inset-0 bg-primary/10 animate-pulse" />
+            <Layers className="text-primary size-7 relative z-10" />
+            <div className="absolute -inset-1 bg-gradient-to-tr from-primary/20 to-transparent animate-spin-slow" />
+          </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-72 bg-slate-900/95 backdrop-blur-2xl border-white/10 p-3 rounded-2xl shadow-2xl animate-in zoom-in-95" side="top" align="center">
+          <DropdownMenuLabel className="text-center pb-2 border-b border-white/5 mb-2 text-indigo-400 font-black tracking-widest text-xs">NEXUS OMNI-CONTROL</DropdownMenuLabel>
+          <ScrollArea className="h-[400px] pr-2">
+            <div className="grid grid-cols-1 gap-1">
+              {visibleItems.map((item: any) => (
+                <DropdownMenuItem 
+                  key={item.id} 
+                  onClick={() => onTabChange(item.id)}
+                  className={cn(
+                    "flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all",
+                    activeTab === item.id ? "bg-primary text-white" : "hover:bg-white/5"
+                  )}
+                >
+                  <IconSafe icon={item.icon} className="size-4" />
+                  <span className="flex-1 text-right text-xs font-medium">{item.label}</span>
+                </DropdownMenuItem>
+              ))}
+            </div>
+          </ScrollArea>
+          <DropdownMenuSeparator className="my-2 bg-white/5" />
+          <DropdownMenuItem onClick={() => setPosition('left')} className="text-center justify-center text-[10px] text-muted-foreground hover:text-white">
+            إعادة الشريط للوضع العمودي
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
+function HorizontalSidebar({ visibleItems, activeTab, onTabChange, position }: any) {
+  return (
+    <div className={cn(
+      "w-full h-16 bg-slate-900/80 backdrop-blur-2xl border-white/5 flex items-center px-6 gap-2 z-50 overflow-x-auto no-scrollbar shrink-0",
+      position === 'top' ? "border-b" : "border-t"
+    )}>
+      <div className="flex items-center gap-4 shrink-0 ml-4">
+        <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30">
+          <Layers className="text-primary size-5" />
+        </div>
+        <div className="h-8 w-px bg-white/10" />
+      </div>
+      
+      <div className="flex items-center gap-1">
+        {visibleItems.map((item: any) => (
+          <Button
+            key={item.id}
+            variant="ghost"
+            onClick={() => onTabChange(item.id)}
+            className={cn(
+              "h-10 px-4 rounded-xl gap-2 transition-all flex-row-reverse",
+              activeTab === item.id ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
+            )}
+          >
+            <IconSafe icon={item.icon} className="size-4" />
+            <span className="text-xs font-bold whitespace-nowrap">{item.label}</span>
+          </Button>
+        ))}
+      </div>
+
+      <div className="mr-auto flex items-center gap-2">
+        <DropdownMenu dir="rtl">
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white/5 text-white/50">
+               <Settings2 className="size-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="bg-slate-900 border-white/10 text-white p-2 rounded-xl">
+             <DropdownMenuItem onClick={() => useSidebarStore.getState().setPosition('left')}>تحويل للوضع الجانبي</DropdownMenuItem>
+             <DropdownMenuItem onClick={() => useSidebarStore.getState().setPosition('floating')}>تفعيل الوضع العائم</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
+export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logout, isPinned, togglePin, uploadTasks, unreadCount, pendingOffersCount, position }: any) {
   const { settings } = useSettingsStore();
   const { settings: proSettings } = useProStore();
   const { isCollapsed, setCollapsed, setVisible, width, setWidth } = useSidebarStore();
-  const isPro = proSettings.frameSkipRatio !== undefined;
-
+  
   const [isResizing, setIsResizing] = React.useState(false);
 
   const startResizing = React.useCallback((e: React.MouseEvent) => {
@@ -263,11 +415,10 @@ export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logo
   }, []);
 
   React.useEffect(() => {
-    if (!isResizing) return;
+    if (!isResizing || position === 'floating' || position === 'top' || position === 'bottom') return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      let newWidth = side === "left" ? e.clientX : window.innerWidth - e.clientX;
-      // Constraints
+      let newWidth = position === "left" ? e.clientX : window.innerWidth - e.clientX;
       if (newWidth < 180) newWidth = 180;
       if (newWidth > 450) newWidth = 450;
       setWidth(newWidth);
@@ -286,7 +437,7 @@ export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logo
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, setWidth, side]);
+  }, [isResizing, setWidth, position]);
   
   const visibleItems = getVisibleNavItems(user, settings, ALL_NAV_ITEMS, isAuthenticated).map(item => {
     if (item.id === 'offers') return { ...item, badge: pendingOffersCount };
@@ -297,27 +448,36 @@ export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logo
   const isBeta = (id: string) => settings?.sections?.[id]?.isBeta ?? false;
   const pinnedSidebarItems = visibleItems.filter(item => item.isPermanent || isPinned(item.id));
 
+  if (position === 'floating') {
+    return <FloatingOrb visibleItems={visibleItems} activeTab={activeTab} onTabChange={onTabChange} />;
+  }
+
+  if (position === 'top' || position === 'bottom') {
+    return <HorizontalSidebar visibleItems={visibleItems} activeTab={activeTab} onTabChange={onTabChange} position={position} />;
+  }
+
   return (
     <Sidebar 
       collapsible="icon" 
+      side={position === 'right' ? 'right' : 'left'}
       className={cn(
         "border-r border-white/10 bg-slate-900/50 backdrop-blur-xl transition-all duration-300",
+        position === 'right' ? "border-l border-r-0" : "border-r",
         isResizing && "transition-none"
       )}
     >
-      {/* Resize Handle */}
       {!isCollapsed && (
         <div 
           onMouseDown={startResizing}
           className={cn(
             "absolute top-0 h-full w-2 cursor-col-resize z-50 group/rail",
-            side === "left" ? "-right-1" : "-left-1",
+            position === "left" ? "-right-1" : "-left-1",
             isResizing ? "bg-primary/20" : "hover:bg-primary/10"
           )}
         >
           <div className={cn(
             "absolute top-0 h-full w-[1px] transition-colors",
-            side === "left" ? "right-1" : "left-1",
+            position === "left" ? "right-1" : "left-1",
             isResizing ? "bg-primary" : "bg-white/5 group-hover/rail:bg-primary/50"
           )} />
         </div>
@@ -329,15 +489,10 @@ export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logo
         )}>
           {!isCollapsed && <h1 className="font-headline font-bold text-lg tracking-tight text-white animate-in slide-in-from-left-2 overflow-hidden whitespace-nowrap">NexusAI</h1>}
           <div className="size-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shrink-0">
-            {Layers && typeof Layers !== 'string' ? (
-              <Layers className="text-white size-5" />
-            ) : (
-              <div className="size-5 bg-white/20 rounded-sm" />
-            )}
+             <Layers className="text-white size-5" />
           </div>
         </div>
 
-        {/* Floating Sidebar Controls (Visible on Hover or forced mobile) */}
         <div className="absolute -left-3 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
           <Button 
             variant="ghost" 
@@ -434,7 +589,6 @@ export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logo
             <DropdownMenuTrigger asChild>
               <div className="size-9 rounded-xl bg-indigo-900/50 border border-white/10 overflow-hidden cursor-pointer relative shrink-0 group/avatar">
                 <img src={user?.avatar_url || `https://picsum.photos/seed/${user?.username}/40/40`} className="size-full object-cover group-hover/avatar:scale-110 transition-transform" />
-                {user?.role === 'founder' && (Crown && typeof Crown !== 'string' ? <Crown className="absolute bottom-0 right-0 size-2.5 text-amber-400 bg-black/80 rounded-full p-0.5" /> : null)}
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="top" className="w-64 bg-slate-900/95 backdrop-blur-2xl border-white/10 text-white p-2 rounded-[1.5rem] shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
@@ -445,17 +599,8 @@ export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logo
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-black truncate">{user?.name}</p>
-                    <p className="text-[10px] text-muted-foreground truncate uppercase tracking-tighter">
-                      {user?.role === 'founder' ? 'المالك والمؤسس' : 'عضو نظام Nexus'}
-                    </p>
+                    <p className="text-[10px] text-muted-foreground truncate uppercase tracking-tighter">عضو نظام Nexus</p>
                   </div>
-                </div>
-                <div className="mx-2 bg-white/5 border border-white/5 p-2.5 rounded-xl flex items-center justify-between flex-row-reverse">
-                   <span className="text-[9px] font-black text-indigo-400/70 uppercase tracking-widest">Session Status</span>
-                   <div className="flex items-center gap-2 flex-row-reverse">
-                      <div className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-                      <span className="text-[10px] text-emerald-400 font-bold">متصل</span>
-                   </div>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-white/10 mx-2" />
@@ -482,13 +627,8 @@ export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logo
           {!isCollapsed && (
             <div className="flex-1 min-w-0 text-right animate-in fade-in slide-in-from-right-1 cursor-default">
               <p className="text-xs font-bold truncate text-white">{user?.name}</p>
-              <p className="text-[9px] text-muted-foreground truncate capitalize">{user?.role === 'founder' ? 'المؤسس' : 'عضو مفعل'}</p>
+              <p className="text-[9px] text-muted-foreground truncate capitalize">عضو مفعل</p>
             </div>
-          )}
-          {!isCollapsed && (
-            <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-lg" onClick={logout}>
-              <LogOut className="size-4" />
-            </Button>
           )}
         </div>
       </SidebarFooter>
