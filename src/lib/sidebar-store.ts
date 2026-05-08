@@ -9,18 +9,20 @@ interface SidebarState {
   pinnedItems: NavItemId[];
   isCollapsed: boolean;
   isVisible: boolean;
+  width: number;
   
   togglePin: (id: NavItemId) => void;
   isPinned: (id: NavItemId) => boolean;
   setCollapsed: (val: boolean) => void;
   setVisible: (val: boolean) => void;
+  setWidth: (val: number) => void;
   toggleCollapsed: () => void;
   toggleVisible: () => void;
 }
 
 /**
- * [STABILITY_ANCHOR: SIDEBAR_STORE_V3.0]
- * محرك تخصيص القائمة الجانبية - يدعم الحالات الجديدة (أيقونات فقط / مخفية تماماً).
+ * [STABILITY_ANCHOR: SIDEBAR_STORE_V3.1]
+ * محرك تخصيص القائمة الجانبية - يدعم الحالات الجديدة والعرض القابل للتخصيص.
  */
 export const useSidebarStore = create<SidebarState>()(
   persist(
@@ -28,6 +30,7 @@ export const useSidebarStore = create<SidebarState>()(
       pinnedItems: ["dashboard", "qa", "time", "health", "chat", "vault", "agent-ai", "deals", "peer-chat", "stream", "market", "arcade", "launcher", "lab", "ads", "downloads", "wallet"],
       isCollapsed: false,
       isVisible: true,
+      width: 280,
 
       togglePin: (id) => {
         const { pinnedItems } = get();
@@ -42,6 +45,7 @@ export const useSidebarStore = create<SidebarState>()(
 
       setCollapsed: (isCollapsed) => set({ isCollapsed }),
       setVisible: (isVisible) => set({ isVisible }),
+      setWidth: (width) => set({ width }),
       
       toggleCollapsed: () => set((state) => ({ isCollapsed: !state.isCollapsed })),
       toggleVisible: () => set((state) => ({ isVisible: !state.isVisible })),

@@ -243,8 +243,41 @@ function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }:
 export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logout, isPinned, togglePin, uploadTasks, unreadCount, pendingOffersCount }: any) {
   const { settings } = useSettingsStore();
   const { settings: proSettings } = useProStore();
-  const { isCollapsed, setCollapsed, setVisible } = useSidebarStore();
+  const { isCollapsed, setCollapsed, setVisible, width, setWidth } = useSidebarStore();
   const isPro = proSettings.frameSkipRatio !== undefined;
+
+  const [isResizing, setIsResizing] = React.useState(false);
+
+  const startResizing = React.useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      let newWidth = e.clientX;
+      // Constraints
+      if (newWidth < 180) newWidth = 180;
+      if (newWidth > 450) newWidth = 450;
+      setWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.body.style.cursor = 'default';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, setWidth]);
   
   const visibleItems = getVisibleNavItems(user, settings, ALL_NAV_ITEMS, isAuthenticated).map(item => {
     if (item.id === 'offers') return { ...item, badge: pendingOffersCount };
@@ -256,7 +289,28 @@ export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logo
   const pinnedSidebarItems = visibleItems.filter(item => item.isPermanent || isPinned(item.id));
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-white/10 bg-slate-900/50 backdrop-blur-xl transition-all duration-300">
+    <Sidebar 
+      collapsible="icon" 
+      className={cn(
+        "border-r border-white/10 bg-slate-900/50 backdrop-blur-xl transition-all duration-300",
+        isResizing && "transition-none"
+      )}
+    >
+      {/* Resize Handle */}
+      {!isCollapsed && (
+        <div 
+          onMouseDown={startResizing}
+          className={cn(
+            "absolute -right-1 top-0 h-full w-2 cursor-col-resize z-50 group/rail",
+            isResizing ? "bg-primary/20" : "hover:bg-primary/10"
+          )}
+        >
+          <div className={cn(
+            "absolute right-1 top-0 h-full w-[1px] transition-colors",
+            isResizing ? "bg-primary" : "bg-white/5 group-hover/rail:bg-primary/50"
+          )} />
+        </div>
+      )}
       <SidebarHeader className="p-4 border-b border-white/5 relative group/header">
         <div className={cn(
           "flex items-center gap-3 transition-opacity duration-300",

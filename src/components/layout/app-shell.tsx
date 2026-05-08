@@ -90,7 +90,7 @@ export function AppShell() {
   const [launchedApp, setLaunchedApp] = useState<{ url: string, title: string, isVault?: boolean } | null>(null);
 
   const setCurrentTab = useStreamStore(state => state.setCurrentTab);
-  const { isPinned, togglePin, isCollapsed, isVisible, setCollapsed } = useSidebarStore();
+  const { isPinned, togglePin, isCollapsed, isVisible, setCollapsed, width, setWidth } = useSidebarStore();
   const uploadTasks = useUploadStore(state => state.tasks);
   const initSettingsListener = useSettingsStore(state => state.initSettingsListener);
 
@@ -244,7 +244,11 @@ export function AppShell() {
   };
 
   return (
-    <SidebarProvider open={!isCollapsed} onOpenChange={setCollapsed}>
+    <SidebarProvider 
+      open={!isCollapsed} 
+      onOpenChange={setCollapsed}
+      style={{ "--sidebar-width": `${width}px` } as React.CSSProperties}
+    >
       <div className="flex min-h-screen w-full bg-background hero-gradient overflow-hidden relative">
         {isVisible && (
           <SafeComponentWrapper name="AppSidebar" fallback={<SidebarFallback />}>
