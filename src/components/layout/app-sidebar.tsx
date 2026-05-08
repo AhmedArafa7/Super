@@ -137,7 +137,8 @@ function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }:
           isActive={activeTab === item.id}
           onClick={() => onTabChange(item.id)}
           className={cn(
-            "h-12 gap-4 px-4 rounded-xl transition-all flex-row-reverse justify-start relative group",
+            "h-12 gap-4 px-4 rounded-xl transition-all justify-start relative group",
+            position === "right" ? "flex-row" : "flex-row-reverse",
             activeTab === item.id ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
           )}
         >
@@ -153,29 +154,18 @@ function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }:
               )} 
             />
             {!isCollapsed && (
-              <>
-                <span className="font-medium animate-in fade-in slide-in-from-right-1">{item.label}</span>
+              <div className="flex items-center gap-2 flex-1 overflow-hidden">
+                <span className="font-medium truncate animate-in fade-in slide-in-from-right-1">{item.label}</span>
                 {isBeta && (
-                  <div className="mr-auto text-[8px] px-1.5 h-4 border border-amber-500/30 text-amber-500 font-black tracking-widest uppercase rounded-full flex items-center">BETA</div>
+                  <div className="text-[8px] px-1.5 h-4 border border-amber-500/30 text-amber-500 font-black tracking-widest uppercase rounded-full flex items-center shrink-0">BETA</div>
                 )}
                 {item.id === 'stream' && (
-                  <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-black px-1.5 py-0.5 rounded-md font-black text-[8px] uppercase tracking-tighter mr-auto">PRO</div>
+                  <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-black px-1.5 py-0.5 rounded-md font-black text-[8px] uppercase tracking-tighter shrink-0">PRO</div>
                 )}
                 {item.badge !== undefined && item.badge > 0 && !isBeta && (
-                  <div className="mr-auto bg-indigo-500 text-white h-5 w-5 flex items-center justify-center text-[10px] rounded-full font-bold">{item.badge}</div>
+                  <div className="mr-auto bg-indigo-500 text-white h-5 w-5 flex items-center justify-center text-[10px] rounded-full font-bold shrink-0">{item.badge}</div>
                 )}
-                
-                <DropdownMenuTrigger asChild>
-                   <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="size-8 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded-lg transition-all absolute left-2 top-1/2 -translate-y-1/2 z-10"
-                    onClick={(e) => e.stopPropagation()}
-                   >
-                     <MoreVertical className="size-4" />
-                   </Button>
-                </DropdownMenuTrigger>
-              </>
+              </div>
             )}
           </SidebarMenuButton>
         <DropdownMenuContent align="end" side="right" className="w-64 bg-slate-900/95 backdrop-blur-xl border-white/10 text-white p-2 rounded-xl shadow-2xl z-50 animate-in zoom-in-95">
@@ -482,107 +472,114 @@ export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logo
           )} />
         </div>
       )}
-      <SidebarHeader className="p-4 border-b border-white/5 relative group/header">
+      <SidebarHeader className="p-4 border-b border-white/5 relative group/header overflow-hidden">
         <div className={cn(
-          "flex items-center gap-3 transition-opacity duration-300",
-          isCollapsed ? "justify-center" : "justify-end"
+          "flex items-center gap-3 transition-all duration-300",
+          position === "right" ? "flex-row-reverse text-right" : "flex-row text-left",
+          isCollapsed && "justify-center"
         )}>
-          {!isCollapsed && <h1 className="font-headline font-bold text-lg tracking-tight text-white animate-in slide-in-from-left-2 overflow-hidden whitespace-nowrap">NexusAI</h1>}
           <div className="size-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shrink-0">
              <Layers className="text-white size-5" />
           </div>
+          {!isCollapsed && (
+            <div className="flex flex-col overflow-hidden">
+              <h1 className="text-sm font-black text-white tracking-tight truncate">NEXUS AI</h1>
+              <span className="text-[9px] text-indigo-400 font-bold tracking-widest uppercase truncate">Central Hub</span>
+            </div>
+          )}
         </div>
 
-        <div className="absolute -left-3 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
+        <div className={cn(
+          "absolute top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity",
+          position === "left" ? "-right-3" : "-left-3"
+        )}>
           <Button 
             variant="ghost" 
             size="icon" 
             className="size-7 rounded-full bg-slate-800 border border-white/10 text-white/60 hover:text-white"
             onClick={() => setCollapsed(!isCollapsed)}
           >
-            {isCollapsed ? <IconSafe icon={ChevronLeft} className="size-4" /> : <IconSafe icon={ChevronRight} className="size-4" />}
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="size-7 rounded-full bg-slate-800 border border-white/10 text-white/60 hover:text-white"
-            onClick={() => setVisible(false)}
-          >
-            <IconSafe icon={EyeOff} className="size-3" />
+            {isCollapsed ? <IconSafe icon={ChevronRight} className="size-4" /> : <IconSafe icon={ChevronLeft} className="size-4" />}
           </Button>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-3">
-        <SidebarMenu className="gap-2">
-          {pinnedSidebarItems.map((item) => (
-            <SmartSidebarItem 
-              key={item.id} 
-              item={item} 
-              activeTab={activeTab} 
-              onTabChange={onTabChange} 
-              isCollapsed={isCollapsed} 
-              isBeta={isBeta(item.id)} 
-            />
-          ))}
-        </SidebarMenu>
+      <SidebarContent className="p-2 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="px-2 space-y-4 pb-4">
+            <SidebarMenu className="gap-1.5">
+              {pinnedSidebarItems.map((item) => (
+                <SmartSidebarItem 
+                  key={item.id} 
+                  item={item} 
+                  activeTab={activeTab} 
+                  onTabChange={onTabChange} 
+                  isCollapsed={isCollapsed} 
+                  isBeta={isBeta(item.id)} 
+                />
+              ))}
+            </SidebarMenu>
 
-        {!isCollapsed && (
-          <div className="mt-8 px-4">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="ghost" className="w-full border border-dashed border-white/10 h-12 rounded-xl text-[10px] uppercase font-bold text-muted-foreground hover:bg-white/5 gap-3 flex-row-reverse">
-                  <IconSafe icon={MonitorSmartphone} className="size-4 text-primary" /> تخصيص القائمة
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="text-right">إعدادات القائمة الجانبية</DialogTitle>
-                  <DialogDescription className="text-right">اختر الأقسام المفضلة لتثبيتها في شريط التنقل.</DialogDescription>
-                </DialogHeader>
-                <ScrollArea className="max-h-[400px] mt-4">
-                  <div className="grid grid-cols-1 gap-2 pr-4">
-                    {visibleItems.filter(i => !i.isPermanent).map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-4 glass border-white/5 rounded-2xl hover:bg-white/5 transition-all flex-row-reverse">
-                        <div className="flex items-center gap-3 flex-row-reverse">
-                          <div className="size-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                            <IconSafe icon={item.icon} className="size-5" />
+            {!isCollapsed && (
+              <div className="px-1">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" className="w-full border border-dashed border-white/10 h-10 rounded-xl text-[10px] uppercase font-bold text-muted-foreground hover:bg-white/5 gap-3 flex-row-reverse">
+                      <IconSafe icon={MonitorSmartphone} className="size-4 text-primary" /> تخصيص القائمة
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="text-right">إعدادات القائمة الجانبية</DialogTitle>
+                      <DialogDescription className="text-right">اختر الأقسام المفضلة لتثبيتها في شريط التنقل.</DialogDescription>
+                    </DialogHeader>
+                    <ScrollArea className="max-h-[400px] mt-4">
+                      <div className="grid grid-cols-1 gap-2 pr-4">
+                        {visibleItems.filter(i => !i.isPermanent).map((item) => (
+                          <div key={item.id} className="flex items-center justify-between p-4 glass border-white/5 rounded-2xl hover:bg-white/5 transition-all flex-row-reverse">
+                            <div className="flex items-center gap-3 flex-row-reverse">
+                              <div className="size-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                                <IconSafe icon={item.icon} className="size-5" />
+                              </div>
+                              <span className="font-bold text-sm text-white">{item.label}</span>
+                            </div>
+                            <Button size="sm" variant={isPinned(item.id) ? "default" : "outline"} className={cn("rounded-lg h-8 px-4", isPinned(item.id) ? "bg-primary" : "border-white/10")} onClick={() => togglePin(item.id)}>
+                              {isPinned(item.id) ? "إلغاء التثبيت" : "ثبت"}
+                            </Button>
                           </div>
-                          <span className="font-bold text-sm text-white">{item.label}</span>
-                        </div>
-                        <Button size="sm" variant={isPinned(item.id) ? "default" : "outline"} className={cn("rounded-lg h-8 px-4", isPinned(item.id) ? "bg-primary" : "border-white/10")} onClick={() => togglePin(item.id)}>
-                          {isPinned(item.id) ? "إلغاء التثبيت" : "ثبت"}
-                        </Button>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </DialogContent>
-            </Dialog>
-          </div>
-        )}
-
-        {uploadTasks.length > 0 && (
-          <div className="mt-8 px-4 space-y-4">
-            <div className="flex items-center gap-2 mb-2 justify-end">
-              <p className="text-[10px] uppercase font-bold text-indigo-400 tracking-[0.2em]">مراقب الرفع</p>
-              <IconSafe icon={Zap} className="size-3 text-indigo-400 animate-pulse" />
-            </div>
-            {uploadTasks.map((task: any) => (
-              <div key={task.id} className="p-3 bg-white/5 border border-white/10 rounded-2xl space-y-2">
-                <div className="flex items-center justify-between gap-2 flex-row-reverse">
-                  <p className="text-[10px] text-white font-bold truncate flex-1 text-right">{task.fileName}</p>
-                </div>
-                <Progress value={task.progress} className="h-1 bg-white/5" />
+                    </ScrollArea>
+                  </DialogContent>
+                </Dialog>
               </div>
-            ))}
+            )}
+
+            {uploadTasks.length > 0 && (
+              <div className="px-1 space-y-3">
+                <div className="flex items-center gap-2 justify-end opacity-50">
+                  <p className="text-[10px] uppercase font-bold text-indigo-400 tracking-[0.2em]">مراقب الرفع</p>
+                  <IconSafe icon={Zap} className="size-3 text-indigo-400 animate-pulse" />
+                </div>
+                {uploadTasks.map((task: any) => (
+                  <div key={task.id} className="p-2.5 bg-white/5 border border-white/10 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between gap-2 flex-row-reverse">
+                      <p className="text-[9px] text-white font-bold truncate flex-1 text-right">{task.fileName}</p>
+                      <span className="text-[8px] text-primary font-black">{task.progress}%</span>
+                    </div>
+                    <Progress value={task.progress} className="h-1 bg-white/5" />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </ScrollArea>
       </SidebarContent>
 
       <SidebarFooter className="p-3 mt-auto border-t border-white/5">
         <div className={cn(
-          "flex items-center gap-3 flex-row-reverse",
+          "flex items-center gap-3",
+          position === "right" ? "flex-row" : "flex-row-reverse",
           isCollapsed ? "justify-center" : "px-2"
         )}>
           <DropdownMenu dir="rtl">
@@ -625,7 +622,10 @@ export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logo
           </DropdownMenu>
 
           {!isCollapsed && (
-            <div className="flex-1 min-w-0 text-right animate-in fade-in slide-in-from-right-1 cursor-default">
+            <div className={cn(
+              "flex-1 min-w-0 animate-in fade-in slide-in-from-right-1 cursor-default",
+              position === "right" ? "text-left" : "text-right"
+            )}>
               <p className="text-xs font-bold truncate text-white">{user?.name}</p>
               <p className="text-[9px] text-muted-foreground truncate capitalize">عضو مفعل</p>
             </div>
