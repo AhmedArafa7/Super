@@ -43,7 +43,10 @@ export function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, is
               )} 
             />
             {!isCollapsed && (
-              <div className="flex items-center gap-2 flex-1 overflow-hidden">
+              <div className={cn(
+                "flex items-center gap-2 flex-1 overflow-hidden relative",
+                position === "left" ? "pl-9" : "pr-9"
+              )}>
                 <span className="font-medium truncate animate-in fade-in slide-in-from-right-1">{item.label}</span>
                 {isBeta && (
                   <div className="text-[8px] px-1.5 h-4 border border-amber-500/30 text-amber-500 font-black tracking-widest uppercase rounded-full flex items-center shrink-0">BETA</div>
@@ -61,7 +64,7 @@ export function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, is
                     size="icon" 
                     className={cn(
                       "size-7 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded-lg transition-all absolute top-1/2 -translate-y-1/2 z-20",
-                      position === "left" ? "left-2" : "right-2"
+                      position === "left" ? "left-0" : "right-0"
                     )}
                     onClick={(e) => {
                       e.stopPropagation();
