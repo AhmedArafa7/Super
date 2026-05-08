@@ -165,55 +165,75 @@ function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }:
             )}
           </SidebarMenuButton>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" side="right" className="w-56 bg-slate-900 border-white/10 text-white p-2 rounded-xl shadow-2xl z-50 animate-in zoom-in-95">
-          <DropdownMenuLabel className="text-xs text-indigo-400 opacity-70">إجراءات {item.label}</DropdownMenuLabel>
+        <DropdownMenuContent align="end" side="right" className="w-64 bg-slate-900/95 backdrop-blur-xl border-white/10 text-white p-2 rounded-xl shadow-2xl z-50 animate-in zoom-in-95">
+          <DropdownMenuLabel className="text-xs text-indigo-400 opacity-70 px-2 py-1.5 text-right">التحكم في {item.label}</DropdownMenuLabel>
+          
           <DropdownMenuSeparator className="bg-white/10" />
           
-          <DropdownMenuItem onClick={() => executeAction('open')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg">
-            <ExternalLink className="size-4" />
-            <span className="flex-1 text-right">فتح القسم</span>
-            {currentDefaultAction === 'open' && <Star className="size-3 text-amber-400 fill-amber-400" />}
-          </DropdownMenuItem>
+          <div className="p-1 space-y-0.5">
+            <DropdownMenuItem onClick={() => executeAction('open')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg py-2.5">
+              <ExternalLink className="size-4 text-white/70" />
+              <span className="flex-1 text-right text-sm">فتح القسم</span>
+              {currentDefaultAction === 'open' && <Star className="size-3 text-amber-400 fill-amber-400" />}
+            </DropdownMenuItem>
 
-          <DropdownMenuItem onClick={() => executeAction('settings')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg">
-            <Settings2 className="size-4" />
-            <span className="flex-1 text-right">إعدادات القسم</span>
-            {currentDefaultAction === 'settings' && <Star className="size-3 text-amber-400 fill-amber-400" />}
-          </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => executeAction('settings')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg py-2.5">
+              <Settings2 className="size-4 text-white/70" />
+              <span className="flex-1 text-right text-sm">إعدادات القسم العامة</span>
+              {currentDefaultAction === 'settings' && <Star className="size-3 text-amber-400 fill-amber-400" />}
+            </DropdownMenuItem>
+          </div>
 
-          <DropdownMenuItem onClick={() => executeAction('design')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg">
-            <Palette className="size-4" />
-            <span className="flex-1 text-right">تعديل التصميم</span>
-            {currentDefaultAction === 'design' && <Star className="size-3 text-amber-400 fill-amber-400" />}
-          </DropdownMenuItem>
+          <DropdownMenuSeparator className="bg-white/10" />
 
-          <DropdownMenuItem onClick={() => executeAction('feature')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg text-emerald-400 hover:text-emerald-300">
-            <PlusCircle className="size-4" />
-            <span className="flex-1 text-right">إضافة فيتشر جديدة</span>
-            {currentDefaultAction === 'feature' && <Star className="size-3 text-amber-400 fill-amber-400" />}
-          </DropdownMenuItem>
+          <div className="p-1 space-y-0.5">
+            <DropdownMenuItem onClick={() => executeAction('design')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg py-2.5">
+              <Palette className="size-4 text-white/70" />
+              <span className="flex-1 text-right text-sm">تخصيص المظهر والتصميم</span>
+              {currentDefaultAction === 'design' && <Star className="size-3 text-amber-400 fill-amber-400" />}
+            </DropdownMenuItem>
 
-          <DropdownMenuItem onClick={() => executeAction('preload')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg">
-            <Download className="size-4" />
-            <span className="flex-1 text-right">تحميل القسم مسبقاً</span>
-            {currentDefaultAction === 'preload' && <Star className="size-3 text-amber-400 fill-amber-400" />}
-          </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => executeAction('feature')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg py-2.5 text-emerald-400 hover:text-emerald-300">
+              <PlusCircle className="size-4" />
+              <span className="flex-1 text-right text-sm font-medium">إضافة ميزات متقدمة</span>
+              {currentDefaultAction === 'feature' && <Star className="size-3 text-amber-400 fill-amber-400" />}
+            </DropdownMenuItem>
+          </div>
 
-          <DropdownMenuSeparator className="bg-white/10 mt-2" />
-          
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg">
-              <Activity className="size-4" />
-              <span className="flex-1 text-right">تعيين الافتراضي (دبل كليك)</span>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="bg-slate-800 border-white/10 text-white p-2 rounded-xl">
-              <DropdownMenuItem onClick={() => setDefaultAction(item.id, 'open')} className="flex justify-between rtl:flex-row-reverse hover:bg-white/10">فتح القسم {currentDefaultAction === 'open' && '✅'}</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDefaultAction(item.id, 'settings')} className="flex justify-between rtl:flex-row-reverse hover:bg-white/10">إعدادات القسم {currentDefaultAction === 'settings' && '✅'}</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDefaultAction(item.id, 'design')} className="flex justify-between rtl:flex-row-reverse hover:bg-white/10">تعديل التصميم {currentDefaultAction === 'design' && '✅'}</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDefaultAction(item.id, 'preload')} className="flex justify-between rtl:flex-row-reverse hover:bg-white/10">تحميل القسم {currentDefaultAction === 'preload' && '✅'}</DropdownMenuItem>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
+          <DropdownMenuSeparator className="bg-white/10" />
 
+          <div className="p-1 space-y-0.5">
+            <DropdownMenuItem onClick={() => executeAction('preload')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg py-2.5">
+              <Download className="size-4 text-white/70" />
+              <span className="flex-1 text-right text-sm">تفعيل التحميل المسبق</span>
+              {currentDefaultAction === 'preload' && <Star className="size-3 text-amber-400 fill-amber-400" />}
+            </DropdownMenuItem>
+
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg py-2.5">
+                <Activity className="size-4 text-white/70" />
+                <span className="flex-1 text-right text-sm">إجراء الضغط المزدوج</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="bg-slate-800 border-white/10 text-white p-2 rounded-xl shadow-xl min-w-[180px]">
+                <DropdownMenuItem onClick={() => setDefaultAction(item.id, 'open')} className="flex justify-between rtl:flex-row-reverse hover:bg-white/10 py-2 rounded-md">
+                  <span className="text-xs">فتح القسم</span>
+                  {currentDefaultAction === 'open' && <span className="text-xs">✅</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDefaultAction(item.id, 'settings')} className="flex justify-between rtl:flex-row-reverse hover:bg-white/10 py-2 rounded-md">
+                  <span className="text-xs">إعدادات القسم</span>
+                  {currentDefaultAction === 'settings' && <span className="text-xs">✅</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDefaultAction(item.id, 'design')} className="flex justify-between rtl:flex-row-reverse hover:bg-white/10 py-2 rounded-md">
+                  <span className="text-xs">تعديل التصميم</span>
+                  {currentDefaultAction === 'design' && <span className="text-xs">✅</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDefaultAction(item.id, 'preload')} className="flex justify-between rtl:flex-row-reverse hover:bg-white/10 py-2 rounded-md">
+                  <span className="text-xs">تحميل القسم</span>
+                  {currentDefaultAction === 'preload' && <span className="text-xs">✅</span>}
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          </div>
         </DropdownMenuContent>
       </DropdownMenu>
     </SidebarMenuItem>
