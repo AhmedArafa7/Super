@@ -15,15 +15,29 @@ export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
   const { floatingPos, setFloatingPos, setPosition } = useSidebarStore();
   const [isDragging, setIsDragging] = React.useState(false);
   const [isOpen, setIsOpen] = React.useState(false);
+  const [dragStartPos, setDragStartPos] = React.useState({ x: 0, y: 0 });
   const dragRef = React.useRef<any>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     setIsDragging(true);
+    setDragStartPos({ x: e.clientX, y: e.clientY });
     dragRef.current = {
       startX: e.clientX - floatingPos.x,
       startY: e.clientY - floatingPos.y
     };
+  };
+
+  const handleTriggerClick = (e: React.MouseEvent) => {
+    // If we moved more than 5px, it was a drag, not a click
+    const moveX = Math.abs(e.clientX - dragStartPos.x);
+    const moveY = Math.abs(e.clientY - dragStartPos.y);
+    if (moveX > 5 || moveY > 5) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    setIsOpen(!isOpen);
   };
 
   React.useEffect(() => {
@@ -51,10 +65,13 @@ export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
     >
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen} dir="rtl">
         <DropdownMenuTrigger asChild>
-          <div className={cn(
-            "size-14 rounded-full bg-slate-900 border-2 border-primary/50 shadow-[0_0_30px_-5px_rgba(var(--primary),0.5)] flex items-center justify-center cursor-move transition-transform hover:scale-110 active:scale-95 group relative overflow-hidden",
-            isDragging && "scale-105 border-primary"
-          )}>
+          <div 
+            onClick={handleTriggerClick}
+            className={cn(
+              "size-14 rounded-full bg-slate-900 border-2 border-primary/50 shadow-[0_0_30px_-5px_rgba(var(--primary),0.5)] flex items-center justify-center cursor-move transition-transform hover:scale-110 active:scale-95 group relative overflow-hidden",
+              isDragging && "scale-105 border-primary shadow-[0_0_40px_-5px_rgba(var(--primary),0.8)]"
+            )}
+          >
             <div className="absolute inset-0 bg-primary/10 animate-pulse" />
             <Layers className="text-primary size-7 relative z-10" />
             <div className="absolute -inset-1 bg-gradient-to-tr from-primary/20 to-transparent animate-spin-slow" />

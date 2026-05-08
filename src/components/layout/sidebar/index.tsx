@@ -47,10 +47,14 @@ export function AppSidebar({
   
   const [isResizing, setIsResizing] = React.useState(false);
 
-  // Resize Orchestration
+  const sidebarRef = React.useRef<HTMLDivElement>(null);
+
+  // Resize Orchestration (Optimized 60 FPS)
   const startResizing = React.useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none'; // Prevent text selection
   }, []);
 
   React.useEffect(() => {
@@ -60,15 +64,30 @@ export function AppSidebar({
       let newWidth = position === "left" ? e.clientX : window.innerWidth - e.clientX;
       if (newWidth < 180) newWidth = 180;
       if (newWidth > 450) newWidth = 450;
-      setWidth(newWidth);
+      
+      // High-Performance Direct DOM Update
+      const provider = document.getElementById('main-sidebar-provider');
+      if (provider) {
+        provider.style.setProperty('--sidebar-width', `${newWidth}px`);
+      }
+      
+      if (sidebarRef.current) {
+        sidebarRef.current.style.width = `${newWidth}px`;
+      }
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: MouseEvent) => {
+      let finalWidth = position === "left" ? e.clientX : window.innerWidth - e.clientX;
+      if (finalWidth < 180) finalWidth = 180;
+      if (finalWidth > 450) finalWidth = 450;
+      
+      setWidth(finalWidth);
       setIsResizing(false);
+      
       document.body.style.cursor = 'default';
+      document.body.style.userSelect = 'auto';
     };
 
-    document.body.style.cursor = 'col-resize';
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     
@@ -101,6 +120,7 @@ export function AppSidebar({
   // RENDER: Vertical Mode (Standard Sidebar)
   return (
     <Sidebar 
+      ref={sidebarRef}
       collapsible="icon" 
       side={position === 'right' ? 'right' : 'left'}
       className={cn(

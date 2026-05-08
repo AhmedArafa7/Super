@@ -245,6 +245,7 @@ export function AppShell() {
 
   return (
     <SidebarProvider 
+      id="main-sidebar-provider"
       open={!isCollapsed && position !== 'floating'} 
       onOpenChange={setCollapsed}
       style={{ "--sidebar-width": (position === 'top' || position === 'bottom') ? '100%' : `${width}px` } as React.CSSProperties}
