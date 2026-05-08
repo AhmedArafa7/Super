@@ -163,7 +163,6 @@ function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }:
               </>
             )}
           </SidebarMenuButton>
-        </DropdownMenuTrigger>
         <DropdownMenuContent align="end" side="right" className="w-64 bg-slate-900/95 backdrop-blur-xl border-white/10 text-white p-2 rounded-xl shadow-2xl z-50 animate-in zoom-in-95">
           <DropdownMenuLabel className="text-xs text-indigo-400 opacity-70 px-2 py-1.5 text-right">التحكم في {item.label}</DropdownMenuLabel>
           
