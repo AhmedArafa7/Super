@@ -11,7 +11,7 @@ import {
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat,
   BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, Library,
   ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown, Clock, Tag, HeartPulse, CircuitBoard, Settings, MessageCircleQuestion,
-  Search, Play, Pause, Heart, Loader2, Music, Edit3, Headphones, CheckCircle2, ShoppingCart, LibraryBig, Gamepad2, UserCircle
+  Search, Play, Pause, Heart, Loader2, Music, Edit3, Headphones, CheckCircle2, ShoppingCart, LibraryBig, Gamepad2, UserCircle, MoreVertical
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -109,35 +109,22 @@ function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }:
     }
   };
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleRightClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (clickTimeout.current) {
-      // Double click detected
-      clearTimeout(clickTimeout.current);
-      clickTimeout.current = null;
-      setIsOpen(false);
-      executeAction(currentDefaultAction);
-    } else {
-      // Start timer to check for double click
-      clickTimeout.current = setTimeout(() => {
-        clickTimeout.current = null;
-        setIsOpen(true);
-      }, 250); // 250ms delay
-    }
+    setIsOpen(true);
   };
 
   return (
-    <SidebarMenuItem>
+    <SidebarMenuItem onContextMenu={handleRightClick}>
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen} dir="rtl">
-        <DropdownMenuTrigger asChild>
-          <SidebarMenuButton
-            isActive={activeTab === item.id}
-            onClick={handleClick}
-            className={cn(
-              "h-12 gap-4 px-4 rounded-xl transition-all flex-row-reverse justify-start relative",
-              activeTab === item.id ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
-            )}
-          >
+        <SidebarMenuButton
+          isActive={activeTab === item.id}
+          onClick={() => onTabChange(item.id)}
+          className={cn(
+            "h-12 gap-4 px-4 rounded-xl transition-all flex-row-reverse justify-start relative group",
+            activeTab === item.id ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-white/5"
+          )}
+        >
             <IconSafe 
               icon={item.icon} 
               className={cn(
@@ -161,6 +148,18 @@ function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }:
                 {item.badge !== undefined && item.badge > 0 && !isBeta && (
                   <div className="mr-auto bg-indigo-500 text-white h-5 w-5 flex items-center justify-center text-[10px] rounded-full font-bold">{item.badge}</div>
                 )}
+                
+                {/* Options Trigger (Visible on Hover) */}
+                <DropdownMenuTrigger asChild>
+                   <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="size-8 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded-lg transition-all absolute left-2 top-1/2 -translate-y-1/2 z-10"
+                    onClick={(e) => e.stopPropagation()}
+                   >
+                     <MoreVertical className="size-4" />
+                   </Button>
+                </DropdownMenuTrigger>
               </>
             )}
           </SidebarMenuButton>
