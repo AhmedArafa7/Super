@@ -90,7 +90,7 @@ export function AppShell() {
   const [launchedApp, setLaunchedApp] = useState<{ url: string, title: string, isVault?: boolean } | null>(null);
 
   const setCurrentTab = useStreamStore(state => state.setCurrentTab);
-  const { isPinned, togglePin, isCollapsed, isVisible, setCollapsed, width, setWidth } = useSidebarStore();
+  const { isPinned, togglePin, isCollapsed, isVisible, setCollapsed, width, setWidth, side } = useSidebarStore();
   const uploadTasks = useUploadStore(state => state.tasks);
   const initSettingsListener = useSettingsStore(state => state.initSettingsListener);
 
@@ -249,13 +249,17 @@ export function AppShell() {
       onOpenChange={setCollapsed}
       style={{ "--sidebar-width": `${width}px` } as React.CSSProperties}
     >
-      <div className="flex min-h-screen w-full bg-background hero-gradient overflow-hidden relative">
+      <div className={cn(
+        "flex min-h-screen w-full bg-background hero-gradient overflow-hidden relative",
+        side === "right" && "flex-row-reverse"
+      )}>
         {isVisible && (
           <SafeComponentWrapper name="AppSidebar" fallback={<SidebarFallback />}>
             <AppSidebar
               activeTab={activeTab} onTabChange={(id: any) => { setActiveTab(id); setLaunchedApp(null); setActiveRecipientId(undefined); }}
               user={user} isAuthenticated={isAuthenticated} logout={logout} isPinned={isPinned} togglePin={togglePin}
               uploadTasks={uploadTasks} unreadCount={unreadCount} pendingOffersCount={pendingOffersCount}
+              side={side}
             />
           </SafeComponentWrapper>
         )}

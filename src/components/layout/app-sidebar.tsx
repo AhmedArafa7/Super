@@ -11,7 +11,7 @@ import {
   MessageSquare, Video, ShoppingBag, Wallet, LayoutDashboard, Repeat,
   BookOpen, Rocket, MonitorSmartphone, LogOut, Layers, Bell, Library,
   ShieldCheck, GraduationCap, Zap, Microscope, Users, MessageCircle, Cpu, Megaphone, HardDrive, DownloadCloud, Crown, Clock, Tag, HeartPulse, CircuitBoard, Settings, MessageCircleQuestion,
-  Search, Play, Pause, Heart, Loader2, Music, Edit3, Headphones, CheckCircle2, ShoppingCart, LibraryBig, Gamepad2, UserCircle, MoreVertical
+  Search, Play, Pause, Heart, Loader2, Music, Edit3, Headphones, CheckCircle2, ShoppingCart, LibraryBig, Gamepad2, UserCircle, MoreVertical, ArrowLeftRight
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,7 +83,8 @@ export function getVisibleNavItems(user: any, settings: any, navItems: NavItem[]
 function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }: any) {
   const [isOpen, setIsOpen] = React.useState(false);
   const clickTimeout = React.useRef<NodeJS.Timeout | null>(null);
-  const { defaultActions, setDefaultAction } = useSectionSettingsStore();
+  const { defaultActions, setDefaultAction, toggleSide } = useSectionSettingsStore() as any;
+  const { side } = useSidebarStore();
   
   const currentDefaultAction = defaultActions[item.id] || 'open';
 
@@ -103,6 +104,9 @@ function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }:
         break;
       case 'preload':
         window.dispatchEvent(new CustomEvent('open-section-preload', { detail: { sectionId: item.id } }));
+        break;
+      case 'toggle-side':
+        useSidebarStore.getState().toggleSide();
         break;
       default:
         onTabChange(item.id);
@@ -231,6 +235,11 @@ function SmartSidebarItem({ item, activeTab, onTabChange, isCollapsed, isBeta }:
                 </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuSub>
+
+            <DropdownMenuItem onClick={() => executeAction('toggle-side')} className="flex items-center gap-3 cursor-pointer hover:bg-white/10 rounded-lg py-2.5 text-indigo-300">
+              <ArrowLeftRight className="size-4" />
+              <span className="flex-1 text-right text-sm font-medium">نقل للشريط {side === "left" ? "الأيمن" : "الأيسر"}</span>
+            </DropdownMenuItem>
           </div>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -257,7 +266,7 @@ export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logo
     if (!isResizing) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      let newWidth = e.clientX;
+      let newWidth = side === "left" ? e.clientX : window.innerWidth - e.clientX;
       // Constraints
       if (newWidth < 180) newWidth = 180;
       if (newWidth > 450) newWidth = 450;
@@ -277,7 +286,7 @@ export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logo
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, setWidth]);
+  }, [isResizing, setWidth, side]);
   
   const visibleItems = getVisibleNavItems(user, settings, ALL_NAV_ITEMS, isAuthenticated).map(item => {
     if (item.id === 'offers') return { ...item, badge: pendingOffersCount };
@@ -301,12 +310,14 @@ export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logo
         <div 
           onMouseDown={startResizing}
           className={cn(
-            "absolute -right-1 top-0 h-full w-2 cursor-col-resize z-50 group/rail",
+            "absolute top-0 h-full w-2 cursor-col-resize z-50 group/rail",
+            side === "left" ? "-right-1" : "-left-1",
             isResizing ? "bg-primary/20" : "hover:bg-primary/10"
           )}
         >
           <div className={cn(
-            "absolute right-1 top-0 h-full w-[1px] transition-colors",
+            "absolute top-0 h-full w-[1px] transition-colors",
+            side === "left" ? "right-1" : "left-1",
             isResizing ? "bg-primary" : "bg-white/5 group-hover/rail:bg-primary/50"
           )} />
         </div>
