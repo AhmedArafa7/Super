@@ -8,22 +8,29 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { UserCircle, LayoutDashboard, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSidebarStore } from "@/lib/sidebar-store";
+import { User } from "./nav-items";
+import { useSidebarLayout } from "./use-sidebar-layout";
 
-export function SidebarFooter({ user, logout, onTabChange }: any) {
-  const { isCollapsed, position } = useSidebarStore();
+interface SidebarFooterProps {
+  user: User | null;
+  logout: () => void;
+  onTabChange: (id: string) => void;
+}
+
+export function SidebarFooter({ user, logout, onTabChange }: SidebarFooterProps) {
+  const { isCollapsed, flexDir, textDir } = useSidebarLayout();
 
   return (
     <ShadcnSidebarFooter className="p-3 mt-auto border-t border-white/5">
       <div className={cn(
         "flex items-center gap-3",
-        position === "right" ? "flex-row" : "flex-row-reverse",
+        flexDir,
         isCollapsed ? "justify-center" : "px-2"
       )}>
         <DropdownMenu dir="rtl">
           <DropdownMenuTrigger asChild>
             <div className="size-9 rounded-xl bg-indigo-900/50 border border-white/10 overflow-hidden cursor-pointer relative shrink-0 group/avatar">
-              <img src={user?.avatar_url || `https://picsum.photos/seed/${user?.username}/40/40`} className="size-full object-cover group-hover/avatar:scale-110 transition-transform" />
+              <img src={user?.avatar_url || `https://picsum.photos/seed/${user?.username}/40/40`} className="size-full object-cover group-hover/avatar:scale-110 transition-transform" alt="User" />
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" side="top" className="w-64 bg-slate-900/95 backdrop-blur-2xl border-white/10 text-white p-2 rounded-[1.5rem] shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
@@ -33,7 +40,7 @@ export function SidebarFooter({ user, logout, onTabChange }: any) {
                   <UserCircle className="size-6" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-black truncate">{user?.name}</p>
+                  <p className="text-sm font-black truncate">{user?.name || 'مستخدم'}</p>
                   <p className="text-[10px] text-muted-foreground truncate uppercase tracking-tighter">عضو نظام Nexus</p>
                 </div>
               </div>
@@ -62,9 +69,9 @@ export function SidebarFooter({ user, logout, onTabChange }: any) {
         {!isCollapsed && (
           <div className={cn(
             "flex-1 min-w-0 animate-in fade-in slide-in-from-right-1 cursor-default",
-            position === "right" ? "text-left" : "text-right"
+            textDir
           )}>
-            <p className="text-xs font-bold truncate text-white">{user?.name}</p>
+            <p className="text-xs font-bold truncate text-white">{user?.name || 'مستخدم'}</p>
             <p className="text-[9px] text-muted-foreground truncate capitalize">عضو مفعل</p>
           </div>
         )}

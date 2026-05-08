@@ -6,14 +6,34 @@ import {
 } from "lucide-react";
 import React from "react";
 
-export type NavItem = {
+/**
+ * [TYPES & INTERFACES]
+ * تعريفات صارمة لضمان سلامة البيانات في كل أجزاء التطبيق.
+ */
+
+export interface User {
+  id?: string;
+  name?: string;
+  username?: string;
+  role?: 'founder' | 'cofounder' | 'admin' | 'management' | 'user';
+  avatar_url?: string;
+}
+
+export interface NavItem {
   id: string;
   label: string;
   icon: React.ElementType;
   restricted: boolean;
   isPermanent?: boolean;
   badge?: number;
-};
+}
+
+export interface UploadTask {
+  id: string;
+  fileName: string;
+  progress: number;
+  status: 'uploading' | 'completed' | 'error';
+}
 
 export const ALL_NAV_ITEMS: NavItem[] = [
   { id: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard, restricted: false, isPermanent: true },
@@ -47,9 +67,9 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { id: "admin", label: "لوحة الإدارة", icon: ShieldCheck, restricted: true },
 ];
 
-export function getVisibleNavItems(user: any, settings: any, navItems: NavItem[], isAuthenticated: boolean = true) {
+export function getVisibleNavItems(user: User | null, settings: any, navItems: NavItem[], isAuthenticated: boolean = true) {
   const managementRoles = ['founder', 'cofounder', 'admin', 'management'];
-  const hasAdminAccess = isAuthenticated && user && managementRoles.includes(user.role);
+  const hasAdminAccess = isAuthenticated && user && user.role && managementRoles.includes(user.role);
   
   const isBeta = (id: string) => settings?.sections?.[id]?.isBeta ?? false;
 

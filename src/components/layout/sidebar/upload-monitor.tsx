@@ -4,8 +4,13 @@ import React from "react";
 import { Zap } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { IconSafe } from "@/components/ui/icon-safe";
+import { UploadTask } from "./nav-items";
 
-export function UploadMonitor({ tasks }: any) {
+interface UploadMonitorProps {
+  tasks: UploadTask[];
+}
+
+export function UploadMonitor({ tasks }: UploadMonitorProps) {
   if (!tasks || tasks.length === 0) return null;
 
   return (
@@ -14,13 +19,13 @@ export function UploadMonitor({ tasks }: any) {
         <p className="text-[10px] uppercase font-bold text-indigo-400 tracking-[0.2em]">مراقب الرفع</p>
         <IconSafe icon={Zap} className="size-3 text-indigo-400 animate-pulse" />
       </div>
-      {tasks.map((task: any) => (
+      {tasks.map((task) => (
         <div key={task.id} className="p-2.5 bg-white/5 border border-white/10 rounded-xl space-y-2">
           <div className="flex items-center justify-between gap-2 flex-row-reverse">
             <p className="text-[9px] text-white font-bold truncate flex-1 text-right">{task.fileName}</p>
             <span className="text-[8px] text-primary font-black">{task.progress}%</span>
           </div>
-          <Progress value={task.progress} className="h-1 bg-white/5" />
+          <Progress value={task.progress} className="h-1 bg-white/5 shadow-[0_0_10px_rgba(var(--primary),0.2)]" />
         </div>
       ))}
     </div>

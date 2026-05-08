@@ -13,7 +13,7 @@ import { useSidebarStore } from "@/lib/sidebar-store";
 import { IconSafe } from "@/components/ui/icon-safe";
 
 // Modular LEGO Components
-import { ALL_NAV_ITEMS, getVisibleNavItems } from "./nav-items";
+import { ALL_NAV_ITEMS, getVisibleNavItems, User, UploadTask } from "./nav-items";
 import { SmartSidebarItem } from "./smart-sidebar-item";
 import { FloatingOrb } from "./floating-orb";
 import { HorizontalSidebar } from "./horizontal-sidebar";
@@ -21,10 +21,29 @@ import { SidebarHeader } from "./sidebar-header";
 import { SidebarFooter } from "./sidebar-footer";
 import { UploadMonitor } from "./upload-monitor";
 import { ResizeHandle } from "./resize-handle";
+import { useSidebarLayout } from "./use-sidebar-layout";
 
-export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logout, isPinned, togglePin, uploadTasks, unreadCount, pendingOffersCount, position }: any) {
+interface AppSidebarProps {
+  activeTab: string;
+  onTabChange: (id: string) => void;
+  user: User | null;
+  isAuthenticated: boolean;
+  logout: () => void;
+  isPinned: (id: string) => boolean;
+  togglePin: (id: string) => void;
+  uploadTasks: UploadTask[];
+  unreadCount: number;
+  pendingOffersCount: number;
+  position: 'left' | 'right' | 'top' | 'bottom' | 'floating';
+}
+
+export function AppSidebar({ 
+  activeTab, onTabChange, user, isAuthenticated, logout, isPinned, 
+  togglePin, uploadTasks, unreadCount, pendingOffersCount 
+}: AppSidebarProps) {
   const { settings } = useSettingsStore();
-  const { isCollapsed, width, setWidth } = useSidebarStore();
+  const { setWidth } = useSidebarStore();
+  const { isCollapsed, position, isFloating, isHorizontal } = useSidebarLayout();
   
   const [isResizing, setIsResizing] = React.useState(false);
 
@@ -35,7 +54,7 @@ export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logo
   }, []);
 
   React.useEffect(() => {
-    if (!isResizing || position === 'floating' || position === 'top' || position === 'bottom') return;
+    if (!isResizing || isFloating || isHorizontal) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       let newWidth = position === "left" ? e.clientX : window.innerWidth - e.clientX;
@@ -57,7 +76,7 @@ export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logo
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, setWidth, position]);
+  }, [isResizing, setWidth, position, isFloating, isHorizontal]);
   
   // Data Orchestration
   const visibleItems = getVisibleNavItems(user, settings, ALL_NAV_ITEMS, isAuthenticated).map(item => {
@@ -70,12 +89,12 @@ export function AppSidebar({ activeTab, onTabChange, user, isAuthenticated, logo
   const pinnedSidebarItems = visibleItems.filter(item => item.isPermanent || isPinned(item.id));
 
   // RENDER: Floating Mode
-  if (position === 'floating') {
+  if (isFloating) {
     return <FloatingOrb visibleItems={visibleItems} activeTab={activeTab} onTabChange={onTabChange} />;
   }
 
   // RENDER: Horizontal Mode (Top / Bottom)
-  if (position === 'top' || position === 'bottom') {
+  if (isHorizontal) {
     return <HorizontalSidebar visibleItems={visibleItems} activeTab={activeTab} onTabChange={onTabChange} position={position} />;
   }
 

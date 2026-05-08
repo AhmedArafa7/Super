@@ -10,10 +10,18 @@ import {
 } from "lucide-react";
 import { useSidebarStore } from "@/lib/sidebar-store";
 import { useSectionSettingsStore } from "@/lib/section-settings-store";
+import { NavItem } from "./nav-items";
+import { useSidebarLayout } from "./use-sidebar-layout";
 
-export function SidebarItemContextMenu({ item, onTabChange }: any) {
+interface SidebarItemContextMenuProps {
+  item: NavItem;
+  onTabChange: (id: string) => void;
+}
+
+export function SidebarItemContextMenu({ item, onTabChange }: SidebarItemContextMenuProps) {
   const { defaultActions, setDefaultAction } = useSectionSettingsStore() as any;
-  const { position } = useSidebarStore();
+  const { setPosition } = useSidebarStore();
+  const { dropdownSide } = useSidebarLayout();
   const currentDefaultAction = defaultActions[item.id] || 'open';
 
   const executeAction = (action: string) => {
@@ -23,11 +31,11 @@ export function SidebarItemContextMenu({ item, onTabChange }: any) {
       case 'design': window.dispatchEvent(new CustomEvent('open-section-design', { detail: { sectionId: item.id } })); break;
       case 'feature': window.dispatchEvent(new CustomEvent('open-section-feature', { detail: { sectionId: item.id } })); break;
       case 'preload': window.dispatchEvent(new CustomEvent('open-section-preload', { detail: { sectionId: item.id } })); break;
-      case 'set-pos-left': useSidebarStore.getState().setPosition('left'); break;
-      case 'set-pos-right': useSidebarStore.getState().setPosition('right'); break;
-      case 'set-pos-top': useSidebarStore.getState().setPosition('top'); break;
-      case 'set-pos-bottom': useSidebarStore.getState().setPosition('bottom'); break;
-      case 'set-pos-floating': useSidebarStore.getState().setPosition('floating'); break;
+      case 'set-pos-left': setPosition('left'); break;
+      case 'set-pos-right': setPosition('right'); break;
+      case 'set-pos-top': setPosition('top'); break;
+      case 'set-pos-bottom': setPosition('bottom'); break;
+      case 'set-pos-floating': setPosition('floating'); break;
       default: onTabChange(item.id);
     }
   };
@@ -35,7 +43,7 @@ export function SidebarItemContextMenu({ item, onTabChange }: any) {
   return (
     <DropdownMenuContent 
       align="end" 
-      side={position === "left" ? "right" : "left"} 
+      side={dropdownSide} 
       className="w-64 bg-slate-900/95 backdrop-blur-xl border-white/10 text-white p-2 rounded-xl shadow-2xl z-50 animate-in zoom-in-95"
     >
       <DropdownMenuLabel className="text-xs text-indigo-400 opacity-70 px-2 py-1.5 text-right">التحكم في {item.label}</DropdownMenuLabel>
