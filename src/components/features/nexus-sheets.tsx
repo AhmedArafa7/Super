@@ -5,7 +5,8 @@ import {
   Table as TableIcon, Plus, Trash2, Edit3, Save, Download, 
   Search, Filter, MoreHorizontal, ArrowUpDown, ChevronDown,
   LayoutGrid, List, FileSpreadsheet, PlusCircle, Database,
-  Calendar, Hash, Type, CheckCircle2, History, Settings2
+  Calendar, Hash, Type, CheckCircle2, History, Settings2,
+  Users, Package, TrendingUp, Settings
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,7 +62,11 @@ export function NexusSheets() {
   useEffect(() => {
     const saved = localStorage.getItem('nexus-sheets-data');
     if (saved) {
-      setTables(JSON.parse(saved));
+      const parsed = JSON.parse(saved);
+      setTables(parsed);
+      if (parsed.length > 0 && !activeTable) {
+        setActiveTable(parsed[0]);
+      }
     }
   }, []);
 
@@ -83,9 +88,10 @@ export function NexusSheets() {
       columns: [
         { id: 'col1', name: 'الاسم', type: 'text' },
         { id: 'col2', name: 'القيمة', type: 'number' },
+        { id: 'col3', name: 'التاريخ', type: 'date' },
       ],
       rows: [
-        { id: 'row1', col1: 'مثال 1', col2: 50 },
+        { id: 'row1', col1: 'مثال 1', col2: 50, col3: new Date().toISOString().split('T')[0] },
       ]
     };
 
@@ -95,13 +101,13 @@ export function NexusSheets() {
     setNewTableName('');
     setNewTableDesc('');
     setActiveTable(newTable);
-    toast({ title: "تم إنشاء الجدول", description: "يمكنك الآن البدء في إضافة البيانات." });
+    toast({ title: "تم إنشاء الجدول بنجاح" });
   };
 
   const deleteTable = (id: string) => {
     const updated = tables.filter(t => t.id !== id);
     saveToStorage(updated);
-    if (activeTable?.id === id) setActiveTable(null);
+    if (activeTable?.id === id) setActiveTable(updated[0] || null);
     toast({ title: "تم حذف الجدول", variant: "destructive" });
   };
 
@@ -156,294 +162,265 @@ export function NexusSheets() {
   );
 
   return (
-    <div className="h-full flex flex-col bg-slate-950/40 animate-in fade-in duration-700">
-      {/* Universal Section Header */}
-      <header className="px-8 py-8 border-b border-white/5 bg-slate-900/60 backdrop-blur-3xl flex items-center justify-between shrink-0 flex-row-reverse relative overflow-hidden">
-        <div className="absolute top-0 right-0 size-64 bg-primary/10 blur-[100px] -translate-y-1/2 translate-x-1/2" />
-        
-        <div className="flex items-center gap-6 flex-row-reverse relative z-10">
-          <div className="size-14 bg-gradient-to-br from-primary to-indigo-600 rounded-[1.25rem] flex items-center justify-center text-white shadow-2xl shadow-primary/20 shrink-0">
-            <FileSpreadsheet className="size-7" />
-          </div>
-          <div className="text-right">
-            <h1 className="text-2xl font-black text-white tracking-tight leading-none mb-2">Nexus Sheets</h1>
-            <div className="flex items-center gap-2 justify-end opacity-60">
-               <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-widest">إدارة الجداول الذكية</span>
-               <div className="size-1 rounded-full bg-indigo-500" />
-               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{tables.length} جداول نشطة</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 relative z-10">
-          {!activeTable && (
-            <>
-              <div className="relative w-72 group">
-                <Search className="absolute right-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                <Input 
-                  placeholder="البحث عن جدول بيانات..." 
-                  className="pr-12 bg-white/5 border-white/10 rounded-2xl h-12 text-sm text-right focus:ring-primary/20 focus:border-primary/30 transition-all"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                <DialogTrigger asChild>
-                  <Button className="rounded-2xl h-12 px-8 font-black gap-3 bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95 text-white">
-                    <Plus className="size-5" /> إنشاء جدول
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="bg-slate-900 border-white/10 text-white rounded-[2.5rem] sm:max-w-[425px] overflow-hidden">
-                  <div className="absolute top-0 right-0 size-32 bg-primary/10 blur-3xl" />
-                  <DialogHeader className="relative z-10">
-                    <DialogTitle className="text-right text-2xl font-black mb-1">جدول بيانات جديد</DialogTitle>
-                    <DialogDescription className="text-right text-muted-foreground">قم بتنظيم بياناتك في بيئة Nexus الذكية.</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-5 py-6 relative z-10">
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-black text-right text-primary uppercase tracking-[0.2em] px-1">اسم الجدول</p>
-                      <Input 
-                        value={newTableName} 
-                        onChange={(e) => setNewTableName(e.target.value)}
-                        placeholder="مثال: مبيعات المتجر" 
-                        className="bg-white/5 border-white/10 text-right h-14 rounded-2xl focus:ring-primary/20" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-black text-right text-primary uppercase tracking-[0.2em] px-1">وصف الجدول</p>
-                      <Input 
-                        value={newTableDesc} 
-                        onChange={(e) => setNewTableDesc(e.target.value)}
-                        placeholder="سجل العمليات اليومية..." 
-                        className="bg-white/5 border-white/10 text-right h-14 rounded-2xl focus:ring-primary/20" 
-                      />
-                    </div>
+    <div className="h-full flex bg-slate-950/40 text-white overflow-hidden animate-in fade-in duration-500">
+      
+      {/* 1. RIGHT SIDEBAR: Table Navigation */}
+      <aside className="w-72 border-l border-white/5 bg-slate-900/60 backdrop-blur-3xl flex flex-col shrink-0">
+        <div className="p-6 border-b border-white/5">
+           <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-black gap-3 shadow-lg shadow-primary/20 transition-all active:scale-95">
+                  <Plus className="size-5" /> جدول جديد
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-900 border-white/10 text-white rounded-[2rem] sm:max-w-[400px]">
+                <DialogHeader>
+                  <DialogTitle className="text-right text-xl font-black">إنشاء جدول جديد</DialogTitle>
+                  <DialogDescription className="text-right">أضف اسماً لوصف بياناتك الجديدة.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-6">
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black text-right text-primary uppercase tracking-widest px-1">اسم الجدول</p>
+                    <Input 
+                      value={newTableName} 
+                      onChange={(e) => setNewTableName(e.target.value)}
+                      placeholder="مثال: قاعدة المبيعات" 
+                      className="bg-white/5 border-white/10 text-right h-12 rounded-xl focus:ring-primary/20" 
+                    />
                   </div>
-                  <DialogFooter className="relative z-10">
-                    <Button onClick={createTable} className="w-full h-14 rounded-2xl font-black bg-primary text-white shadow-lg shadow-primary/20">تأكيد الإنشاء</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </>
-          )}
-          {activeTable && (
-             <div className="flex items-center gap-2">
-                <Button variant="outline" className="rounded-xl border-white/10 h-11 px-5 font-bold gap-2 hover:bg-white/5 text-muted-foreground hover:text-white transition-all">
-                  <History className="size-4" /> السجل
-                </Button>
-                <Button variant="outline" className="rounded-xl border-white/10 h-11 px-5 font-bold gap-2 hover:bg-white/5 text-muted-foreground hover:text-white transition-all">
-                  <Settings2 className="size-4" /> الإعدادات
-                </Button>
-                <Button onClick={() => setActiveTable(null)} className="rounded-xl h-11 px-5 font-black bg-white/5 hover:bg-white/10 text-white border border-white/10">خروج</Button>
-             </div>
-          )}
+                </div>
+                <DialogFooter>
+                  <Button onClick={createTable} className="w-full h-12 rounded-xl font-black bg-primary text-white">تأكيد</Button>
+                </DialogFooter>
+              </DialogContent>
+           </Dialog>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
-        {activeTable ? (
-          /* Table Editor View */
-          <div className="h-full flex flex-col animate-in slide-in-from-left-4 duration-500">
-            <div className="px-8 py-4 bg-slate-900/20 border-b border-white/5 flex items-center justify-between flex-row-reverse">
-              <div className="flex items-center gap-4 flex-row-reverse">
-                <div className="size-10 rounded-xl bg-white/5 flex items-center justify-center text-primary border border-white/5">
-                   <Database className="size-5" />
-                </div>
-                <div className="text-right">
-                  <h2 className="text-sm font-black text-white">{activeTable.name}</h2>
-                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">قيد التعديل الآن</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Button onClick={addRow} className="rounded-xl h-10 px-6 bg-primary text-white font-bold gap-2 shadow-lg shadow-primary/10">
-                  <PlusCircle className="size-4" /> إضافة سجل
-                </Button>
-                <DropdownMenu dir="rtl">
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="rounded-xl h-10 px-4 border-white/10 text-muted-foreground hover:text-white gap-2">
-                      <Plus className="size-4" /> إضافة عمود
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="bg-slate-900 border-white/10 text-white w-48 rounded-2xl p-2 shadow-2xl">
-                    <DropdownMenuLabel className="text-right text-[10px] uppercase font-black text-primary p-2">نوع البيانات</DropdownMenuLabel>
-                    <DropdownMenuSeparator className="bg-white/10" />
-                    <DropdownMenuItem onClick={() => addColumn('نص جديد', 'text')} className="flex-row-reverse text-right gap-3 p-3 rounded-xl hover:bg-white/5"><Type className="size-4 text-blue-400" /> نص</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => addColumn('رقم جديد', 'number')} className="flex-row-reverse text-right gap-3 p-3 rounded-xl hover:bg-white/5"><Hash className="size-4 text-emerald-400" /> رقم</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => addColumn('تاريخ جديد', 'date')} className="flex-row-reverse text-right gap-3 p-3 rounded-xl hover:bg-white/5"><Calendar className="size-4 text-amber-400" /> تاريخ</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-
-            <ScrollArea className="flex-1">
-              <div className="p-8 pb-32">
-                <div className="rounded-[2rem] border border-white/10 bg-slate-900/40 backdrop-blur-md overflow-hidden shadow-2xl">
-                  <Table>
-                    <TableHeader className="bg-white/5">
-                      <TableRow className="border-white/5 hover:bg-transparent">
-                        {activeTable.columns.map(col => (
-                          <TableHead key={col.id} className="text-right text-indigo-300 font-black text-[10px] uppercase tracking-[0.15em] h-16 border-l border-white/5 px-6">
-                            <div className="flex items-center justify-end gap-3">
-                              {col.type === 'text' && <Type className="size-3.5 opacity-40" />}
-                              {col.type === 'number' && <Hash className="size-3.5 opacity-40" />}
-                              {col.type === 'date' && <Calendar className="size-3.5 opacity-40" />}
-                              {col.name}
-                            </div>
-                          </TableHead>
-                        ))}
-                        <TableHead className="w-20 h-16 bg-white/5"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {activeTable.rows.map((row) => (
-                        <TableRow key={row.id} className="border-white/5 hover:bg-white/[0.03] transition-colors group">
-                          {activeTable.columns.map(col => (
-                            <TableCell key={col.id} className="p-0 border-l border-white/5">
-                              <input 
-                                className="w-full h-14 bg-transparent px-6 text-right text-sm text-white/80 focus:text-white focus:bg-primary/5 focus:outline-none transition-all placeholder:text-white/10 font-medium"
-                                value={row[col.id]}
-                                type={col.type === 'number' ? 'number' : 'text'}
-                                onChange={(e) => updateCell(row.id, col.id, e.target.value)}
-                              />
-                            </TableCell>
-                          ))}
-                          <TableCell className="p-0">
-                             <div className="flex items-center justify-center h-14">
-                               <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="size-9 opacity-0 group-hover:opacity-100 text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all rounded-xl"
-                                onClick={() => {
-                                  const updatedRows = activeTable.rows.filter(r => r.id !== row.id);
-                                  const updatedTable = { ...activeTable, rows: updatedRows };
-                                  setActiveTable(updatedTable);
-                                  saveToStorage(tables.map(t => t.id === activeTable.id ? updatedTable : t));
-                                }}
-                              >
-                                 <Trash2 className="size-4" />
-                               </Button>
-                             </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  {activeTable.rows.length === 0 && (
-                    <div className="py-24 text-center">
-                      <div className="size-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Plus className="size-10 text-muted-foreground/30" />
-                      </div>
-                      <p className="text-muted-foreground font-bold">لا توجد بيانات حالياً في هذا الجدول</p>
-                      <Button variant="ghost" className="mt-4 text-primary font-black hover:bg-primary/10 rounded-2xl h-12 px-8" onClick={addRow}>إضافة أول سجل</Button>
-                    </div>
+        <ScrollArea className="flex-1 px-3 py-4">
+           <div className="space-y-1">
+              {tables.map((table) => (
+                <button
+                  key={table.id}
+                  onClick={() => setActiveTable(table)}
+                  className={cn(
+                    "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all flex-row-reverse group",
+                    activeTable?.id === table.id 
+                      ? "bg-primary/20 text-primary border border-primary/20" 
+                      : "text-muted-foreground hover:bg-white/5 hover:text-white"
                   )}
+                >
+                  <div className="flex items-center gap-3 flex-row-reverse overflow-hidden">
+                     <FileSpreadsheet className={cn("size-4 shrink-0", activeTable?.id === table.id ? "text-primary" : "text-muted-foreground")} />
+                     <span className="text-xs font-bold truncate text-right">{table.name}</span>
+                  </div>
+                  {activeTable?.id === table.id && <div className="size-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" />}
+                </button>
+              ))}
+              
+              {tables.length === 0 && (
+                <div className="px-4 py-10 text-center opacity-30">
+                   <Database className="size-10 mx-auto mb-3" />
+                   <p className="text-[10px] font-bold uppercase tracking-widest">لا توجد جداول</p>
+                </div>
+              )}
+           </div>
+        </ScrollArea>
+
+        <div className="p-4 border-t border-white/5">
+           <Button variant="ghost" className="w-full justify-end gap-3 text-muted-foreground hover:text-white rounded-xl h-11 px-4 flex-row-reverse">
+              <Settings className="size-4" />
+              <span className="text-xs font-bold">الإعدادات العامة</span>
+           </Button>
+        </div>
+      </aside>
+
+      {/* 2. MAIN CONTENT AREA */}
+      <main className="flex-1 flex flex-col overflow-hidden relative">
+        
+        {/* Top Navigation / Search */}
+        <header className="h-16 border-b border-white/5 bg-slate-900/40 backdrop-blur-xl flex items-center justify-between px-8 shrink-0 flex-row-reverse">
+           <div className="flex items-center gap-4 flex-row-reverse">
+              <h1 className="text-sm font-black text-white tracking-tight">Nexus Sheets</h1>
+              <div className="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
+                 <FileSpreadsheet className="size-4" />
+              </div>
+           </div>
+           
+           <div className="relative w-[500px] group">
+              <Search className="absolute right-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input 
+                placeholder="ابحث عن سجل أو قيمة..." 
+                className="w-full h-10 pr-12 bg-slate-950/50 border-white/5 rounded-xl text-xs text-right focus:ring-primary/20 focus:border-primary/20 transition-all"
+              />
+           </div>
+
+           <div className="flex items-center gap-3">
+              <div className="bg-slate-950/50 border border-white/5 px-3 py-1.5 rounded-lg flex items-center gap-3 flex-row-reverse">
+                 <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                 <span className="text-[10px] font-bold tabular-nums">150.00</span>
+                 <WalletViewIcon className="size-3 text-primary" />
+              </div>
+              <Button variant="ghost" size="icon" className="size-10 rounded-xl relative">
+                 <BellIcon className="size-5 text-muted-foreground" />
+                 <div className="absolute top-2 right-2 size-2 bg-red-500 rounded-full border-2 border-slate-950" />
+              </Button>
+           </div>
+        </header>
+
+        {activeTable ? (
+          /* TABLE VIEW */
+          <div className="flex-1 flex flex-col overflow-hidden p-8 animate-in slide-in-from-left-2 duration-500">
+             
+             {/* Sub-Header */}
+             <div className="flex items-center justify-between mb-6 flex-row-reverse">
+                <div className="flex flex-col items-end">
+                   <div className="flex items-center gap-3 flex-row-reverse">
+                      <h2 className="text-2xl font-black text-white">{activeTable.name}</h2>
+                      <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 rounded-lg text-[10px] px-2 h-5">نشط</Badge>
+                   </div>
+                   <p className="text-[10px] text-muted-foreground mt-1 font-medium">آخر تعديل: منذ دقيقتين</p>
                 </div>
                 
-                {/* Aggregations */}
-                <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-                   {activeTable.columns.filter(c => c.type === 'number').map(col => {
-                     const total = activeTable.rows.reduce((sum, r) => sum + (Number(r[col.id]) || 0), 0);
-                     return (
-                       <Card key={col.id} className="bg-slate-900/60 border-white/5 backdrop-blur-3xl rounded-[2.5rem] overflow-hidden shadow-2xl">
-                         <CardContent className="p-7 flex items-center justify-between flex-row-reverse">
-                           <div className="size-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-inner">
-                             <Database className="size-7" />
-                           </div>
-                           <div className="text-right">
-                             <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 opacity-60">إجمالي {col.name}</p>
-                             <p className="text-2xl font-black text-white tabular-nums">{total.toLocaleString()}</p>
-                           </div>
-                         </CardContent>
-                       </Card>
-                     )
-                   })}
+                <div className="flex items-center gap-2">
+                   <Button variant="outline" className="h-9 px-4 rounded-xl border-white/5 bg-slate-900/40 text-[10px] font-bold gap-2 hover:bg-white/5 flex-row-reverse">
+                      <History className="size-3.5" /> السجل
+                   </Button>
+                   <Button variant="outline" onClick={() => addColumn('جديد', 'text')} className="h-9 px-4 rounded-xl border-white/5 bg-slate-900/40 text-[10px] font-bold gap-2 hover:bg-white/5 flex-row-reverse">
+                      <LayoutGrid className="size-3.5" /> عمود جديد
+                   </Button>
+                   <Button onClick={addRow} className="h-9 px-6 rounded-xl bg-primary text-white text-[10px] font-black gap-2 shadow-lg shadow-primary/10 flex-row-reverse">
+                      <Plus className="size-4" /> إضافة سجل
+                   </Button>
                 </div>
-              </div>
-            </ScrollArea>
+             </div>
+
+             {/* Table Container */}
+             <div className="flex-1 overflow-hidden flex flex-col rounded-2xl border border-white/5 bg-slate-900/20 backdrop-blur-md shadow-2xl relative">
+                <ScrollArea className="flex-1">
+                   <Table>
+                      <TableHeader className="bg-slate-900/40 border-b border-white/5 sticky top-0 z-20">
+                         <TableRow className="border-white/5 hover:bg-transparent h-14">
+                            <TableHead className="w-12 text-center border-l border-white/5">
+                               <Settings2 className="size-4 mx-auto opacity-40" />
+                            </TableHead>
+                            {activeTable.columns.slice().reverse().map(col => (
+                              <TableHead key={col.id} className="text-right text-muted-foreground font-black text-[10px] uppercase tracking-widest border-l border-white/5 px-6">
+                                <div className="flex items-center justify-end gap-3">
+                                   <ArrowUpDown className="size-3 opacity-30" />
+                                   {col.name}
+                                   {col.type === 'text' && <Type className="size-3 opacity-50" />}
+                                   {col.type === 'number' && <Hash className="size-3 opacity-50" />}
+                                   {col.type === 'date' && <Calendar className="size-3 opacity-50" />}
+                                </div>
+                              </TableHead>
+                            ))}
+                            <TableHead className="w-12 border-l border-white/5">
+                               <Settings2 className="size-4 mx-auto opacity-40" />
+                            </TableHead>
+                         </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                         {activeTable.rows.map((row) => (
+                           <TableRow key={row.id} className="border-white/5 hover:bg-white/[0.02] transition-colors group h-14">
+                              <TableCell className="p-0 border-l border-white/5 text-center">
+                                 <Button variant="ghost" size="icon" className="size-8 opacity-0 group-hover:opacity-100 rounded-lg">
+                                    <MoreHorizontal className="size-4 opacity-40" />
+                                 </Button>
+                              </TableCell>
+                              {activeTable.columns.slice().reverse().map(col => (
+                                <TableCell key={col.id} className="p-0 border-l border-white/5">
+                                   <input 
+                                     className="w-full h-14 bg-transparent px-6 text-right text-xs text-white/70 focus:text-white focus:bg-primary/5 focus:outline-none transition-all tabular-nums"
+                                     value={row[col.id]}
+                                     onChange={(e) => updateCell(row.id, col.id, e.target.value)}
+                                   />
+                                </TableCell>
+                              ))}
+                              <TableCell className="p-0 border-l border-white/5 text-center">
+                                 <DropdownMenu dir="rtl">
+                                    <DropdownMenuTrigger asChild>
+                                       <Button variant="ghost" size="icon" className="size-8 opacity-0 group-hover:opacity-100 rounded-lg">
+                                          <MoreHorizontal className="size-4 opacity-40" />
+                                       </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="bg-slate-900 border-white/10 text-white rounded-xl">
+                                       <DropdownMenuItem onClick={() => {
+                                          const updatedRows = activeTable.rows.filter(r => r.id !== row.id);
+                                          const updatedTable = { ...activeTable, rows: updatedRows };
+                                          setActiveTable(updatedTable);
+                                          saveToStorage(tables.map(t => t.id === activeTable.id ? updatedTable : t));
+                                       }} className="text-red-400 gap-2 flex-row-reverse text-right">
+                                          <Trash2 className="size-4" /> حذف السجل
+                                       </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                 </DropdownMenu>
+                              </TableCell>
+                           </TableRow>
+                         ))}
+                         
+                         {/* Placeholder Row */}
+                         <TableRow className="border-none opacity-20 h-14">
+                            <TableCell></TableCell>
+                            {activeTable.columns.map(c => <TableCell key={c.id} className="text-right px-6 text-[10px] font-bold uppercase tracking-tighter">
+                               {c.type === 'date' ? 'dd/mm/yyyy' : c.type === 'number' ? '0.00' : 'أضف اسم...'}
+                            </TableCell>)}
+                            <TableCell></TableCell>
+                         </TableRow>
+                      </TableBody>
+                   </Table>
+                </ScrollArea>
+                
+                {/* Aggregation Footer */}
+                <div className="h-10 bg-slate-950/60 border-t border-white/5 flex items-center justify-between px-8 text-[10px] font-bold text-muted-foreground shrink-0 flex-row-reverse">
+                   <div className="flex items-center gap-6 flex-row-reverse">
+                      {activeTable.columns.filter(c => c.type === 'number').map(col => {
+                         const total = activeTable.rows.reduce((sum, r) => sum + (Number(r[col.id]) || 0), 0);
+                         return (
+                            <div key={col.id} className="flex items-center gap-2 flex-row-reverse">
+                               <span className="text-white tabular-nums font-black">{total.toFixed(2)}</span>
+                               <span>المجموع:</span>
+                            </div>
+                         )
+                      })}
+                   </div>
+                   <div className="flex items-center gap-2 flex-row-reverse">
+                      <span className="text-white">{activeTable.rows.length}</span>
+                      <span>سجلات</span>
+                   </div>
+                </div>
+             </div>
           </div>
         ) : (
-          /* Dashboard View */
-          <ScrollArea className="h-full">
-            <div className="p-10 space-y-10">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
-                {/* Stats Summary */}
-                <Card className="bg-gradient-to-br from-primary/30 to-indigo-600/30 border-primary/20 backdrop-blur-3xl rounded-[3rem] relative overflow-hidden group hover:scale-[1.02] transition-all duration-500 cursor-default shadow-2xl shadow-primary/10">
-                  <div className="absolute top-0 left-0 size-full bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.1),transparent_70%)]" />
-                  <CardContent className="p-10 flex flex-col items-center text-center relative z-10">
-                     <div className="size-20 bg-white/20 rounded-[2rem] flex items-center justify-center mb-6 border border-white/20 group-hover:rotate-12 transition-transform duration-500 shadow-xl">
-                        <FileSpreadsheet className="size-10 text-white" />
-                     </div>
-                     <h3 className="text-5xl font-black text-white mb-2 tabular-nums">{tables.length}</h3>
-                     <p className="text-xs font-black text-white/70 uppercase tracking-[0.2em]">قاعدة بيانات نشطة</p>
-                  </CardContent>
-                </Card>
-
-                {/* Table Cards */}
-                {filteredTables.map((table) => (
-                  <Card 
-                    key={table.id} 
-                    className="bg-slate-900/40 border-white/5 backdrop-blur-2xl rounded-[3rem] hover:bg-slate-900/60 transition-all group relative overflow-hidden flex flex-col shadow-xl hover:shadow-primary/5 hover:border-primary/20"
-                  >
-                    <CardHeader className="p-8 pb-4 text-right relative z-10">
-                      <div className="flex items-center justify-between mb-6 flex-row-reverse">
-                         <Badge className="bg-white/5 text-muted-foreground border-white/10 rounded-full px-4 py-1 font-bold text-[10px] uppercase tracking-tighter">{table.category}</Badge>
-                         <DropdownMenu dir="rtl">
-                            <DropdownMenuTrigger asChild>
-                               <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-white/5 size-10">
-                                  <MoreHorizontal className="size-5" />
-                               </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="bg-slate-900 border-white/10 text-white w-48 rounded-2xl p-2 shadow-2xl">
-                               <DropdownMenuLabel className="text-right text-[10px] font-black text-muted-foreground p-2 uppercase">خيارات الجدول</DropdownMenuLabel>
-                               <DropdownMenuSeparator className="bg-white/10" />
-                               <DropdownMenuItem onClick={() => setActiveTable(table)} className="flex-row-reverse text-right gap-4 p-3 rounded-xl hover:bg-white/5 font-bold"><Edit3 className="size-4" /> تعديل البيانات</DropdownMenuItem>
-                               <DropdownMenuItem className="flex-row-reverse text-right gap-4 p-3 rounded-xl hover:bg-white/5 font-bold"><Download className="size-4" /> تصدير PDF</DropdownMenuItem>
-                               <DropdownMenuSeparator className="bg-white/10" />
-                               <DropdownMenuItem onClick={() => deleteTable(table.id)} className="flex-row-reverse text-right gap-4 p-3 rounded-xl hover:bg-red-500/10 text-red-400 font-bold"><Trash2 className="size-4" /> حذف نهائي</DropdownMenuItem>
-                            </DropdownMenuContent>
-                         </DropdownMenu>
-                      </div>
-                      <CardTitle className="text-2xl font-black text-white mb-2 leading-tight">{table.name}</CardTitle>
-                      <CardDescription className="text-sm font-medium line-clamp-1 opacity-60">{table.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-8 pt-0 mt-auto relative z-10">
-                      <div className="flex items-center justify-between border-t border-white/5 pt-6 flex-row-reverse">
-                         <div className="flex items-center gap-2 flex-row-reverse opacity-50">
-                            <Database className="size-3.5" />
-                            <span className="text-xs font-black tabular-nums">{table.rows.length}</span>
-                            <span className="text-[10px] font-bold uppercase tracking-tighter">سجل</span>
-                         </div>
-                         <Button 
-                          onClick={() => setActiveTable(table)} 
-                          className="rounded-2xl font-black text-xs bg-primary/10 hover:bg-primary text-primary hover:text-white transition-all px-6 h-11 shadow-inner"
-                         >
-                           فتح الجدول
-                         </Button>
-                      </div>
-                    </CardContent>
-                    <div className="absolute bottom-0 right-0 size-32 bg-primary/5 blur-3xl rounded-full" />
-                  </Card>
-                ))}
-
-                {/* Empty State */}
-                {tables.length === 0 && !searchQuery && (
-                  <div 
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="col-span-full border-2 border-dashed border-white/10 rounded-[4rem] h-80 flex flex-col items-center justify-center cursor-pointer hover:bg-white/[0.02] hover:border-primary/30 transition-all group"
-                  >
-                     <div className="size-24 bg-white/5 rounded-[2.5rem] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-2xl">
-                        <Plus className="size-10 text-muted-foreground group-hover:text-primary transition-colors" />
-                     </div>
-                     <h3 className="text-xl font-black text-white/50 group-hover:text-white transition-colors mb-2">ابدأ رحلتك مع Nexus Sheets</h3>
-                     <p className="text-sm text-muted-foreground/60 font-bold">اضغط هنا لإنشاء أول قاعدة بيانات ذكية لك</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </ScrollArea>
+          /* EMPTY STATE */
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
+             <div className="size-32 bg-white/5 rounded-[3rem] flex items-center justify-center mb-8 border border-white/5 shadow-2xl">
+                <Database className="size-16 text-muted-foreground/20" />
+             </div>
+             <h2 className="text-3xl font-black text-white/50 mb-3">Nexus Sheets Hub</h2>
+             <p className="text-muted-foreground max-w-sm">اختر جدولاً من القائمة الجانبية للبدء، أو أنشئ جدولاً جديداً لإدارة بياناتك بذكاء.</p>
+          </div>
         )}
-      </div>
+
+      </main>
     </div>
   );
+}
+
+// Minimal Icons for Header
+function WalletViewIcon({ className }: { className?: string }) {
+   return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+         <rect x="2" y="5" width="20" height="14" rx="2" />
+         <line x1="2" y1="10" x2="22" y2="10" />
+      </svg>
+   )
+}
+
+function BellIcon({ className }: { className?: string }) {
+   return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+         <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+         <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+      </svg>
+   )
 }
