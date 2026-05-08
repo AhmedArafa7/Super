@@ -45,10 +45,10 @@
     @apply bg-background text-foreground;
   }
 
-  /* بروتوكول شريط التنقل السيادي (Custom Neural Scrollbar) */
+  /* تحسين شريط التمرير السيادي (Custom Neural Scrollbar) */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
 
   ::-webkit-scrollbar-track {
@@ -56,20 +56,47 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.2);
+    background: hsl(var(--primary) / 0.1);
     border-radius: 100px;
     transition: all 0.3s ease;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary));
-    box-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+    background: hsl(var(--primary) / 0.4);
   }
 
-  /* للتوافق مع متصفح فيرفوكس */
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
+  /* إخفاء أسهم الأرقام (Spin Buttons) */
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
+
+  /* تحسين النصوص العربية ومنع اقتصاص الحروف */
+  body, input, textarea, button {
+    line-height: 1.7 !important;
+  }
+  
+  .truncate {
+    padding-bottom: 2px; /* مساحة أمان للحروف النازلة مثل ش، ي */
+  }
+
+  /* تظليل النصوص الاحترافي */
+  ::selection {
+    background: hsl(var(--primary) / 0.25);
+    color: hsl(var(--primary));
+  }
+
+  /* أداة إخفاء الشريط يدوياً */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
 
