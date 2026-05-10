@@ -12,6 +12,7 @@ import { useUploadStore } from "@/lib/upload-store";
 import { Progress } from "@/components/ui/progress";
 
 import { VideoProductSelector } from "../wetube/video-product-selector";
+import { ChannelSuggestionForm } from "../content-curation/suggestion-form";
 
 /**
  * [STABILITY_ANCHOR: STREAM_UPLOAD_V1.5]
@@ -163,56 +164,65 @@ export function StreamUploadDialog({ onUpload, onOpenVault, user }: any) {
                   <TabsTrigger value="drive" className="rounded-lg gap-2 text-[10px] sm:text-sm"><HardDrive className="size-3" /> Vault</TabsTrigger>
                   <TabsTrigger value="youtube" className="rounded-lg gap-2 text-[10px] sm:text-sm"><Youtube className="size-3" /> YouTube</TabsTrigger>
                   <TabsTrigger value="local" className="rounded-lg gap-2 text-[10px] sm:text-sm"><FileVideo className="size-3" /> محلي</TabsTrigger>
+                  <TabsTrigger value="channel" className="rounded-lg gap-2 text-[10px] sm:text-sm"><Plus className="size-3" /> قناة</TabsTrigger>
                 </TabsList>
               </Tabs>
 
-              <div className="grid gap-2">
-                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">عنوان الفيديو</Label>
-                <div className="relative">
-                  <Input dir="auto" placeholder="صف موضوع الفيديو..." className="bg-white/5 border-white/10 rounded-xl h-12 text-right pr-4" value={data.title} onChange={(e) => setData({ ...data, title: e.target.value })} />
-                  {isFetchingMetadata && <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin" />}
-                </div>
-              </div>
-
-              {source !== 'local' ? (
-                <div className="grid gap-2">
-                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">رابط المصدر</Label>
-                  <Input placeholder="رابط فيديو من الخزنة أو اليوتيوب..." className="bg-white/5 border-white/10 rounded-xl h-12 text-right" value={data.externalUrl} onChange={(e) => handleUrlChange(e.target.value)} />
-                </div>
+              {source === 'channel' ? (
+                <ChannelSuggestionForm />
               ) : (
-                <div className="grid gap-2">
-                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">اختر الوسائط</Label>
-                  <div className="relative h-32 bg-white/5 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-all">
-                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      setData({ ...data, file, title: file ? file.name.split('.')[0] : "" });
-                    }} accept="video/*" />
-                    {data.file ? (
-                      <div className="text-center">
-                        <CheckCircle2 className="size-8 text-green-400 mx-auto mb-2" />
-                        <p className="text-xs text-white font-bold">{data.file.name}</p>
-                      </div>
-                    ) : (
-                      <><Upload className="size-8 text-muted-foreground mb-2" /><p className="text-xs text-muted-foreground font-bold">اضغط لمزامنة ملف محلي</p></>
-                    )}
+                <>
+                  <div className="grid gap-2">
+                    <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">عنوان الفيديو</Label>
+                    <div className="relative">
+                      <Input dir="auto" placeholder="صف موضوع الفيديو..." className="bg-white/5 border-white/10 rounded-xl h-12 text-right pr-4" value={data.title} onChange={(e) => setData({ ...data, title: e.target.value })} />
+                      {isFetchingMetadata && <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin" />}
+                    </div>
                   </div>
-                </div>
-              )}
 
-              {/* رف المنتجات (Merchandise) - يظهر فقط في حالة الرفع المباشر أو من الخزنة */}
-              {user && (source === 'local' || source === 'drive') && (
-                <VideoProductSelector
-                  userId={user.id}
-                  selectedProductIds={data.productIds}
-                  displayMode={data.productDisplayMode}
-                  onChange={(productData) => setData(prev => ({ ...prev, ...productData }))}
-                />
+                  {source !== 'local' ? (
+                    <div className="grid gap-2">
+                      <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">رابط المصدر</Label>
+                      <Input placeholder="رابط فيديو من الخزنة أو اليوتيوب..." className="bg-white/5 border-white/10 rounded-xl h-12 text-right" value={data.externalUrl} onChange={(e) => handleUrlChange(e.target.value)} />
+                    </div>
+                  ) : (
+                    <div className="grid gap-2">
+                      <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground px-1 text-right">اختر الوسائط</Label>
+                      <div className="relative h-32 bg-white/5 border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-all">
+                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setData({ ...data, file, title: file ? file.name.split('.')[0] : "" });
+                        }} accept="video/*" />
+                        {data.file ? (
+                          <div className="text-center">
+                            <CheckCircle2 className="size-8 text-green-400 mx-auto mb-2" />
+                            <p className="text-xs text-white font-bold">{data.file.name}</p>
+                          </div>
+                        ) : (
+                          <><Upload className="size-8 text-muted-foreground mb-2" /><p className="text-xs text-muted-foreground font-bold">اضغط لمزامنة ملف محلي</p></>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* رف المنتجات (Merchandise) - يظهر فقط في حالة الرفع المباشر أو من الخزنة */}
+                  {user && (source === 'local' || source === 'drive') && (
+                    <VideoProductSelector
+                      userId={user.id}
+                      selectedProductIds={data.productIds}
+                      displayMode={data.productDisplayMode}
+                      onChange={(productData) => setData(prev => ({ ...prev, ...productData }))}
+                    />
+                  )}
+                </>
               )}
             </div>
 
-            <DialogFooter>
-              <Button onClick={handleFinalize} className="w-full bg-primary h-14 rounded-2xl font-bold" disabled={!data.title || (source === 'local' && !data.file) || (source !== 'local' && !data.externalUrl) || isFetchingMetadata}><Zap className="mr-2 size-5" /> بدء المزامنة</Button>
-            </DialogFooter>
+            {source !== 'channel' && (
+              <DialogFooter>
+                <Button onClick={handleFinalize} className="w-full bg-primary h-14 rounded-2xl font-bold" disabled={!data.title || (source === 'local' && !data.file) || (source !== 'local' && !data.externalUrl) || isFetchingMetadata}><Zap className="mr-2 size-5" /> بدء المزامنة</Button>
+              </DialogFooter>
+            )}
           </>
         )}
       </DialogContent>

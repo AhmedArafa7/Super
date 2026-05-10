@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Video as VideoIcon, History, Trash2, Clock, CheckCircle2 } from "lucide-react";
 import { CensorshipCard } from "./censorship/censorship-card";
 import { PreviewModal } from "./censorship/preview-modal";
+import { AdminChannelReview } from "../content-curation/admin-review";
 import { Video } from "@/lib/video-store";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -39,10 +40,12 @@ export function MediaCensorship({ videos = [], onRefresh }: MediaCensorshipProps
               سلة المحذوفات
               {trashVideos.length > 0 && <Badge className="bg-red-500 text-white h-5 min-w-[20px] px-1">{trashVideos.length}</Badge>}
             </TabsTrigger>
-            <TabsTrigger value="published" className="px-6 py-2.5 rounded-xl font-bold gap-2 flex-row-reverse data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400">
-              <CheckCircle2 className="size-4" />
-              تم الاعتماد
+               تم الاعتماد
               {publishedVideos.length > 0 && <Badge className="bg-emerald-500 text-white h-5 min-w-[20px] px-1">{publishedVideos.length}</Badge>}
+            </TabsTrigger>
+            <TabsTrigger value="channels" className="px-6 py-2.5 rounded-xl font-bold gap-2 flex-row-reverse data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-400">
+              <VideoIcon className="size-4" />
+              مراجعة القنوات
             </TabsTrigger>
           </TabsList>
         </div>
@@ -70,6 +73,12 @@ export function MediaCensorship({ videos = [], onRefresh }: MediaCensorshipProps
         <TabsContent value="published">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 opacity-80">
             {publishedVideos.map(v => <CensorshipCard key={v.id} video={v} onPreview={setPreviewVideo} onRefresh={onRefresh} />)}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="channels">
+          <div className="max-w-4xl mx-auto h-[600px]">
+             <AdminChannelReview />
           </div>
         </TabsContent>
       </Tabs>
