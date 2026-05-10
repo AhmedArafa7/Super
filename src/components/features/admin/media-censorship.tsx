@@ -40,6 +40,8 @@ export function MediaCensorship({ videos = [], onRefresh }: MediaCensorshipProps
               سلة المحذوفات
               {trashVideos.length > 0 && <Badge className="bg-red-500 text-white h-5 min-w-[20px] px-1">{trashVideos.length}</Badge>}
             </TabsTrigger>
+            <TabsTrigger value="published" className="px-6 py-2.5 rounded-xl font-bold gap-2 flex-row-reverse data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400">
+              <CheckCircle2 className="size-4" />
                تم الاعتماد
               {publishedVideos.length > 0 && <Badge className="bg-emerald-500 text-white h-5 min-w-[20px] px-1">{publishedVideos.length}</Badge>}
             </TabsTrigger>
