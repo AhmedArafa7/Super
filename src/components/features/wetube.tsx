@@ -15,6 +15,7 @@ import { WeTubeHomeTab } from "./wetube/wetube-home-tab";
 import { WeTubeSubsTab } from "./wetube/wetube-subs-tab";
 import { WeTubeLibraryTab } from "./wetube/wetube-library-tab";
 import { WeTubeNotificationsTab } from "./wetube/wetube-notifications-tab";
+import { WeTubeStudioView } from "./wetube/wetube-studio-view";
 import { Video } from "@/lib/video-store";
 
 /**
@@ -86,6 +87,10 @@ export function WeTube({ onOpenVault }: { onOpenVault?: () => void }) {
              setActiveVideo={state.setActiveVideo as any}
           />
        );
+    }
+
+    if (state.activeTab === 'studio') {
+       return <WeTubeStudioView />;
     }
 
     return null;

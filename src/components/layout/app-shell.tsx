@@ -34,6 +34,7 @@ import { MicrocontrollerLab } from "@/components/features/microcontroller-lab";
 import { SettingsView } from "@/components/features/settings-view";
 import { ArcadeHub } from "@/components/features/arcade/arcade-hub";
 import { NexusSheets } from "@/components/features/nexus-sheets";
+import { WeTubeStudioView } from "@/components/features/wetube/wetube-studio-view";
 import { getNotifications } from "@/lib/notification-store";
 import { useWalletStore } from "@/lib/wallet-store";
 import { useUploadStore } from "@/lib/upload-store";
@@ -219,6 +220,7 @@ export function AppShell() {
       case "downloads": return <DownloadCenter />;
       case "peer-chat": return <PeerChat initialTargetId={activeRecipientId} />;
       case "stream": return <WeTube onOpenVault={() => setLaunchedApp({ url: VAULT_EMBED_URL, title: "Nexus Central Vault", isVault: true })} />;
+      case "wetube-studio": return <WeTubeStudioView />;
       case "market": return <TechMarket onLaunchApp={(url, title) => setLaunchedApp({ url, title })} />;
       case "study-ai": return <StudyQuizView />;
       case "launcher": return <AppLauncher />;

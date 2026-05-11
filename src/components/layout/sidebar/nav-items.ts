@@ -48,6 +48,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { id: "deals", label: "عروض المحلات", icon: Tag, restricted: false },
   { id: "peer-chat", label: "التواصل المباشر", icon: MessageCircle, restricted: false },
   { id: "stream", label: "WeTube", icon: Video, restricted: false },
+  { id: "wetube-studio", label: "WeTube Studio", icon: LayoutDashboard, restricted: false },
   { id: "market", label: "المتجر التقني", icon: ShoppingCart, restricted: false },
   { id: "study-ai", label: "المساعد الدراسي", icon: GraduationCap, restricted: false },
   { id: "knowledge", label: "المكتبة المعرفية", icon: LibraryBig, restricted: false },

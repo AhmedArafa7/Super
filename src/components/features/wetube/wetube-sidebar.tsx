@@ -3,7 +3,7 @@
 import React from 'react';
 import {
   Home, Compass, PlaySquare, Clock, ThumbsUp,
-  History, Flame, Music2, Gamepad2, Trophy, Bell
+  History, Flame, Music2, Gamepad2, Trophy, Bell, LayoutDashboard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { YouTubeSubscription } from '@/lib/subscription-store';
@@ -107,6 +107,23 @@ export function WeTubeSidebar({ isSidebarOpen, activeTab, setActiveTab, subscrip
             <span className="text-[15px] truncate">{link.label}</span>
           </button>
         ))}
+      </div>
+
+      {/* Creator Tools */}
+      <div className="py-3 px-3 border-b border-white/10 space-y-0.5">
+        <h3 className="px-3 py-1.5 font-bold text-base flex items-center gap-2 mb-1 text-indigo-400">
+          أدوات المبدعين <LayoutDashboard className="size-4 shrink-0" />
+        </h3>
+        <button
+          onClick={() => setActiveTab('studio')}
+          className={cn(
+            "flex items-center gap-4 w-full p-2.5 px-3 rounded-lg transition-colors",
+            activeTab === 'studio' ? "bg-white/10 text-white font-bold" : "text-muted-foreground hover:bg-white/10 hover:text-white"
+          )}
+        >
+          <LayoutDashboard className="size-5 shrink-0" />
+          <span className="text-[15px] truncate">WeTube Studio</span>
+        </button>
       </div>
 
       {/* Subscriptions */}

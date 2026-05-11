@@ -33,7 +33,7 @@ export function useWeTubeState() {
   const [isShortsLoading, setIsShortsLoading] = useState(false);
   const [lastSeenNotifications, setLastSeenNotifications] = useState(0);
 
-  const [activeTab, setActiveTab] = useState<'home' | 'shorts' | 'subs' | 'library' | 'notifications' | 'explore'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'shorts' | 'subs' | 'library' | 'notifications' | 'explore' | 'studio'>('home');
   const [activeCategory, setActiveCategory] = useState("الكل");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
