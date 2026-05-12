@@ -167,7 +167,18 @@ export function WeTubeStudioView() {
                           <CheckCircle2 className="size-4" />
                        </div>
                     ) : (
-                       <Button size="sm" variant="ghost" className="h-8 rounded-xl font-bold text-xs bg-white/5 hover:bg-white/10">ربط</Button>
+                       <Button 
+                         size="sm" 
+                         variant="ghost" 
+                         className="h-8 rounded-xl font-bold text-xs bg-white/5 hover:bg-white/10"
+                         onClick={() => {
+                           if (platform.id === 'youtube') {
+                             window.location.href = `/api/auth/youtube/login?userId=${user?.id}`;
+                           }
+                         }}
+                       >
+                         ربط
+                       </Button>
                     )}
                  </div>
                );
