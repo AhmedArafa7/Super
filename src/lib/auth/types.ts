@@ -28,6 +28,18 @@ export interface GitHubRepo {
   default_branch: string;
 }
 
+export interface LinkedAccount {
+  platform: 'youtube' | 'tiktok' | 'facebook' | 'instagram' | 'whatsapp';
+  platformUserId: string;
+  username: string;
+  avatarUrl?: string;
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt?: number;
+  linkedAt: string;
+  scopes: string[];
+}
+
 export interface User {
   id: string;
   username: string;
@@ -61,6 +73,7 @@ export interface User {
     customUrl?: string;
     linkedAt: string;
   };
+  linkedAccounts?: LinkedAccount[];
   githubToken?: string;
   linkedRepo?: GitHubRepo | null;
   repoTree?: any[] | null;

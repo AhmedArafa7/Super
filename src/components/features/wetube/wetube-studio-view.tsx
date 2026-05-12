@@ -11,12 +11,22 @@ import {
   MessageCircle,
   PlusCircle,
   TrendingUp,
-  LayoutDashboard
+  LayoutDashboard,
+  Facebook,
+  Instagram,
+  Youtube,
+  Link2,
+  CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useAuth } from "@/components/auth/auth-provider";
 
 export function WeTubeStudioView() {
+  const { user } = useAuth();
+  
+  const connectedPlatforms = user?.linkedAccounts || [];
+  
   return (
     <div className="flex flex-col h-full bg-slate-950 text-white p-6 md:p-8 overflow-y-auto no-scrollbar">
       {/* Header */}
@@ -122,6 +132,49 @@ export function WeTubeStudioView() {
              ))}
           </div>
         </div>
+        
+        {/* Connected Accounts Section */}
+        <div className="space-y-6 lg:col-span-3">
+          <div className="flex items-center justify-between px-2">
+             <h2 className="text-xl font-black tracking-tight">الحسابات المربوطة (Token Bridge)</h2>
+             <Button variant="outline" className="border-white/10 text-white font-bold h-9 gap-2 bg-white/5 hover:bg-white/10">
+                <Link2 className="size-4" />
+                ربط حساب جديد
+             </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+             {[
+               { id: 'youtube', name: 'YouTube', icon: Youtube, color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/20' },
+               { id: 'tiktok', name: 'TikTok', icon: Video, color: 'text-cyan-500', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
+               { id: 'facebook', name: 'Facebook', icon: Facebook, color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/20' }
+             ].map((platform) => {
+               const isConnected = connectedPlatforms.some(acc => acc.platform === platform.id) || (platform.id === 'youtube' && user?.linkedYouTubeChannel);
+               return (
+                 <div key={platform.id} className={`p-5 rounded-[2rem] border ${isConnected ? platform.border : 'border-white/5'} bg-slate-900/40 backdrop-blur-xl flex items-center justify-between transition-all hover:bg-slate-900/60`}>
+                    <div className="flex items-center gap-4">
+                       <div className={`size-12 rounded-2xl ${platform.bg} flex items-center justify-center ${platform.color}`}>
+                          <platform.icon className="size-6" />
+                       </div>
+                       <div>
+                          <h3 className="font-bold text-white text-sm">{platform.name}</h3>
+                          <p className="text-xs text-slate-400 font-medium mt-0.5">
+                            {isConnected ? 'متصل' : 'غير متصل'}
+                          </p>
+                       </div>
+                    </div>
+                    {isConnected ? (
+                       <div className="size-8 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                          <CheckCircle2 className="size-4" />
+                       </div>
+                    ) : (
+                       <Button size="sm" variant="ghost" className="h-8 rounded-xl font-bold text-xs bg-white/5 hover:bg-white/10">ربط</Button>
+                    )}
+                 </div>
+               );
+             })}
+          </div>
+        </div>
+        
       </div>
     </div>
   );
