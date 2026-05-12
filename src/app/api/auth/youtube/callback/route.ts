@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeApp, getApps, getApp } from 'firebase/app';
+
+export const runtime = 'edge';
 import { getFirestore, doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
 
