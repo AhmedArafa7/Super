@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { X, ExternalLink, Layers, LogOut, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -59,15 +60,47 @@ const VAULT_SHARE_URL = "https://drive.google.com/drive/folders/16JnrGafk5X3lwbr
 
 /**
  * [STABILITY_ANCHOR: APPSHELL_ORCHESTRATOR_V8.0]
- * المكون المركزي المحدث - تم إضافة قسم تنظيم الوقت.
  */
 export function AppShell() {
+  return (
+    <Suspense fallback={<div className="h-screen w-full bg-slate-950 flex items-center justify-center text-white font-bold animate-pulse">جاري تحميل النظام...</div>}>
+       <AppShellInternal />
+    </Suspense>
+  );
+}
+
+function AppShellInternal() {
   const { user, isAuthenticated, logout } = useAuth();
   const { settings } = useSettingsStore();
   
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   // Dynamic Initial Tab Logic
-  const [activeTab, setActiveTab] = useState<NavItemId>("chat"); // Default safe fallback
+  const [activeTab, setActiveTab] = useState<NavItemId>("dashboard"); // Start with dashboard
   const [lastUserId, setLastUserId] = useState<string | null>(null);
+
+  // 1. Sync State with URL on Load
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as NavItemId;
+    if (tabParam && ALL_NAV_ITEMS.some(item => item.id === tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  // 2. Sync URL with State on Change
+  useEffect(() => {
+    if (activeTab) {
+      const current = new URLSearchParams(Array.from(searchParams.entries()));
+      if (current.get('tab') !== activeTab) {
+        current.set('tab', activeTab);
+        const search = current.toString();
+        const query = search ? `?${search}` : "";
+        router.replace(`${pathname}${query}`);
+      }
+    }
+  }, [activeTab, pathname, router, searchParams]);
 
   useEffect(() => {
     if (isAuthenticated && user && settings) {

@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     });
 
     // 4. العودة للرئيسية (أو للاستوديو)
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'}/?tab=studio&success=youtube_linked`);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'}/?tab=wetube-studio&success=youtube_linked`);
 
   } catch (err: any) {
     console.error('YouTube Callback Error:', err);
