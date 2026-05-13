@@ -174,10 +174,18 @@ export function WeTubeStudioView() {
         <div className="space-y-6 lg:col-span-3">
           <div className="flex items-center justify-between px-2">
              <h2 className="text-xl font-black tracking-tight">الحسابات المربوطة (Token Bridge)</h2>
-             <Button variant="outline" className="border-white/10 text-white font-bold h-9 gap-2 bg-white/5 hover:bg-white/10">
-                <Link2 className="size-4" />
-                ربط حساب جديد
-             </Button>
+             <Button 
+                variant="outline" 
+                className="border-white/10 text-white font-bold h-9 gap-2 bg-white/5 hover:bg-white/10"
+                onClick={() => {
+                  if (user?.id) {
+                    window.location.href = `/api/auth/youtube/login?userId=${user.id}`;
+                  }
+                }}
+              >
+                 <Link2 className="size-4" />
+                 ربط حساب جديد
+              </Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
              {[
