@@ -7,7 +7,8 @@ export async function GET(request: NextRequest) {
   const userId = searchParams.get('userId');
   
   const clientID = process.env.YOUTUBE_CLIENT_ID;
-  const redirectURI = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'}/api/auth/youtube/callback`;
+  const origin = new URL(request.url).origin;
+  const redirectURI = `${origin}/api/auth/youtube/callback`;
   
   if (!clientID || !userId) {
     return NextResponse.json({ error: 'Configuration or UserID missing' }, { status: 400 });

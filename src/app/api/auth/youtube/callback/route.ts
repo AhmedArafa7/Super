@@ -22,7 +22,8 @@ export async function GET(request: NextRequest) {
 
   const clientID = process.env.YOUTUBE_CLIENT_ID;
   const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
-  const redirectURI = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'}/api/auth/youtube/callback`;
+  const origin = new URL(request.url).origin;
+  const redirectURI = `${origin}/api/auth/youtube/callback`;
 
   try {
     // 1. تبادل الكود بالتوكنات
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
     });
 
     // 4. العودة للرئيسية (أو للاستوديو)
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'}/?tab=wetube-studio&success=youtube_linked`);
+    return NextResponse.redirect(`${origin}/?tab=wetube-studio&success=youtube_linked`);
 
   } catch (err: any) {
     console.error('YouTube Callback Error:', err);
