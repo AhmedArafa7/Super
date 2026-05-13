@@ -13,12 +13,20 @@ function getAdminFirestore() {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
+  const clientID = process.env.YOUTUBE_CLIENT_ID;
+  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
 
   if (!userId) {
     return NextResponse.json({ error: 'UserID is required' }, { status: 400 });
   }
 
+  if (!clientID || !clientSecret) {
+    console.error('YouTube API keys missing in environment variables');
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
   try {
+    console.log('Fetching stats for user:', userId);
     const firestore = getAdminFirestore();
     const userRef = doc(firestore, 'users', userId);
     const userSnap = await getDoc(userRef);

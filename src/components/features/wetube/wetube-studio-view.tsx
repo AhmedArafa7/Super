@@ -82,22 +82,22 @@ export function WeTubeStudioView() {
         {[
           { 
             label: "إجمالي المشاهدات", 
-            value: channelStats ? formatNumber(channelStats.viewCount) : (isLoadingStats ? "..." : "124.5K"), 
+            value: channelStats ? formatNumber(channelStats.viewCount) : (isLoadingStats ? "..." : "0"), 
             icon: Eye, color: "text-blue-500", bg: "bg-blue-500/10" 
           },
           { 
             label: "المشتركون", 
-            value: channelStats ? formatNumber(channelStats.subscriberCount) : (isLoadingStats ? "..." : "+1,204"), 
+            value: channelStats ? formatNumber(channelStats.subscriberCount) : (isLoadingStats ? "..." : "0"), 
             icon: Users, color: "text-purple-500", bg: "bg-purple-500/10" 
           },
           { 
             label: "عدد الفيديوهات", 
-            value: channelStats ? formatNumber(channelStats.videoCount) : (isLoadingStats ? "..." : "42"), 
+            value: channelStats ? formatNumber(channelStats.videoCount) : (isLoadingStats ? "..." : "0"), 
             icon: Video, color: "text-amber-500", bg: "bg-amber-500/10" 
           },
           { 
             label: "التفاعل", 
-            value: "89%", 
+            value: "--", 
             icon: Heart, color: "text-rose-500", bg: "bg-rose-500/10" 
           },
         ].map((stat, idx) => (
@@ -135,33 +135,16 @@ export function WeTubeStudioView() {
             <Button variant="link" className="text-indigo-400 font-bold hover:text-indigo-300">عرض الكل</Button>
           </div>
           <div className="space-y-4">
-            {[1, 2, 3].map((_, i) => (
-              <div key={i} className="flex items-center gap-4 p-4 rounded-3xl bg-slate-900/40 border border-white/5 hover:border-white/10 transition-all group cursor-pointer">
-                <div className="size-20 rounded-2xl bg-slate-800 shrink-0 overflow-hidden relative border border-white/10">
-                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end justify-end p-1">
-                      <span className="text-[8px] font-black bg-black/80 px-1 rounded">10:24</span>
-                   </div>
-                </div>
-                <div className="flex-1 min-w-0 space-y-1">
-                   <h3 className="font-bold text-sm truncate group-hover:text-indigo-400 transition-colors">كيفية بناء تطبيقات الذكاء الاصطناعي في 2024 - الجزء {4-i}</h3>
-                   <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
-                      <span>2.4K مشاهدة</span>
-                      <span className="size-1 rounded-full bg-slate-700" />
-                      <span>منذ {i+1} أيام</span>
-                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                   <div className="flex flex-col items-end gap-1 px-4 border-r border-white/5">
-                      <div className="flex items-center gap-1 text-xs font-bold text-slate-300">
-                         <MessageCircle className="size-3" /> 24
-                      </div>
-                      <div className="flex items-center gap-1 text-xs font-bold text-slate-300">
-                         <Heart className="size-3" /> 152
-                      </div>
-                   </div>
-                </div>
+            {/* سنقوم بربط هذه القائمة قريباً ببيانات يوتيوب الحقيقية */}
+            {!isLoadingStats && (!channelStats || parseInt(channelStats.videoCount) === 0) ? (
+              <div className="flex flex-col items-center justify-center py-12 bg-slate-900/20 rounded-[2rem] border border-dashed border-white/10 text-slate-500">
+                <Video className="size-12 mb-4 opacity-20" />
+                <p className="font-bold">لا يوجد فيديوهات مرفوعة حتى الآن</p>
               </div>
-            ))}
+            ) : (
+              // سيتم استبدال هذه ببيانات حقيقية في الخطوة القادمة
+              <div className="text-xs text-slate-500 text-center py-4">جاري تجهيز قائمة الفيديوهات...</div>
+            )}
           </div>
         </div>
 
