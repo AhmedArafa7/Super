@@ -33,21 +33,46 @@ export function WeTubeStudioView() {
     subscriberCount: string;
     videoCount: string;
   } | null>(null);
+  const [videos, setVideos] = useState<any[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [isLoadingVideos, setIsLoadingVideos] = useState(false);
 
-  useEffect(() => {
+  const fetchStats = async () => {
     if (isYoutubeConnected && user?.id) {
       setIsLoadingStats(true);
-      fetch(`/api/auth/youtube/stats?userId=${user.id}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            setChannelStats(data.data);
-          }
-        })
-        .catch(err => console.error("Failed to fetch stats:", err))
-        .finally(() => setIsLoadingStats(false));
+      try {
+        const res = await fetch(`/api/auth/youtube/stats?userId=${user.id}`);
+        const data = await res.json();
+        if (data.success) {
+          setChannelStats(data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch stats:", err);
+      } finally {
+        setIsLoadingStats(false);
+      }
     }
+  };
+
+  const fetchVideos = async () => {
+    if (!user?.id) return;
+    try {
+      setIsLoadingVideos(true);
+      const res = await fetch(`/api/auth/youtube/videos?userId=${user.id}`);
+      const data = await res.json();
+      if (data.success) {
+        setVideos(data.videos || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch videos:", err);
+    } finally {
+      setIsLoadingVideos(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+    fetchVideos();
   }, [isYoutubeConnected, user?.id]);
 
   const formatNumber = (numStr: string) => {
@@ -137,9 +162,28 @@ export function WeTubeStudioView() {
                 <Video className="size-12 mb-4 opacity-20" />
                 <p className="font-bold">لا يوجد فيديوهات مرفوعة حتى الآن</p>
               </div>
+            ) : isLoadingVideos ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 {[1,2,3,4].map(i => (
+                   <div key={i} className="h-24 bg-white/5 rounded-2xl animate-pulse" />
+                 ))}
+              </div>
             ) : (
-              // سيتم استبدال هذه ببيانات حقيقية في الخطوة القادمة
-              <div className="text-xs text-slate-500 text-center py-4">جاري تجهيز قائمة الفيديوهات...</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 {videos.map((vid) => (
+                   <div key={vid.id} className="bg-slate-900/40 p-3 rounded-2xl border border-white/5 flex gap-4 hover:border-indigo-500/30 transition-all group cursor-pointer">
+                      <div className="relative shrink-0 overflow-hidden rounded-xl size-20">
+                         <img src={vid.thumbnail} alt={vid.title} className="object-cover size-full group-hover:scale-110 transition-transform" />
+                      </div>
+                      <div className="flex flex-col justify-center min-w-0">
+                         <h4 className="text-sm font-bold text-white truncate mb-1">{vid.title}</h4>
+                         <span className="text-[10px] text-slate-400 font-medium">
+                            {new Date(vid.publishedAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long' })}
+                         </span>
+                      </div>
+                   </div>
+                 ))}
+              </div>
             )}
           </div>
         </div>
