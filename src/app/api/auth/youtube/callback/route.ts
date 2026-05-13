@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 
 export const runtime = 'edge';
-import { getFirestore, doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { getFirestore, doc, updateDoc, arrayUnion } from 'firebase/firestore/lite';
 import { firebaseConfig } from '@/firebase/config';
 
 // تهيئة بسيطة للسيرفر (Node.js/Edge)
