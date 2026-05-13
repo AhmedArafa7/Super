@@ -118,10 +118,6 @@ export function WeTubeStudioView() {
               </div>
             </div>
             {/* مؤشر وهمي حتى الآن */}
-            <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-emerald-400 bg-emerald-500/10 w-fit px-2 py-0.5 rounded-full uppercase tracking-tighter opacity-50">
-              <TrendingUp className="size-3" />
-              قريباً
-            </div>
           </Card>
         ))}
       </div>
