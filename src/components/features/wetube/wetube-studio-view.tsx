@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/components/auth/auth-provider";
+import { UploadModal } from "./upload-modal";
 
 export function WeTubeStudioView() {
   const { user } = useAuth();
@@ -36,6 +37,7 @@ export function WeTubeStudioView() {
   const [videos, setVideos] = useState<any[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   const fetchStats = async () => {
     if (isYoutubeConnected && user?.id) {
@@ -95,7 +97,10 @@ export function WeTubeStudioView() {
           <p className="text-slate-400 font-medium">أهلاً بك في مركز التحكم الخاص بك. هنا يمكنك إدارة محتواك ومتابعة أداء قناتك.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl px-6 h-12 gap-2 shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95">
+          <Button 
+            onClick={() => setIsUploadModalOpen(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl px-6 h-12 gap-2 shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95"
+          >
             <PlusCircle className="size-5" />
             رفع فيديو جديد
           </Button>
@@ -272,6 +277,15 @@ export function WeTubeStudioView() {
         </div>
         
       </div>
+
+      <UploadModal 
+        isOpen={isUploadModalOpen} 
+        onClose={() => setIsUploadModalOpen(false)}
+        onSuccess={() => {
+          fetchVideos();
+          fetchStats();
+        }}
+      />
     </div>
   );
 }
