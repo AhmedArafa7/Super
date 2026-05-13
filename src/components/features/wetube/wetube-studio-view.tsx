@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { 
   BarChart3, 
   Video, 
@@ -26,6 +26,37 @@ export function WeTubeStudioView() {
   const { user } = useAuth();
   
   const connectedPlatforms = user?.linkedAccounts || [];
+  const isYoutubeConnected = connectedPlatforms.some(acc => acc.platform === 'youtube') || !!user?.linkedYouTubeChannel;
+
+  const [channelStats, setChannelStats] = useState<{
+    viewCount: string;
+    subscriberCount: string;
+    videoCount: string;
+  } | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+  useEffect(() => {
+    if (isYoutubeConnected && user?.id) {
+      setIsLoadingStats(true);
+      fetch(`/api/auth/youtube/stats?userId=${user.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setChannelStats(data.data);
+          }
+        })
+        .catch(err => console.error("Failed to fetch stats:", err))
+        .finally(() => setIsLoadingStats(false));
+    }
+  }, [isYoutubeConnected, user?.id]);
+
+  const formatNumber = (numStr: string) => {
+    const num = parseInt(numStr, 10);
+    if (isNaN(num)) return numStr;
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+  };
   
   return (
     <div className="flex flex-col h-full bg-slate-950 text-white p-6 md:p-8 overflow-y-auto no-scrollbar">
@@ -49,24 +80,47 @@ export function WeTubeStudioView() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {[
-          { label: "إجمالي المشاهدات", value: "124.5K", icon: Eye, color: "text-blue-500", bg: "bg-blue-500/10" },
-          { label: "المشتركون الجدد", value: "+1,204", icon: Users, color: "text-purple-500", bg: "bg-purple-500/10" },
-          { label: "وقت المشاهدة", value: "4.2Kh", icon: PlaySquare, color: "text-amber-500", bg: "bg-amber-500/10" },
-          { label: "التفاعل", value: "89%", icon: Heart, color: "text-rose-500", bg: "bg-rose-500/10" },
+          { 
+            label: "إجمالي المشاهدات", 
+            value: channelStats ? formatNumber(channelStats.viewCount) : (isLoadingStats ? "..." : "124.5K"), 
+            icon: Eye, color: "text-blue-500", bg: "bg-blue-500/10" 
+          },
+          { 
+            label: "المشتركون", 
+            value: channelStats ? formatNumber(channelStats.subscriberCount) : (isLoadingStats ? "..." : "+1,204"), 
+            icon: Users, color: "text-purple-500", bg: "bg-purple-500/10" 
+          },
+          { 
+            label: "عدد الفيديوهات", 
+            value: channelStats ? formatNumber(channelStats.videoCount) : (isLoadingStats ? "..." : "42"), 
+            icon: Video, color: "text-amber-500", bg: "bg-amber-500/10" 
+          },
+          { 
+            label: "التفاعل", 
+            value: "89%", 
+            icon: Heart, color: "text-rose-500", bg: "bg-rose-500/10" 
+          },
         ].map((stat, idx) => (
           <Card key={idx} className="bg-slate-900/40 border-white/5 backdrop-blur-xl p-6 rounded-[2rem] hover:border-white/10 transition-all group">
             <div className="flex items-start justify-between">
               <div className="space-y-3">
                 <p className="text-sm font-bold text-slate-400">{stat.label}</p>
-                <p className="text-3xl font-black">{stat.value}</p>
+                <p className="text-3xl font-black">
+                   {isLoadingStats ? (
+                     <span className="inline-block w-16 h-8 bg-white/10 rounded-md animate-pulse"></span>
+                   ) : (
+                     stat.value
+                   )}
+                </p>
               </div>
               <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform`}>
                 <stat.icon className="size-6" />
               </div>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-emerald-400 bg-emerald-500/10 w-fit px-2 py-0.5 rounded-full uppercase tracking-tighter">
+            {/* مؤشر وهمي حتى الآن */}
+            <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-emerald-400 bg-emerald-500/10 w-fit px-2 py-0.5 rounded-full uppercase tracking-tighter opacity-50">
               <TrendingUp className="size-3" />
-              +12% هذا الشهر
+              قريباً
             </div>
           </Card>
         ))}
