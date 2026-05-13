@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useSettingsStore, PREMIUM_VOICES } from "@/lib/settings-store";
 import { useProStore } from "@/lib/wetube-pro-engine";
+import { usePreferencesStore } from "@/lib/preferences-store";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
@@ -29,6 +30,7 @@ import { toast } from "@/hooks/use-toast";
 export function SettingsView() {
   const { settings, updateVoiceSettings, updateGeneralSettings, downloadVoice, isLoading } = useSettingsStore();
   const { usageLog, totalSavedMB, clearLog } = useProStore();
+  const { sidebarIconShortcutEnabled, setSidebarIconShortcutEnabled } = usePreferencesStore();
   const [isPro, setIsPro] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [downloadingIds, setDownloadingIds] = useState<string[]>([]);
@@ -260,6 +262,17 @@ export function SettingsView() {
                     <span className="text-[10px] font-bold">Light</span>
                   </Button>
                 </div>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-white/10">
+                <div className="flex justify-between items-center flex-row-reverse">
+                  <Label className="text-[10px] uppercase font-black text-muted-foreground text-right">اختصار التحويل السريع</Label>
+                  <Switch 
+                    checked={sidebarIconShortcutEnabled} 
+                    onCheckedChange={setSidebarIconShortcutEnabled} 
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground text-right">تحويل الشريط إلى الدائرة العائمة عند الضغط على أيقونة النظام</p>
               </div>
 
               <div className="space-y-2 pt-4 border-t border-white/10">

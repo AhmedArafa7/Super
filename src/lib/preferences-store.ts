@@ -4,6 +4,8 @@ import { persist } from 'zustand/middleware';
 interface PreferencesState {
   hiddenVideos: string[];
   hiddenChannels: string[];
+  sidebarIconShortcutEnabled: boolean;
+  setSidebarIconShortcutEnabled: (enabled: boolean) => void;
   hideVideo: (id: string) => void;
   hideChannel: (id: string) => void;
   unhideVideo: (id: string) => void;
@@ -16,7 +18,10 @@ export const usePreferencesStore = create<PreferencesState>()(
     (set) => ({
       hiddenVideos: [],
       hiddenChannels: [],
+      sidebarIconShortcutEnabled: true,
       
+      setSidebarIconShortcutEnabled: (enabled: boolean) => set({ sidebarIconShortcutEnabled: enabled }),
+
       hideVideo: (id: string) => set((state) => ({
         hiddenVideos: state.hiddenVideos.includes(id) ? state.hiddenVideos : [...state.hiddenVideos, id]
       })),

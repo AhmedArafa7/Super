@@ -7,10 +7,20 @@ import { Layers, ChevronRight, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IconSafe } from "@/components/ui/icon-safe";
 import { useSidebarLayout } from "./use-sidebar-layout";
+import { useSidebarStore } from "@/lib/sidebar-store";
+import { usePreferencesStore } from "@/lib/preferences-store";
 
 export function SidebarHeader() {
   const { setOpen } = useSidebar();
   const { isCollapsed, isLeft, isRight, flexDir } = useSidebarLayout();
+  const { setPosition } = useSidebarStore();
+  const { sidebarIconShortcutEnabled } = usePreferencesStore();
+
+  const handleIconClick = () => {
+    if (sidebarIconShortcutEnabled) {
+      setPosition('floating');
+    }
+  };
 
   return (
     <ShadcnSidebarHeader className="p-4 border-b border-white/5 relative group/header overflow-hidden">
@@ -19,7 +29,13 @@ export function SidebarHeader() {
         flexDir,
         isCollapsed && "justify-center"
       )}>
-        <div className="size-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shrink-0">
+        <div 
+          className={cn(
+            "size-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shrink-0 transition-transform active:scale-90",
+            sidebarIconShortcutEnabled && "cursor-pointer hover:scale-110"
+          )}
+          onClick={handleIconClick}
+        >
            <Layers className="text-white size-5" />
         </div>
         {!isCollapsed && (
