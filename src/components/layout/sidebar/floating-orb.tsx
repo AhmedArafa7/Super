@@ -20,55 +20,65 @@ import { IconSafe } from "@/components/ui/icon-safe";
 
 export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
   const { floatingPos, setFloatingPos, setPosition } = useSidebarStore();
-  const [isDragging, setIsDragging] = React.useState(false);
+  const [isDragging, setIsDragging] = React.useState(false); // visual only
   const [isOpen, setIsOpen] = React.useState(false);
-  const dragRef = React.useRef<any>(null);
-  const pendingDragRef = React.useRef<boolean>(false);
-  const startPosRef = React.useRef({ x: 0, y: 0 });
 
-  const handleMouseDown = (e: React.PointerEvent) => {
-    if (e.button !== 0 || isOpen) return; // Disable drag if menu is open
-    pendingDragRef.current = true;
-    startPosRef.current = { x: e.clientX, y: e.clientY };
-    dragRef.current = {
-      startX: e.clientX - floatingPos.x,
-      startY: e.clientY - floatingPos.y
-    };
+  // All drag state lives in a single ref to avoid stale closures
+  const dragStateRef = React.useRef({
+    isDown: false,
+    wasDragged: false,
+    startX: 0,
+    startY: 0,
+    offsetX: 0,
+    offsetY: 0,
+  });
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0 || isOpen) return;
+    const state = dragStateRef.current;
+    state.isDown = true;
+    state.wasDragged = false;
+    state.startX = e.clientX;
+    state.startY = e.clientY;
+    state.offsetX = e.clientX - floatingPos.x;
+    state.offsetY = e.clientY - floatingPos.y;
   };
 
   const handleTriggerClick = (e: React.MouseEvent) => {
-    // If we were dragging, don't open the menu
-    if (isDragging) {
+    // wasDragged persists past pointerup, so we can read it here
+    if (dragStateRef.current.wasDragged) {
+      dragStateRef.current.wasDragged = false;
       e.preventDefault();
       e.stopPropagation();
       return;
     }
-    setIsOpen(!isOpen);
+    setIsOpen(prev => !prev);
   };
 
   React.useEffect(() => {
     const onMove = (e: PointerEvent) => {
-      if (!pendingDragRef.current || isOpen) return;
+      const state = dragStateRef.current;
+      if (!state.isDown) return;
 
-      const moveX = Math.abs(e.clientX - startPosRef.current.x);
-      const moveY = Math.abs(e.clientY - startPosRef.current.y);
+      const moveX = Math.abs(e.clientX - state.startX);
+      const moveY = Math.abs(e.clientY - state.startY);
 
-      // Threshold to start dragging (Increased to 15px)
-      if (!isDragging && (moveX > 15 || moveY > 15)) {
+      // Start dragging only after 10px threshold
+      if (moveX > 10 || moveY > 10) {
+        state.wasDragged = true;
         setIsDragging(true);
-      }
-
-      if (isDragging) {
-        setFloatingPos({ 
-          x: e.clientX - dragRef.current.startX, 
-          y: e.clientY - dragRef.current.startY 
+        setFloatingPos({
+          x: e.clientX - state.offsetX,
+          y: e.clientY - state.offsetY,
         });
       }
     };
 
     const onUp = () => {
-      pendingDragRef.current = false;
+      dragStateRef.current.isDown = false;
       setIsDragging(false);
+      // NOTE: wasDragged is NOT reset here — it stays true
+      // so the click handler (which fires AFTER pointerup) can detect it
     };
 
     window.addEventListener('pointermove', onMove);
@@ -77,7 +87,7 @@ export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
-  }, [isDragging, setFloatingPos, isOpen]);
+  }, [setFloatingPos]);
 
   return (
     <div 
@@ -86,7 +96,7 @@ export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
         "fixed z-[9999] touch-none cursor-move",
         isDragging && "cursor-grabbing"
       )}
-      onPointerDown={handleMouseDown}
+      onPointerDown={handlePointerDown}
     >
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen} dir="rtl">
         <DropdownMenuTrigger asChild>
