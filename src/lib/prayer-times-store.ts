@@ -34,9 +34,11 @@ interface PrayerState {
   isLoading: boolean;
   reminderMinutes: number;
   lastNotifiedPrayer: string | null;
+  timeFormat: '12h' | '24h';
   
   setMethod: (method: number) => void;
   setAsrSchool: (school: number) => void;
+  setTimeFormat: (format: '12h' | '24h') => void;
   fetchTimings: () => Promise<void>;
   calculateNextPrayer: () => void;
   setReminderMinutes: (minutes: number) => void;
@@ -54,6 +56,9 @@ export const usePrayerStore = create<PrayerState>()(
       isLoading: false,
       reminderMinutes: 0,
       lastNotifiedPrayer: null,
+      timeFormat: '24h',
+
+      setTimeFormat: (timeFormat) => set({ timeFormat }),
 
       setMethod: (method) => {
         set({ method });
@@ -186,7 +191,8 @@ export const usePrayerStore = create<PrayerState>()(
         timings: state.timings,
         location: state.location,
         lastUpdated: state.lastUpdated,
-        reminderMinutes: state.reminderMinutes
+        reminderMinutes: state.reminderMinutes,
+        timeFormat: state.timeFormat
       }),
     }
   )

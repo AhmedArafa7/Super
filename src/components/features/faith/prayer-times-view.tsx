@@ -15,8 +15,8 @@ import { cn } from "@/lib/utils";
  */
 export function PrayerTimesView() {
   const { 
-    timings, nextPrayer, isLoading, method, asrSchool, lastUpdated, reminderMinutes,
-    fetchTimings, calculateNextPrayer, setMethod, setAsrSchool, setReminderMinutes 
+    timings, nextPrayer, isLoading, method, asrSchool, lastUpdated, reminderMinutes, timeFormat,
+    fetchTimings, calculateNextPrayer, setMethod, setAsrSchool, setReminderMinutes, setTimeFormat
   } = usePrayerStore();
 
   useEffect(() => {
@@ -32,6 +32,16 @@ export function PrayerTimesView() {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  const formatDisplayTime = (timeStr: string) => {
+    if (!timeStr) return "--:--";
+    if (timeFormat === '24h') return timeStr;
+    
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const ampm = hours >= 12 ? 'م' : 'ص';
+    const h12 = hours % 12 || 12;
+    return `${h12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+  };
 
   const PRAYERS = [
     { id: 'Fajr', label: 'الفجر' },
@@ -50,8 +60,8 @@ export function PrayerTimesView() {
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       {/* إعدادات المعايرة */}
-      <div className="flex flex-col md:flex-row gap-4 flex-row-reverse mb-4">
-        <div className="flex-1 space-y-2 text-right">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-row-reverse mb-4">
+        <div className="space-y-2 text-right">
           <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest px-1">طريقة الحساب</label>
           <Select value={method.toString()} onValueChange={(v) => setMethod(parseInt(v))}>
             <SelectTrigger className="bg-white/5 border-white/10 h-12 flex-row-reverse rounded-xl">
@@ -64,7 +74,19 @@ export function PrayerTimesView() {
             </SelectContent>
           </Select>
         </div>
-        <div className="w-full md:w-48 space-y-2 text-right">
+        <div className="space-y-2 text-right">
+          <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest px-1">نظام الوقت</label>
+          <Select value={timeFormat} onValueChange={(v) => setTimeFormat(v as any)}>
+            <SelectTrigger className="bg-white/5 border-white/10 h-12 flex-row-reverse rounded-xl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-950 border-white/10 text-white">
+              <SelectItem value="24h">24 ساعة</SelectItem>
+              <SelectItem value="12h">12 ساعة</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2 text-right">
           <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest px-1">المذهب (العصر)</label>
           <Select value={asrSchool.toString()} onValueChange={(v) => setAsrSchool(parseInt(v))}>
             <SelectTrigger className="bg-white/5 border-white/10 h-12 flex-row-reverse rounded-xl">
@@ -76,7 +98,7 @@ export function PrayerTimesView() {
             </SelectContent>
           </Select>
         </div>
-        <div className="w-full md:w-56 space-y-2 text-right">
+        <div className="space-y-2 text-right">
           <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest px-1">التنبيه قبل الأذان</label>
           <Select value={reminderMinutes.toString()} onValueChange={(v) => setReminderMinutes(parseInt(v))}>
             <SelectTrigger className="bg-white/5 border-white/10 h-12 flex-row-reverse rounded-xl">
@@ -157,7 +179,7 @@ export function PrayerTimesView() {
                 <div>
                   <h3 className={cn("font-bold text-lg", isNext ? "text-white" : "text-slate-400")}>{p.label}</h3>
                   <p className={cn("text-2xl font-black font-mono mt-1", isNext ? "text-primary" : "text-white")}>
-                    {timings ? timings[p.id as keyof PrayerTimings] : "--:--"}
+                    {timings ? formatDisplayTime(timings[p.id as keyof PrayerTimings]) : "--:--"}
                   </p>
                 </div>
                 {isNext && (
