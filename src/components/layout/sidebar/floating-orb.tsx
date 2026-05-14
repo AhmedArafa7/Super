@@ -27,7 +27,7 @@ export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
   const startPosRef = React.useRef({ x: 0, y: 0 });
 
   const handleMouseDown = (e: React.PointerEvent) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || isOpen) return; // Disable drag if menu is open
     pendingDragRef.current = true;
     startPosRef.current = { x: e.clientX, y: e.clientY };
     dragRef.current = {
@@ -47,14 +47,14 @@ export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
   };
 
   React.useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      if (!pendingDragRef.current) return;
+    const onMove = (e: PointerEvent) => {
+      if (!pendingDragRef.current || isOpen) return;
 
       const moveX = Math.abs(e.clientX - startPosRef.current.x);
       const moveY = Math.abs(e.clientY - startPosRef.current.y);
 
-      // Threshold to start dragging
-      if (!isDragging && (moveX > 8 || moveY > 8)) {
+      // Threshold to start dragging (Increased to 15px)
+      if (!isDragging && (moveX > 15 || moveY > 15)) {
         setIsDragging(true);
       }
 
@@ -71,13 +71,13 @@ export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
       setIsDragging(false);
     };
 
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
     return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
     };
-  }, [isDragging, setFloatingPos]);
+  }, [isDragging, setFloatingPos, isOpen]);
 
   return (
     <div 
