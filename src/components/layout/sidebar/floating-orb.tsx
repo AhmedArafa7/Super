@@ -22,13 +22,14 @@ export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
   const { floatingPos, setFloatingPos, setPosition } = useSidebarStore();
   const [isDragging, setIsDragging] = React.useState(false);
   const [isOpen, setIsOpen] = React.useState(false);
-  const [dragStartPos, setDragStartPos] = React.useState({ x: 0, y: 0 });
   const dragRef = React.useRef<any>(null);
+  const pendingDragRef = React.useRef<boolean>(false);
+  const startPosRef = React.useRef({ x: 0, y: 0 });
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleMouseDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
-    setIsDragging(true);
-    setDragStartPos({ x: e.clientX, y: e.clientY });
+    pendingDragRef.current = true;
+    startPosRef.current = { x: e.clientX, y: e.clientY };
     dragRef.current = {
       startX: e.clientX - floatingPos.x,
       startY: e.clientY - floatingPos.y
@@ -36,10 +37,8 @@ export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
   };
 
   const handleTriggerClick = (e: React.MouseEvent) => {
-    // If we moved more than 5px, it was a drag, not a click
-    const moveX = Math.abs(e.clientX - dragStartPos.x);
-    const moveY = Math.abs(e.clientY - dragStartPos.y);
-    if (moveX > 5 || moveY > 5) {
+    // If we were dragging, don't open the menu
+    if (isDragging) {
       e.preventDefault();
       e.stopPropagation();
       return;
@@ -48,14 +47,30 @@ export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
   };
 
   React.useEffect(() => {
-    if (!isDragging) return;
     const onMove = (e: MouseEvent) => {
-      setFloatingPos({ 
-        x: e.clientX - dragRef.current.startX, 
-        y: e.clientY - dragRef.current.startY 
-      });
+      if (!pendingDragRef.current) return;
+
+      const moveX = Math.abs(e.clientX - startPosRef.current.x);
+      const moveY = Math.abs(e.clientY - startPosRef.current.y);
+
+      // Threshold to start dragging
+      if (!isDragging && (moveX > 8 || moveY > 8)) {
+        setIsDragging(true);
+      }
+
+      if (isDragging) {
+        setFloatingPos({ 
+          x: e.clientX - dragRef.current.startX, 
+          y: e.clientY - dragRef.current.startY 
+        });
+      }
     };
-    const onUp = () => setIsDragging(false);
+
+    const onUp = () => {
+      pendingDragRef.current = false;
+      setIsDragging(false);
+    };
+
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
     return () => {
