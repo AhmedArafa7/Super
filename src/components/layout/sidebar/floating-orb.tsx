@@ -67,15 +67,18 @@ export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
   return (
     <div 
       style={{ left: floatingPos.x, top: floatingPos.y }}
-      className="fixed z-[9999] touch-none"
+      className={cn(
+        "fixed z-[9999] touch-none cursor-move",
+        isDragging && "cursor-grabbing"
+      )}
+      onPointerDown={handleMouseDown}
     >
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen} dir="rtl">
         <DropdownMenuTrigger asChild>
           <div 
             onClick={handleTriggerClick}
-            onMouseDown={handleMouseDown}
             className={cn(
-              "size-14 rounded-full bg-slate-900 border-2 border-primary/50 shadow-[0_0_30px_-5px_rgba(var(--primary),0.5)] flex items-center justify-center cursor-move transition-transform hover:scale-110 active:scale-95 group relative overflow-hidden",
+              "size-14 rounded-full bg-slate-900 border-2 border-primary/50 shadow-[0_0_30px_-5px_rgba(var(--primary),0.5)] flex items-center justify-center transition-transform hover:scale-110 active:scale-95 group relative overflow-hidden",
               isDragging && "scale-105 border-primary shadow-[0_0_40px_-5px_rgba(var(--primary),0.8)]"
             )}
           >

@@ -8,16 +8,32 @@ import { Layers, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSidebarStore } from "@/lib/sidebar-store";
+import { usePreferencesStore } from "@/lib/preferences-store";
 import { IconSafe } from "@/components/ui/icon-safe";
 
 export function HorizontalSidebar({ visibleItems, activeTab, onTabChange, position }: any) {
+  const { setPosition } = useSidebarStore();
+  const { sidebarIconShortcutEnabled } = usePreferencesStore();
+
+  const handleIconClick = () => {
+    if (sidebarIconShortcutEnabled) {
+      setPosition('floating');
+    }
+  };
+
   return (
     <div className={cn(
       "w-full h-16 bg-slate-900/80 backdrop-blur-2xl border-white/5 flex items-center px-6 gap-2 z-50 overflow-x-auto no-scrollbar shrink-0",
       position === 'top' ? "border-b" : "border-t"
     )}>
       <div className="flex items-center gap-4 shrink-0 ml-4">
-        <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30">
+        <div 
+          onClick={handleIconClick}
+          className={cn(
+            "size-10 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30 transition-all active:scale-90",
+            sidebarIconShortcutEnabled && "cursor-pointer hover:scale-110 hover:bg-primary/30 hover:border-primary/50"
+          )}
+        >
           <Layers className="text-primary size-5" />
         </div>
         <div className="h-8 w-px bg-white/10" />
