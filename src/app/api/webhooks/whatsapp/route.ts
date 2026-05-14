@@ -20,32 +20,29 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const firestore = getAdminFirestore();
 
-    // 1. استخراج بيانات الرسالة (تختلف حسب المزود، هنا نستخدم نمطاً عاماً)
-    // نفترض أن الرسالة تحتوي على: sender_number, message_text, instance_id (المربوط بالمستخدم)
-    const { from, body: text, instanceId, senderName } = body;
-
-    if (!from || !text) {
+    // Whapi Payload: { "messages": [ { "from": "...", "text": { "body": "..." }, ... } ] }
+    const message = body.messages?.[0];
+    
+    if (!message || !message.text?.body) {
       return NextResponse.json({ status: 'ignored' });
     }
 
-    // 2. البحث عن المستخدم المالك لهذا الـ Instance في Firestore
-    // (يجب أن يكون المستخدم قد ربط حسابه وحصل على InstanceId)
+    const from = message.from;
+    const text = message.text.body;
+    const senderName = message.from_name || from;
+
+    // البحث عن مستخدم ليتم توجيه الرسالة له (هنا نفترض المستخدم الأول في النظام للتجربة)
+    // في الإنتاج، يجب استخدام Whapi Instance ID لربط الرسالة بالمستخدم الصحيح
     const usersRef = collection(firestore, 'users');
-    const q = query(usersRef, where('whatsappInstanceId', '==', instanceId || 'test_instance'));
+    const q = query(usersRef, where('role', '==', 'founder'), limit(1));
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-      // للتجربة فقط: سنحاول البحث عن مستخدم "founder" إذا لم نجد InstanceId محدد
-      const founderQ = query(usersRef, where('role', '==', 'founder'));
-      const founderSnap = await getDocs(founderQ);
-      if (founderSnap.empty) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-      
-      const userId = founderSnap.docs[0].id;
-      await saveMessage(firestore, userId, from, text, senderName || from);
-    } else {
-      const userId = querySnapshot.docs[0].id;
-      await saveMessage(firestore, userId, from, text, senderName || from);
+      return NextResponse.json({ error: 'No founder user found to receive message' }, { status: 404 });
     }
+
+    const userId = querySnapshot.docs[0].id;
+    await saveMessage(firestore, userId, from, text, senderName);
 
     return NextResponse.json({ success: true });
 
