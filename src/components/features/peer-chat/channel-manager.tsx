@@ -56,18 +56,35 @@ const CHANNELS: Channel[] = [
 export function ChannelManager() {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [qrCode, setQrCode] = useState<string | null>(null);
   const [step, setStep] = useState(1); // 1: Select, 2: Connect/Scan
 
-  const channelInfo = CHANNELS.find(c => c.id === selectedChannel);
-
-  const startConnection = () => {
-    setIsConnecting(true);
-    // محاكاة عملية الربط
-    setTimeout(() => {
-      setIsConnecting(false);
-      setStep(2);
-    }, 1500);
+  const fetchQr = async () => {
+    try {
+      const res = await fetch('/api/auth/whatsapp/qr');
+      const data = await res.json();
+      if (data.qrCode) {
+        // إذا كان الكود يأتي كـ Base64 نحتاج لإضافة البادئة إذا لم تكن موجودة
+        const finalQr = data.qrCode.startsWith('data:') ? data.qrCode : `data:image/png;base64,${data.qrCode}`;
+        setQrCode(finalQr);
+      }
+    } catch (err) {
+      console.error("Failed to fetch QR", err);
+    }
   };
+
+  const startConnection = async () => {
+    setIsConnecting(true);
+    
+    if (selectedChannel === 'whatsapp') {
+      await fetchQr();
+    }
+    
+    setIsConnecting(false);
+    setStep(2);
+  };
+
+  const channelInfo = CHANNELS.find(c => c.id === selectedChannel);
 
   return (
     <div className="h-full flex flex-col p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -111,10 +128,17 @@ export function ChannelManager() {
         <div className="flex-1 bg-slate-900/40 border border-white/5 rounded-[3rem] p-10 flex flex-col items-center justify-center text-center space-y-8 animate-in zoom-in-95 duration-500">
           {selectedChannel === 'whatsapp' && step === 2 ? (
             <div className="space-y-8 max-w-md">
-              <div className="bg-white p-4 rounded-[2rem] shadow-[0_0_50px_rgba(255,255,255,0.1)] inline-block relative group">
-                <QrCode className="size-48 text-slate-900" />
+              <div className="bg-white p-4 rounded-[2rem] shadow-[0_0_50px_rgba(255,255,255,0.1)] inline-block relative group min-w-[200px] min-h-[200px] flex items-center justify-center">
+                {qrCode ? (
+                  <img src={qrCode} alt="WhatsApp QR Code" className="size-48 object-contain" />
+                ) : (
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="size-10 text-primary animate-spin" />
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">جاري جلب الرمز...</p>
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-[2rem]">
-                   <Button variant="ghost" size="sm" className="text-slate-900 font-bold">تحديث الرمز</Button>
+                   <Button variant="ghost" size="sm" onClick={fetchQr} className="text-slate-900 font-bold">تحديث الرمز</Button>
                 </div>
               </div>
               <div className="space-y-4">
