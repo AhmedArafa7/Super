@@ -57,7 +57,7 @@ export function ChatList({ contacts, activeContactId, onSelect, view, onViewChan
             contacts.map(c => (
               <button 
                 key={c.id} 
-                onClick={() => onSelect(c.id)}
+                onClick={() => onSelect(c)}
                 className={cn(
                   "w-full p-4 rounded-[1.5rem] flex items-center gap-4 transition-all flex-row-reverse text-right group relative",
                   activeContactId === c.id ? "bg-primary/10 border border-primary/20 shadow-inner" : "hover:bg-white/5 border border-transparent"

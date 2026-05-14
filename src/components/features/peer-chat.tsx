@@ -36,8 +36,8 @@ export function PeerChat({ initialTargetId }: { initialTargetId?: string }) {
       <ChatList 
         contacts={contacts} 
         activeContactId={selectedId || undefined} 
-        onSelect={(id) => {
-          setSelectedId(id);
+        onSelect={(contact) => {
+          setSelectedId(contact.id);
           setView('chat');
         }} 
         view={view}

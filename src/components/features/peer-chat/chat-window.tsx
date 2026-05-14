@@ -25,10 +25,10 @@ export function ChatWindow({ currentUser, targetUser }: { currentUser: any, targ
 
   useEffect(() => {
     if (currentUser?.id && targetUser?.id) {
-      const unsubscribe = loadMessages(currentUser.id, targetUser.id);
+      const unsubscribe = loadMessages(currentUser.id, targetUser.id, targetUser.platform);
       return () => unsubscribe();
     }
-  }, [currentUser?.id, targetUser?.id]);
+  }, [currentUser?.id, targetUser?.id, targetUser.platform]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -49,7 +49,7 @@ export function ChatWindow({ currentUser, targetUser }: { currentUser: any, targ
     if (!input?.trim()) return;
     const text = input;
     setInput("");
-    await sendMessage(currentUser.id, targetUser.id, { text, type: 'text' });
+    await sendMessage(currentUser.id, targetUser.id, { text, type: 'text' }, targetUser.platform);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
