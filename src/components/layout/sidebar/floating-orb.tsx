@@ -5,7 +5,14 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, 
   DropdownMenuSeparator, DropdownMenuLabel
 } from "@/components/ui/dropdown-menu";
-import { Layers } from "lucide-react";
+import { 
+  Layers, 
+  ArrowLeft, 
+  ArrowRight, 
+  ArrowUp, 
+  ArrowDown,
+  RotateCcw
+} from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useSidebarStore } from "@/lib/sidebar-store";
@@ -61,12 +68,12 @@ export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
     <div 
       style={{ left: floatingPos.x, top: floatingPos.y }}
       className="fixed z-[9999] touch-none"
-      onMouseDown={handleMouseDown}
     >
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen} dir="rtl">
         <DropdownMenuTrigger asChild>
           <div 
             onClick={handleTriggerClick}
+            onMouseDown={handleMouseDown}
             className={cn(
               "size-14 rounded-full bg-slate-900 border-2 border-primary/50 shadow-[0_0_30px_-5px_rgba(var(--primary),0.5)] flex items-center justify-center cursor-move transition-transform hover:scale-110 active:scale-95 group relative overflow-hidden",
               isDragging && "scale-105 border-primary shadow-[0_0_40px_-5px_rgba(var(--primary),0.8)]"
@@ -97,9 +104,27 @@ export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
             </div>
           </ScrollArea>
           <DropdownMenuSeparator className="my-2 bg-white/5" />
-          <DropdownMenuItem onClick={() => setPosition('left')} className="text-center justify-center text-[10px] text-muted-foreground hover:text-white">
-            إعادة الشريط للوضع العمودي
-          </DropdownMenuItem>
+          
+          <div className="px-2 py-1">
+             <p className="text-[9px] text-muted-foreground text-center mb-2 uppercase font-bold tracking-tighter">تثبيت الشريط (Fix Position)</p>
+             <div className="grid grid-cols-4 gap-1">
+                {[
+                  { pos: 'top', icon: ArrowUp, label: 'أعلى' },
+                  { pos: 'bottom', icon: ArrowDown, label: 'أسفل' },
+                  { pos: 'left', icon: ArrowLeft, label: 'يسار' },
+                  { pos: 'right', icon: ArrowRight, label: 'يمين' },
+                ].map((btn) => (
+                  <button
+                    key={btn.pos}
+                    onClick={() => setPosition(btn.pos as any)}
+                    className="flex flex-col items-center justify-center p-2 rounded-xl bg-white/5 hover:bg-primary hover:text-white transition-all group"
+                  >
+                    <btn.icon className="size-4 mb-1 group-hover:scale-110 transition-transform" />
+                    <span className="text-[8px] font-bold">{btn.label}</span>
+                  </button>
+                ))}
+             </div>
+          </div>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
