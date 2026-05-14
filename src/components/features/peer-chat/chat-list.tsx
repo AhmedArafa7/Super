@@ -2,17 +2,41 @@
 'use client';
 
 import React from 'react';
-import { MessageSquare, Search, Circle } from 'lucide-react';
+import { MessageSquare, Search, Circle, LayoutGrid } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
-export function ChatList({ contacts, activeContactId, onSelect }: { contacts: any[], activeContactId?: string, onSelect: (id: string) => void }) {
+interface ChatListProps {
+  contacts: any[];
+  activeContactId?: string;
+  onSelect: (id: string) => void;
+  view: 'chat' | 'channels';
+  onViewChange: (view: 'chat' | 'channels') => void;
+}
+
+export function ChatList({ contacts, activeContactId, onSelect, view, onViewChange }: ChatListProps) {
   return (
     <aside className="w-full md:w-80 flex flex-col h-full border-l border-white/5 bg-slate-900/20">
-      <div className="p-6 border-b border-white/5">
-        <div className="relative mb-6">
+      <div className="p-4 border-b border-white/5">
+        <Button 
+          variant="ghost" 
+          onClick={() => onViewChange('channels')}
+          className={cn(
+            "w-full h-14 rounded-2xl gap-3 flex-row-reverse mb-4 transition-all",
+            view === 'channels' ? "bg-primary text-white shadow-lg" : "hover:bg-white/5 text-slate-400"
+          )}
+        >
+          <LayoutGrid className="size-5" />
+          <div className="flex flex-col text-right">
+             <span className="text-xs font-black uppercase tracking-widest">مجمع القنوات</span>
+             <span className="text-[8px] opacity-60 font-bold uppercase">Communication Hub</span>
+          </div>
+        </Button>
+
+        <div className="relative mb-4">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input placeholder="بحث في جهات الاتصال..." className="h-10 pr-9 bg-white/5 border-white/10 rounded-xl text-right text-xs" />
         </div>

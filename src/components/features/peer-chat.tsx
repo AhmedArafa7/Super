@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -8,6 +7,7 @@ import { useAuth } from '@/components/auth/auth-provider';
 import { getStoredUsers } from '@/lib/auth-store';
 import { ChatList } from './peer-chat/chat-list';
 import { ChatWindow } from './peer-chat/chat-window';
+import { ChannelManager } from './peer-chat/channel-manager';
 import { EmptyState } from '@/components/ui/empty-state';
 
 /**
@@ -18,6 +18,7 @@ export function PeerChat({ initialTargetId }: { initialTargetId?: string }) {
   const { user } = useAuth();
   const [contacts, setContacts] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(initialTargetId || null);
+  const [view, setView] = useState<'chat' | 'channels'>(initialTargetId ? 'chat' : 'channels');
 
   useEffect(() => {
     const load = async () => {
@@ -35,11 +36,18 @@ export function PeerChat({ initialTargetId }: { initialTargetId?: string }) {
       <ChatList 
         contacts={contacts} 
         activeContactId={selectedId || undefined} 
-        onSelect={setSelectedId} 
+        onSelect={(id) => {
+          setSelectedId(id);
+          setView('chat');
+        }} 
+        view={view}
+        onViewChange={setView}
       />
 
       <main className="flex-1 h-full min-h-[500px]">
-        {activeContact ? (
+        {view === 'channels' ? (
+          <ChannelManager />
+        ) : activeContact ? (
           <ChatWindow currentUser={user} targetUser={activeContact} />
         ) : (
           <div className="h-full flex items-center justify-center glass rounded-[3rem] border-white/5">
