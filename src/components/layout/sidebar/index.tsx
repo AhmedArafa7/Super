@@ -3,14 +3,10 @@
 import React from "react";
 import { Sidebar, SidebarContent, SidebarMenu } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { MonitorSmartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useSettingsStore } from "@/lib/settings-store";
 import { useSidebarStore } from "@/lib/sidebar-store";
-import { IconSafe } from "@/components/ui/icon-safe";
 
 // Modular LEGO Components
 import { ALL_NAV_ITEMS, getVisibleNavItems, User, UploadTask } from "./nav-items";
@@ -21,6 +17,7 @@ import { SidebarHeader } from "./sidebar-header";
 import { SidebarFooter } from "./sidebar-footer";
 import { UploadMonitor } from "./upload-monitor";
 import { ResizeHandle } from "./resize-handle";
+import { SidebarCustomizeDialog } from "./sidebar-customize-dialog";
 import { useSidebarLayout } from "./use-sidebar-layout";
 
 interface AppSidebarProps {
@@ -107,14 +104,27 @@ export function AppSidebar({
   const isBeta = (id: string) => settings?.sections?.[id]?.isBeta ?? false;
   const pinnedSidebarItems = visibleItems.filter(item => item.isPermanent || isPinned(item.id));
 
+  // ═══════════════════════════════════════════
+  // Shared props for ALL sidebar layout modes
+  // ═══════════════════════════════════════════
+  const sharedProps = {
+    pinnedItems: pinnedSidebarItems,
+    allItems: visibleItems,
+    activeTab,
+    onTabChange,
+    isPinned,
+    togglePin,
+    isCollapsed,
+  };
+
   // RENDER: Floating Mode
   if (isFloating) {
-    return <FloatingOrb visibleItems={visibleItems} activeTab={activeTab} onTabChange={onTabChange} />;
+    return <FloatingOrb {...sharedProps} />;
   }
 
   // RENDER: Horizontal Mode (Top / Bottom)
   if (isHorizontal) {
-    return <HorizontalSidebar visibleItems={visibleItems} activeTab={activeTab} onTabChange={onTabChange} position={position} />;
+    return <HorizontalSidebar {...sharedProps} position={position} />;
   }
 
   // RENDER: Vertical Mode (Standard Sidebar)
@@ -151,36 +161,7 @@ export function AppSidebar({
 
             {!isCollapsed && (
               <div className="px-1">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="ghost" className="w-full border border-dashed border-white/10 h-10 rounded-xl text-[10px] uppercase font-bold text-muted-foreground hover:bg-white/5 gap-3 flex-row-reverse">
-                      <IconSafe icon={MonitorSmartphone} className="size-4 text-primary" /> تخصيص القائمة
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="bg-slate-950 border-white/10 rounded-[2.5rem] sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle className="text-right">إعدادات القائمة الجانبية</DialogTitle>
-                      <DialogDescription className="text-right">اختر الأقسام المفضلة لتثبيتها في شريط التنقل.</DialogDescription>
-                    </DialogHeader>
-                    <ScrollArea className="max-h-[400px] mt-4">
-                      <div className="grid grid-cols-1 gap-2 pr-4">
-                        {visibleItems.filter(i => !i.isPermanent).map((item) => (
-                          <div key={item.id} className="flex items-center justify-between p-4 glass border-white/5 rounded-2xl hover:bg-white/5 transition-all flex-row-reverse">
-                            <div className="flex items-center gap-3 flex-row-reverse">
-                              <div className="size-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                                <IconSafe icon={item.icon} className="size-5" />
-                              </div>
-                              <span className="font-bold text-sm text-white">{item.label}</span>
-                            </div>
-                            <Button size="sm" variant={isPinned(item.id) ? "default" : "outline"} className={cn("rounded-lg h-8 px-4", isPinned(item.id) ? "bg-primary" : "border-white/10")} onClick={() => togglePin(item.id)}>
-                              {isPinned(item.id) ? "إلغاء التثبيت" : "ثبت"}
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </DialogContent>
-                </Dialog>
+                <SidebarCustomizeDialog allItems={visibleItems} isPinned={isPinned} togglePin={togglePin} variant="button" />
               </div>
             )}
 

@@ -11,15 +11,36 @@ import {
   ArrowRight, 
   ArrowUp, 
   ArrowDown,
-  RotateCcw
+  GripHorizontal
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSidebarStore } from "@/lib/sidebar-store";
 import { IconSafe } from "@/components/ui/icon-safe";
+import { NavItem } from "./nav-items";
+import { SidebarCustomizeDialog } from "./sidebar-customize-dialog";
 
-export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
-  const { floatingPos, setFloatingPos, setPosition } = useSidebarStore();
+/**
+ * [STABILITY_ANCHOR: FLOATING_ORB_V3]
+ * الكرة العائمة المحسّنة - تدعم:
+ * 1. التخصيص (Pinned Items فقط)
+ * 2. الوضع المدمج (Icon-Only)
+ * 3. السحب والإفلات
+ */
+
+interface FloatingOrbProps {
+  pinnedItems: NavItem[];
+  allItems: NavItem[];
+  activeTab: string;
+  onTabChange: (id: string) => void;
+  isPinned: (id: string) => boolean;
+  togglePin: (id: string) => void;
+  isCollapsed: boolean;
+}
+
+export function FloatingOrb({ pinnedItems, allItems, activeTab, onTabChange, isPinned, togglePin, isCollapsed }: FloatingOrbProps) {
+  const { floatingPos, setFloatingPos, setPosition, setCollapsed } = useSidebarStore();
   const [isDragging, setIsDragging] = React.useState(false); // visual only
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -112,11 +133,15 @@ export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
             <div className="absolute -inset-1 bg-gradient-to-tr from-primary/20 to-transparent animate-spin-slow" />
           </div>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-72 bg-slate-900/95 backdrop-blur-2xl border-white/10 p-3 rounded-2xl shadow-2xl animate-in zoom-in-95" side="top" align="center">
+        <DropdownMenuContent className={cn(
+          "bg-slate-900/95 backdrop-blur-2xl border-white/10 p-3 rounded-2xl shadow-2xl animate-in zoom-in-95",
+          isCollapsed ? "w-56" : "w-72"
+        )} side="top" align="center">
           <DropdownMenuLabel className="text-center pb-2 border-b border-white/5 mb-2 text-indigo-400 font-black tracking-widest text-xs">NEXUS OMNI-CONTROL</DropdownMenuLabel>
+          
           <ScrollArea className="h-[400px] pr-2">
             <div className="grid grid-cols-1 gap-1">
-              {visibleItems.map((item: any) => (
+              {pinnedItems.map((item: NavItem) => (
                 <DropdownMenuItem 
                   key={item.id} 
                   onClick={() => onTabChange(item.id)}
@@ -126,13 +151,29 @@ export function FloatingOrb({ visibleItems, activeTab, onTabChange }: any) {
                   )}
                 >
                   <IconSafe icon={item.icon} className="size-4" />
-                  <span className="flex-1 text-xs font-medium">{item.label}</span>
+                  {!isCollapsed && <span className="flex-1 text-xs font-medium">{item.label}</span>}
                 </DropdownMenuItem>
               ))}
             </div>
           </ScrollArea>
           <DropdownMenuSeparator className="my-2 bg-white/5" />
           
+          {/* Controls Row */}
+          <div className="flex items-center justify-between px-1 mb-2">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className={cn("h-7 px-2 rounded-lg text-[9px] font-bold", isCollapsed ? "bg-white/5 text-primary" : "text-white/50")}
+              onClick={(e) => { e.stopPropagation(); setCollapsed(!isCollapsed); }}
+            >
+              <GripHorizontal className="size-3 mr-1" />
+              {isCollapsed ? "عرض الأسماء" : "أيقونات فقط"}
+            </Button>
+            <div onClick={(e) => e.stopPropagation()}>
+              <SidebarCustomizeDialog allItems={allItems} isPinned={isPinned} togglePin={togglePin} variant="icon" />
+            </div>
+          </div>
+
           <div className="px-2 py-1">
              <p className="text-[9px] text-muted-foreground text-center mb-2 uppercase font-bold tracking-tighter">تثبيت الشريط (Fix Position)</p>
              <div className="grid grid-cols-4 gap-1">
