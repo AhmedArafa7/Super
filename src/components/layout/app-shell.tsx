@@ -136,6 +136,8 @@ function AppShellInternal() {
   const position = useSidebarStore(s => s.position);
   const isPinned = useSidebarStore(s => s.isPinned);
   const togglePin = useSidebarStore(s => s.togglePin);
+  const setVisible = useSidebarStore(s => s.setVisible);
+  const toggleVisible = useSidebarStore(s => s.toggleVisible);
   const setCollapsed = useSidebarStore(s => s.setCollapsed);
 
   const setCurrentTab = useStreamStore(s => s.setCurrentTab);
@@ -322,8 +324,8 @@ function AppShellInternal() {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="fixed top-4 left-4 z-50 size-10 rounded-2xl bg-slate-900/80 border border-white/10 text-primary shadow-2xl backdrop-blur-md hover:scale-110 transition-all animate-in zoom-in-50"
-            onClick={() => useSidebarStore.getState().setVisible(true)}
+            className="fixed top-4 start-4 z-[100] size-10 rounded-2xl bg-slate-900/80 border border-white/10 text-primary shadow-2xl backdrop-blur-md hover:scale-110 transition-all animate-in zoom-in-50"
+            onClick={() => setVisible(true)}
           >
             <IconSafe icon={Layers} className="size-5" />
           </Button>
@@ -331,7 +333,12 @@ function AppShellInternal() {
 
         <div className="flex-1 flex flex-col h-screen overflow-hidden">
           <SafeComponentWrapper name="AppHeader">
-            <AppHeader unreadCount={unreadCount} onTabChange={setActiveTab} onNavigateToWallet={() => setActiveTab("wallet")} />
+            <AppHeader 
+              unreadCount={unreadCount} 
+              onTabChange={setActiveTab} 
+              onNavigateToWallet={() => setActiveTab("wallet")}
+              onToggleSidebar={toggleVisible}
+            />
           </SafeComponentWrapper>
           <main className={cn(
             "flex-1 overflow-y-auto relative transition-colors duration-500",

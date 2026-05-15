@@ -9,11 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
-export function AppHeader({ unreadCount, onTabChange, onNavigateToWallet }: any) {
+export function AppHeader({ unreadCount, onTabChange, onNavigateToWallet, onToggleSidebar }: any) {
   return (
     <header className="h-16 border-b border-white/5 bg-slate-900/40 backdrop-blur-md flex items-center justify-between px-6 z-20 flex-row-reverse shrink-0">
       <div className="flex items-center gap-4 flex-row-reverse">
-        <SidebarTrigger className="md:hidden" />
+        <Button variant="ghost" size="icon" className="text-muted-foreground" onClick={onToggleSidebar}>
+          <Layers className="size-5" />
+        </Button>
         <div className="relative hidden md:block">
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center">
             <IconSafe icon={Search} className="size-4 text-muted-foreground" />
