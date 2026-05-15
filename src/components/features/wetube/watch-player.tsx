@@ -30,7 +30,7 @@ export function WatchPlayer({ isCached, downloadedQuality, handleQualityChange }
 
     if (isOptimizing) {
         return (
-            <div className="w-full aspect-video rounded-3xl overflow-hidden bg-slate-950 flex items-center justify-center border border-primary/20 shadow-2xl relative mb-6">
+            <div className="w-full aspect-video rounded-none sm:rounded-3xl overflow-hidden bg-slate-950 flex items-center justify-center border-b sm:border border-primary/20 shadow-2xl relative mb-0 sm:mb-6">
                 <div className="absolute inset-0 bg-primary/5 animate-pulse" />
                 <div className="flex flex-col items-center gap-6 relative z-10">
                     <div className="relative">
@@ -49,7 +49,7 @@ export function WatchPlayer({ isCached, downloadedQuality, handleQualityChange }
     }
 
     return (
-        <div className="w-full aspect-video rounded-3xl overflow-hidden bg-black shadow-2xl relative group mb-6 border border-white/5 ring-1 ring-white/10">
+        <div className="w-full aspect-video rounded-none sm:rounded-3xl overflow-hidden bg-black shadow-2xl relative group mb-0 sm:mb-6 border-b sm:border border-white/5 ring-0 sm:ring-1 ring-white/10">
             <NexusVideoPlayer
                 src={video.externalUrl || video.url}
                 videoId={source === 'youtube' ? extractYouTubeId(video.externalUrl || video.url) || video.id : video.id}

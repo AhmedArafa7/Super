@@ -110,7 +110,7 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached, onCh
     };
 
     return (
-        <div className="flex flex-col lg:flex-row w-full max-w-[1500px] mx-auto pt-16 px-4 sm:px-6 lg:px-8 gap-6 rtl pb-20">
+        <div className="flex flex-col lg:flex-row w-full max-w-[1500px] mx-auto pt-16 px-0 sm:px-6 lg:px-8 gap-0 sm:gap-6 rtl pb-20">
             {/* Left Column: Player, Actions, Description, Comments */}
             <div className="flex-1 lg:max-w-[calc(100%-400px)] flex flex-col min-w-0">
                 <WatchPlayer 
@@ -119,38 +119,40 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached, onCh
                     handleQualityChange={handleQualityChange}
                 />
 
-                <WatchActions 
-                    currentUser={user}
-                    likeCount={likeCount}
-                    handleQualityChange={handleQualityChange}
-                    downloadedQuality={downloadedQuality}
-                    isCached={isCached}
-                    onSync={onSync}
-                    onClose={onClose}
-                />
+                <div className="px-4 sm:px-0 flex flex-col">
+                    <WatchActions 
+                        currentUser={user}
+                        likeCount={likeCount}
+                        handleQualityChange={handleQualityChange}
+                        downloadedQuality={downloadedQuality}
+                        isCached={isCached}
+                        onSync={onSync}
+                        onClose={onClose}
+                    />
 
-                <WatchDescription 
-                    viewCount={viewCount}
-                    dateStr={dateStr}
-                />
+                    <WatchDescription 
+                        viewCount={viewCount}
+                        dateStr={dateStr}
+                    />
 
-                <NexusNativeAds 
-                    type="banner" 
-                    category={video.category || (details as any)?.category} 
-                    className="mb-8" 
-                />
+                    <NexusNativeAds 
+                        type="banner" 
+                        category={video.category || (details as any)?.category} 
+                        className="mb-8" 
+                    />
 
-                <WatchProductShelf 
-                    authorId={video.authorId}
-                    productIds={video.productIds}
-                    displayMode={video.productDisplayMode}
-                />
+                    <WatchProductShelf 
+                        authorId={video.authorId}
+                        productIds={video.productIds}
+                        displayMode={video.productDisplayMode}
+                    />
 
-                <WatchComments user={user} />
+                    <WatchComments user={user} />
+                </div>
             </div>
 
             {/* Right Column: Related Videos */}
-            <div className="w-full lg:w-[350px] shrink-0">
+            <div className="w-full lg:w-[350px] shrink-0 px-4 sm:px-0 mt-8 lg:mt-0">
                 <NexusNativeAds 
                     type="sidebar" 
                     category={video.category || (details as any)?.category}
