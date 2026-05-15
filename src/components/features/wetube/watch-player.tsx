@@ -55,6 +55,9 @@ export function WatchPlayer({ isCached, downloadedQuality, handleQualityChange }
                 videoId={source === 'youtube' ? extractYouTubeId(video.externalUrl || video.url) || video.id : video.id}
                 poster={video.thumbnail}
                 autoPlay
+                title={video.title}
+                author={video.author}
+                authorAvatar={video.channelAvatar}
                 sourceType={isPlayingLocally ? "local" : (source === 'youtube' ? "youtube" : "telegram")}
                 proSettings={isPro ? proSettings : undefined}
                 neuralMetadata={neuralMetadata || undefined}

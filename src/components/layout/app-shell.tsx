@@ -337,7 +337,7 @@ function AppShellInternal() {
               unreadCount={unreadCount} 
               onTabChange={setActiveTab} 
               onNavigateToWallet={() => setActiveTab("wallet")}
-              onToggleSidebar={toggleVisible}
+              onToggleSidebar={() => setCollapsed(!isCollapsed)}
             />
           </SafeComponentWrapper>
           <main className={cn(

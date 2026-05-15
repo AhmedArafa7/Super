@@ -16,6 +16,9 @@ interface NexusVideoPlayerProps {
     videoId?: string;
     poster?: string;
     autoPlay?: boolean;
+    title?: string;
+    author?: string;
+    authorAvatar?: string;
     qualityOptions?: string[];
     defaultQuality?: string;
     onQualityChange?: (quality: string) => void;
@@ -38,7 +41,10 @@ export function NexusVideoPlayer({
     onQualityChange,
     sourceType,
     proSettings,
-    neuralMetadata
+    neuralMetadata,
+    title,
+    author,
+    authorAvatar
 }: NexusVideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -287,6 +293,38 @@ export function NexusVideoPlayer({
                 togglePlay();
             }}
         >
+            {/* 1. Cinematic Header Overlay (Matches YouTube Site Style) */}
+            <div className={cn(
+                "absolute top-0 inset-x-0 p-6 z-30 transition-all duration-700 pointer-events-none flex items-start justify-between bg-gradient-to-b from-black/80 via-black/20 to-transparent",
+                showControls ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
+            )}>
+                <div className="flex items-center gap-3">
+                    {authorAvatar && (
+                        <img src={authorAvatar} alt={author} className="size-10 rounded-full border border-white/20 shadow-lg" />
+                    )}
+                    <div className="flex flex-col">
+                        <h2 dir="auto" className="text-white font-bold text-lg leading-tight drop-shadow-md line-clamp-1">{title}</h2>
+                        <span dir="auto" className="text-white/70 text-sm font-medium">{author}</span>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3 pointer-events-auto">
+                    <button className="text-white/80 hover:text-white transition-colors p-2"><Volume2 className="size-5" /></button>
+                    <button className="text-white/80 hover:text-white transition-colors p-2">CC</button>
+                    <button className="text-white/80 hover:text-white transition-colors p-2"><Settings className="size-5" /></button>
+                </div>
+            </div>
+
+            {/* 2. Center Play/Pause Button (Matches YouTube Site Style) */}
+            <div className={cn(
+                "absolute inset-0 z-20 flex items-center justify-center pointer-events-none transition-all duration-300",
+                !isPlaying || showControls ? "opacity-100 scale-100" : "opacity-0 scale-110"
+            )}>
+                <div className="size-20 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 shadow-2xl">
+                    {isPlaying ? <Pause className="size-8 text-white" fill="white" /> : <Play className="size-8 text-white ml-1" fill="white" />}
+                </div>
+            </div>
+
             {/* Pro Global Layer (Neural Overlay) */}
             {proSettings && (
                 <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden opacity-30">
