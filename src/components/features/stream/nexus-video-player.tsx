@@ -294,36 +294,34 @@ export function NexusVideoPlayer({
             }}
         >
             {/* 1. Cinematic Header Overlay (Matches YouTube Site Style) */}
-            <div className={cn(
-                "absolute top-0 inset-x-0 p-6 z-30 transition-all duration-700 pointer-events-none flex items-start justify-between bg-gradient-to-b from-black/80 via-black/20 to-transparent",
-                showControls ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
-            )}>
-                <div className="flex items-center gap-3">
-                    {authorAvatar && (
-                        <img src={authorAvatar} alt={author} className="size-10 rounded-full border border-white/20 shadow-lg" />
-                    )}
-                    <div className="flex flex-col">
-                        <h2 dir="auto" className="text-white font-bold text-lg leading-tight drop-shadow-md line-clamp-1">{title}</h2>
-                        <span dir="auto" className="text-white/70 text-sm font-medium">{author}</span>
+            {(proSettings || sourceType !== 'youtube') && (
+                <div className={cn(
+                    "absolute top-0 inset-x-0 p-6 z-30 transition-all duration-700 pointer-events-none flex items-start justify-between bg-gradient-to-b from-black/80 via-black/20 to-transparent",
+                    showControls ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
+                )}>
+                    <div className="flex items-center gap-3">
+                        {authorAvatar && (
+                            <img src={authorAvatar} alt={author} className="size-10 rounded-full border border-white/20 shadow-lg" />
+                        )}
+                        <div className="flex flex-col">
+                            <h2 dir="auto" className="text-white font-bold text-lg leading-tight drop-shadow-md line-clamp-1">{title}</h2>
+                            <span dir="auto" className="text-white/70 text-sm font-medium">{author}</span>
+                        </div>
                     </div>
                 </div>
-
-                <div className="flex items-center gap-3 pointer-events-auto">
-                    <button className="text-white/80 hover:text-white transition-colors p-2"><Volume2 className="size-5" /></button>
-                    <button className="text-white/80 hover:text-white transition-colors p-2">CC</button>
-                    <button className="text-white/80 hover:text-white transition-colors p-2"><Settings className="size-5" /></button>
-                </div>
-            </div>
+            )}
 
             {/* 2. Center Play/Pause Button (Matches YouTube Site Style) */}
-            <div className={cn(
-                "absolute inset-0 z-20 flex items-center justify-center pointer-events-none transition-all duration-300",
-                !isPlaying || showControls ? "opacity-100 scale-100" : "opacity-0 scale-110"
-            )}>
-                <div className="size-20 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 shadow-2xl">
-                    {isPlaying ? <Pause className="size-8 text-white" fill="white" /> : <Play className="size-8 text-white ml-1" fill="white" />}
+            {(proSettings || sourceType !== 'youtube') && (
+                <div className={cn(
+                    "absolute inset-0 z-20 flex items-center justify-center pointer-events-none transition-all duration-300",
+                    !isPlaying || showControls ? "opacity-100 scale-100" : "opacity-0 scale-110"
+                )}>
+                    <div className="size-20 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 shadow-2xl">
+                        {isPlaying ? <Pause className="size-8 text-white" fill="white" /> : <Play className="size-8 text-white ml-1" fill="white" />}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Pro Global Layer (Neural Overlay) */}
             {proSettings && (
@@ -450,29 +448,34 @@ export function NexusVideoPlayer({
                     max="100"
                     value={progress || 0}
                     onChange={handleSeek}
-                    className="w-full h-1 bg-white/30 rounded-lg appearance-none cursor-pointer hover:h-2 transition-all mb-4 accent-indigo-500"
+                    className="w-full h-1 bg-white/30 rounded-lg appearance-none cursor-pointer hover:h-1.5 transition-all mb-3 accent-red-600"
                 />
 
-                <div className="flex items-center justify-between rtl:flex-row-reverse">
-                    <div className="flex items-center gap-4">
-                        <button onClick={togglePlay} className="text-white hover:text-indigo-400 transition-colors">
-                            {isPlaying ? <Pause className="size-6 font-bold" fill="currentColor" /> : <Play className="size-6 font-bold" fill="currentColor" />}
+                <div className="flex items-center justify-between" dir="ltr">
+                    {/* Left side: Play, Vol, Time */}
+                    <div className="flex items-center gap-5">
+                        <button onClick={togglePlay} className="text-white hover:text-red-500 transition-colors">
+                            {isPlaying ? <Pause className="size-5 font-bold" fill="currentColor" /> : <Play className="size-5 font-bold" fill="currentColor" />}
                         </button>
 
-                        <button onClick={toggleMute} className="text-white hover:text-indigo-400 transition-colors">
+                        <button onClick={toggleMute} className="text-white hover:text-red-500 transition-colors">
                             {isMuted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
                         </button>
 
-                        <div className="text-white text-sm font-medium tracking-wide">
+                        <div className="text-white text-xs font-medium tracking-wide">
                             {currentTime} <span className="opacity-50 mx-1">/</span> {duration}
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        {/* Quality Selector (Optional) */}
+                    {/* Right side: CC, Settings, Fullscreen */}
+                    <div className="flex items-center gap-4">
+                        <button className="text-white hover:text-red-500 transition-colors">
+                            <span className="font-bold text-xs border-b-2 border-white pb-0.5 leading-none block">CC</span>
+                        </button>
+
                         {qualityOptions.length > 0 && (
-                            <div className="bg-[#272727]/60 rounded-lg px-1 hidden sm:flex items-center h-8 border border-white/5">
-                                <Settings className="size-4 text-white/70 ml-2" />
+                            <div className="bg-transparent rounded-lg px-1 hidden sm:flex items-center h-8">
+                                <Settings className="size-5 text-white" />
                                 <Select
                                     value={quality}
                                     onValueChange={(q) => {
@@ -480,12 +483,12 @@ export function NexusVideoPlayer({
                                         onQualityChange?.(q);
                                     }}
                                 >
-                                    <SelectTrigger className="w-[110px] h-7 bg-transparent border-none outline-none focus:ring-0 shadow-none text-xs text-white font-medium">
-                                        <SelectValue placeholder="الجودة" />
+                                    <SelectTrigger className="w-auto gap-1 h-7 bg-transparent border-none outline-none focus:ring-0 shadow-none text-xs text-white font-medium">
+                                        <SelectValue placeholder="HD" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-[#222222] border-white/10 text-white rounded-lg">
                                         {qualityOptions.map((q) => (
-                                            <SelectItem key={q} value={q} className="focus:bg-[#3f3f3f] cursor-pointer text-xs" dir="rtl">
+                                            <SelectItem key={q} value={q} className="focus:bg-[#3f3f3f] cursor-pointer text-xs" dir="ltr">
                                                 {q}
                                             </SelectItem>
                                         ))}
@@ -494,7 +497,7 @@ export function NexusVideoPlayer({
                             </div>
                         )}
 
-                        <button onClick={toggleFullScreen} className="text-white hover:text-indigo-400 transition-colors">
+                        <button onClick={toggleFullScreen} className="text-white hover:text-red-500 transition-colors">
                             <Maximize className="size-5" />
                         </button>
                     </div>
