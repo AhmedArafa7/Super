@@ -48,7 +48,7 @@ import { useSidebarStore, NavItemId } from "@/lib/sidebar-store";
 import { getReceivedOffers } from "@/lib/market-store";
 import { useAuth } from "@/components/auth/auth-provider";
 import { LoginView } from "@/components/auth/login-view";
-import { AppSidebar, ALL_NAV_ITEMS } from "./app-sidebar";
+import { AppSidebar, getVisibleNavItems, ALL_NAV_ITEMS } from "./app-sidebar";
 import { AppHeader } from "./app-header";
 import { DulmsLayout } from "./dulms-layout";
 import { SafeComponentWrapper, SidebarFallback } from "./safe-component-wrapper";
