@@ -294,7 +294,7 @@ export function NexusVideoPlayer({
             }}
         >
             {/* 1. Cinematic Header Overlay (Matches YouTube Site Style) */}
-            {(proSettings || sourceType !== 'youtube') && (
+            {((proSettings && Object.keys(proSettings).length > 0) || sourceType !== 'youtube') && (
                 <div className={cn(
                     "absolute top-0 inset-x-0 p-6 z-30 transition-all duration-700 pointer-events-none flex items-start justify-between bg-gradient-to-b from-black/80 via-black/20 to-transparent",
                     showControls ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
@@ -312,7 +312,7 @@ export function NexusVideoPlayer({
             )}
 
             {/* 2. Center Play/Pause Button (Matches YouTube Site Style) */}
-            {(proSettings || sourceType !== 'youtube') && (
+            {((proSettings && Object.keys(proSettings).length > 0) || sourceType !== 'youtube') && (
                 <div className={cn(
                     "absolute inset-0 z-20 flex items-center justify-center pointer-events-none transition-all duration-300",
                     !isPlaying || showControls ? "opacity-100 scale-100" : "opacity-0 scale-110"
@@ -438,7 +438,7 @@ export function NexusVideoPlayer({
             <div
                 className={cn(
                     "video-controls absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pb-2 pt-16 transition-opacity duration-300",
-                    (showControls || !isPlaying) && (proSettings || sourceType !== 'youtube') ? "opacity-100" : "opacity-0 pointer-events-none"
+                    (showControls || !isPlaying) && ((proSettings && Object.keys(proSettings).length > 0) || sourceType !== 'youtube') ? "opacity-100" : "opacity-0 pointer-events-none"
                 )}
             >
                 {/* Progress Bar */}

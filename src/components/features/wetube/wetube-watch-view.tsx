@@ -16,6 +16,8 @@ import {
 import { useGlobalStorage } from "@/lib/global-storage-store";
 import { getRelativeTime } from "@/lib/date-utils";
 import { addToHistory } from "@/lib/history-store";
+import { useSidebarStore } from "@/lib/sidebar-store";
+import { ArrowRight } from "lucide-react";
 
 // Extracted Components
 import { WatchProvider, useWatch } from "./watch-context";
@@ -40,6 +42,13 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached, onCh
         setIsLoading,
         selectedQuality, setSelectedQuality
     } = useWatch();
+
+    const setCollapsed = useSidebarStore(s => s.setCollapsed);
+
+    useEffect(() => {
+        // Auto-Cinema Mode: Collapse sidebar when watching
+        setCollapsed(true);
+    }, [setCollapsed]);
 
     useEffect(() => {
         if (video.source === 'youtube') {

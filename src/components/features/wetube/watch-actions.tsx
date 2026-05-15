@@ -104,16 +104,18 @@ export function WatchActions({
     };
 
     return (
-        <div className="flex flex-col gap-4 mb-6">
-            <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-2 mb-6">
+            <div className="flex flex-col gap-3">
                 <button
                   onClick={onClose}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors shrink-0"
+                  className="group flex items-center gap-2 text-muted-foreground hover:text-white transition-all w-fit pr-1"
                 >
-                    <ArrowRight className="size-4" />
-                    الرجوع للرئيسية
+                    <div className="size-6 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center transition-colors">
+                        <ArrowRight className="size-3.5" />
+                    </div>
+                    <span className="text-xs font-bold tracking-wide uppercase">العودة للمنصة</span>
                 </button>
-                <h1 className="text-xl font-bold line-clamp-2 text-right flex-1">{video.title}</h1>
+                <h1 dir="auto" className="text-2xl font-black leading-tight tracking-tight text-right text-white drop-shadow-sm">{video.title}</h1>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
