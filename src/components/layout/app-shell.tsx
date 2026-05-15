@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { X, ExternalLink, Layers, LogOut, ShieldCheck } from "lucide-react";
+import { X, ExternalLink, Layers, LogOut, ShieldCheck, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, hexToHSL } from "@/lib/utils";
 import dynamic from 'next/dynamic';
@@ -132,6 +132,8 @@ function AppShellInternal() {
   // ═══════════════════════════════════════════════════════════════
   const isCollapsed = useSidebarStore(s => s.isCollapsed);
   const isVisible = useSidebarStore(s => s.isVisible);
+  const isHeaderVisible = useSidebarStore(s => s.isHeaderVisible);
+  const toggleHeader = useSidebarStore(s => s.toggleHeader);
   const width = useSidebarStore(s => s.width);
   const position = useSidebarStore(s => s.position);
   const isPinned = useSidebarStore(s => s.isPinned);
@@ -329,10 +331,31 @@ function AppShellInternal() {
           </Button>
         )}
 
-        <div className="flex-1 flex flex-col h-screen overflow-hidden">
-          <SafeComponentWrapper name="AppHeader">
-            <AppHeader unreadCount={unreadCount} onTabChange={setActiveTab} onNavigateToWallet={() => setActiveTab("wallet")} />
-          </SafeComponentWrapper>
+        <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
+          {/* Header Restore Trigger (When hidden) */}
+          {!isHeaderVisible && (
+            <div className="absolute top-0 inset-x-0 h-1 z-[100] group flex justify-center">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="size-6 rounded-full bg-slate-900/60 border border-white/10 text-white/40 hover:text-white hover:bg-slate-800 transition-all opacity-0 group-hover:opacity-100 -translate-y-1 hover:translate-y-1"
+                onClick={toggleHeader}
+              >
+                <IconSafe icon={ChevronDown} className="size-4" />
+              </Button>
+            </div>
+          )}
+
+          {isHeaderVisible && (
+            <SafeComponentWrapper name="AppHeader">
+              <AppHeader 
+                unreadCount={unreadCount} 
+                onTabChange={setActiveTab} 
+                onNavigateToWallet={() => setActiveTab("wallet")} 
+                onToggleHeader={toggleHeader}
+              />
+            </SafeComponentWrapper>
+          )}
           <main className={cn(
             "flex-1 overflow-y-auto relative transition-colors duration-500",
             isVisible ? "bg-slate-900/20" : "bg-slate-900/40"

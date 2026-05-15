@@ -2,14 +2,14 @@
 "use client";
 
 import React from "react";
-import { Bell, Search, Wallet, Layers } from "lucide-react";
+import { Bell, Search, Wallet, Layers, ChevronUp } from "lucide-react";
 import { IconSafe } from "@/components/ui/icon-safe";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
-export function AppHeader({ unreadCount, onTabChange, onNavigateToWallet }: any) {
+export function AppHeader({ unreadCount, onTabChange, onNavigateToWallet, onToggleHeader }: any) {
   return (
     <header className="h-16 border-b border-white/5 bg-slate-900/40 backdrop-blur-md flex items-center justify-between px-6 z-20 flex-row-reverse shrink-0">
       <div className="flex items-center gap-4 flex-row-reverse">
@@ -22,6 +22,10 @@ export function AppHeader({ unreadCount, onTabChange, onNavigateToWallet }: any)
         </div>
       </div>
       <div className="flex items-center gap-4 flex-row-reverse">
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-white/5" onClick={onToggleHeader}>
+          <IconSafe icon={ChevronUp} className="size-5" />
+        </Button>
+        <div className="h-6 w-px bg-white/10 mx-1" />
         <Button variant="ghost" size="icon" className="text-muted-foreground relative" onClick={() => onTabChange("notifications")}>
           <IconSafe icon={Bell} className="size-5" />
           {unreadCount > 0 && <Badge className="absolute top-2 left-2 h-4 w-4 p-0 flex items-center justify-center bg-red-500 border border-slate-900 text-[9px]">{unreadCount}</Badge>}

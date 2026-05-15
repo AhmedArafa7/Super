@@ -11,6 +11,7 @@ interface SidebarState {
   pinnedItems: NavItemId[];
   isCollapsed: boolean;
   isVisible: boolean;
+  isHeaderVisible: boolean;
   width: number;
   position: SidebarPosition;
   floatingPos: { x: number, y: number };
@@ -19,11 +20,13 @@ interface SidebarState {
   isPinned: (id: NavItemId) => boolean;
   setCollapsed: (val: boolean) => void;
   setVisible: (val: boolean) => void;
+  setHeaderVisible: (val: boolean) => void;
   setWidth: (val: number) => void;
   setPosition: (val: SidebarPosition) => void;
   setFloatingPos: (pos: { x: number, y: number }) => void;
   toggleCollapsed: () => void;
   toggleVisible: () => void;
+  toggleHeader: () => void;
 }
 
 /**
@@ -36,6 +39,7 @@ export const useSidebarStore = create<SidebarState>()(
       pinnedItems: ["dashboard", "qa", "time", "health", "chat", "vault", "agent-ai", "deals", "peer-chat", "stream", "market", "arcade", "launcher", "lab", "ads", "downloads", "wallet"],
       isCollapsed: false,
       isVisible: true,
+      isHeaderVisible: true,
       width: 280,
       position: "left",
       floatingPos: { x: 20, y: 100 },
@@ -53,12 +57,14 @@ export const useSidebarStore = create<SidebarState>()(
 
       setCollapsed: (isCollapsed) => set({ isCollapsed }),
       setVisible: (isVisible) => set({ isVisible }),
+      setHeaderVisible: (isHeaderVisible) => set({ isHeaderVisible }),
       setWidth: (width) => set({ width }),
       setPosition: (position) => set({ position }),
       setFloatingPos: (floatingPos) => set({ floatingPos }),
       
       toggleCollapsed: () => set((state) => ({ isCollapsed: !state.isCollapsed })),
       toggleVisible: () => set((state) => ({ isVisible: !state.isVisible })),
+      toggleHeader: () => set((state) => ({ isHeaderVisible: !state.isHeaderVisible })),
     }),
     {
       name: 'nexus-sidebar-prefs-v4',
