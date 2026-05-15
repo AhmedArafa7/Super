@@ -40,7 +40,10 @@ interface FloatingOrbProps {
 }
 
 export function FloatingOrb({ pinnedItems, allItems, activeTab, onTabChange, isPinned, togglePin, isCollapsed }: FloatingOrbProps) {
-  const { floatingPos, setFloatingPos, setPosition, setCollapsed } = useSidebarStore();
+  const floatingPos = useSidebarStore(s => s.floatingPos);
+  const setFloatingPos = useSidebarStore(s => s.setFloatingPos);
+  const setPosition = useSidebarStore(s => s.setPosition);
+  const setCollapsed = useSidebarStore(s => s.setCollapsed);
   const [isDragging, setIsDragging] = React.useState(false); // visual only
   const [isOpen, setIsOpen] = React.useState(false);
 

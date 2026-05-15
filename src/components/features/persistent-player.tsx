@@ -35,10 +35,13 @@ const formatDriveUrl = (url?: string) => {
  * @fileOverview المشغل العصبي المستمر v5.0 - يدعم YouTube, Google Drive, والملفات المحلية.
  */
 export const PersistentPlayer = memo(() => {
-  const {
-    activeVideo, isPlaying, isMinimized, quality, currentTab, autoFloat,
-    setActiveVideo, setIsPlaying, setIsMinimized
-  } = useStreamStore();
+  const activeVideo = useStreamStore(s => s.activeVideo);
+  const isPlaying = useStreamStore(s => s.isPlaying);
+  const quality = useStreamStore(s => s.quality);
+  const currentTab = useStreamStore(s => s.currentTab);
+  const autoFloat = useStreamStore(s => s.autoFloat);
+  const setActiveVideo = useStreamStore(s => s.setActiveVideo);
+  const setIsPlaying = useStreamStore(s => s.setIsPlaying);
 
   const isAtHome = currentTab === 'stream';
 

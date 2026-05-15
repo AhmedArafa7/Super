@@ -73,7 +73,7 @@ export function AppShell() {
 
 function AppShellInternal() {
   const { user, isAuthenticated, logout } = useAuth();
-  const { settings } = useSettingsStore();
+  const settings = useSettingsStore(s => s.settings);
   
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -126,10 +126,21 @@ function AppShellInternal() {
   const [activeRecipientId, setActiveRecipientId] = useState<string | undefined>(undefined);
   const [launchedApp, setLaunchedApp] = useState<{ url: string, title: string, isVault?: boolean } | null>(null);
 
-  const setCurrentTab = useStreamStore(state => state.setCurrentTab);
-  const { isPinned, togglePin, isCollapsed, isVisible, setCollapsed, width, setWidth, position, setPosition } = useSidebarStore();
-  const uploadTasks = useUploadStore(state => state.tasks);
-  const initSettingsListener = useSettingsStore(state => state.initSettingsListener);
+  // ═══════════════════════════════════════════════════════════════
+  // Phase 3: Atomic Selectors — each value has its own subscription
+  // so changing 'width' won't re-render components that only read 'position'
+  // ═══════════════════════════════════════════════════════════════
+  const isCollapsed = useSidebarStore(s => s.isCollapsed);
+  const isVisible = useSidebarStore(s => s.isVisible);
+  const width = useSidebarStore(s => s.width);
+  const position = useSidebarStore(s => s.position);
+  const isPinned = useSidebarStore(s => s.isPinned);
+  const togglePin = useSidebarStore(s => s.togglePin);
+  const setCollapsed = useSidebarStore(s => s.setCollapsed);
+
+  const setCurrentTab = useStreamStore(s => s.setCurrentTab);
+  const uploadTasks = useUploadStore(s => s.tasks);
+  const initSettingsListener = useSettingsStore(s => s.initSettingsListener);
 
   useEffect(() => {
     setCurrentTab(activeTab);

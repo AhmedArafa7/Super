@@ -20,7 +20,7 @@ interface SidebarItemContextMenuProps {
 
 export function SidebarItemContextMenu({ item, onTabChange }: SidebarItemContextMenuProps) {
   const { defaultActions, setDefaultAction } = useSectionSettingsStore() as any;
-  const { setPosition } = useSidebarStore();
+  const setPosition = useSidebarStore(s => s.setPosition);
   const { dropdownSide } = useSidebarLayout();
   const currentDefaultAction = defaultActions[item.id] || 'open';
 

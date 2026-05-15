@@ -38,8 +38,8 @@ export function AppSidebar({
   activeTab, onTabChange, user, isAuthenticated, logout, isPinned, 
   togglePin, uploadTasks, unreadCount, pendingOffersCount 
 }: AppSidebarProps) {
-  const { settings } = useSettingsStore();
-  const { setWidth } = useSidebarStore();
+  const settings = useSettingsStore(s => s.settings);
+  const setWidth = useSidebarStore(s => s.setWidth);
   const { isCollapsed, position, isFloating, isHorizontal } = useSidebarLayout();
   
   const [isResizing, setIsResizing] = React.useState(false);

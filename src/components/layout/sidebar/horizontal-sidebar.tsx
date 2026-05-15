@@ -33,7 +33,8 @@ interface HorizontalSidebarProps {
 }
 
 export function HorizontalSidebar({ pinnedItems, allItems, activeTab, onTabChange, isPinned, togglePin, isCollapsed, position }: HorizontalSidebarProps) {
-  const { setPosition, setCollapsed } = useSidebarStore();
+  const setPosition = useSidebarStore(s => s.setPosition);
+  const setCollapsed = useSidebarStore(s => s.setCollapsed);
   const { sidebarIconShortcutEnabled } = usePreferencesStore();
 
   const handleIconClick = () => {

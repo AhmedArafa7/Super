@@ -13,7 +13,7 @@ import { usePreferencesStore } from "@/lib/preferences-store";
 export function SidebarHeader() {
   const { setOpen } = useSidebar();
   const { isCollapsed, isLeft, isRight, flexDir } = useSidebarLayout();
-  const { setPosition } = useSidebarStore();
+  const setPosition = useSidebarStore(s => s.setPosition);
   const { sidebarIconShortcutEnabled } = usePreferencesStore();
 
   const handleIconClick = () => {

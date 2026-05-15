@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 import { useSidebarStore } from "@/lib/sidebar-store";
 
 export function ResizeHandle({ onMouseDown, isResizing }: { onMouseDown: any, isResizing: boolean }) {
-  const { position, isCollapsed } = useSidebarStore();
+  const position = useSidebarStore(s => s.position);
+  const isCollapsed = useSidebarStore(s => s.isCollapsed);
 
   if (isCollapsed) return null;
 

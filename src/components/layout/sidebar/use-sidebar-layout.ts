@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils";
  * عقل التخطيط الذكي الذي يدير الاتجاهات، الهوامش، والأنماط بناءً على موقع الشريط.
  */
 export function useSidebarLayout() {
-  const { position, isCollapsed } = useSidebarStore();
+  const position = useSidebarStore(s => s.position);
+  const isCollapsed = useSidebarStore(s => s.isCollapsed);
 
   // هل الشريط في جهة اليمين؟
   const isRight = position === 'right';
