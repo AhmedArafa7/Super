@@ -330,7 +330,10 @@ export function NexusVideoPlayer({
 
                     {/* Pro Processing Telemetry */}
                     {proSettings && (
-                        <div className="absolute bottom-20 left-6 z-20 flex flex-col gap-1 font-mono text-[8px] text-primary/80 uppercase leading-relaxed">
+                        <div className={cn(
+                            "absolute bottom-20 left-6 z-20 flex flex-col gap-1 font-mono text-[8px] text-primary/80 uppercase leading-relaxed transition-opacity duration-700",
+                            showControls ? "opacity-100" : "opacity-0"
+                        )}>
                             <div className="flex items-center gap-2">
                                 <div className="size-1 bg-primary animate-pulse" />
                                 <span className="font-black">Nexus Hybrid Engine: Buffered</span>
@@ -344,7 +347,10 @@ export function NexusVideoPlayer({
 
             {/* Floating Pro Efficiency Monitor */}
             {proSettings && (
-                <div className="absolute top-16 right-4 z-20 flex flex-col gap-1 items-end pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className={cn(
+                    "absolute top-16 right-4 z-20 flex flex-col gap-1 items-end pointer-events-none transition-opacity duration-700",
+                    showControls ? "opacity-100" : "opacity-0"
+                )}>
                     <div className="bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg border border-primary/20 flex items-center gap-2">
                         <div className="size-1.5 rounded-full bg-primary animate-pulse" />
                         <span className="text-[9px] font-bold text-white uppercase tracking-tighter">
