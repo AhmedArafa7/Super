@@ -1,13 +1,14 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { SidebarService } from '../../core/sidebar.service';
 import { ALL_NAV_ITEMS, NavItem, getVisibleNavItems } from '../../core/nav-items';
-import { LucideAngularModule } from 'lucide-angular';
+import { LucideDynamicIcon } from '@lucide/angular';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, RouterModule, LucideDynamicIcon],
   templateUrl: './app-sidebar.html',
   styleUrls: ['./app-sidebar.scss']
 })

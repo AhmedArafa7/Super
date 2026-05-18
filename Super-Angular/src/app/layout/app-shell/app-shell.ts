@@ -4,11 +4,12 @@ import { RouterOutlet } from '@angular/router';
 import { AppSidebarComponent } from '../app-sidebar/app-sidebar';
 import { AppHeaderComponent } from '../app-header/app-header';
 import { SidebarService } from '../../core/sidebar.service';
+import { LucideDynamicIcon } from '@lucide/angular';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, AppSidebarComponent, AppHeaderComponent],
+  imports: [CommonModule, RouterOutlet, AppSidebarComponent, AppHeaderComponent, LucideDynamicIcon],
   templateUrl: './app-shell.html',
   styleUrls: ['./app-shell.scss']
 })
