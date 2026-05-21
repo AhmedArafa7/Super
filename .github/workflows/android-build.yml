@@ -66,8 +66,8 @@ jobs:
       # ═══════════════════════════════════════════
       # STAGE 6: BUILD APK
       # ═══════════════════════════════════════════
-      - name: 📱 Build Android APK (Release Unsigned)
-        run: ./gradlew assembleRelease --no-daemon
+      - name: 📱 Build Android APK (Debug Signed)
+        run: ./gradlew assembleDebug --no-daemon
         working-directory: android
 
       # ═══════════════════════════════════════════
@@ -75,7 +75,7 @@ jobs:
       # ═══════════════════════════════════════════
       - name: 🏷️ Rename APK to standard name
         run: |
-          find android/app/build/outputs/apk/release -name "*.apk" -exec cp {} nexusai-latest.apk \;
+          find android/app/build/outputs/apk/debug -name "*.apk" -exec cp {} nexusai-latest.apk \;
 
       - name: 🚀 Publish APK as GitHub Release
         uses: softprops/action-gh-release@v2
