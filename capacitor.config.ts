@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.nexusai.app',
+  appId: 'com.ahmedarafa.nexusai',
   appName: 'NexusAI',
   webDir: 'public',
   server: {
