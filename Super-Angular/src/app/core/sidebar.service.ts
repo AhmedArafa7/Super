@@ -1,6 +1,6 @@
 import { Injectable, signal, computed } from '@angular/core';
 
-export type NavItemId = "chat" | "peer-chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn" | "launcher" | "lab" | "directory" | "agent-ai" | "ads" | "vault" | "downloads" | "time" | "deals" | "health" | "qa" | "micro-ide" | "library" | "settings" | "study-ai" | "arcade";
+export type NavItemId = "chat" | "peer-chat" | "stream" | "market" | "features" | "admin" | "notifications" | "learning" | "wallet" | "dashboard" | "offers" | "hisn" | "launcher" | "lab" | "directory" | "agent-ai" | "ads" | "vault" | "downloads" | "time" | "deals" | "health" | "qa" | "microcontroller-lab" | "library" | "settings" | "study-ai" | "arcade" | "sheets";
 
 export type SidebarPosition = "left" | "right" | "top" | "bottom" | "floating";
 
@@ -9,7 +9,7 @@ export type SidebarPosition = "left" | "right" | "top" | "bottom" | "floating";
 })
 export class SidebarService {
   // State Signals
-  readonly pinnedItems = signal<NavItemId[]>(["dashboard", "qa", "time", "health", "chat", "vault", "agent-ai", "deals", "peer-chat", "stream", "market", "arcade", "launcher", "lab", "ads", "downloads", "wallet"]);
+  readonly pinnedItems = signal<NavItemId[]>(["dashboard", "qa", "time", "health", "chat", "vault", "agent-ai", "deals", "peer-chat", "stream", "market", "arcade", "launcher", "lab", "ads", "downloads", "wallet", "hisn", "microcontroller-lab", "sheets", "settings", "admin"]);
   readonly isCollapsed = signal<boolean>(false);
   readonly isVisible = signal<boolean>(true);
   readonly isHeaderVisible = signal<boolean>(true);

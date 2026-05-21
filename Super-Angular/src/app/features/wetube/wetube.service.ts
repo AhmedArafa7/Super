@@ -51,7 +51,7 @@ export class WeTubeService {
         authorId: 'ch2',
         source: 'platform',
         time: 'منذ يومين',
-        thumbnail: 'https://images.unsplash.com/photo-1627398240309-08a85c7d9b04?auto=format&fit=crop&q=80&w=800',
+        thumbnail: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800',
         channelAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Code',
         category: 'برمجة',
         status: 'published'

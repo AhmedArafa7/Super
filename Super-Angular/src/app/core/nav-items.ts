@@ -30,7 +30,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { id: "wallet", label: "المحفظة الرقمية", icon: "wallet", restricted: false },
   { id: "offers", label: "صندوق العروض", icon: "repeat", restricted: false },
   { id: "learning", label: "التعلم", icon: "graduation-cap", restricted: false },
-  { id: "micro-ide", label: "برمجة المتحكمات", icon: "circuit-board", restricted: false },
+  { id: "microcontroller-lab", label: "برمجة المتحكمات", icon: "circuit-board", restricted: false },
   { id: "library", label: "المكتبة العامة", icon: "library", restricted: false },
   { id: "lab", label: "المختبر التجريبي", icon: "microscope", restricted: false },
   { id: "directory", label: "دليل المستخدمين", icon: "users", restricted: false },
