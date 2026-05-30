@@ -74,7 +74,7 @@ export async function GET() {
       // 4. حقن الكوكيز والبيانات الافتراضية في كل طلب يخرج
       const modifiedHeaders = new Headers(event.request.headers);
       if (virtualCookies) {
-        modifiedHeaders.set('X-Nexus-Virtual-Cookies', virtualCookies);
+        modifiedHeaders.set('X-Si-Neuro-Virtual-Cookies', virtualCookies);
       }
 
       event.respondWith(

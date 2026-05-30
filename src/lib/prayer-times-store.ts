@@ -184,7 +184,7 @@ export const usePrayerStore = create<PrayerState>()(
       }
     }),
     {
-      name: 'nexus-prayer-settings',
+      name: 'Si-Neuro-prayer-settings',
       partialize: (state) => ({ 
         method: state.method, 
         asrSchool: state.asrSchool,

@@ -138,7 +138,7 @@ export function DulmsLayout({ user }: DulmsLayoutProps) {
 
     const handleExitDulms = async () => {
         if (user?.id) {
-            await activateTheme(user.id, 'nexus');
+            await activateTheme(user.id, 'Si-Neuro');
             window.location.reload();
         }
     };
@@ -197,7 +197,7 @@ export function DulmsLayout({ user }: DulmsLayoutProps) {
             case "ads": return <AdsCenter />;
             case "downloads": return <DownloadCenter />;
             case "peer-chat": return <PeerChat initialTargetId={activeRecipientId} />;
-            case "stream": return <WeTube onOpenVault={() => setLaunchedApp({ url: VAULT_EMBED_URL, title: "Nexus Central Vault", isVault: true })} />;
+            case "stream": return <WeTube onOpenVault={() => setLaunchedApp({ url: VAULT_EMBED_URL, title: "Si-Neuro Central Vault", isVault: true })} />;
             case "market": return <TechMarket onLaunchApp={(url, title) => setLaunchedApp({ url, title })} />;
             case "launcher": return <AppLauncher />;
             case "wallet": return <WalletView />;

@@ -47,8 +47,8 @@ export interface Deal {
   providedIn: 'root'
 })
 export class DealsService {
-  private readonly STORAGE_KEY_DEALS = 'nexus-deals-registry';
-  private readonly STORAGE_KEY_STORES = 'nexus-stores-registry';
+  private readonly STORAGE_KEY_DEALS = 'Si-Neuro-deals-registry';
+  private readonly STORAGE_KEY_STORES = 'Si-Neuro-stores-registry';
 
   // Core signals
   deals = signal<Deal[]>([]);

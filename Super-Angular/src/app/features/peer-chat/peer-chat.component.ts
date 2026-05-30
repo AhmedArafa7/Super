@@ -119,8 +119,8 @@ export class PeerChatComponent {
       const imageUrl = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=300&fit=crop";
       this.chatService.sendMessage('me', targetId, 'صورة فضائية مرسلة عصبياً', 'image', imageUrl);
     } else {
-      const fileUrl = "https://example.com/nexus_data_package.zip";
-      this.chatService.sendMessage('me', targetId, 'nexus_data_package.zip', 'file', fileUrl);
+      const fileUrl = "https://example.com/Si-Neuro_data_package.zip";
+      this.chatService.sendMessage('me', targetId, 'Si-Neuro_data_package.zip', 'file', fileUrl);
     }
     
     alert(`🎉 تم إرسال ومزامنة ${type === 'image' ? 'الصورة' : 'الملف'} بنجاح!`);
@@ -141,7 +141,7 @@ export class PeerChatComponent {
       this.isConnecting.set(false);
       this.channelStep.set(2);
       // Mock generated QR
-      this.qrCodeVal.set("https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=NexusSecurePairingNode");
+      this.qrCodeVal.set("https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=Si-NeuroSecurePairingNode");
     }, 1500);
   }
 

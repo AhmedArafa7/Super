@@ -40,7 +40,7 @@ export function SidebarHeader() {
         </div>
         {!isCollapsed && (
           <div className="flex flex-col overflow-hidden text-right">
-            <h1 className="text-sm font-black text-white tracking-tight truncate">NEXUS AI</h1>
+            <h1 className="text-sm font-black text-white tracking-tight truncate">Si-Neuro AI</h1>
             <span className="text-[9px] text-indigo-400 font-bold tracking-widest uppercase truncate">Central Hub</span>
           </div>
         )}

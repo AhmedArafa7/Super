@@ -33,7 +33,7 @@ import {
 
 /**
  * [STABILITY_ANCHOR: LEARNING_HUB_V3.0_HYBRID_SYNC]
- * واجهة التعلم المتطورة — Nexus V2 مع دعم التخزين الهجين (سحابي/محلي)
+ * واجهة التعلم المتطورة — Si-Neuro V2 مع دعم التخزين الهجين (سحابي/محلي)
  */
 export default function LearningHub() {
   const { 
@@ -76,7 +76,7 @@ export default function LearningHub() {
         <div className="p-4 md:p-8 pb-4">
           <FeatureHeader
             title="نظام التعلم الذكي"
-            description="إدارة الموارد الأكاديمية والمشاريع البحثية ببيئة Nexus المتكاملة."
+            description="إدارة الموارد الأكاديمية والمشاريع البحثية ببيئة Si-Neuro المتكاملة."
             Icon={GraduationCap}
             iconClassName="text-primary"
             children={
@@ -124,7 +124,7 @@ export default function LearningHub() {
                     ) : (
                       <>
                         <div className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Nexus Cloud Linked</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Si-Neuro Cloud Linked</span>
                       </>
                     )}
                   </div>

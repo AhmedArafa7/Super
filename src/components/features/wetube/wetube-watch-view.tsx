@@ -27,7 +27,7 @@ import { WatchDescription } from "./watch-description";
 import { WatchComments } from "./watch-comments";
 import { WatchSidebar } from "./watch-sidebar";
 import { WatchProductShelf } from "./watch-product-shelf";
-import { NexusNativeAds } from "./nexus-native-ads";
+import { Si-NeuroNativeAds } from "./Si-Neuro-native-ads";
 
 /**
  * [STABILITY_ANCHOR: WETUBE_WATCH_VIEW_V3.0]
@@ -144,7 +144,7 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached, onCh
                         dateStr={dateStr}
                     />
 
-                    <NexusNativeAds 
+                    <Si-NeuroNativeAds 
                         type="banner" 
                         category={video.category || (details as any)?.category} 
                         className="mb-8" 
@@ -162,7 +162,7 @@ function WatchViewContent({ user, onClose, relatedVideos, onSync, isCached, onCh
 
             {/* Right Column: Related Videos */}
             <div className="w-full lg:w-[350px] shrink-0 px-4 sm:px-0 mt-8 lg:mt-0">
-                <NexusNativeAds 
+                <Si-NeuroNativeAds 
                     type="sidebar" 
                     category={video.category || (details as any)?.category}
                     className="hidden lg:block" 

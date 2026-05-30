@@ -35,12 +35,12 @@ export class WeTubeService {
       {
         id: '1',
         title: 'بناء نظام الذكاء الاصطناعي الخاص بك من الصفر',
-        author: 'Nexus Engineering',
+        author: 'Si-Neuro Engineering',
         authorId: 'ch1',
         source: 'platform',
         time: 'منذ ساعتين',
         thumbnail: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800',
-        channelAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nexus',
+        channelAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Si-Neuro',
         category: 'تكنولوجيا',
         status: 'published'
       },
@@ -58,8 +58,8 @@ export class WeTubeService {
       },
       {
         id: '3',
-        title: 'استعراض أداء Nexus Video Player الجديد',
-        author: 'Nexus OS',
+        title: 'استعراض أداء Si-Neuro Video Player الجديد',
+        author: 'Si-Neuro OS',
         authorId: 'ch3',
         source: 'youtube',
         time: 'منذ 5 ساعات',
@@ -95,7 +95,7 @@ export class WeTubeService {
     ]);
 
     this.subscriptions.set([
-      { id: 'sub1', channelId: 'ch1', channelTitle: 'Nexus Engineering', avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nexus' },
+      { id: 'sub1', channelId: 'ch1', channelTitle: 'Si-Neuro Engineering', avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Si-Neuro' },
       { id: 'sub2', channelId: 'ch2', channelTitle: 'Code Master', avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Code' }
     ]);
   }

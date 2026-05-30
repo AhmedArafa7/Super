@@ -21,7 +21,7 @@ export interface MarketItem {
   providedIn: 'root'
 })
 export class MarketService {
-  private readonly STORAGE_KEY = 'nexus-market-registry';
+  private readonly STORAGE_KEY = 'Si-Neuro-market-registry';
   walletService = inject(WalletService);
 
   // Core signals

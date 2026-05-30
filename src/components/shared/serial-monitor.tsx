@@ -30,7 +30,7 @@ export function SerialMonitor({ logs, onClear, className, status = 'disconnected
       <div className="h-9 flex items-center px-4 border-b border-white/5 justify-between shrink-0 bg-white/[0.02]">
         <div className="flex items-center gap-2 opacity-50">
            <Terminal className="size-3" />
-           <span className="text-[9px] font-black uppercase tracking-[0.2em]">Nexus Serial Stream</span>
+           <span className="text-[9px] font-black uppercase tracking-[0.2em]">Si-Neuro Serial Stream</span>
         </div>
         
         <div className="flex items-center gap-3">

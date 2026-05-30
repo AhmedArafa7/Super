@@ -25,7 +25,7 @@ export class OnboardingComponent implements OnInit {
   steps: OnboardingStep[] = [
     {
       icon: 'sparkles',
-      title: 'مرحباً بك في NexusAI',
+      title: 'مرحباً بك في Si-NeuroAI',
       description: 'لقد تزامنت للتو مع نظام التفاعل الذكي المتكامل لعقدتك. دعنا نساعدك في ضبط إعدادات العقدة.',
       color: 'text-indigo-400',
       bg: 'bg-indigo-500/10',

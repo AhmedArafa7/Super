@@ -31,8 +31,8 @@ export function ChannelSuggestionForm() {
       timestamp: new Date().toISOString()
     };
 
-    const existing = JSON.parse(localStorage.getItem('nexus-channel-suggestions') || '[]');
-    localStorage.setItem('nexus-channel-suggestions', JSON.stringify([...existing, newSuggestion]));
+    const existing = JSON.parse(localStorage.getItem('Si-Neuro-channel-suggestions') || '[]');
+    localStorage.setItem('Si-Neuro-channel-suggestions', JSON.stringify([...existing, newSuggestion]));
 
     setIsSubmitted(true);
     toast({ title: "تم إرسال اقتراحك", description: "سيقوم فريق الإدارة بمراجعة القناة قريباً." });

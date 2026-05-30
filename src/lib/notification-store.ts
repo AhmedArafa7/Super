@@ -22,7 +22,7 @@ export interface AppNotification {
   };
 }
 
-const STORAGE_KEY = 'nexus_notifications';
+const STORAGE_KEY = 'Si-Neuro_notifications';
 
 export const getNotifications = (currentUserId?: string): AppNotification[] => {
   if (typeof window === 'undefined') return [];
@@ -32,7 +32,7 @@ export const getNotifications = (currentUserId?: string): AppNotification[] => {
       id: 'mock-1',
       type: 'system_broadcast',
       title: 'Neural Sync Upgrade',
-      message: 'Nexus protocol version 4.2 has been deployed. Expect lower latency.',
+      message: 'Si-Neuro protocol version 4.2 has been deployed. Expect lower latency.',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
       isRead: false,
       priority: 'info'

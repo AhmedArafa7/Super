@@ -109,7 +109,7 @@ export function useWeTubeState() {
       const data = await getStoredVideos();
       setVideos(data || []);
       loadTrending();
-      setLastSeenNotifications(Number(localStorage.getItem('nexus_last_notifications') || 0));
+      setLastSeenNotifications(Number(localStorage.getItem('Si-Neuro_last_notifications') || 0));
     };
     loadInitialData();
 
@@ -265,7 +265,7 @@ export function useWeTubeState() {
       const timeout = setTimeout(() => {
         const now = Date.now();
         setLastSeenNotifications(now);
-        localStorage.setItem('nexus_last_notifications', now.toString());
+        localStorage.setItem('Si-Neuro_last_notifications', now.toString());
       }, 3000);
       return () => clearTimeout(timeout);
     }

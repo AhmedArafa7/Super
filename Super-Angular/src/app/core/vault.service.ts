@@ -15,7 +15,7 @@ export interface DriveAsset {
   providedIn: 'root'
 })
 export class VaultService {
-  private readonly STORAGE_KEY = 'nexus-vault-registry';
+  private readonly STORAGE_KEY = 'Si-Neuro-vault-registry';
 
   // Signals
   assets = signal<DriveAsset[]>([]);

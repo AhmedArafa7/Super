@@ -41,7 +41,7 @@ export function SidebarFooter({ user, logout, onTabChange }: SidebarFooterProps)
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-black truncate">{user?.name || 'مستخدم'}</p>
-                  <p className="text-[10px] text-muted-foreground truncate uppercase tracking-tighter">عضو نظام Nexus</p>
+                  <p className="text-[10px] text-muted-foreground truncate uppercase tracking-tighter">عضو نظام Si-Neuro</p>
                 </div>
               </div>
             </DropdownMenuLabel>

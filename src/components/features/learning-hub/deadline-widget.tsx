@@ -7,7 +7,7 @@ import { Clock, AlertTriangle, Zap } from 'lucide-react';
 
 /**
  * [STABILITY_ANCHOR: DEADLINE_WIDGET_V2.0_MERGED]
- * واجهة التنبيهات المدرسية المتقدمة — Nexus V2
+ * واجهة التنبيهات المدرسية المتقدمة — Si-Neuro V2
  */
 export function DeadlineWidget() {
   const getNextDeadline = useLearningHubStore((s) => s.getNextDeadline);

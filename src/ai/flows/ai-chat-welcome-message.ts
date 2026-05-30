@@ -20,9 +20,9 @@ export async function getWelcomeMessage(): Promise<WelcomeMessageOutput> {
 const prompt = ai.definePrompt({
   name: 'welcomeMessagePrompt',
   model: 'googleai/gemini-2.5-flash',
-  prompt: `You are the NexusAI Assistant. 
+  prompt: `You are the Si-NeuroAI Assistant. 
 Generate a VERY CONCISE and inspiring welcome message in Arabic (max 2-3 sentences).
-Greet the user to the NexusAI ecosystem and mention that AI Chat, StreamHub, and TechMarket are ready for synchronization.
+Greet the user to the Si-NeuroAI ecosystem and mention that AI Chat, StreamHub, and TechMarket are ready for synchronization.
 Keep it futuristic and professional.`,
 });
 
@@ -34,7 +34,7 @@ const welcomeMessageFlow = ai.defineFlow(
   async () => {
     const response = await prompt({});
     return {
-      message: response.text || "مرحباً بك في NexusAI. جميع الأنظمة العصبية جاهزة للمزامنة."
+      message: response.text || "مرحباً بك في Si-NeuroAI. جميع الأنظمة العصبية جاهزة للمزامنة."
     };
   }
 );

@@ -11,7 +11,7 @@ import { getChunk, saveChunk } from "@/lib/wetube-pro-cache-manager";
 import { useProStore, ConsumptionRecord, shouldRenderFrame } from "@/lib/wetube-pro-engine";
 import { useSectionSettingsStore } from "@/lib/section-settings-store";
 
-interface NexusVideoPlayerProps {
+interface Si-NeuroVideoPlayerProps {
     src: string;
     videoId?: string;
     poster?: string;
@@ -31,7 +31,7 @@ interface NexusVideoPlayerProps {
     neuralMetadata?: NeuralMetadata;
 }
 
-export function NexusVideoPlayer({
+export function Si-NeuroVideoPlayer({
     src,
     videoId,
     poster,
@@ -45,7 +45,7 @@ export function NexusVideoPlayer({
     title,
     author,
     authorAvatar
-}: NexusVideoPlayerProps) {
+}: Si-NeuroVideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -345,7 +345,7 @@ export function NexusVideoPlayer({
                 <>
                     <video
                         ref={videoRef}
-                        src={sourceType === 'youtube' && proSettings ? `https://nexus-proxy.wetube.pro/v/${videoId}?auth=pro-active` : internalSrc}
+                        src={sourceType === 'youtube' && proSettings ? `https://Si-Neuro-proxy.wetube.pro/v/${videoId}?auth=pro-active` : internalSrc}
                         poster={poster}
                         className={cn("w-full h-full object-contain", proSettings?.frameSkipRatio !== 'none' ? 'opacity-0 absolute inset-0 pointer-events-none' : '')}
                         onTimeUpdate={handleTimeUpdate}
@@ -372,7 +372,7 @@ export function NexusVideoPlayer({
                         )}>
                             <div className="flex items-center gap-2">
                                 <div className="size-1 bg-primary animate-pulse" />
-                                <span className="font-black">Nexus Hybrid Engine: Buffered</span>
+                                <span className="font-black">Si-Neuro Hybrid Engine: Buffered</span>
                             </div>
                             <div className="opacity-60">Neural Ratio: {proSettings.frameSkipRatio}</div>
                             <div className="opacity-60">Status: Local Drive Processing</div>
@@ -390,7 +390,7 @@ export function NexusVideoPlayer({
                     <div className="bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg border border-primary/20 flex items-center gap-2">
                         <div className="size-1.5 rounded-full bg-primary animate-pulse" />
                         <span className="text-[9px] font-bold text-white uppercase tracking-tighter">
-                            Nexus Core Active
+                            Si-Neuro Core Active
                         </span>
                     </div>
                     <div className="bg-primary/20 backdrop-blur-md px-2 py-1 rounded-lg border border-primary/30 flex flex-col items-end">
@@ -424,17 +424,17 @@ export function NexusVideoPlayer({
                 </button>
             )}
 
-            {/* Source Badge overlay (Only for Nexus Player) */}
+            {/* Source Badge overlay (Only for Si-Neuro Player) */}
             {sourceType && (proSettings || sourceType !== 'youtube') && (
                 <div className="absolute top-4 left-4 z-10 transition-opacity duration-300 pointer-events-none"
                     style={{ opacity: showControls ? 1 : 0 }}>
                     <Badge className="bg-[#272727]/80 hover:bg-[#272727] text-white border-none shadow-md">
-                        {sourceType === "telegram" ? "Nexus Stream (Telegram)" : sourceType === "local" ? "Offline Player" : "Nexus Player"}
+                        {sourceType === "telegram" ? "Si-Neuro Stream (Telegram)" : sourceType === "local" ? "Offline Player" : "Si-Neuro Player"}
                     </Badge>
                 </div>
             )}
 
-            {/* Controls Overlay (Only for Nexus Player) */}
+            {/* Controls Overlay (Only for Si-Neuro Player) */}
             <div
                 className={cn(
                     "video-controls absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pb-2 pt-16 transition-opacity duration-300",

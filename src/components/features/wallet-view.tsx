@@ -36,7 +36,7 @@ import { WalletPendingSync } from './wallet/wallet-pending-sync';
 
 /**
  * [STABILITY_ANCHOR: WALLET_VIEW_V3.0_MERGED]
- * عرض المحفظة المتعددة العملات المطورة — Nexus V2
+ * عرض المحفظة المتعددة العملات المطورة — Si-Neuro V2
  */
 export function WalletView() {
   const { user } = useAuth();

@@ -31,7 +31,7 @@ const generateImageFlow = ai.defineFlow(
   async (prompt) => {
     const { media } = await ai.generate({
       model: 'googleai/imagen-4.0-fast-generate-001',
-      prompt: `Cinematic, futuristic, high detail, nexus cyberpunk style: ${prompt}`,
+      prompt: `Cinematic, futuristic, high detail, Si-Neuro cyberpunk style: ${prompt}`,
     });
 
     if (!media) throw new Error("Image Generation Failed");

@@ -55,7 +55,7 @@ export function OnboardingModal() {
   const steps = [
     {
       icon: Sparkles,
-      title: "Welcome to NexusAI",
+      title: "Welcome to Si-NeuroAI",
       description: "You've just synchronized with the most advanced neural assistant ecosystem. Let's get your node configured.",
       color: "text-indigo-400",
       bg: "bg-indigo-500/10",
@@ -79,7 +79,7 @@ export function OnboardingModal() {
     },
     {
       icon: MessageSquare,
-      title: "Nexus Realtime Chat",
+      title: "Si-Neuro Realtime Chat",
       description: "Communicate directly with our global AI nodes. Upload files, record audio, and get context-aware responses.",
       color: "text-blue-400",
       bg: "bg-blue-500/10",
@@ -91,16 +91,16 @@ export function OnboardingModal() {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-[550px] bg-slate-950 border-white/10 rounded-[3rem] p-0 overflow-hidden shadow-[0_0_80px_rgba(99,102,241,0.2)] outline-none">
         <DialogHeader className="sr-only">
-          <DialogTitle>NexusAI Onboarding</DialogTitle>
+          <DialogTitle>Si-NeuroAI Onboarding</DialogTitle>
           <DialogDescription>
-            Synchronize with the Nexus ecosystem and configure your neural node for optimal intelligence.
+            Synchronize with the Si-Neuro ecosystem and configure your neural node for optimal intelligence.
           </DialogDescription>
         </DialogHeader>
 
         {/* Cinematic Header Visual */}
         <div className="relative h-64 flex items-center justify-center overflow-visible">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-500/20 via-slate-950 to-slate-950" />
-          <div className="absolute inset-0 opacity-30 bg-[url('https://picsum.photos/seed/nexus-pattern/800/400')] bg-cover mix-blend-overlay" />
+          <div className="absolute inset-0 opacity-30 bg-[url('https://picsum.photos/seed/Si-Neuro-pattern/800/400')] bg-cover mix-blend-overlay" />
           
           <div className="relative z-10 flex flex-col items-center gap-6 mt-4">
             <div className="flex items-center gap-6">
@@ -173,7 +173,7 @@ export function OnboardingModal() {
               Acknowledge & Sync
             </Button>
             <p className="text-center text-[10px] text-muted-foreground/40 uppercase tracking-widest mt-4 font-medium">
-              Protocol v4.2 • Secured by Nexus Core
+              Protocol v4.2 • Secured by Si-Neuro Core
             </p>
           </div>
         </div>

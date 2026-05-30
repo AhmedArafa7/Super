@@ -31,8 +31,8 @@ export interface UsageLog {
   providedIn: 'root'
 })
 export class SettingsService {
-  private readonly STORAGE_KEY_SETTINGS = 'nexus-system-settings';
-  private readonly STORAGE_KEY_PRO_USAGE = 'nexus-pro-usage-log';
+  private readonly STORAGE_KEY_SETTINGS = 'Si-Neuro-system-settings';
+  private readonly STORAGE_KEY_PRO_USAGE = 'Si-Neuro-pro-usage-log';
 
   // Core settings signals
   language = signal<'ar' | 'en'>('ar');
@@ -153,13 +153,13 @@ export class SettingsService {
     this.saveState();
   }
 
-  // Clear all local storage database configs starting with 'nexus-'
+  // Clear all local storage database configs starting with 'Si-Neuro-'
   purgeSystemData(): void {
     if (typeof window !== 'undefined') {
       const keys = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.startsWith('nexus-')) {
+        if (key && key.startsWith('Si-Neuro-')) {
           keys.push(key);
         }
       }

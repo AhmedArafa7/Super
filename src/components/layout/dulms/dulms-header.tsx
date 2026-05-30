@@ -29,7 +29,7 @@ export function DulmsHeader({
         <div className="flex flex-col select-none">
           <span className="text-[#f1c40f] font-black text-xl leading-none tracking-wide">DULMS</span>
           <span className={cn("text-[8px] uppercase tracking-widest", isDark ? "text-slate-400" : "text-slate-300")}>
-            NexusAI — Theme Edition
+            Si-NeuroAI — Theme Edition
           </span>
         </div>
       </div>
@@ -105,7 +105,7 @@ export function DulmsHeader({
                 )}
               >
                 <LogOut className="size-4" />
-                العودة إلى Nexus
+                العودة إلى Si-Neuro
               </button>
             </div>
           )}

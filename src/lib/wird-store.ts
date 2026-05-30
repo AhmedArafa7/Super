@@ -81,7 +81,7 @@ export const useWirdStore = create<WirdState>()(
       }
     }),
     {
-      name: 'nexus-wird-store-v1',
+      name: 'Si-Neuro-wird-store-v1',
     }
   )
 );

@@ -122,7 +122,7 @@ export function SidebarItemContextMenu({ item, onTabChange }: SidebarItemContext
               <PanelBottom className="size-4" /> <span className="text-xs">شريط سفلي</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => executeAction('set-pos-floating')} className="flex items-center gap-3 hover:bg-white/10 py-2 rounded-md text-amber-400 flex-row-reverse text-right">
-              <Orbit className="size-4" /> <span className="text-xs font-bold">الوضع العائم (Nexus Orb)</span>
+              <Orbit className="size-4" /> <span className="text-xs font-bold">الوضع العائم (Si-Neuro Orb)</span>
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>

@@ -137,7 +137,7 @@ export const useGlobalStorage = create<GlobalStorageState>()(
       setStorageLimit: (limit) => set({ storageLimitMB: limit }),
     }),
     {
-      name: 'nexus-segmented-storage-v2',
+      name: 'Si-Neuro-segmented-storage-v2',
       version: 2
     }
   )

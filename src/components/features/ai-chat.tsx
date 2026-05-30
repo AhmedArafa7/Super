@@ -164,7 +164,7 @@ export function AIChat() {
   // ─── MODEL LIST ──────────────────────────────────────────────────────────
   const availableModels = useMemo(() => {
     const models: any[] = [
-      { id: "googleai/gemini-2.5-flash", label: "NexusAI (Flash)", desc: "المحرك العصبي الأساسي" },
+      { id: "googleai/gemini-2.5-flash", label: "Si-NeuroAI (Flash)", desc: "المحرك العصبي الأساسي" },
       { id: "groq/llama-3.3-70b-versatile", label: "Groq Llama 3.3", desc: "محرك فائق السرعة" },
     ];
     if (user?.classification === "investor" || user?.classification === "manager") {
@@ -319,7 +319,7 @@ export function AIChat() {
             {displayMessages.length === 0 && !isLoading && (
               <EmptyState
                 icon={Sparkles}
-                title="نظام NexusAI v5.5"
+                title="نظام Si-NeuroAI v5.5"
                 description="أنا محركك العصبي المتكامل. كيف يمكنني مساعدتك اليوم؟"
               />
             )}

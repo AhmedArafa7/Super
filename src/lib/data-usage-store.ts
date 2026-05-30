@@ -57,7 +57,7 @@ export const useDataUsageStore = create<DataUsageState>()(
       }
     }),
     {
-      name: 'nexus-data-usage',
+      name: 'Si-Neuro-data-usage',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         dailyBytes: state.dailyBytes,

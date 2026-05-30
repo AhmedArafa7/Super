@@ -27,7 +27,7 @@ export interface ScheduleEvent {
   providedIn: 'root'
 })
 export class LearningHubService {
-  private readonly STORAGE_KEY = 'nexus-learning-hub-v5';
+  private readonly STORAGE_KEY = 'Si-Neuro-learning-hub-v5';
 
   subjects = signal<Record<SubjectId, SubjectData>>({
     algo: {

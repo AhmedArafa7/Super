@@ -91,14 +91,14 @@ export async function POST(req: Request) {
     }
 
     let responseText = "";
-    let engineName = "NexusAI";
+    let engineName = "Si-NeuroAI";
     let optimizedText = null;
 
     // محاكاة تحسين الـ Prompt إذا كان الوضع التلقائي مفعل
     let promptToUse = message;
     if (isAutoMode) {
       try {
-        const optimizationPrompt = `أنت مُحسن أوامر لنظام NexusAI. حول طلب المستخدم التالي إلى أمر دقيق بالعربية الفصحى وبدون مقدمات:\n\n${message}`;
+        const optimizationPrompt = `أنت مُحسن أوامر لنظام Si-NeuroAI. حول طلب المستخدم التالي إلى أمر دقيق بالعربية الفصحى وبدون مقدمات:\n\n${message}`;
         optimizedText = await callGemini('gemini-2.5-flash', optimizationPrompt);
         if (optimizedText) promptToUse = optimizedText;
       } catch (e) {
@@ -123,7 +123,7 @@ export async function POST(req: Request) {
       if (GROQ_API_KEY && !modelToUse.includes('llama')) {
         try {
           responseText = await callGroq('llama-3.3-70b-versatile', promptToUse, history);
-          engineName = "Nexus Resilience (Groq)";
+          engineName = "Si-Neuro Resilience (Groq)";
         } catch (groqErr: any) {
           throw new Error(`تعذر الاتصال بجميع المحركات: ${primaryErr.message}`);
         }

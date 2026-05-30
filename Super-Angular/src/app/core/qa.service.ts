@@ -28,7 +28,7 @@ export interface QAPost {
   providedIn: 'root'
 })
 export class QAService {
-  private readonly STORAGE_KEY = 'nexus-qa-store';
+  private readonly STORAGE_KEY = 'Si-Neuro-qa-store';
 
   // Signals
   posts = signal<QAPost[]>([]);

@@ -79,6 +79,6 @@ export class WeTubeComponent {
   }
 
   connectVault(): void {
-    alert('جاري ربط العقدة بالسجل المركزي لـ Nexus Central Vault...');
+    alert('جاري ربط العقدة بالسجل المركزي لـ Si-Neuro Central Vault...');
   }
 }

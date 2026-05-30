@@ -75,6 +75,6 @@ export const useTimeStore = create<TimeState>()(
         set({ timeLeft: MODES[mode], isRunning: false });
       }
     }),
-    { name: 'nexus-time-registry' }
+    { name: 'Si-Neuro-time-registry' }
   )
 );

@@ -105,7 +105,7 @@ export function AgentAI() {
           <span className="flex items-center gap-1"><ShieldCheck className="size-3" /> Secure AI Sandbox</span>
           <span className="flex items-center gap-1"><Box className="size-3" /> Isolated Execution</span>
         </div>
-        <p className="text-[9px] font-bold text-muted-foreground">© Nexus Agent Protocol v1.0</p>
+        <p className="text-[9px] font-bold text-muted-foreground">© Si-Neuro Agent Protocol v1.0</p>
       </footer>*/}
     </div>
   );

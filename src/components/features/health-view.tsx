@@ -287,7 +287,7 @@ export function HealthView() {
         <div className="relative z-10 space-y-4 max-w-3xl">
           <div className="flex items-center gap-2 text-indigo-400">
             <Lightbulb className="size-5" />
-            <span className="text-xs font-black uppercase tracking-widest">Nexus Health Wisdom</span>
+            <span className="text-xs font-black uppercase tracking-widest">Si-Neuro Health Wisdom</span>
           </div>
           <h2 className="text-4xl font-bold text-white leading-tight">
             "{currentTip}"

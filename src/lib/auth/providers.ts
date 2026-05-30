@@ -17,7 +17,7 @@ import { setSession } from './session';
  * محرك المصادقة السحابية الموحد - يدعم الدخول بالمعرف والرمز السري عبر Firebase.
  */
 
-const VIRTUAL_DOMAIN = "@nexusai.local";
+const VIRTUAL_DOMAIN = "@Si-Neuroai.local";
 
 /**
  * [UTILITY: SANITIZE_USERNAME]

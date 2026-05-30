@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { IconSafe } from '@/components/ui/icon-safe';
 
 const LAYOUT_OPTIONS = [
-  { id: 'nexus', name: 'الهيكل القياسي (Nexus)', desc: 'شريط جانبي أيسر مغلق مع شاشة زجاجية مركزية.' },
+  { id: 'Si-Neuro', name: 'الهيكل القياسي (Si-Neuro)', desc: 'شريط جانبي أيسر مغلق مع شاشة زجاجية مركزية.' },
   { id: 'dulms', name: 'هيكل المنصات الأكاديمية (DULMS)', desc: 'شريط علوي متقدم مع قائمة جانبية مرنة، مفضل للكورسات.' }
 ] as const;
 
@@ -31,7 +31,7 @@ export function ThemeBuilder() {
   const { toast } = useToast();
   
   const [themeName, setThemeName] = useState('تصميمي الخاص');
-  const [layoutEngine, setLayoutEngine] = useState<'nexus' | 'dulms'>('nexus');
+  const [layoutEngine, setLayoutEngine] = useState<'Si-Neuro' | 'dulms'>('Si-Neuro');
   const [primaryColor, setPrimaryColor] = useState('#6366f1');
   const [bgColor, setBgColor] = useState('#0f111a'); // For body backgrounds
   const [isSaving, setIsSaving] = useState(false);
@@ -71,7 +71,7 @@ export function ThemeBuilder() {
     if (!user) return;
     setIsSaving(true);
     try {
-      await activateTheme(user.id, 'nexus');
+      await activateTheme(user.id, 'Si-Neuro');
       toast({ title: 'تمت العودة للوضع القياسي...' });
       setTimeout(() => window.location.reload(), 1000);
     } catch (err) {
@@ -196,7 +196,7 @@ export function ThemeBuilder() {
             disabled={isSaving}
             className="h-14 px-8 rounded-2xl border-white/10 text-muted-foreground hover:bg-white/5 hover:text-white"
           >
-            تراجع لـ Nexus <RotateCcw className="size-4 ml-2" />
+            تراجع لـ Si-Neuro <RotateCcw className="size-4 ml-2" />
           </Button>
         </div>
 

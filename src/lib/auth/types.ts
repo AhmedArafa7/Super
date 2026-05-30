@@ -60,7 +60,7 @@ export interface User {
   themeMode?: 'light' | 'dark';
   customThemeDef?: {
     slug: string;
-    layoutEngine: 'nexus' | 'dulms';
+    layoutEngine: 'Si-Neuro' | 'dulms';
     customColors?: {
       primary?: string;
       background?: string;

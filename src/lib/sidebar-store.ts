@@ -67,7 +67,7 @@ export const useSidebarStore = create<SidebarState>()(
       toggleHeader: () => set((state) => ({ isHeaderVisible: !state.isHeaderVisible })),
     }),
     {
-      name: 'nexus-sidebar-prefs-v4',
+      name: 'Si-Neuro-sidebar-prefs-v4',
     }
   )
 );

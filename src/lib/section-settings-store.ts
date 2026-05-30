@@ -38,7 +38,7 @@ export const useSectionSettingsStore = create<SectionSettingsState>()(
       })),
     }),
     {
-      name: 'nexus_section_settings_storage',
+      name: 'Si-Neuro_section_settings_storage',
     }
   )
 );

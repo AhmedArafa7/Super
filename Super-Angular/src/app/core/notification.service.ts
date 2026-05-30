@@ -18,7 +18,7 @@ export interface AppNotification {
   providedIn: 'root'
 })
 export class NotificationService {
-  private readonly STORAGE_KEY = 'nexus-neural-notifications-v1';
+  private readonly STORAGE_KEY = 'Si-Neuro-neural-notifications-v1';
 
   notifications = signal<AppNotification[]>([]);
 

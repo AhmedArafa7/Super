@@ -6,7 +6,7 @@ import { User } from './types';
  * [STABILITY_ANCHOR: SESSION_MANAGER_V1.0]
  */
 
-const SESSION_KEY = 'nexus_session';
+const SESSION_KEY = 'Si-Neuro_session';
 
 export const getSession = (): User | null => {
   if (typeof window === 'undefined') return null;

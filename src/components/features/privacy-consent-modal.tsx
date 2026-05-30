@@ -74,7 +74,7 @@ export function PrivacyConsentModal() {
           </div>
           <DialogTitle className="text-3xl font-headline font-bold text-white text-center">بروتوكول خصوصية البيانات</DialogTitle>
           <DialogDescription className="text-muted-foreground text-center text-sm leading-relaxed mt-4">
-            نحن في NexusAI نستخدم بيانات تفاعلك مع المحرك العصبي حصرياً لتحسين جودة الردود ومعايرة البروتوكولات الذكية. خصوصيتك هي أولويتنا القصوى.
+            نحن في Si-NeuroAI نستخدم بيانات تفاعلك مع المحرك العصبي حصرياً لتحسين جودة الردود ومعايرة البروتوكولات الذكية. خصوصيتك هي أولويتنا القصوى.
           </DialogDescription>
         </DialogHeader>
 
@@ -137,7 +137,7 @@ export function PrivacyConsentModal() {
         )}
 
         <div className="text-center">
-          <p className="text-[9px] text-muted-foreground uppercase tracking-[0.3em] font-medium">Nexus Privacy Shield v1.0 • E2EE Active</p>
+          <p className="text-[9px] text-muted-foreground uppercase tracking-[0.3em] font-medium">Si-Neuro Privacy Shield v1.0 • E2EE Active</p>
         </div>
       </DialogContent>
     </Dialog>

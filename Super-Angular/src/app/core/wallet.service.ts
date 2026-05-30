@@ -61,7 +61,7 @@ export interface UserUnfreezeRule {
   providedIn: 'root'
 })
 export class WalletService {
-  private readonly STORAGE_KEY = 'nexus-wallet-registry';
+  private readonly STORAGE_KEY = 'Si-Neuro-wallet-registry';
 
   // Real-time reactive signals for wallet state
   balances = signal<Record<CurrencyCode, number>>(this.createEmptyBalances());
@@ -144,7 +144,7 @@ export class WalletService {
         type: 'deposit',
         currency: 'EGC',
         status: 'completed',
-        description: 'إيداع أولي للنواة العصبية - Nexus Core Seed',
+        description: 'إيداع أولي للنواة العصبية - Si-Neuro Core Seed',
         timestamp: new Date(Date.now() - 3600000 * 24).toISOString()
       },
       {

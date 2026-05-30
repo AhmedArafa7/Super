@@ -95,13 +95,13 @@ export class SidebarService {
         position: this.position(),
         floatingPos: this.floatingPos()
       };
-      localStorage.setItem('nexus-sidebar-prefs-v4', JSON.stringify(state));
+      localStorage.setItem('Si-Neuro-sidebar-prefs-v4', JSON.stringify(state));
     }
   }
 
   private loadState(): void {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('nexus-sidebar-prefs-v4');
+      const stored = localStorage.getItem('Si-Neuro-sidebar-prefs-v4');
       if (stored) {
         try {
           const parsed = JSON.parse(stored);

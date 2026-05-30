@@ -140,7 +140,7 @@ export function FloatingOrb({ pinnedItems, allItems, activeTab, onTabChange, isP
           "bg-slate-900/95 backdrop-blur-2xl border-white/10 p-3 rounded-2xl shadow-2xl animate-in zoom-in-95",
           isCollapsed ? "w-56" : "w-72"
         )} side="top" align="center">
-          <DropdownMenuLabel className="text-center pb-2 border-b border-white/5 mb-2 text-indigo-400 font-black tracking-widest text-xs">NEXUS OMNI-CONTROL</DropdownMenuLabel>
+          <DropdownMenuLabel className="text-center pb-2 border-b border-white/5 mb-2 text-indigo-400 font-black tracking-widest text-xs">Si-Neuro OMNI-CONTROL</DropdownMenuLabel>
           
           <ScrollArea className="h-[400px] pr-2">
             <div className="grid grid-cols-1 gap-1">

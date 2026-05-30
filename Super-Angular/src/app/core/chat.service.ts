@@ -17,7 +17,7 @@ export interface ChatMessage {
   providedIn: 'root'
 })
 export class ChatService {
-  private readonly STORAGE_KEY = 'nexus-chat-registry';
+  private readonly STORAGE_KEY = 'Si-Neuro-chat-registry';
 
   // Core signals
   messages = signal<ChatMessage[]>([]);
@@ -25,7 +25,7 @@ export class ChatService {
   autoRead = signal<boolean>(false);
 
   models = [
-    { id: 'googleai/gemini-2.5-flash', label: 'NexusAI (Flash)', desc: 'المحرك العصبي الأساسي السريع' },
+    { id: 'googleai/gemini-2.5-flash', label: 'Si-NeuroAI (Flash)', desc: 'المحرك العصبي الأساسي السريع' },
     { id: 'groq/llama-3.3-70b-versatile', label: 'Groq Llama 3.3', desc: 'محرك التحليل فائق السرعة' },
     { id: 'googleai/gemini-1.5-pro', label: 'Gemini Pro 1.5', desc: 'تحليل دقيق مخصص للمستثمرين' }
   ];
@@ -51,7 +51,7 @@ export class ChatService {
       {
         id: 'msg_welcome',
         role: 'assistant',
-        text: 'مرحباً بك في نظام NexusAI v5.5 للذكاء الاصطناعي. أنا محركك العصبي المتكامل وجاهز لمساعدتك في أي مهمة تطوير أو تنظيم أو برمجة اليوم. يمكنك البدء بسؤالي مباشرة!',
+        text: 'مرحباً بك في نظام Si-NeuroAI v5.5 للذكاء الاصطناعي. أنا محركك العصبي المتكامل وجاهز لمساعدتك في أي مهمة تطوير أو تنظيم أو برمجة اليوم. يمكنك البدء بسؤالي مباشرة!',
         engine: 'googleai/gemini-2.5-flash',
         timestamp: new Date().toISOString()
       }
@@ -137,7 +137,7 @@ export class ChatService {
 
     const lower = userText.toLowerCase();
     if (lower.includes('موقع') || lower.includes('برمج') || lower.includes('code') || lower.includes('site')) {
-      responseText = 'لتطوير هيكلية ويب فائقة الاستجابة عصبياً، أنصحك بالاعتماد على بنية Angular standalone components مع Signals لإدارة الحالة بشكل تفاعلي سريع. إليك نموذج فني:\n\n```typescript\nimport { Component, signal } from \'@angular/core\';\n\n@Component({\n  selector: \'app-nexus\',\n  standalone: true,\n  template: `<button (click)=\"boost()\">Boost Neural Link: {{ power() }}</button>`\n})\nexport class NexusComponent {\n  power = signal(9000);\n  boost() { this.power.update(p => p + 100); }\n}\n```\n\nتضمن لك هذه البنية كفاءة تشغيل بنسبة استدعاء لحظية.';
+      responseText = 'لتطوير هيكلية ويب فائقة الاستجابة عصبياً، أنصحك بالاعتماد على بنية Angular standalone components مع Signals لإدارة الحالة بشكل تفاعلي سريع. إليك نموذج فني:\n\n```typescript\nimport { Component, signal } from \'@angular/core\';\n\n@Component({\n  selector: \'app-Si-Neuro\',\n  standalone: true,\n  template: `<button (click)=\"boost()\">Boost Neural Link: {{ power() }}</button>`\n})\nexport class Si-NeuroComponent {\n  power = signal(9000);\n  boost() { this.power.update(p => p + 100); }\n}\n```\n\nتضمن لك هذه البنية كفاءة تشغيل بنسبة استدعاء لحظية.';
     } else if (lower.includes('دراسة') || lower.includes('تعلم') || lower.includes('مذاكرة')) {
       responseText = 'نظام التلقين العصبي الموصى به يعتمد على فترات التركيز البومودورو المدمجة:\n1. حدد جلسات تركيز لمدة 25 دقيقة دون أي مشتتات.\n2. خذ 5 دقائق استراحة قصيرة بعد كل جلسة لترسخ المعلومات في الذاكرة العصبية العميقة.\n3. استخدم المخططات البيانية لمراقبة تقدمك أسبوعياً.';
     } else {

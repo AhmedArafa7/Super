@@ -24,7 +24,7 @@ export default function DashboardPage() {
     );
   }
 
-  // NexusAI uses a shell-based SPA architecture. 
+  // Si-NeuroAI uses a shell-based SPA architecture. 
   // We render the AppShell but the shell logic handles the internal "dashboard" view.
   return <AppShell />;
 }

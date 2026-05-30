@@ -1,11 +1,11 @@
-# **App Name**: NexusAI
+# **App Name**: Si-NeuroAI
 
 ## Core Features:
 
 - AI Chat Interface: A chat interface pre-filled with a welcome message and a simulated AI response generator tool, showing a 'typing...' indicator with generic, context-aware AI responses.
 - StreamHub Video Display: Display a grid of dummy video objects (Title, Thumbnail, Views, Author) in a responsive Masonry or Grid layout using robust placeholder images.
 - StreamHub Video Upload: Implement an 'Upload' button that opens a Modal for adding new videos. Newly 'Uploaded' items are added to the video display with a smooth animation entry.
-- TechMarket Product Display: Display mock tech products (name, price) on product cards with hover effects.  An 'Add to Cart' button updates a counter in the header.
+- TechMarket Product Display: Display mock tech products (name, price) on product cards with hover effects. An 'Add to Cart' button updates a counter in the header.
 - Responsive Sidebar Navigation: A responsive Sidebar that is collapsible on mobile and fixed on desktop. It features navigation links (AI Chat, StreamHub, TechMarket, Capabilities) with active state styling.
 
 ## Style Guidelines:

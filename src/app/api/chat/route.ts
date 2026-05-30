@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       return new Response(JSON.stringify({ error: 'Messages array is required' }), { status: 400 });
     }
 
-    const systemPrompt = `أنت "المهندس العصبي" (Neural Architect) في نظام NexusAI. بيئة بناء سيادية متطورة.
+    const systemPrompt = `أنت "المهندس العصبي" (Neural Architect) في نظام Si-NeuroAI. بيئة بناء سيادية متطورة.
 مهمتك الأساسية هي بناء وتعديل الأكواد البرمجية والملفات في بيئة عمل المستخدم.
 قوانين صارمة:
 1. عند طلب إنشاء أو تعديل أي كود (مثل HTML, CSS, JS, TS, إلخ)، **يجب** استدعاء الأداة \`update_workspace_files\` فوراً.

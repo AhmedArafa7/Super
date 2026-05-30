@@ -1,5 +1,5 @@
 /**
- * NexusAI Service Worker — PWA Offline & Caching Layer
+ * Si-NeuroAI Service Worker — PWA Offline & Caching Layer
  * 
  * Strategy:
  * - App Shell (HTML, CSS, JS): Cache-first, update in background
@@ -8,7 +8,7 @@
  * - Offline fallback: Show cached app shell when offline
  */
 
-const CACHE_NAME = 'nexus-v4';
+const CACHE_NAME = 'Si-Neuro-v4';
 const OFFLINE_URL = '/';
 
 // Files to pre-cache on install (app shell)

@@ -3,7 +3,7 @@
     <!-- Left Column: Player, Actions, Description, Comments -->
     <div class="flex-1 lg:max-w-[calc(100%-400px)] flex flex-col min-w-0">
       <div class="aspect-video w-full rounded-xl overflow-hidden shadow-2xl bg-black mb-4 relative z-10 border border-white/5">
-        <app-nexus-video-player
+        <app-Si-Neuro-video-player
           [src]="vid.url || ''"
           [videoId]="vid.id"
           [poster]="vid.thumbnail || ''"
@@ -12,7 +12,7 @@
           [authorAvatar]="vid.channelAvatar || ''"
           [autoPlay]="true"
           [sourceType]="vid.source === 'youtube' ? 'youtube' : 'local'"
-        ></app-nexus-video-player>
+        ></app-Si-Neuro-video-player>
       </div>
 
       <div class="px-4 sm:px-0 flex flex-col">

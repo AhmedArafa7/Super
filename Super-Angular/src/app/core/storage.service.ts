@@ -17,7 +17,7 @@ export interface CachedAsset {
   providedIn: 'root'
 })
 export class StorageService {
-  private readonly STORAGE_KEY = 'nexus-segmented-storage-v2';
+  private readonly STORAGE_KEY = 'Si-Neuro-segmented-storage-v2';
 
   // Signals for state management
   cachedAssets = signal<CachedAsset[]>([]);
@@ -68,7 +68,7 @@ export class StorageService {
       {
         id: 'seed_asset_3',
         type: 'ai_model_data',
-        title: 'Nexus Core Neural Weights V2.8 (Model Data)',
+        title: 'Si-Neuro Core Neural Weights V2.8 (Model Data)',
         sizeMB: 32.8,
         timestamp: Date.now() - 3600000 * 10,
         isFavorite: false

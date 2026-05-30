@@ -28,7 +28,7 @@ export interface ThemeDefinition {
     
     // --- خصائص مولد الواجهات الديناميكية (No-Code Builder) ---
     /** محرك الرندر المناسب لهذا التصميم (الشريط الجانبي، العلوي، الخ) */
-    layoutEngine?: 'nexus' | 'dulms';
+    layoutEngine?: 'Si-Neuro' | 'dulms';
     /** لوحة الألوان المخصصة (إن وجدت) */
     customColors?: {
         primary?: string;     // e.g. #3b82f6
@@ -42,13 +42,13 @@ export interface ThemeDefinition {
 // كل تصميم جديد يُضاف هنا أولاً. هذا هو المصدر الوحيد للحقيقة.
 export const THEME_REGISTRY: ThemeDefinition[] = [
     {
-        slug: 'nexus',
-        name: 'Nexus (الافتراضي)',
+        slug: 'Si-Neuro',
+        name: 'Si-Neuro (الافتراضي)',
         description: 'الواجهة الذكية الافتراضية الخاصة بالنظام الزجاجي.',
-        supportsDarkMode: false, // Nexus ليلي دائماً
+        supportsDarkMode: false, // Si-Neuro ليلي دائماً
         isDefault: true,
         storePrice: 0,
-        layoutEngine: 'nexus',
+        layoutEngine: 'Si-Neuro',
     },
     {
         slug: 'dulms',
@@ -73,19 +73,19 @@ export const getDefaultTheme = (): ThemeDefinition =>
 
 /** الحصول على التصميمات التي يمتلكها المستخدم */
 export const getOwnedThemes = (user: User | null): ThemeDefinition[] => {
-    const ownedSlugs = user?.ownedThemes || ['nexus'];
+    const ownedSlugs = user?.ownedThemes || ['Si-Neuro'];
     return THEME_REGISTRY.filter(t => ownedSlugs.includes(t.slug));
 };
 
 /** الحصول على التصميمات المتاحة للشراء (غير مملوكة) */
 export const getAvailableThemes = (user: User | null): ThemeDefinition[] => {
-    const ownedSlugs = user?.ownedThemes || ['nexus'];
+    const ownedSlugs = user?.ownedThemes || ['Si-Neuro'];
     return THEME_REGISTRY.filter(t => !t.isDefault && !ownedSlugs.includes(t.slug));
 };
 
 /** الحصول على الـ slug الخاص بالتصميم المفعّل حالياً */
 export const getActiveThemeSlug = (user: User | null): string =>
-    user?.activeTheme || 'nexus';
+    user?.activeTheme || 'Si-Neuro';
 
 /** هل التصميم المعطى يدعم الوضع الليلي؟ */
 export const activeThemeSupportsDarkMode = (user: User | null): boolean => {
@@ -135,7 +135,7 @@ export const ensureThemeProductsExist = async (): Promise<void> => {
                 title: theme.name,
                 description: theme.description,
                 price: theme.storePrice,
-                sellerId: 'nexus_system',
+                sellerId: 'Si-Neuro_system',
                 mainCategory: 'themes',
                 subCategory: 'ui_themes',
                 themeSlug: theme.slug,

@@ -99,13 +99,13 @@ export class TimeService {
         timeLeft: this.timeLeft(),
         isRunning: false // Always stop running timer on reload
       };
-      localStorage.setItem('nexus-time-registry', JSON.stringify(state));
+      localStorage.setItem('Si-Neuro-time-registry', JSON.stringify(state));
     }
   }
 
   private loadState(): void {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('nexus-time-registry');
+      const stored = localStorage.getItem('Si-Neuro-time-registry');
       if (stored) {
         try {
           const parsed = JSON.parse(stored);

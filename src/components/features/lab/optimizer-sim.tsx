@@ -145,7 +145,7 @@ export function OptimizerSim() {
       </div>
 
       <div className="mt-8 pt-8 border-t border-white/5 text-center relative z-10">
-        <p className="text-[9px] text-muted-foreground uppercase tracking-[0.4em] font-medium">Nexus Lab Protocol v5.5 • AI Engine Active</p>
+        <p className="text-[9px] text-muted-foreground uppercase tracking-[0.4em] font-medium">Si-Neuro Lab Protocol v5.5 • AI Engine Active</p>
       </div>
     </Card>
   );

@@ -52,7 +52,7 @@ export function ChatInput({ input, setInput, isAITyping, isEditing, onSend, onFi
           value={input} 
           onChange={e => setInput(e.target.value)} 
           onKeyDown={e => e.key === 'Enter' && onSend()} 
-          placeholder={isEditing ? "تعديل النبضة العصبية..." : "تحدث إلى NexusAI..."} 
+          placeholder={isEditing ? "تعديل النبضة العصبية..." : "تحدث إلى Si-NeuroAI..."} 
           className={cn(
             "h-14 bg-white/5 border-white/10 rounded-2xl px-8 text-right flex-1 text-white shadow-inner focus-visible:ring-primary transition-all",
             isEditing && "ring-2 ring-indigo-500/50 bg-indigo-500/5"

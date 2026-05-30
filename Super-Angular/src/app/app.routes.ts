@@ -91,7 +91,7 @@ export const routes: Routes = [
   {
     path: 'sheets',
     component: SheetsComponent,
-    title: 'Nexus Sheets'
+    title: 'Si-Neuro Sheets'
   },
   {
     path: 'microcontroller-lab',

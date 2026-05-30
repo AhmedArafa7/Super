@@ -37,7 +37,7 @@ const labPrompt = ai.definePrompt({
   model: 'googleai/gemini-2.5-flash',
   input: { schema: LabOptimizeInputSchema },
   output: { schema: LabOptimizeOutputSchema },
-  prompt: `أنت خبير في هندسة الأوامر (Prompt Engineering) لنظام NexusAI.
+  prompt: `أنت خبير في هندسة الأوامر (Prompt Engineering) لنظام Si-NeuroAI.
 مهمتك: تحويل أمر المستخدم البسيط إلى أمر تقني معقد واحترافي يدعم البروتوكولات السيادية.
 
 الأمر الأصلي: {{{prompt}}}

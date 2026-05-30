@@ -193,12 +193,12 @@ export function WeTubeStudioView() {
           </div>
         </div>
 
-        {/* Exclusive Nexus Features */}
+        {/* Exclusive Si-Neuro Features */}
         <div className="space-y-6">
-          <h2 className="text-xl font-black tracking-tight px-2 text-indigo-400">مزايا Nexus Studio الحصرية</h2>
+          <h2 className="text-xl font-black tracking-tight px-2 text-indigo-400">مزايا Si-Neuro Studio الحصرية</h2>
           <div className="space-y-4">
              {[
-               { title: "التحسين بالذكاء الاصطناعي", desc: "تحسين جودة الفيديو تلقائياً باستخدام خوارزميات Nexus.", icon: BarChart3 },
+               { title: "التحسين بالذكاء الاصطناعي", desc: "تحسين جودة الفيديو تلقائياً باستخدام خوارزميات Si-Neuro.", icon: BarChart3 },
                { title: "التوزيع العابر للمنصات", desc: "نشر المحتوى على عدة منصات بضغطة زر واحدة.", icon: Video },
                { title: "نظام الأرباح الذكي", desc: "تتبع أرباحك وعوائدك بشكل لحظي ودقيق.", icon: PlusCircle }
              ].map((feature, idx) => (

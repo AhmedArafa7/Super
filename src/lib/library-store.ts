@@ -133,7 +133,7 @@ export const useLibraryStore = create<LibraryState>()(
       }
     }),
     {
-      name: 'nexus-library-storage',
+      name: 'Si-Neuro-library-storage',
       partialize: (state) => ({ books: state.books }),
     }
   )

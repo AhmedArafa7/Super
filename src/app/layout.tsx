@@ -19,13 +19,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'NexusAI - Neural Ecosystem',
+  title: 'Si-NeuroAI - Neural Ecosystem',
   description: 'The future of decentralized assistance.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'NexusAI',
+    title: 'Si-NeuroAI',
   },
   icons: {
     icon: '/icons/icon-192.png',

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   try {
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "NexusAI/Bot 1.0",
+        "User-Agent": "Si-NeuroAI/Bot 1.0",
         "Accept": "text/html"
       },
       next: { revalidate: 3600 }

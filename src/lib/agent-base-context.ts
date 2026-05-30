@@ -14,7 +14,7 @@ export const BASE_PROJECT_CONTEXT: Record<string, string> = {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Nexus Preview</title>
+    <title>Si-Neuro Preview</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       body { margin: 0; padding: 0; overflow: hidden; background: #0f172a; }
@@ -101,7 +101,7 @@ export function AppHeader({ onTabChange }: any) {
         >
           <Menu size={18} />
         </button>
-        <h2 className="text-xs font-bold text-white truncate max-w-[120px]">Nexus Preview</h2>
+        <h2 className="text-xs font-bold text-white truncate max-w-[120px]">Si-Neuro Preview</h2>
       </div>
       <div className="flex items-center gap-2">
         <div className="size-8 bg-indigo-600/20 rounded-full flex items-center justify-center border border-indigo-500/20">
@@ -135,7 +135,7 @@ export function AppSidebar({ activeTab, onTabChange, user }: any) {
     >
       <div className="p-4 flex items-center justify-between flex-row-reverse mb-4 shrink-0">
         <div className="flex items-center gap-2 justify-end">
-           <span className="font-bold text-sm">Nexus AI</span>
+           <span className="font-bold text-sm">Si-Neuro AI</span>
            <Box className="text-indigo-500 size-4" />
         </div>
       </div>

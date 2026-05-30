@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 // GitHub Release URL — يتم تحديثها تلقائياً عند كل push
-const APK_DOWNLOAD_URL = "https://github.com/AhmedArafa7/Super/releases/download/mobile-latest/nexusai-latest.apk";
+const APK_DOWNLOAD_URL = "https://github.com/AhmedArafa7/Super/releases/download/mobile-latest/Si-Neuroai-latest.apk";
 
 interface Option {
   id: string;
@@ -36,7 +36,7 @@ interface DeploymentOptionsProps {
 
 /**
  * [STABILITY_ANCHOR: DEPLOYMENT_OPTIONS_NODE_V2.0]
- * وحدة منصات التشغيل السيادية — Nexus V2
+ * وحدة منصات التشغيل السيادية — Si-Neuro V2
  */
 export function DeploymentOptions({ onInstallPWA, deferredPrompt }: DeploymentOptionsProps) {
   const OPTIONS: Option[] = [

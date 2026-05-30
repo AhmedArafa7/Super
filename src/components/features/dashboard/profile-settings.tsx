@@ -158,7 +158,7 @@ export function ProfileSettings({ user }: any) {
           <div className="grid gap-3 opacity-60">
             <Label htmlFor="username" className="text-right text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">معرف نكسوس (Username)</Label>
             <Input id="username" value={user?.username} disabled className="bg-white/5 border-white/10 h-14 rounded-2xl text-right font-mono" />
-            <p className="text-[10px] text-amber-500/70 italic text-right font-bold">لا يمكن تعديل معرفات Nexus بمجرد تثبيتها لضمان سلامة الروابط.</p>
+            <p className="text-[10px] text-amber-500/70 italic text-right font-bold">لا يمكن تعديل معرفات Si-Neuro بمجرد تثبيتها لضمان سلامة الروابط.</p>
           </div>
 
           <div className="pt-6 border-t border-white/5">

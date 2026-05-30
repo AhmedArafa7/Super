@@ -31,11 +31,11 @@ export const useStreamStore = create<StreamState>((set, get) => ({
   isPlaying: false,
   isMinimized: false,
   currentTab: 'dashboard',
-  quality: typeof window !== 'undefined' ? localStorage.getItem("nexus_stream_quality") || "240" : "240",
+  quality: typeof window !== 'undefined' ? localStorage.getItem("Si-Neuro_stream_quality") || "240" : "240",
 
   // تحميل الإعدادات من الذاكرة المحلية
-  backgroundPlayback: typeof window !== 'undefined' ? localStorage.getItem("nexus_bg_playback") !== 'false' : true,
-  autoFloat: typeof window !== 'undefined' ? localStorage.getItem("nexus_auto_float") === 'true' : false,
+  backgroundPlayback: typeof window !== 'undefined' ? localStorage.getItem("Si-Neuro_bg_playback") !== 'false' : true,
+  autoFloat: typeof window !== 'undefined' ? localStorage.getItem("Si-Neuro_auto_float") === 'true' : false,
 
   setActiveVideo: (video) => set({
     activeVideo: video,
@@ -48,7 +48,7 @@ export const useStreamStore = create<StreamState>((set, get) => ({
   setIsMinimized: (minimized) => set({ isMinimized: minimized }),
 
   setQuality: (q) => {
-    if (typeof window !== 'undefined') localStorage.setItem("nexus_stream_quality", q);
+    if (typeof window !== 'undefined') localStorage.setItem("Si-Neuro_stream_quality", q);
     set({ quality: q });
   },
 
@@ -62,12 +62,12 @@ export const useStreamStore = create<StreamState>((set, get) => ({
   },
 
   setBackgroundPlayback: (enabled) => {
-    if (typeof window !== 'undefined') localStorage.setItem("nexus_bg_playback", String(enabled));
+    if (typeof window !== 'undefined') localStorage.setItem("Si-Neuro_bg_playback", String(enabled));
     set({ backgroundPlayback: enabled });
   },
 
   setAutoFloat: (enabled) => {
-    if (typeof window !== 'undefined') localStorage.setItem("nexus_auto_float", String(enabled));
+    if (typeof window !== 'undefined') localStorage.setItem("Si-Neuro_auto_float", String(enabled));
     set({ autoFloat: enabled });
   }
 }));

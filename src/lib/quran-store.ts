@@ -104,7 +104,7 @@ export const useQuranStore = create<QuranState>()(
         set({ isReadingLoading: true, currentReadingText: null });
         try {
           // محاولة الجلب من الكاش أولاً
-          const cache = await caches.open('nexus-quran-text-cache');
+          const cache = await caches.open('Si-Neuro-quran-text-cache');
           const textUrl = `https://api.alquran.cloud/v1/surah/${id}/quran-uthmani`;
           const tafsirUrl = `https://api.alquran.cloud/v1/surah/${id}/ar.muyassar`;
 
@@ -140,7 +140,7 @@ export const useQuranStore = create<QuranState>()(
       fetchJuzText: async (juz) => {
         set({ isReadingLoading: true, currentJuzText: null });
         try {
-          const cache = await caches.open('nexus-quran-text-cache');
+          const cache = await caches.open('Si-Neuro-quran-text-cache');
           const textUrl = `https://api.alquran.cloud/v1/juz/${juz}/quran-uthmani`;
           const tafsirUrl = `https://api.alquran.cloud/v1/juz/${juz}/ar.muyassar`;
 
@@ -156,7 +156,7 @@ export const useQuranStore = create<QuranState>()(
             textData = await textRes.json();
             tafsirData = await tafsirRes.json();
             if (textRes.ok && tafsirRes.ok) {
-              const c = await caches.open('nexus-quran-text-cache');
+              const c = await caches.open('Si-Neuro-quran-text-cache');
               c.put(textUrl, textRes.clone());
               c.put(tafsirUrl, tafsirRes.clone());
             }
@@ -212,7 +212,7 @@ export const useQuranStore = create<QuranState>()(
         if (isAlreadyCached) return;
 
         try {
-          const cache = await caches.open('nexus-quran-physical-cache');
+          const cache = await caches.open('Si-Neuro-quran-physical-cache');
           const response = await fetch(surah.url, { mode: 'cors', credentials: 'omit' }).catch(() => fetch(surah.url, { mode: 'no-cors' })); 
 
           if (!response) throw new Error("Neural link unstable.");
@@ -253,7 +253,7 @@ export const useQuranStore = create<QuranState>()(
         if (get().isBulkSyncing) return;
         set({ isBulkSyncing: true, bulkSyncProgress: 0 });
         
-        const cache = await caches.open('nexus-quran-text-cache');
+        const cache = await caches.open('Si-Neuro-quran-text-cache');
         const storage = useGlobalStorage.getState();
         
         try {
@@ -290,7 +290,7 @@ export const useQuranStore = create<QuranState>()(
       }
     }),
     { 
-      name: 'nexus-quran-registry-v1',
+      name: 'Si-Neuro-quran-registry-v1',
       version: 1 
     }
   )

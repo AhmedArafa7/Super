@@ -13,8 +13,8 @@ import {
 
 /**
  * [STABILITY_ANCHOR: ARCADE_SAVE_SERVICE_V1.0]
- * Professional storage service for Nexus Arcade game saves.
- * Adheres to Nexus Engineering Standards (Strict Typing, Real Metrics).
+ * Professional storage service for Si-Neuro Arcade game saves.
+ * Adheres to Si-Neuro Engineering Standards (Strict Typing, Real Metrics).
  */
 
 export interface GameSaveMetadata {

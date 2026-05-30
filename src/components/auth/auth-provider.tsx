@@ -134,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.removeItem('manual_logout');
       // 1. إنشاء الحساب في Firebase Auth أولاً
-      const userCredential = await signUpWithCredentials(username, password || "nexus123456");
+      const userCredential = await signUpWithCredentials(username, password || "Si-Neuro123456");
       const firebaseUser = userCredential.user;
 
       // 2. إنشاء الملف الشخصي المرتبط بالـ UID الصحيح

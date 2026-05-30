@@ -28,7 +28,7 @@ interface MicroIDEState {
 
 const DEFAULT_CODE = `void setup() {
   Serial.begin(9600);
-  Serial.println("Nexus Cloud IDE Initialization Complete!");
+  Serial.println("Si-Neuro Cloud IDE Initialization Complete!");
   pinMode(LED_BUILTIN, OUTPUT);
 }
 

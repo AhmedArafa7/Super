@@ -127,7 +127,7 @@ export default function DropPage() {
                         </div>
                         <FeatureHeader 
                             title={`إرسال ملف إلى ${targetUser?.name}`}
-                            description={`@${username} • Nexus Secure Drop`}
+                            description={`@${username} • Si-Neuro Secure Drop`}
                             className="mb-0 block text-center"
                             titleClassName="text-2xl justify-center"
                         />
@@ -234,7 +234,7 @@ export default function DropPage() {
                 </GlassCard>
 
                 <div className="text-center text-[10px] text-white/20 font-bold uppercase tracking-widest">
-                    Nexus Platform • Secure Drop Protocol v1.0
+                    Si-Neuro Platform • Secure Drop Protocol v1.0
                 </div>
             </div>
         </div>

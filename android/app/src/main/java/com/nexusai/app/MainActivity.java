@@ -1,4 +1,4 @@
-package com.nexusai.app;
+package com.Si-Neuroai.app;
 
 import com.getcapacitor.BridgeActivity;
 

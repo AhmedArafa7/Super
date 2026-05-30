@@ -73,7 +73,7 @@ export function UserDashboard({ onNavigate }: { onNavigate?: (tab: any) => void 
           </div>
           <div className="text-right">
             <h2 dir="auto" className="text-4xl font-headline font-bold text-white tracking-tight">أهلاً بك، {user?.name}</h2>
-            <p className="text-muted-foreground mt-1">نظام NexusAI جاهز لتنفيذ أوامرك.</p>
+            <p className="text-muted-foreground mt-1">نظام Si-NeuroAI جاهز لتنفيذ أوامرك.</p>
           </div>
         </div>
         <div className="flex gap-3">

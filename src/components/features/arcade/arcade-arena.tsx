@@ -152,7 +152,7 @@ export function ArcadeArena({ game, onBack }: ArcadeArenaProps) {
              <div className="size-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 border border-primary/20 animate-pulse">
                 <Loader2 className="size-10 text-primary animate-spin" />
              </div>
-             <p className="font-black text-white/40 uppercase tracking-[0.3em] animate-pulse">Launching Nexus Arena</p>
+             <p className="font-black text-white/40 uppercase tracking-[0.3em] animate-pulse">Launching Si-Neuro Arena</p>
           </div>
         )}
         

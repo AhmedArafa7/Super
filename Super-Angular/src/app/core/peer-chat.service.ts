@@ -8,7 +8,7 @@ export interface PeerContact {
   username: string;
   avatar_url: string;
   status: 'online' | 'offline';
-  platform: 'nexus' | 'whatsapp' | 'telegram' | 'instagram';
+  platform: 'Si-Neuro' | 'whatsapp' | 'telegram' | 'instagram';
   bio: string;
 }
 
@@ -27,7 +27,7 @@ export interface PeerMessage {
   providedIn: 'root'
 })
 export class PeerChatService {
-  private readonly STORAGE_KEY = 'nexus-peer-chat-state-v1';
+  private readonly STORAGE_KEY = 'Si-Neuro-peer-chat-state-v1';
 
   // Signals
   contacts = signal<PeerContact[]>([
@@ -37,7 +37,7 @@ export class PeerChatService {
       username: 'omar_farooq',
       avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
       status: 'online',
-      platform: 'nexus',
+      platform: 'Si-Neuro',
       bio: 'عضو اللجنة التقنية العليا للشبكة العصبية.'
     },
     {
@@ -46,7 +46,7 @@ export class PeerChatService {
       username: 'layla_ahmed',
       avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
       status: 'offline',
-      platform: 'nexus',
+      platform: 'Si-Neuro',
       bio: 'مهندسة برمجيات متخصصة في المحاكيات وتصميم الواجهات.'
     },
     {
@@ -55,7 +55,7 @@ export class PeerChatService {
       username: 'abdurrahman',
       avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
       status: 'online',
-      platform: 'nexus',
+      platform: 'Si-Neuro',
       bio: 'أخصائي التشفير العصبي الفائق وحماية البيانات.'
     }
   ]);

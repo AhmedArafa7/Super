@@ -114,7 +114,7 @@ export function DriveModal({ isOpen, onOpenChange }: DriveModalProps) {
       <DialogContent className="bg-slate-950/95 backdrop-blur-xl border-white/10 rounded-[2.5rem] p-6 text-right max-w-5xl h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-right text-2xl font-black text-white flex items-center gap-3 flex-row-reverse justify-start">
-            مساحة الرفع السحابية - Nexus Vault
+            مساحة الرفع السحابية - Si-Neuro Vault
             <Cloud className="size-6 text-emerald-400" />
           </DialogTitle>
           <DialogDescription className="text-right text-sm leading-relaxed mt-2 text-muted-foreground/90">

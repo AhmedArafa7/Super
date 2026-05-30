@@ -81,18 +81,18 @@ async function handleProxyRequest(request: NextRequest) {
     if (contentType.includes('text/html')) {
       let html = await response.text();
       const targetOrigin = new URL(targetUrl).origin;
-      const nexusOrigin = request.nextUrl.origin;
+      const Si-NeuroOrigin = request.nextUrl.origin;
 
       // سكريبت الافتراضية المزدوجة (Universal Isolation)
       const bootScript = `
         <script>
           (function() {
-            window.__NEXUS_TARGET_ORIGIN__ = "${targetOrigin}";
-            window.__NEXUS_ORIGIN__ = "${nexusOrigin}";
+            window.__Si-Neuro_TARGET_ORIGIN__ = "${targetOrigin}";
+            window.__Si-Neuro_ORIGIN__ = "${Si-NeuroOrigin}";
             
             // 1. الافتراضية الشاملة للتخزين (Virtual Storage Jar)
             const createVirtualStore = (type) => {
-              const prefix = "__nexus_" + btoa(window.__NEXUS_TARGET_ORIGIN__).substring(0, 8) + "_";
+              const prefix = "__Si-Neuro_" + btoa(window.__Si-Neuro_TARGET_ORIGIN__).substring(0, 8) + "_";
               const realStore = window[type];
               return {
                 getItem: (k) => realStore.getItem(prefix + k),
@@ -132,7 +132,7 @@ async function handleProxyRequest(request: NextRequest) {
             });
 
             // 3. اختطاف مسجل الخدمة (حظر أي SW من المواقع المُحمّلة عبر البروكسي لمنع السيطرة على النطاق)
-            if ('serviceWorker' in navigator && !navigator.serviceWorker.__NEXUS_GUARD__) {
+            if ('serviceWorker' in navigator && !navigator.serviceWorker.__Si-Neuro_GUARD__) {
               const originalRegister = navigator.serviceWorker.register;
               navigator.serviceWorker.register = function(url, options) {
                 // السماح فقط بتسجيل الـ SW الخاص بنكسوس (المسار /sw.js على نفس النطاق)
@@ -140,10 +140,10 @@ async function handleProxyRequest(request: NextRequest) {
                 if (swUrl.origin === window.location.origin && swUrl.pathname === '/sw.js') {
                   return originalRegister.apply(this, arguments);
                 }
-                console.log('🛡️ Nexus Guard: Blocked proxied SW registration:', url);
+                console.log('🛡️ Si-Neuro Guard: Blocked proxied SW registration:', url);
                 return Promise.resolve({ scope: '/', active: null, installing: null, waiting: null });
               };
-              navigator.serviceWorker.__NEXUS_GUARD__ = true;
+              navigator.serviceWorker.__Si-Neuro_GUARD__ = true;
             }
 
             // 5. اختطاف الملاحة لضمان البقاء داخل نكسوس
@@ -154,7 +154,7 @@ async function handleProxyRequest(request: NextRequest) {
                 const isInternal = url.startsWith(window.location.origin) || url.includes('/api/stream/telegram');
                 
                 if (!isRelative && !isInternal) {
-                  url = window.location.origin + '/api/proxy?url=' + encodeURIComponent(new URL(url, window.__NEXUS_TARGET_ORIGIN__).href);
+                  url = window.location.origin + '/api/proxy?url=' + encodeURIComponent(new URL(url, window.__Si-Neuro_TARGET_ORIGIN__).href);
                 }
               }
               return originalOpen.call(window, url, name, specs);

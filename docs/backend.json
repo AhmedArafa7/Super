@@ -3,7 +3,7 @@
   "entities": {
     "User": {
       "title": "User",
-      "description": "Represents a user profile in the NexusAI ecosystem with Octal Hierarchy.",
+      "description": "Represents a user profile in the Si-NeuroAI ecosystem with Octal Hierarchy.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },

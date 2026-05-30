@@ -35,7 +35,7 @@ interface SaveBridgeManagerProps {
 
 /**
  * [STABILITY_ANCHOR: SAVE_BRIDGE_MANAGER_V1.0]
- * High-fidelity Save Manager for Nexus Arcade.
+ * High-fidelity Save Manager for Si-Neuro Arcade.
  * Provides real-time Firebase sync and professional UX.
  */
 export function SaveBridgeManager({ userId, gameId, onSaveRestored, className }: SaveBridgeManagerProps) {
@@ -98,7 +98,7 @@ export function SaveBridgeManager({ userId, gameId, onSaveRestored, className }:
              </div>
              <div>
                 <h3 className="text-xl font-black text-white">Cloud Save Bridge</h3>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Nexus Universal Progress Sync</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Si-Neuro Universal Progress Sync</p>
              </div>
           </div>
           <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 py-1 px-3 rounded-lg flex items-center gap-2">

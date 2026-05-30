@@ -319,7 +319,7 @@ export const useLearningHubStore = create<LearningHubState>()(
       },
     }),
     {
-      name: 'nexus-learning-hub-v4', 
+      name: 'Si-Neuro-learning-hub-v4', 
     }
   )
 );

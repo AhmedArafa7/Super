@@ -11,8 +11,8 @@ interface NativeAdProps {
 }
 
 const FALLBACK_AD: Ad = {
-  id: "default-nexus",
-  title: "Nexus Pro: ترقية ذكاء التجربة",
+  id: "default-Si-Neuro",
+  title: "Si-Neuro Pro: ترقية ذكاء التجربة",
   description: "احصل على تلخيص ذكي لجميع فيديوهاتك ومساحة تخزين سحابية غير محدودة.",
   imageUrls: ["https://images.unsplash.com/photo-1620641788421-7a1c342f4ecb?q=80&w=800&auto=format&fit=crop"],
   linkUrl: "#",
@@ -24,15 +24,15 @@ const FALLBACK_AD: Ad = {
   impressions: 0,
   createdAt: new Date().toISOString(),
   authorId: 'system',
-  authorName: 'Nexus AI',
+  authorName: 'Si-Neuro AI',
   category: 'Tech'
 };
 
 /**
- * [STABILITY_ANCHOR: NEXUS_NATIVE_ADS_V2.0]
+ * [STABILITY_ANCHOR: Si-Neuro_NATIVE_ADS_V2.0]
  * High-fidelity native ad component refactored for professional modularity.
  */
-export function NexusNativeAds({ type, category, className }: NativeAdProps) {
+export function Si-NeuroNativeAds({ type, category, className }: NativeAdProps) {
   const { ad, isLoading, containerRef, handleAdClick } = useAdLogic({
     type, 
     category, 
@@ -67,7 +67,7 @@ export function NexusNativeAds({ type, category, className }: NativeAdProps) {
         <div className="p-4 pt-3 flex flex-col gap-2">
            <div className="flex items-center gap-2 text-primary">
               <Tag size={10} className="fill-current" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Nexus Ecosystem</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Si-Neuro Ecosystem</span>
            </div>
            <h4 className="text-xs font-bold text-white leading-relaxed line-clamp-2">{ad.title}</h4>
            <p className="text-[10px] text-muted-foreground line-clamp-2">{ad.description}</p>
@@ -93,10 +93,10 @@ export function NexusNativeAds({ type, category, className }: NativeAdProps) {
         className={cn("bg-slate-900/40 border border-white/5 rounded-[2rem] overflow-hidden group hover:border-primary/20 transition-all", className)}
       >
         <div className="relative aspect-video">
-            <img src={adImage} alt="Nexus Ad" className="w-full h-full object-cover" />
+            <img src={adImage} alt="Si-Neuro Ad" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
             <div className="absolute bottom-4 right-4 left-4 flex flex-col gap-1 items-end text-right">
-                <span className="text-[8px] font-black text-primary uppercase">Sponsored by Nexus</span>
+                <span className="text-[8px] font-black text-primary uppercase">Sponsored by Si-Neuro</span>
                 <h4 className="text-sm font-bold text-white">{ad.title}</h4>
             </div>
         </div>

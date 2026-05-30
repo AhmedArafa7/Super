@@ -24,7 +24,7 @@ export interface WebProject {
   providedIn: 'root'
 })
 export class LauncherService {
-  private readonly STORAGE_KEY = 'nexus-launcher-registry';
+  private readonly STORAGE_KEY = 'Si-Neuro-launcher-registry';
   walletService = inject(WalletService);
 
   // Core apps signals

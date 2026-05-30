@@ -127,7 +127,7 @@ export function StreamUploadDialog({ onUpload, onOpenVault, user }: any) {
       <DialogContent className="sm:max-w-[550px] bg-slate-950 border-white/10 rounded-[2.5rem] p-8">
         <DialogHeader>
           <DialogTitle className="text-3xl font-headline font-bold text-white text-right">إرسال عصبي جديد</DialogTitle>
-          <DialogDescription className="text-muted-foreground text-sm text-right">استخدم Nexus Vault للمساحات الكبيرة، أو يوتيوب للفيديو العام.</DialogDescription>
+          <DialogDescription className="text-muted-foreground text-sm text-right">استخدم Si-Neuro Vault للمساحات الكبيرة، أو يوتيوب للفيديو العام.</DialogDescription>
         </DialogHeader>
 
         {activeTask ? (

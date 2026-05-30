@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { NexusVideoPlayer } from "@/components/features/stream/nexus-video-player";
+import { Si-NeuroVideoPlayer } from "@/components/features/stream/Si-Neuro-video-player";
 import { detectVideoSource } from "./video-source-detector";
 import { useWatch } from "./watch-context";
 import { extractYouTubeId } from "@/lib/youtube-utils";
@@ -50,7 +50,7 @@ export function WatchPlayer({ isCached, downloadedQuality, handleQualityChange }
 
     return (
         <div className="w-full aspect-video rounded-none sm:rounded-3xl overflow-hidden bg-black shadow-2xl relative group mb-0 sm:mb-6 border-b sm:border border-white/5 ring-0 sm:ring-1 ring-white/10">
-            <NexusVideoPlayer
+            <Si-NeuroVideoPlayer
                 src={video.externalUrl || video.url}
                 videoId={source === 'youtube' ? extractYouTubeId(video.externalUrl || video.url) || video.id : video.id}
                 poster={video.thumbnail}

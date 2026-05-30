@@ -26,7 +26,7 @@ export function AdminChannelReview() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('nexus-channel-suggestions');
+    const saved = localStorage.getItem('Si-Neuro-channel-suggestions');
     if (saved) setSuggestions(JSON.parse(saved));
   }, []);
 
@@ -41,7 +41,7 @@ export function AdminChannelReview() {
     }
     
     setSuggestions(updated);
-    localStorage.setItem('nexus-channel-suggestions', JSON.stringify(updated));
+    localStorage.setItem('Si-Neuro-channel-suggestions', JSON.stringify(updated));
   };
 
   const pendingCount = suggestions.filter(s => s.status === 'pending').length;

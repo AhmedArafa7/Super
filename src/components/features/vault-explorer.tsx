@@ -40,7 +40,7 @@ interface VaultExplorerProps {
 
 /**
  * [STABILITY_ANCHOR: VAULT_EXPLORER_V2.0_MERGED]
- * مستكشف الخزنة المتطور — Nexus V2
+ * مستكشف الخزنة المتطور — Si-Neuro V2
  */
 export function VaultExplorer({ 
   folderId = VAULT_FOLDER_ID, 

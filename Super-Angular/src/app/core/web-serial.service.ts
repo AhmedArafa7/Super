@@ -22,7 +22,7 @@ export class WebSerialService {
   codeContent = signal<string>(`void setup() {
   pinMode(13, OUTPUT);
   Serial.begin(115200);
-  Serial.println("Nexus Core Board Active!");
+  Serial.println("Si-Neuro Core Board Active!");
 }
 
 void loop() {

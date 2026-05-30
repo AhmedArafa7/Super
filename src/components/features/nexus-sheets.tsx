@@ -66,7 +66,7 @@ const EditableCell = memo(({ value, type, onChange }: { value: any, type: string
 
 EditableCell.displayName = 'EditableCell';
 
-export function NexusSheets() {
+export function Si-NeuroSheets() {
   const [tables, setTables] = useState<DataTable[]>([]);
   const [activeTableId, setActiveTableId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,7 +77,7 @@ export function NexusSheets() {
 
   // Persistence Logic
   useEffect(() => {
-    const saved = localStorage.getItem('nexus-sheets-v2');
+    const saved = localStorage.getItem('Si-Neuro-sheets-v2');
     if (saved) {
       const parsed = JSON.parse(saved);
       setTables(parsed);
@@ -87,7 +87,7 @@ export function NexusSheets() {
 
   const persist = useCallback((updated: DataTable[]) => {
     setTables(updated);
-    localStorage.setItem('nexus-sheets-v2', JSON.stringify(updated));
+    localStorage.setItem('Si-Neuro-sheets-v2', JSON.stringify(updated));
   }, []);
 
   // Table Actions
@@ -191,7 +191,7 @@ export function NexusSheets() {
         {/* TOP BAR */}
         <header className="h-16 border-b border-white/5 bg-slate-900/40 backdrop-blur-xl flex items-center justify-between px-8 shrink-0 flex-row-reverse">
            <div className="flex items-center gap-4 flex-row-reverse">
-              <h1 className="text-xs font-black text-muted-foreground uppercase tracking-widest">Nexus Sheets</h1>
+              <h1 className="text-xs font-black text-muted-foreground uppercase tracking-widest">Si-Neuro Sheets</h1>
               <div className="size-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary"><FileSpreadsheet className="size-4" /></div>
            </div>
            
@@ -314,7 +314,7 @@ export function NexusSheets() {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
              <div className="size-32 bg-white/5 rounded-[3.5rem] flex items-center justify-center mb-8 border border-white/5 shadow-2xl"><Database className="size-16 text-muted-foreground/10" /></div>
-             <h2 className="text-4xl font-black text-white/40 mb-3 tracking-tighter">Nexus Intelligence Grid</h2>
+             <h2 className="text-4xl font-black text-white/40 mb-3 tracking-tighter">Si-Neuro Intelligence Grid</h2>
              <p className="text-muted-foreground max-w-sm font-bold text-xs uppercase tracking-widest opacity-60">اختر قاعدة بيانات للبدء في المعالجة</p>
           </div>
         )}

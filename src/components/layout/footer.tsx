@@ -24,7 +24,7 @@ export function Footer() {
               <div className="size-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
                 <Layers className="text-white size-6" />
               </div>
-              <h1 className="font-headline font-bold text-2xl tracking-tight text-white">NexusAI</h1>
+              <h1 className="font-headline font-bold text-2xl tracking-tight text-white">Si-NeuroAI</h1>
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mb-8">
               The next evolution in neural digital ecosystems. A secure, decentralized platform for intelligent interaction, content distribution, and technical asset acquisition.
@@ -56,7 +56,7 @@ export function Footer() {
 
         <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
           <p className="text-xs text-muted-foreground">
-            © {currentYear} NexusAI Corporation. All neural links reserved.
+            © {currentYear} Si-NeuroAI Corporation. All neural links reserved.
           </p>
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">

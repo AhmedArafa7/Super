@@ -6,7 +6,7 @@
 
 import { useEffect } from 'react';
 
-const SW_CLEANUP_KEY = 'nexus-sw-cleanup-v4'; // Incremented to v4 to force cleanup
+const SW_CLEANUP_KEY = 'Si-Neuro-sw-cleanup-v4'; // Incremented to v4 to force cleanup
 
 export function ServiceWorkerRegistration() {
   useEffect(() => {

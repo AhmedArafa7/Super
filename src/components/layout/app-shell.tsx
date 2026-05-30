@@ -37,7 +37,7 @@ const LibraryView = dynamic(() => import("@/components/features/library/library-
 const MicrocontrollerLab = dynamic(() => import("@/components/features/microcontroller-lab").then(m => m.MicrocontrollerLab), { ssr: false });
 const SettingsView = dynamic(() => import("@/components/features/settings-view").then(m => m.SettingsView), { ssr: false });
 const ArcadeHub = dynamic(() => import("@/components/features/arcade/arcade-hub").then(m => m.ArcadeHub), { ssr: false });
-const NexusSheets = dynamic(() => import("@/components/features/nexus-sheets").then(m => m.NexusSheets), { ssr: false });
+const Si-NeuroSheets = dynamic(() => import("@/components/features/Si-Neuro-sheets").then(m => m.Si-NeuroSheets), { ssr: false });
 const WeTubeStudioView = dynamic(() => import("@/components/features/wetube/wetube-studio-view").then(m => m.WeTubeStudioView), { ssr: false });
 const QAView = dynamic(() => import("@/components/features/qa-view").then(m => m.QAView), { ssr: false });
 
@@ -182,7 +182,7 @@ function AppShellInternal() {
 
   // Theme Routing: slug-based check from the centralized registry or Custom defined layout Engine
   const activeThemeSlug = user?.activeTheme;
-  if (activeThemeSlug && activeThemeSlug !== 'nexus') {
+  if (activeThemeSlug && activeThemeSlug !== 'Si-Neuro') {
     // Check if it's a hardcoded theme
     const themeDef = getThemeBySlug(activeThemeSlug);
     if (themeDef) {
@@ -263,11 +263,11 @@ function AppShellInternal() {
       case "chat": return <AIChat />;
       case "agent-ai": return <AgentAI />;
       case "vault": return <VaultExplorer />;
-      case "sheets": return <NexusSheets />;
+      case "sheets": return <Si-NeuroSheets />;
       case "ads": return <AdsCenter />;
       case "downloads": return <DownloadCenter />;
       case "peer-chat": return <PeerChat initialTargetId={activeRecipientId} />;
-      case "stream": return <WeTube onOpenVault={() => setLaunchedApp({ url: VAULT_EMBED_URL, title: "Nexus Central Vault", isVault: true })} />;
+      case "stream": return <WeTube onOpenVault={() => setLaunchedApp({ url: VAULT_EMBED_URL, title: "Si-Neuro Central Vault", isVault: true })} />;
       case "wetube-studio": return <WeTubeStudioView />;
       case "market": return <TechMarket onLaunchApp={(url, title) => setLaunchedApp({ url, title })} />;
       case "study-ai": return <StudyQuizView />;

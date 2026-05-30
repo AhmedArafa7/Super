@@ -41,7 +41,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       clearHiddenContent: () => set({ hiddenVideos: [], hiddenChannels: [] }),
     }),
     {
-      name: 'nexus_preferences_storage',
+      name: 'Si-Neuro_preferences_storage',
     }
   )
 );

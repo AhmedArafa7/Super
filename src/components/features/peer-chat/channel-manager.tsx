@@ -173,7 +173,7 @@ export function ChannelManager() {
               </div>
               <div className="space-y-2">
                 <h3 className="text-2xl font-black text-white">تفعيل ربط {channelInfo?.name}</h3>
-                <p className="text-slate-400 font-medium">عند التفعيل، ستتمكن من استقبال وإرسال الرسائل مباشرة من واجهة Nexus AI. نقوم بتشفير جميع البيانات لضمان خصوصيتك.</p>
+                <p className="text-slate-400 font-medium">عند التفعيل، ستتمكن من استقبال وإرسال الرسائل مباشرة من واجهة Si-Neuro AI. نقوم بتشفير جميع البيانات لضمان خصوصيتك.</p>
               </div>
               <div className="flex items-center justify-center gap-4">
                  <Button 

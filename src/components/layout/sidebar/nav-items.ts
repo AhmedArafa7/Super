@@ -38,7 +38,7 @@ export interface UploadTask {
 export const ALL_NAV_ITEMS: NavItem[] = [
   { id: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard, restricted: false, isPermanent: true },
   { id: "qa", label: "الأسئلة والطلبات", icon: MessageCircleQuestion, restricted: false, isPermanent: true },
-  { id: "arcade", label: "Nexus Arcade", icon: Gamepad2, restricted: false },
+  { id: "arcade", label: "Si-Neuro Arcade", icon: Gamepad2, restricted: false },
   { id: "time", label: "تنظيم الوقت", icon: Clock, restricted: false },
   { id: "health", label: "الصحة والرياضة", icon: HeartPulse, restricted: false },
   { id: "chat", label: "الدردشة الذكية", icon: MessageSquare, restricted: false },

@@ -10,7 +10,7 @@ export interface NavItem {
 export const ALL_NAV_ITEMS: NavItem[] = [
   { id: "dashboard", label: "لوحة التحكم", icon: "layout-dashboard", restricted: false, isPermanent: true },
   { id: "qa", label: "الأسئلة والطلبات", icon: "message-circle-question", restricted: false, isPermanent: true },
-  { id: "arcade", label: "Nexus Arcade", icon: "gamepad-2", restricted: false },
+  { id: "arcade", label: "Si-Neuro Arcade", icon: "gamepad-2", restricted: false },
   { id: "time", label: "تنظيم الوقت", icon: "clock", restricted: false },
   { id: "health", label: "الصحة والرياضة", icon: "heart-pulse", restricted: false },
   { id: "chat", label: "الدردشة الذكية", icon: "message-square", restricted: false },

@@ -14,7 +14,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 
 /**
  * [STABILITY_ANCHOR: ARCADE_HUB_V1.0]
- * The "Nexus Arcade" entry point. Implements a Hybrid Platform Launcher.
+ * The "Si-Neuro Arcade" entry point. Implements a Hybrid Platform Launcher.
  */
 
 interface Game {
@@ -43,7 +43,7 @@ const GAMES_LIBRARY: Game[] = [
   },
   {
     id: "2048",
-    title: "2048 Nexus Edition",
+    title: "2048 Si-Neuro Edition",
     description: "لعبة الألغاز الكلاسيكية في ثوب نكسوس الأنيق. ادمج الأرقام للوصول إلى المربع 2048.",
     thumbnail: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1000&auto=format&fit=crop",
     genre: "Puzzle",

@@ -68,7 +68,7 @@ export function ModulesGuide({ onNavigate }: { onNavigate: (tab: string) => void
             <Sparkles className="size-3" /> دليل المزامنة العصبية
           </Badge>
         </div>
-        <h1 className="text-5xl font-headline font-bold text-white tracking-tight">Nexus Architecture</h1>
+        <h1 className="text-5xl font-headline font-bold text-white tracking-tight">Si-Neuro Architecture</h1>
         <p className="text-muted-foreground text-lg leading-relaxed">
           دليلك الشامل لتعظيم الاستفادة من المنصة. يُعرض لك فقط الأدوات والميزات التي تُطابق رتبة حسابك وصلاحياتك الحالية.
         </p>

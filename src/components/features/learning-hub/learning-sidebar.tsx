@@ -20,7 +20,7 @@ interface LearningSidebarProps {
 
 /**
  * [STABILITY_ANCHOR: LEARNING_SIDEBAR_V2.0_MERGED]
- * شريط التنقل الجانبي لمركز التعلم — Nexus V2
+ * شريط التنقل الجانبي لمركز التعلم — Si-Neuro V2
  */
 export function LearningSidebar({ activeSubject, activeView, onSubjectSelect, onScheduleSelect, className }: LearningSidebarProps) {
   const getGlobalProgress = useLearningHubStore((s) => s.getGlobalProgress);

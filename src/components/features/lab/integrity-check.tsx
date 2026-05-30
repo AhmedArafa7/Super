@@ -68,7 +68,7 @@ export function IntegrityCheck({ user }: { user: any }) {
             { label: "حالة الربط", value: user ? "Active" : "Guest", icon: Activity },
             { label: "تخزين الصور", value: storage ? "Connected" : "Disconnected", icon: HardDrive },
             { label: "التصنيف", value: user?.classification || "None", icon: ShieldAlert },
-            { label: "النواة", value: "Nexus v5.5", icon: Cpu },
+            { label: "النواة", value: "Si-Neuro v5.5", icon: Cpu },
           ].map((stat, i) => (
             <div key={i} className="bg-white/5 p-6 rounded-2xl border border-white/5 flex items-center justify-between flex-row-reverse hover:bg-white/10 transition-colors group">
               <div className="size-10 rounded-xl bg-indigo-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">

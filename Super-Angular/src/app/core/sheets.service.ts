@@ -25,7 +25,7 @@ export interface DataTable {
   providedIn: 'root'
 })
 export class SheetsService {
-  private readonly STORAGE_KEY = 'nexus-sheets-registry';
+  private readonly STORAGE_KEY = 'Si-Neuro-sheets-registry';
 
   // Signals
   tables = signal<DataTable[]>([]);

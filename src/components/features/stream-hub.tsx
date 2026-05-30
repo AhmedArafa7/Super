@@ -106,7 +106,7 @@ export function StreamHub({ onOpenVault }: { onOpenVault?: () => void }) {
             StreamHub
             <Badge variant="outline" className="text-[10px] h-5 border-primary/30 text-primary uppercase">v6.0</Badge>
           </h2>
-          <p className="text-muted-foreground mt-2 text-lg text-right">فيديو مخصص يدعم Nexus Vault للوصول للمساحات الضخمة.</p>
+          <p className="text-muted-foreground mt-2 text-lg text-right">فيديو مخصص يدعم Si-Neuro Vault للوصول للمساحات الضخمة.</p>
         </div>
 
         <div className="flex items-center gap-4 flex-row-reverse">

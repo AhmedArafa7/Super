@@ -69,7 +69,7 @@ export function QuotaMonitor({ data }: { data: any }) {
       consoleUrl: `https://console.firebase.google.com/project/${projectId}/storage/usage`,
       items: [
         { label: "Firebase Storage", used: 120, limit: 5120, unit: "MB (Total)", desc: "المساحة الكلية للصور والملفات الصغيرة", color: "text-cyan-400", isTotal: true },
-        { label: "Nexus Vault (Drive)", used: 2.4, limit: 15, unit: "GB (Total)", desc: "خزنة الفيديوهات والأصول الضخمة", color: "text-indigo-400", isTotal: true, extraLink: "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g" },
+        { label: "Si-Neuro Vault (Drive)", used: 2.4, limit: 15, unit: "GB (Total)", desc: "خزنة الفيديوهات والأصول الضخمة", color: "text-indigo-400", isTotal: true, extraLink: "https://drive.google.com/drive/folders/16JnrGafk5X3lwbrrrspXE0P8d-DeJi0g" },
         { label: "Vercel Bandwidth", used: 15, limit: 100, unit: "GB (Monthly)", desc: "معدل نقل البيانات الشهري للموقع", color: "text-white", isMonthly: true, extraLink: "https://vercel.com/dashboard" }
       ]
     }

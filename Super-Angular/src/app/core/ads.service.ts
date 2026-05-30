@@ -27,7 +27,7 @@ export interface Ad {
   providedIn: 'root'
 })
 export class AdsService {
-  private readonly STORAGE_KEY = 'nexus-ads-store';
+  private readonly STORAGE_KEY = 'Si-Neuro-ads-store';
   private walletService = inject(WalletService);
 
   // Signals

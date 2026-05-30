@@ -14,7 +14,7 @@ type BeforeInstallPromptEvent = Event & {
 
 /**
  * [STABILITY_ANCHOR: DOWNLOAD_CENTER_V2.0]
- * المنسق الرئيسي لمركز التحميل — Nexus V2
+ * المنسق الرئيسي لمركز التحميل — Si-Neuro V2
  */
 export function DownloadCenter() {
   const { toast } = useToast();
@@ -34,7 +34,7 @@ export function DownloadCenter() {
     if (!deferredPrompt) {
       toast({ 
         title: "التطبيق مثبت بالفعل", 
-        description: "يمكنك فتح NexusAI مباشرة من قائمة تطبيقاتك أو سطح المكتب." 
+        description: "يمكنك فتح Si-NeuroAI مباشرة من قائمة تطبيقاتك أو سطح المكتب." 
       });
       return;
     }

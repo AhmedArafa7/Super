@@ -26,7 +26,7 @@ export interface CategorySuggestion {
   providedIn: 'root'
 })
 export class AdminService {
-  private readonly STORAGE_KEY = 'nexus-admin-store';
+  private readonly STORAGE_KEY = 'Si-Neuro-admin-store';
   private walletService = inject(WalletService);
   private marketService = inject(MarketService);
 

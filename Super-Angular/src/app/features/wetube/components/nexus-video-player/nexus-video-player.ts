@@ -10,13 +10,13 @@ export interface NeuralMetadata {
 }
 
 @Component({
-  selector: 'app-nexus-video-player',
+  selector: 'app-Si-Neuro-video-player',
   standalone: true,
   imports: [CommonModule, LucideDynamicIcon, SafePipe],
-  templateUrl: './nexus-video-player.html',
-  styleUrls: ['./nexus-video-player.scss']
+  templateUrl: './Si-Neuro-video-player.html',
+  styleUrls: ['./Si-Neuro-video-player.scss']
 })
-export class NexusVideoPlayerComponent implements AfterViewInit, OnDestroy {
+export class Si-NeuroVideoPlayerComponent implements AfterViewInit, OnDestroy {
   @Input() src = '';
   @Input() videoId = '';
   @Input() poster = '';

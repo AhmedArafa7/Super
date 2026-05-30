@@ -32,7 +32,7 @@ export const usePeerChatStore = create<PeerChatState>((set) => ({
   isLoading: false,
   activeChatId: null,
 
-  loadMessages: (currentUserId, targetUserId, platform = 'nexus') => {
+  loadMessages: (currentUserId, targetUserId, platform = 'Si-Neuro') => {
     set({ isLoading: true, messages: [] });
     const { firestore } = initializeFirebase();
     
@@ -61,7 +61,7 @@ export const usePeerChatStore = create<PeerChatState>((set) => ({
       });
     }
 
-    // الوضع الافتراضي (Nexus P2P)
+    // الوضع الافتراضي (Si-Neuro P2P)
     const chatId = [currentUserId, targetUserId].sort().join('_');
     const messagesRef = collection(firestore, 'chats', chatId, 'messages');
     const q = query(messagesRef, orderBy('timestamp', 'asc'), limit(100));
@@ -81,7 +81,7 @@ export const usePeerChatStore = create<PeerChatState>((set) => ({
     );
   },
 
-  sendMessage: async (senderId, targetUserId, data, platform = 'nexus') => {
+  sendMessage: async (senderId, targetUserId, data, platform = 'Si-Neuro') => {
     if (!data.text?.trim() && !data.imageUrl) return;
     const { firestore } = initializeFirebase();
     

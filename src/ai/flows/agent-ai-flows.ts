@@ -48,7 +48,7 @@ const agentPrompt = ai.definePrompt({
   model: 'googleai/gemini-2.5-flash',
   input: { schema: AgentCodeInputSchema },
   output: { schema: AgentCodeOutputSchema },
-  prompt: `أنت "المهندس العصبي" (Neural Architect) في نظام NexusAI. 
+  prompt: `أنت "المهندس العصبي" (Neural Architect) في نظام Si-NeuroAI. 
 مهمتك هي مساعدة المستخدم في بناء تطبيقات وبرامج متكاملة.
 
 المطلوب:

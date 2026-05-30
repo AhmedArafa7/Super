@@ -57,7 +57,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
             </Button>
             
             <p className="mt-6 text-[10px] text-muted-foreground uppercase tracking-widest font-black opacity-50">
-              Nexus Neural Guard Active
+              Si-Neuro Neural Guard Active
             </p>
           </div>
         </div>

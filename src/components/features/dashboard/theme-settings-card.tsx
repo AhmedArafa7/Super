@@ -49,7 +49,7 @@ export function ThemeSettingsCard({ user }: ThemeSettingsCardProps) {
   const handlePurchaseTheme = async (slug: string) => {
     setIsUpdating(true);
     try {
-      const currentOwned = user?.ownedThemes || ['nexus'];
+      const currentOwned = user?.ownedThemes || ['Si-Neuro'];
       await purchaseTheme(user.id, slug, currentOwned);
       toast({ title: "تم الحصول على التصميم بنجاح!" });
       setTimeout(() => window.location.reload(), 800);
@@ -85,7 +85,7 @@ export function ThemeSettingsCard({ user }: ThemeSettingsCardProps) {
             </div>
             <div>
               <h4 className="font-bold text-white leading-tight">الوضع الليلي (Dark Mode)</h4>
-              <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[200px]">يُطبق فقط على التصميمات التي تدعم الوضعين. تصميم Nexus ليلي دائماً.</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[200px]">يُطبق فقط على التصميمات التي تدعم الوضعين. تصميم Si-Neuro ليلي دائماً.</p>
             </div>
           </div>
           <Switch checked={themeMode === 'dark'} onCheckedChange={handleToggleThemeMode} dir="ltr" />

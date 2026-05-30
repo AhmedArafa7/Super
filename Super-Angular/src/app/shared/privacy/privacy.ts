@@ -22,7 +22,7 @@ export class PrivacyConsentComponent implements OnInit {
   requiredDeclineText = 'أرفض المشاركة';
 
   ngOnInit(): void {
-    const consent = localStorage.getItem('nexus-data-consent-v1');
+    const consent = localStorage.getItem('Si-Neuro-data-consent-v1');
     if (!consent) {
       this.isOpen.set(true);
     }
@@ -45,7 +45,7 @@ export class PrivacyConsentComponent implements OnInit {
 
     this.isUpdating.set(true);
     setTimeout(() => {
-      localStorage.setItem('nexus-data-consent-v1', choice);
+      localStorage.setItem('Si-Neuro-data-consent-v1', choice);
       this.isOpen.set(false);
       this.isUpdating.set(false);
     }, 800);

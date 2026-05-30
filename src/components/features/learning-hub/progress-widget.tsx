@@ -13,7 +13,7 @@ interface ProgressWidgetProps {
 
 /**
  * [STABILITY_ANCHOR: PROGRESS_WIDGET_V2.0_MERGED]
- * واجهة التقدم الأكاديمي المطورة — Nexus V2
+ * واجهة التقدم الأكاديمي المطورة — Si-Neuro V2
  */
 export function ProgressWidget({ subjectId, compact = false }: ProgressWidgetProps) {
   const getProgress = useLearningHubStore((s) => s.getProgress);

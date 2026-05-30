@@ -24,7 +24,7 @@ export class DownloadsComponent implements OnInit {
   deferredPrompt = signal<BeforeInstallPromptEvent | null>(null);
 
   // Constants
-  APK_DOWNLOAD_URL = "https://github.com/AhmedArafa7/Super/releases/download/mobile-latest/nexusai-latest.apk";
+  APK_DOWNLOAD_URL = "https://github.com/AhmedArafa7/Super/releases/download/mobile-latest/Si-Neuroai-latest.apk";
 
   // Section categories definitions
   sectionsList = [
