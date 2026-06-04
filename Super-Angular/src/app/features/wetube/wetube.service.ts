@@ -1,10 +1,17 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { Video, YouTubeSubscription, FeedVideo, HistoryItem, WeTubeTab, ContentItem } from './wetube.model';
+import { FirebaseService } from '../../core/services/firebase.service';
+import { YoutubeDiscoveryService, VideoDetails, YouTubeComment } from '../../core/services/youtube-discovery.service';
+import { YoutubeDataService, YouTubeChannelStats, YouTubeVideo } from '../../core/services/youtube-data.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class WeTubeService {
+  private firebaseService = inject(FirebaseService);
+  private discoveryService = inject(YoutubeDiscoveryService);
+  private dataService = inject(YoutubeDataService);
+
   // Core State
   readonly videos = signal<Video[]>([]);
   readonly subscriptions = signal<YouTubeSubscription[]>([]);
@@ -12,7 +19,7 @@ export class WeTubeService {
   readonly trendingVideos = signal<FeedVideo[]>([]);
   readonly searchResults = signal<FeedVideo[]>([]);
   readonly shortsFeed = signal<FeedVideo[]>([]);
-  
+
   // UI State
   readonly activeTab = signal<WeTubeTab>('home');
   readonly activeCategory = signal<string>('الكل');
@@ -20,85 +27,22 @@ export class WeTubeService {
   readonly isSearching = signal<boolean>(false);
   readonly isFeedLoading = signal<boolean>(false);
   readonly isShortsLoading = signal<boolean>(false);
-  
+
   // Active Content Context
   readonly activeChannel = signal<{ id: string, name: string, avatar?: string } | null>(null);
   readonly channelVideos = signal<FeedVideo[]>([]);
-  
+
   // History State
   readonly history = signal<HistoryItem[]>([]);
   readonly remoteHistory = signal<FeedVideo[]>([]);
 
-  constructor() {
-    // Inject Dummy Data for UI Verification
-    this.videos.set([
-      {
-        id: '1',
-        title: 'بناء نظام الذكاء الاصطناعي الخاص بك من الصفر',
-        author: 'Si-Neuro Engineering',
-        authorId: 'ch1',
-        source: 'platform',
-        time: 'منذ ساعتين',
-        thumbnail: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800',
-        channelAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Si-Neuro',
-        category: 'تكنولوجيا',
-        status: 'published'
-      },
-      {
-        id: '2',
-        title: 'أفضل ممارسات Angular 21 مع Signals',
-        author: 'Code Master',
-        authorId: 'ch2',
-        source: 'platform',
-        time: 'منذ يومين',
-        thumbnail: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800',
-        channelAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Code',
-        category: 'برمجة',
-        status: 'published'
-      },
-      {
-        id: '3',
-        title: 'استعراض أداء Si-Neuro Video Player الجديد',
-        author: 'Si-Neuro OS',
-        authorId: 'ch3',
-        source: 'youtube',
-        time: 'منذ 5 ساعات',
-        thumbnail: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&q=80&w=800',
-        channelAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=OS',
-        category: 'تكنولوجيا',
-        status: 'published'
-      },
-      {
-        id: '4',
-        title: 'ملخص مؤتمر التكنولوجيا لعام 2026',
-        author: 'Tech News',
-        authorId: 'ch4',
-        source: 'youtube',
-        time: 'منذ أسبوع',
-        thumbnail: 'https://images.unsplash.com/photo-1540553016722-983e48a2cd10?auto=format&fit=crop&q=80&w=800',
-        channelAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tech',
-        category: 'أخبار',
-        status: 'published'
-      },
-      {
-        id: '5',
-        title: 'تطوير الألعاب المستقلة باستخدام Unity',
-        author: 'Game Devs',
-        authorId: 'ch5',
-        source: 'platform',
-        time: 'منذ 3 أسابيع',
-        thumbnail: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=800',
-        channelAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Game',
-        category: 'ألعاب',
-        status: 'published'
-      }
-    ]);
+  // Video details
+  readonly currentVideoDetails = signal<VideoDetails | null>(null);
+  readonly currentVideoComments = signal<YouTubeComment[]>([]);
 
-    this.subscriptions.set([
-      { id: 'sub1', channelId: 'ch1', channelTitle: 'Si-Neuro Engineering', avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Si-Neuro' },
-      { id: 'sub2', channelId: 'ch2', channelTitle: 'Code Master', avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Code' }
-    ]);
-  }
+  // Channel stats (for the authenticated YouTube channel)
+  readonly myChannelStats = signal<YouTubeChannelStats | null>(null);
+  readonly myVideos = signal<YouTubeVideo[]>([]);
 
   // Computed State: allHomeContent
   readonly allHomeContent = computed(() => {
@@ -121,13 +65,6 @@ export class WeTubeService {
       });
     }
 
-    // Default combinations (Platform + Subscriptions Feed)
-    const platformVids = this.videos().filter(v => v.status === 'published').map(v => ({
-      ...v,
-      source: v.source || 'platform',
-      channelAvatar: v.channelAvatar || subs.find(s => s.channelId === v.authorId)?.avatarUrl
-    }));
-
     const feedVids = this.feedVideos().map(v => ({
       ...v,
       source: 'youtube' as const,
@@ -144,24 +81,23 @@ export class WeTubeService {
 
     let combined: ContentItem[] = [];
     const tab = this.activeTab();
-    
-    if (tab === 'home') combined = [...platformVids, ...feedVids];
+
+    if (tab === 'home') combined = [...feedVids, ...trendingVids];
     else if (tab === 'explore') combined = trendingVids;
-    else combined = [...platformVids, ...feedVids, ...trendingVids];
+    else combined = [...feedVids, ...trendingVids];
 
     const category = this.activeCategory();
     if (category === 'تريند') combined = trendingVids;
     else if (category !== 'الكل') {
-      combined = combined.filter(v => 
-        v.title.toLowerCase().includes(category.toLowerCase()) || 
+      combined = combined.filter(v =>
+        v.title.toLowerCase().includes(category.toLowerCase()) ||
         v.category === category
       );
     }
 
-    // Sort chronologically
     return combined.sort((a, b) => {
-      const aTime = a.fetchedAt || new Date(a.time || 0).getTime();
-      const bTime = b.fetchedAt || new Date(b.time || 0).getTime();
+      const aTime = (a as any).fetchedAt || new Date(a.time || 0).getTime();
+      const bTime = (b as any).fetchedAt || new Date(b.time || 0).getTime();
       return bTime - aTime;
     });
   });
@@ -186,18 +122,119 @@ export class WeTubeService {
     this.searchQuery.set('');
   }
 
-  // TODO: Add backend/API methods to fetch actual data
-  async search(query: string) {
+  // ── Real data fetching ─────────────────────────────────────
+
+  async loadTrending(): Promise<void> {
+    this.isFeedLoading.set(true);
+    this.discoveryService.fetchTrending().subscribe({
+      next: (videos) => {
+        this.trendingVideos.set(videos);
+        if (this.feedVideos().length === 0) {
+          this.feedVideos.set(videos);
+        }
+        this.isFeedLoading.set(false);
+      },
+      error: (err) => {
+        console.error('[WeTubeService] loadTrending failed:', err);
+        this.isFeedLoading.set(false);
+      }
+    });
+  }
+
+  async search(query: string): Promise<void> {
     this.isSearching.set(true);
     this.setSearchQuery(query);
-    try {
-      // Simulate API call
-      // const results = await api.searchYouTube(query);
-      // this.searchResults.set(results);
-    } catch (e) {
-      console.error(e);
-    } finally {
+    if (!query.trim()) {
+      this.searchResults.set([]);
       this.isSearching.set(false);
+      return;
     }
+
+    this.discoveryService.searchYouTube(query).subscribe({
+      next: (videos) => {
+        this.searchResults.set(videos);
+        this.isSearching.set(false);
+      },
+      error: (err) => {
+        console.error('[WeTubeService] search failed:', err);
+        this.searchResults.set([]);
+        this.isSearching.set(false);
+      }
+    });
+  }
+
+  async loadVideoDetails(videoId: string): Promise<void> {
+    this.discoveryService.fetchVideoDetails(videoId).subscribe({
+      next: (details) => {
+        this.currentVideoDetails.set(details);
+        if (details) {
+          this.firebaseService.addToHistory({
+            videoId: details.id,
+            title: details.title,
+            thumbnail: details.thumbnail || `https://img.youtube.com/vi/${details.id}/hqdefault.jpg`,
+            author: details.author,
+            watchedAt: Date.now()
+          });
+        }
+      },
+      error: (err) => console.error('[WeTubeService] loadVideoDetails failed:', err)
+    });
+  }
+
+  async loadVideoComments(videoId: string): Promise<void> {
+    this.discoveryService.fetchVideoComments(videoId).subscribe({
+      next: (comments) => this.currentVideoComments.set(comments),
+      error: (err) => console.error('[WeTubeService] loadVideoComments failed:', err)
+    });
+  }
+
+  async loadMyYouTubeData(): Promise<void> {
+    const uid = this.firebaseService.getUserId();
+    if (!uid) return;
+
+    this.dataService.getMyStats(uid).subscribe({
+      next: (stats) => this.myChannelStats.set(stats),
+      error: (err) => console.error('[WeTubeService] loadMyYouTubeData stats failed:', err)
+    });
+
+    this.dataService.getMyVideos(uid).subscribe({
+      next: (videos) => this.myVideos.set(videos),
+      error: (err) => console.error('[WeTubeService] loadMyYouTubeData videos failed:', err)
+    });
+  }
+
+  async loadMySubscriptions(): Promise<void> {
+    const ytAccount = this.firebaseService.getYouTubeAccount();
+    if (!ytAccount?.accessToken) return;
+
+    this.dataService.fetchMySubscriptions(ytAccount.accessToken).subscribe({
+      next: (subs) => {
+        this.subscriptions.set(subs.map(s => ({
+          id: s.channelId,
+          channelId: s.channelId,
+          channelTitle: s.title,
+          avatarUrl: s.thumbnail
+        })));
+      },
+      error: (err) => console.error('[WeTubeService] loadMySubscriptions failed:', err)
+    });
+  }
+
+  startYouTubeAuth(): void {
+    const uid = this.firebaseService.getUserId();
+    if (!uid) {
+      console.warn('[WeTubeService] No user id, cannot start YouTube OAuth');
+      return;
+    }
+    const authUrl = this.dataService.getLoginUrl(uid);
+    window.location.href = authUrl;
+  }
+
+  // ── Initialization ─────────────────────────────────────────
+
+  initialize(): void {
+    this.loadTrending();
+    this.loadMyYouTubeData();
+    this.loadMySubscriptions();
   }
 }

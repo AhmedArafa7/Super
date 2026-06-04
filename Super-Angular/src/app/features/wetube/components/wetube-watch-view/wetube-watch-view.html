@@ -1,58 +1,78 @@
-<div class="flex flex-col lg:flex-row w-full max-w-[1500px] mx-auto pt-16 px-0 sm:px-6 lg:px-8 gap-0 sm:gap-6 pb-20" dir="rtl">
+<div class="watch-view-container" dir="rtl">
   @if (video(); as vid) {
-    <!-- Left Column: Player, Actions, Description, Comments -->
-    <div class="flex-1 lg:max-w-[calc(100%-400px)] flex flex-col min-w-0">
-      <div class="aspect-video w-full rounded-xl overflow-hidden shadow-2xl bg-black mb-4 relative z-10 border border-white/5">
-        <app-Si-Neuro-video-player
-          [src]="vid.url || ''"
-          [videoId]="vid.id"
-          [poster]="vid.thumbnail || ''"
-          [title]="vid.title"
-          [author]="vid.author"
-          [authorAvatar]="vid.channelAvatar || ''"
-          [autoPlay]="true"
-          [sourceType]="vid.source === 'youtube' ? 'youtube' : 'local'"
-        ></app-Si-Neuro-video-player>
+    <div class="watch-layout">
+      <!-- Main Content -->
+      <div class="main-content">
+        <!-- Video Player -->
+        <app-watch-player
+          [videoUrl]="vid.url || ''"
+          [thumbnail]="vid.thumbnail || ''"
+          [title]="vid.title">
+        </app-watch-player>
+
+        <!-- Source Detector -->
+        <div class="source-info">
+          <app-video-source-detector [url]="vid.url || ''" [source]="vid.source"></app-video-source-detector>
+        </div>
+
+        <!-- Title -->
+        <h1 class="video-title">{{ vid.title }}</h1>
+
+        <!-- Actions -->
+        <app-watch-actions
+          [likes]="likes()"
+          [isLiked]="isLiked()"
+          [isDisliked]="isDisliked()"
+          [isSubscribed]="isSubscribed()"
+          [channelName]="vid.author"
+          (like)="onLike()"
+          (dislike)="onDislike()"
+          (subscribe)="onSubscribe()"
+          (share)="onShare()"
+          (download)="onDownload()"
+          (clip)="onClip()"
+          (save)="onSave()">
+        </app-watch-actions>
+
+        <!-- Product Selector -->
+        <div *ngIf="showProductSelector()" class="product-selector-container">
+          <app-video-product-selector
+            [selectedProducts]="selectedProducts()"
+            [displayMode]="productDisplayMode()"
+            (update)="onProductUpdate($event)">
+          </app-video-product-selector>
+        </div>
+
+        <!-- Description -->
+        <app-watch-description
+          [description]="'في هذا الفيديو، نستعرض ' + vid.title + ' ضمن سلسلة المحتوى التقني الخاص بنا. نتمنى أن تستفيدوا من هذا الشرح ونرحب بتعليقاتكم واستفساراتكم في الأسفل.'"
+          [views]="likes()"
+          [date]="vid.time || ''"
+          [category]="vid.category || ''">
+        </app-watch-description>
+
+        <!-- Native Ad -->
+        <app-nexus-native-ads adSlot="watch-1" [category]="vid.category || ''"></app-nexus-native-ads>
+
+        <!-- Product Shelf -->
+        <app-watch-product-shelf
+          *ngIf="productDisplayMode() === 'shelf' && selectedProducts().length > 0"
+          [products]="[]">
+        </app-watch-product-shelf>
+
+        <!-- Comments -->
+        <app-watch-comments></app-watch-comments>
       </div>
 
-      <div class="px-4 sm:px-0 flex flex-col">
-        <!-- Title & Actions placeholder -->
-        <h1 class="text-2xl font-bold text-white mb-2">{{ vid.title }}</h1>
-        <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-4">
-          <div class="flex items-center gap-3">
-            <img [src]="vid.channelAvatar || 'assets/default-avatar.png'" class="w-10 h-10 rounded-full" />
-            <span class="text-white font-bold">{{ vid.author }}</span>
-          </div>
-          <div class="flex gap-2">
-            <button class="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full font-bold transition">إعجاب</button>
-            <button class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-full font-bold transition" (click)="onClose()">إغلاق</button>
-          </div>
-        </div>
-        
-        <!-- Description placeholder -->
-        <div class="bg-white/5 rounded-xl p-4">
-          <p class="text-white/70">{{ vid.time }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Right Column: Related Videos placeholder -->
-    <div class="w-full lg:w-[350px] shrink-0 px-4 sm:px-0 mt-8 lg:mt-0 space-y-4">
-      <h3 class="text-lg font-bold text-white">فيديوهات ذات صلة</h3>
-      <div class="space-y-3">
-        <!-- Related Item Skeleton -->
-        <div class="flex gap-3 animate-pulse">
-          <div class="w-32 h-20 bg-white/10 rounded-lg shrink-0"></div>
-          <div class="flex-1 space-y-2 py-1">
-            <div class="h-4 bg-white/10 rounded w-full"></div>
-            <div class="h-3 bg-white/10 rounded w-2/3"></div>
-          </div>
-        </div>
+      <!-- Sidebar (Recommendations) -->
+      <div class="sidebar-content">
+        <app-watch-sidebar></app-watch-sidebar>
       </div>
     </div>
   } @else {
-    <div class="w-full h-full flex items-center justify-center pt-32">
-      <div class="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>جاري التحميل...</p>
     </div>
   }
 </div>
