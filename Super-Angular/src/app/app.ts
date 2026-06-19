@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { AppShellComponent } from './layout/app-shell/app-shell';
+import { SyncService } from './core/services/sync.service';
 
 @Component({
   selector: 'app-root',
@@ -8,4 +9,6 @@ import { AppShellComponent } from './layout/app-shell/app-shell';
   templateUrl: './app.html',
   styleUrls: ['./app.scss']
 })
-export class App {}
+export class App {
+  private syncService = inject(SyncService);
+}
