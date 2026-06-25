@@ -32,7 +32,7 @@ const FALLBACK_AD: Ad = {
  * [STABILITY_ANCHOR: Si-Neuro_NATIVE_ADS_V2.0]
  * High-fidelity native ad component refactored for professional modularity.
  */
-export function Si-NeuroNativeAds({ type, category, className }: NativeAdProps) {
+export function SiNeuroNativeAds({ type, category, className }: NativeAdProps) {
   const { ad, isLoading, containerRef, handleAdClick } = useAdLogic({
     type, 
     category, 

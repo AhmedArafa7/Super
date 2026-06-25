@@ -7,7 +7,7 @@ import {
   signInWithCredentials, signUpWithCredentials, sanitizeUsername
 } from '@/lib/auth-store';
 import { initializeFirebase } from '@/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, onIdTokenChanged } from 'firebase/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -37,17 +37,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { auth } = initializeFirebase();
     
+    const broadcastSessionToIframes = async (userProfile: User | null, firebaseUser: any) => {
+      const iframes = document.querySelectorAll('iframe');
+      if (iframes.length === 0) return;
+
+      const payload = {
+        type: 'SI_NEURO_AUTH_RESPONSE',
+        user: userProfile,
+        token: firebaseUser ? await firebaseUser.getIdToken() : null,
+      };
+
+      iframes.forEach(iframe => {
+        if (iframe.contentWindow) {
+          try {
+            const url = iframe.src ? new URL(iframe.src) : null;
+            if (url) {
+              const allowedOrigins = ['http://localhost:4200', 'http://localhost:9002', window.location.origin];
+              if (allowedOrigins.includes(url.origin)) {
+                iframe.contentWindow.postMessage(payload, url.origin);
+              }
+            }
+          } catch(e) { }
+        }
+      });
+    };
+
+    const handleMessage = async (event: MessageEvent) => {
+      const allowedOrigins = ['http://localhost:4200', 'http://localhost:9002', window.location.origin];
+      if (!allowedOrigins.includes(event.origin)) return;
+
+      if (event.data?.type === 'SI_NEURO_AUTH_REQUEST') {
+         const currentUser = getSession();
+         const firebaseUser = auth.currentUser;
+         event.source?.postMessage({
+            type: 'SI_NEURO_AUTH_RESPONSE',
+            user: currentUser,
+            token: firebaseUser ? await firebaseUser.getIdToken() : null
+         }, { targetOrigin: event.origin } as WindowPostMessageOptions);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+
     // مراقبة حالة Firebase Auth - المصدر الوحيد للحقيقة
-    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribeAuth = onIdTokenChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
           const profile = await ensureUserProfile(firebaseUser);
           setSession(profile);
           setUser(profile);
           localStorage.removeItem('manual_logout');
+          await broadcastSessionToIframes(profile, firebaseUser);
         } catch (err) {
           console.error("Profile Sync Error:", err);
           setUser(null);
+          await broadcastSessionToIframes(null, null);
         }
         setLoading(false);
       } else {
@@ -71,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           sessionStorage.clear();
           setSession(null);
           setUser(null);
+          await broadcastSessionToIframes(null, null);
           setLoading(false);
           return;
         }
@@ -97,6 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       unsubscribeAuth();
       window.removeEventListener('auth-update', handleUpdate);
+      window.removeEventListener('message', handleMessage);
     };
   }, []);
 

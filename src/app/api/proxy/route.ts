@@ -81,14 +81,14 @@ async function handleProxyRequest(request: NextRequest) {
     if (contentType.includes('text/html')) {
       let html = await response.text();
       const targetOrigin = new URL(targetUrl).origin;
-      const Si-NeuroOrigin = request.nextUrl.origin;
+      const SiNeuroOrigin = request.nextUrl.origin;
 
       // سكريبت الافتراضية المزدوجة (Universal Isolation)
       const bootScript = `
         <script>
           (function() {
             window.__Si-Neuro_TARGET_ORIGIN__ = "${targetOrigin}";
-            window.__Si-Neuro_ORIGIN__ = "${Si-NeuroOrigin}";
+            window.__Si-Neuro_ORIGIN__ = "${SiNeuroOrigin}";
             
             // 1. الافتراضية الشاملة للتخزين (Virtual Storage Jar)
             const createVirtualStore = (type) => {

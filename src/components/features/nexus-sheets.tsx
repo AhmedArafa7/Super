@@ -66,7 +66,7 @@ const EditableCell = memo(({ value, type, onChange }: { value: any, type: string
 
 EditableCell.displayName = 'EditableCell';
 
-export function Si-NeuroSheets() {
+export function SiNeuroSheets() {
   const [tables, setTables] = useState<DataTable[]>([]);
   const [activeTableId, setActiveTableId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');

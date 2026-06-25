@@ -11,7 +11,7 @@ import { getChunk, saveChunk } from "@/lib/wetube-pro-cache-manager";
 import { useProStore, ConsumptionRecord, shouldRenderFrame } from "@/lib/wetube-pro-engine";
 import { useSectionSettingsStore } from "@/lib/section-settings-store";
 
-interface Si-NeuroVideoPlayerProps {
+interface SiNeuroVideoPlayerProps {
     src: string;
     videoId?: string;
     poster?: string;
@@ -31,7 +31,7 @@ interface Si-NeuroVideoPlayerProps {
     neuralMetadata?: NeuralMetadata;
 }
 
-export function Si-NeuroVideoPlayer({
+export function SiNeuroVideoPlayer({
     src,
     videoId,
     poster,
@@ -45,7 +45,7 @@ export function Si-NeuroVideoPlayer({
     title,
     author,
     authorAvatar
-}: Si-NeuroVideoPlayerProps) {
+}: SiNeuroVideoPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
