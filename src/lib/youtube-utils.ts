@@ -11,11 +11,11 @@ export function extractYouTubeId(url: string | undefined): string | null {
   if (!url) return null;
   
   // Standard ID matches (11 characters)
-  const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+  const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?)|(shorts\/)|(live\/))\??v?=?([^#&?]*).*/;
   const match = url.match(regExp);
   
-  if (match && match[7].length === 11) {
-    return match[7];
+  if (match && match[9].length === 11) {
+    return match[9];
   }
   
   // Handing already extracted ID
