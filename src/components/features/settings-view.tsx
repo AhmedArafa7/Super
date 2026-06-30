@@ -5,8 +5,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { 
   Settings, Volume2, ShieldAlert, Cpu, 
   Trash2, Save, Play, Square, Download, 
-  Globe, Moon, Sparkles, Zap, Info, Activity
+  Globe, Moon, Sparkles, Zap, Info, Activity,
+  User, Chrome, Github, Key, UserMinus
 } from "lucide-react";
+import { useAuth } from "@/components/auth/auth-provider";
+import { initializeFirebase } from "@/firebase";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +31,29 @@ import { toast } from "@/hooks/use-toast";
  * واجهة الإعدادات المركزية - تتضمن مختبر الصوت العصبي (TTS Lab).
  */
 export function SettingsView() {
+  const { user } = useAuth();
+  const [provider, setProvider] = useState<string | null>(null);
+
+  useEffect(() => {
+    const { auth } = initializeFirebase();
+    const unsubscribe = auth.onAuthStateChanged((fbUser) => {
+      if (!fbUser) {
+        setProvider(null);
+        return;
+      }
+      if (fbUser.isAnonymous) {
+        setProvider("anonymous");
+        return;
+      }
+      const providers = fbUser.providerData.map(p => p.providerId);
+      if (providers.includes('google.com')) setProvider("google");
+      else if (providers.includes('github.com')) setProvider("github");
+      else if (providers.includes('password')) setProvider("credentials");
+      else setProvider(null);
+    });
+    return () => unsubscribe();
+  }, []);
+
   const { settings, updateVoiceSettings, updateGeneralSettings, downloadVoice, isLoading } = useSettingsStore();
   const { usageLog, totalSavedMB, clearLog } = useProStore();
   const { sidebarIconShortcutEnabled, setSidebarIconShortcutEnabled } = usePreferencesStore();
@@ -214,6 +240,47 @@ export function SettingsView() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* العمود الجانبي للإعدادات العامة */}
         <div className="lg:col-span-1 space-y-6">
+          {/* بطاقة الحساب والملف الشخصي */}
+          <Card className="glass border-white/5 p-6 rounded-[2rem] space-y-6">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2 justify-end">
+              الحساب والملف الشخصي
+              <User className="size-5 text-indigo-400" />
+            </h3>
+            
+            <div className="flex flex-col items-center text-center gap-3 pt-2">
+              <img 
+                src={user?.avatar_url || `https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=4f46e5&color=fff`} 
+                alt="User avatar" 
+                className="w-16 h-16 rounded-full object-cover border-2 border-indigo-500/30 shadow-lg shadow-indigo-500/10"
+              />
+              
+              <div>
+                <h4 className="text-sm font-black text-white">{user?.name || 'مستخدم جديد'}</h4>
+                <p className="text-[10px] text-indigo-400 font-bold uppercase mt-0.5">
+                  {user?.role === 'founder' ? 'مؤسس النظام 👑' : user?.role === 'admin' ? 'مدير النظام 🛡️' : user?.role === 'reviewer' ? 'مراجع محتوى 🔍' : 'عضو نشط ⚡'}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t border-white/10 text-right">
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase font-black text-muted-foreground block leading-none">البريد الإلكتروني</span>
+                <span className="text-xs font-bold text-slate-300 font-mono select-all">{user?.email || 'لا يوجد بريد إلكتروني'}</span>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase font-black text-muted-foreground block leading-none mb-1">طريقة تسجيل الدخول</span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-bold text-white flex-row-reverse select-none">
+                  {provider === 'google' && <><Chrome className="size-3 text-red-400" /> Google (جوجل)</>}
+                  {provider === 'github' && <><Github className="size-3 text-white" /> GitHub (جيتهاب)</>}
+                  {provider === 'credentials' && <><Key className="size-3 text-amber-400" /> اسم مستخدم وكلمة مرور</>}
+                  {provider === 'anonymous' && <><UserMinus className="size-3 text-slate-400" /> حساب زائر مؤقت (Anonymous)</>}
+                  {!provider && <><UserMinus className="size-3 text-slate-400" /> غير متصل</>}
+                </span>
+              </div>
+            </div>
+          </Card>
+
           <Card className="glass border-white/5 p-6 rounded-[2rem] space-y-6">
             <h3 className="text-lg font-bold text-white flex items-center gap-2 justify-end">
               الواجهة واللغة
